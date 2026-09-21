@@ -63,6 +63,30 @@ public sealed class LocalDatabase
         using var r=c.ExecuteReader();var result=new List<Hymn>();while(r.Read())result.Add(new(r.GetInt32(0),r.GetInt32(1),r.GetString(2),r.GetString(3),r.GetString(4)));return result;
     }
 
+    public IReadOnlyList<MediaLibraryItem> GetMedia(string query = "")
+    {
+        using var db=new SqliteConnection(ConnectionString);db.Open();using var c=db.CreateCommand();
+        c.CommandText="SELECT Id,Name,Path,Kind FROM MediaItem WHERE lower(Name||' '||Path) LIKE $q ORDER BY Name";
+        c.Parameters.AddWithValue("$q","%"+query.ToLowerInvariant()+"%");
+        using var r=c.ExecuteReader();var result=new List<MediaLibraryItem>();
+        while(r.Read())result.Add(new(r.GetInt32(0),r.GetString(1),r.GetString(2),r.GetString(3)));
+        return result;
+    }
+
+    public MediaLibraryItem AddMedia(string path)
+    {
+        var fullPath=Path.GetFullPath(path);
+        if(!File.Exists(fullPath))throw new FileNotFoundException("El archivo seleccionado ya no existe.",fullPath);
+        var ext=Path.GetExtension(fullPath).ToLowerInvariant();
+        var kind=new[]{".jpg",".jpeg",".png",".webp",".bmp",".gif"}.Contains(ext)?"Image":"Video";
+        using var db=new SqliteConnection(ConnectionString);db.Open();using var c=db.CreateCommand();
+        c.CommandText="SELECT Id,Name,Path,Kind FROM MediaItem WHERE Path=$p LIMIT 1";c.Parameters.AddWithValue("$p",fullPath);
+        using(var r=c.ExecuteReader())if(r.Read())return new(r.GetInt32(0),r.GetString(1),r.GetString(2),r.GetString(3));
+        c.Parameters.Clear();c.CommandText="INSERT INTO MediaItem(Name,Path,Kind) VALUES($n,$p,$k); SELECT last_insert_rowid();";
+        c.Parameters.AddWithValue("$n",Path.GetFileName(fullPath));c.Parameters.AddWithValue("$p",fullPath);c.Parameters.AddWithValue("$k",kind);
+        var id=Convert.ToInt32((long)c.ExecuteScalar()!);return new(id,Path.GetFileName(fullPath),fullPath,kind);
+    }
+
     public WorshipService SaveService(WorshipService service)
     {
         using var db=new SqliteConnection(ConnectionString);db.Open();using var tx=db.BeginTransaction(); service.UpdatedAt=DateTime.Now;

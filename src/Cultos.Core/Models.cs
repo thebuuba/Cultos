@@ -10,6 +10,10 @@ public sealed record BibleVerse(int Id, string Book, int Chapter, int Verse, str
 
 public sealed record Hymn(int Id, int Number, string Title, string Lyrics, string Sections);
 public sealed record LibrarySong(int Id, string Title, string Author, string Lyrics, string Tags);
+public sealed record MediaLibraryItem(int Id, string Name, string Path, string Kind)
+{
+    public bool Exists => File.Exists(Path);
+}
 
 public sealed class ServiceItem
 {

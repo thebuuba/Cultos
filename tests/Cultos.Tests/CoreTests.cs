@@ -12,6 +12,7 @@ public sealed class CoreTests : IDisposable
     [Fact] public void SearchesHymnNumber(){var db=CreateDb();var found=db.SearchHymns("Himno 156");Assert.Single(found);Assert.Equal(156,found[0].Number);}
     [Fact] public void SplitsLongText(){var text=string.Join(' ',Enumerable.Repeat("palabra",50));var slides=TextPaginator.Split(text,80);Assert.True(slides.Count>1);Assert.All(slides,x=>Assert.True(x.Length<=80));}
     [Fact] public void DetectsMissingMedia(){var db=CreateDb();Assert.False(db.MediaExists(new(){MediaPath=Path.Combine(_folder,"missing.mp4")}));}
+    [Fact] public void AddsAndFindsMedia(){var db=CreateDb();Directory.CreateDirectory(_folder);var file=Path.Combine(_folder,"anuncio.png");File.WriteAllBytes(file,[1,2,3]);var added=db.AddMedia(file);var found=db.GetMedia("anuncio");Assert.Equal("Image",added.Kind);Assert.Single(found);Assert.True(found[0].Exists);}
     [Fact] public void RecoversActiveService(){var db=CreateDb();var s=db.SaveService(new(){Name="Recuperable"});Assert.Equal(s.Id,db.LoadActive()!.Id);}
     [Fact] public void ExportsAndImportsBackup(){var db=CreateDb();var s=db.SaveService(new(){Name="Exportado",Items=[new(){Title="Texto",Content="Contenido"}]});var file=Path.Combine(_folder,"backup.cultos");db.ExportService(s,file);var imported=db.ImportService(file);Assert.NotEqual(s.Id,imported.Id);Assert.Single(imported.Items);}
     public void Dispose(){if(Directory.Exists(_folder))Directory.Delete(_folder,true);}
