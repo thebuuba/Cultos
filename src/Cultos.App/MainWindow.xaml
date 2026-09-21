@@ -44,8 +44,8 @@
                 <ColumnDefinition Width="5"/>
                 <ColumnDefinition Width="310" MinWidth="220"/>
                 <ColumnDefinition Width="5"/>
-                <ColumnDefinition Width="350" MinWidth="240"/>
-                <ColumnDefinition Width="5"/>
+                <ColumnDefinition x:Name="OrderColumn" Width="0" MinWidth="0"/>
+                <ColumnDefinition x:Name="OrderSplitterColumn" Width="0"/>
                 <ColumnDefinition Width="*" MinWidth="340"/>
             </Grid.ColumnDefinitions>
 
