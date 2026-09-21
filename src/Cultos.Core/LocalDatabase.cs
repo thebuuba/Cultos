@@ -63,6 +63,34 @@ public sealed class LocalDatabase
         using var r=c.ExecuteReader();var result=new List<Hymn>();while(r.Read())result.Add(new(r.GetInt32(0),r.GetInt32(1),r.GetString(2),r.GetString(3),r.GetString(4)));return result;
     }
 
+    public List<LibrarySong> SearchSongs(string query)
+    {
+        using var db=new SqliteConnection(ConnectionString);db.Open();using var c=db.CreateCommand();
+        c.CommandText="SELECT Id,Title,Author,Lyrics,Tags FROM Song WHERE lower(Title||' '||Author||' '||Lyrics||' '||Tags) LIKE $q ORDER BY Title LIMIT 100";
+        c.Parameters.AddWithValue("$q","%"+query.ToLowerInvariant()+"%");
+        using var r=c.ExecuteReader();var result=new List<LibrarySong>();
+        while(r.Read())result.Add(new(r.GetInt32(0),r.GetString(1),r.GetString(2),r.GetString(3),r.GetString(4)));
+        return result;
+    }
+
+    public LibrarySong SaveSong(string title,string author,string lyrics,string tags="")
+    {
+        using var db=new SqliteConnection(ConnectionString);db.Open();using var c=db.CreateCommand();
+        c.CommandText="INSERT INTO Song(Title,Author,Lyrics,Tags) VALUES($t,$a,$l,$g); SELECT last_insert_rowid();";
+        c.Parameters.AddWithValue("$t",title.Trim());c.Parameters.AddWithValue("$a",author.Trim());c.Parameters.AddWithValue("$l",lyrics);c.Parameters.AddWithValue("$g",tags.Trim());
+        var id=Convert.ToInt32((long)c.ExecuteScalar()!);
+        return new(id,title.Trim(),author.Trim(),lyrics,tags.Trim());
+    }
+
+    public List<WorshipService> ListServices()
+    {
+        using var db=new SqliteConnection(ConnectionString);db.Open();using var c=db.CreateCommand();
+        c.CommandText="SELECT Id,Name,Date,UpdatedAt FROM Service ORDER BY UpdatedAt DESC";
+        using var r=c.ExecuteReader();var result=new List<WorshipService>();
+        while(r.Read())result.Add(new WorshipService{Id=r.GetInt32(0),Name=r.GetString(1),Date=DateTime.Parse(r.GetString(2)),UpdatedAt=DateTime.Parse(r.GetString(3))});
+        return result;
+    }
+
     public IReadOnlyList<MediaLibraryItem> GetMedia(string query = "")
     {
         using var db=new SqliteConnection(ConnectionString);db.Open();using var c=db.CreateCommand();
