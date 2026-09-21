@@ -25,6 +25,7 @@ public partial class MainWindow : Window
     private OutputWindow? _output;
     private readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly DispatcherTimer _saveTimer = new() { Interval = TimeSpan.FromMilliseconds(700) };
+    private GridLength _orderPanelWidth = new(350);
 
     public MainWindow()
     {
@@ -51,7 +52,30 @@ public partial class MainWindow : Window
     private void ShowLiveMedia(ServiceItem item){LiveVideo.Stop();LiveVideo.Source=null;LiveVideo.Visibility=Visibility.Collapsed;LiveImage.Source=null;LiveImage.Visibility=Visibility.Collapsed;LiveContent.Visibility=Visibility.Visible;if(item.Type==ContentType.Image&&File.Exists(item.MediaPath)){LiveContent.Visibility=Visibility.Collapsed;LiveImage.Source=new BitmapImage(new Uri(item.MediaPath!));LiveImage.Visibility=Visibility.Visible;}else if(item.Type==ContentType.Video&&File.Exists(item.MediaPath)){LiveContent.Visibility=Visibility.Collapsed;LiveVideo.Source=new Uri(item.MediaPath!);LiveVideo.Visibility=Visibility.Visible;LiveVideo.Play();}else LiveContent.Text=item.Content;}
     private void RenderState(PresentationState state){_live=state switch{PresentationState.Black=>new(state,"Pantalla negra",""),PresentationState.Logo=>new(state,"Logotipo","Iglesia local"),_=>new(PresentationState.Empty,"Sin contenido","")};LiveVideo.Stop();LiveVideo.Visibility=Visibility.Collapsed;LiveImage.Visibility=Visibility.Collapsed;LiveContent.Visibility=Visibility.Visible;LiveTitle.Text="  "+_live.Title;LiveContent.Text=state==PresentationState.Black?"Pantalla negra":state==PresentationState.Logo?"Logotipo de la iglesia":"Sin contenido";LiveBadge.Visibility=state==PresentationState.Empty?Visibility.Collapsed:Visibility.Visible;_output?.Render(_live);}
     private void SearchBox_TextChanged(object sender,System.Windows.Controls.TextChangedEventArgs e){if(IsLoaded)LoadLibrary();}
-    private void OrderNav_Click(object s,RoutedEventArgs e){var show=OrderPanel.Visibility!=Visibility.Visible;OrderPanel.Visibility=show?Visibility.Visible:Visibility.Collapsed;OrderSplitter.Visibility=show?Visibility.Visible:Visibility.Collapsed;StatusText.Text=show?"Orden del culto visible":"Orden del culto oculto";}\n    private void BibleNav_Click(object s,RoutedEventArgs e){_mode="Bible";MediaToolbar.Visibility=Visibility.Collapsed;LibraryTitle.Text="Biblia · demostración";SearchBox.Text="";LoadLibrary();}
+    private void OrderNav_Click(object s,RoutedEventArgs e)
+    {
+        var show = OrderPanel.Visibility != Visibility.Visible;
+        if (show)
+        {
+            OrderColumn.MinWidth = 240;
+            OrderColumn.Width = _orderPanelWidth.Value > 0 ? _orderPanelWidth : new GridLength(350);
+            OrderSplitterColumn.Width = new GridLength(5);
+            OrderPanel.Visibility = Visibility.Visible;
+            OrderSplitter.Visibility = Visibility.Visible;
+            StatusText.Text = "Orden del culto visible";
+        }
+        else
+        {
+            if (OrderColumn.ActualWidth > 0)
+                _orderPanelWidth = OrderColumn.Width.Value > 0 ? OrderColumn.Width : new GridLength(OrderColumn.ActualWidth);
+            OrderPanel.Visibility = Visibility.Collapsed;
+            OrderSplitter.Visibility = Visibility.Collapsed;
+            OrderColumn.MinWidth = 0;
+            OrderColumn.Width = new GridLength(0);
+            OrderSplitterColumn.Width = new GridLength(0);
+            StatusText.Text = "Orden del culto oculto";
+        }
+    }\n    private void BibleNav_Click(object s,RoutedEventArgs e){_mode="Bible";MediaToolbar.Visibility=Visibility.Collapsed;LibraryTitle.Text="Biblia · demostración";SearchBox.Text="";LoadLibrary();}
     private void HymnNav_Click(object s,RoutedEventArgs e){_mode="Hymn";MediaToolbar.Visibility=Visibility.Collapsed;LibraryTitle.Text="Himnario · demostración";SearchBox.Text="";LoadLibrary();}
     private void SongsNav_Click(object s,RoutedEventArgs e){LibraryTitle.Text="Canciones";LibraryList.ItemsSource=new[]{new LibraryRow("Biblioteca local","Editor completo pendiente de la siguiente fase",new object())};}
     private void MediaNav_Click(object s,RoutedEventArgs e){_mode="Media";LibraryTitle.Text="Multimedia";MediaToolbar.Visibility=Visibility.Visible;SearchBox.Text="";_currentMediaFolder=null;LoadLibrary();}
