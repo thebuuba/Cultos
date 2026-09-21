@@ -75,7 +75,8 @@ public partial class MainWindow : Window
             OrderSplitterColumn.Width = new GridLength(0);
             StatusText.Text = "Orden del culto oculto";
         }
-    }\n    private void BibleNav_Click(object s,RoutedEventArgs e){_mode="Bible";MediaToolbar.Visibility=Visibility.Collapsed;LibraryTitle.Text="Biblia · demostración";SearchBox.Text="";LoadLibrary();}
+    }
+    private void BibleNav_Click(object s,RoutedEventArgs e){_mode="Bible";MediaToolbar.Visibility=Visibility.Collapsed;LibraryTitle.Text="Biblia · demostración";SearchBox.Text="";LoadLibrary();}
     private void HymnNav_Click(object s,RoutedEventArgs e){_mode="Hymn";MediaToolbar.Visibility=Visibility.Collapsed;LibraryTitle.Text="Himnario · demostración";SearchBox.Text="";LoadLibrary();}
     private void SongsNav_Click(object s,RoutedEventArgs e){LibraryTitle.Text="Canciones";LibraryList.ItemsSource=new[]{new LibraryRow("Biblioteca local","Editor completo pendiente de la siguiente fase",new object())};}
     private void MediaNav_Click(object s,RoutedEventArgs e){_mode="Media";LibraryTitle.Text="Multimedia";MediaToolbar.Visibility=Visibility.Visible;SearchBox.Text="";_currentMediaFolder=null;LoadLibrary();}
