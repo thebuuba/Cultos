@@ -54,7 +54,7 @@
                 <Grid Margin="9,12"><Grid.RowDefinitions><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <StackPanel HorizontalAlignment="Center">
                         <Button Style="{StaticResource ToolRailButton}" ToolTip="Inicio"><StackPanel><TextBlock Text="⌂" FontSize="19" HorizontalAlignment="Center"/><TextBlock Text="Inicio" Margin="0,3,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
-                        <Button Style="{StaticResource ToolRailButton}" ToolTip="Orden del culto"><StackPanel><TextBlock Text="☷" FontSize="19" HorizontalAlignment="Center"/><TextBlock Text="Orden" Margin="0,3,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
+                        <Button x:Name="OrderNavButton" Style="{StaticResource ToolRailButton}" Click="OrderNav_Click" ToolTip="Mostrar u ocultar el orden del culto"><StackPanel><TextBlock Text="☷" FontSize="19" HorizontalAlignment="Center"/><TextBlock Text="Orden" Margin="0,3,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
                         <Border Width="50" Height="1" Background="{StaticResource Border}" Margin="0,4,0,9"/>
                         <Button Style="{StaticResource ToolRailButton}" Click="BibleNav_Click" Background="{StaticResource AccentDark}" BorderBrush="#625236" ToolTip="Biblioteca bíblica"><StackPanel><TextBlock Text="▤" Foreground="{StaticResource Accent}" FontSize="19" HorizontalAlignment="Center"/><TextBlock Text="Biblia" Foreground="{StaticResource Accent}" Margin="0,3,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
                         <Button Style="{StaticResource ToolRailButton}" Click="HymnNav_Click" ToolTip="Himnario"><StackPanel><TextBlock Text="♫" FontSize="19" HorizontalAlignment="Center"/><TextBlock Text="Himnos" Margin="0,3,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
@@ -105,7 +105,7 @@
             <GridSplitter Grid.Column="3" Style="{StaticResource WorkspaceSplitter}" HorizontalAlignment="Stretch" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" Cursor="SizeWE" ToolTip="Arrastra para cambiar el ancho"/>
 
             <!-- Orden -->
-            <Border Grid.Column="4" Background="#151613">
+            <Border x:Name="OrderPanel" Grid.Column="4" Background="#151613" Visibility="Collapsed">
                 <Grid Margin="16,17,16,14"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <Grid Margin="0,0,0,13"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                         <StackPanel><TextBlock Text="ORDEN DEL CULTO" Foreground="{StaticResource Subtle}" FontSize="10" FontWeight="SemiBold"/><TextBlock x:Name="ItemCountText" Text="0 elementos" Foreground="{StaticResource Muted}" FontSize="12" Margin="0,5,0,0"/></StackPanel>
@@ -128,7 +128,7 @@
                 </Grid>
             </Border>
 
-            <GridSplitter Grid.Column="5" Style="{StaticResource WorkspaceSplitter}" HorizontalAlignment="Stretch" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" Cursor="SizeWE" ToolTip="Arrastra para cambiar el ancho"/>
+            <GridSplitter x:Name="OrderSplitter" Grid.Column="5" Visibility="Collapsed" Style="{StaticResource WorkspaceSplitter}" HorizontalAlignment="Stretch" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" Cursor="SizeWE" ToolTip="Arrastra para cambiar el ancho"/>
 
             <!-- Presentación -->
             <Grid Grid.Column="6" Margin="18,16,18,14">
