@@ -53,14 +53,14 @@
             <Border Grid.Column="0" Background="{StaticResource Sidebar}" BorderBrush="{StaticResource Border}" BorderThickness="0,0,1,0">
                 <Grid Margin="9,12"><Grid.RowDefinitions><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <StackPanel HorizontalAlignment="Center">
-                        <Button Style="{StaticResource ToolRailButton}" ToolTip="Inicio"><StackPanel><TextBlock Text="⌂" FontSize="19" HorizontalAlignment="Center"/><TextBlock Text="Inicio" Margin="0,3,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
+                        <Button Style="{StaticResource ToolRailButton}" Click="HomeNav_Click" ToolTip="Inicio"><StackPanel><TextBlock Text="⌂" FontSize="19" HorizontalAlignment="Center"/><TextBlock Text="Inicio" Margin="0,3,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
                         <Button x:Name="OrderNavButton" Style="{StaticResource ToolRailButton}" Click="OrderNav_Click" ToolTip="Mostrar u ocultar el orden del culto"><StackPanel><TextBlock Text="☷" FontSize="19" HorizontalAlignment="Center"/><TextBlock Text="Orden" Margin="0,3,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
                         <Border Width="50" Height="1" Background="{StaticResource Border}" Margin="0,4,0,9"/>
                         <Button Style="{StaticResource ToolRailButton}" Click="BibleNav_Click" Background="{StaticResource AccentDark}" BorderBrush="#625236" ToolTip="Biblioteca bíblica"><StackPanel><TextBlock Text="▤" Foreground="{StaticResource Accent}" FontSize="19" HorizontalAlignment="Center"/><TextBlock Text="Biblia" Foreground="{StaticResource Accent}" Margin="0,3,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
                         <Button Style="{StaticResource ToolRailButton}" Click="HymnNav_Click" ToolTip="Himnario"><StackPanel><TextBlock Text="♫" FontSize="19" HorizontalAlignment="Center"/><TextBlock Text="Himnos" Margin="0,3,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
                         <Button Style="{StaticResource ToolRailButton}" Click="SongsNav_Click" ToolTip="Canciones de la iglesia"><StackPanel><TextBlock Text="♪" FontSize="19" HorizontalAlignment="Center"/><TextBlock Text="Canciones" Margin="0,3,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
                         <Button Style="{StaticResource ToolRailButton}" Click="MediaNav_Click" ToolTip="Imágenes y videos"><StackPanel><TextBlock Text="▧" FontSize="19" HorizontalAlignment="Center"/><TextBlock Text="Medios" Margin="0,3,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
-                        <Button Style="{StaticResource ToolRailButton}" ToolTip="Diseños visuales"><StackPanel><TextBlock Text="◫" FontSize="19" HorizontalAlignment="Center"/><TextBlock Text="Diseños" Margin="0,3,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
+                        <Button Style="{StaticResource ToolRailButton}" Click="DesignsNav_Click" ToolTip="Diseños visuales"><StackPanel><TextBlock Text="◫" FontSize="19" HorizontalAlignment="Center"/><TextBlock Text="Diseños" Margin="0,3,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
                     </StackPanel>
                     <StackPanel Grid.Row="1" HorizontalAlignment="Center">
                         <Border Width="50" Height="1" Background="{StaticResource Border}" Margin="0,0,0,9"/>
@@ -76,8 +76,8 @@
             <Border Grid.Column="2" Background="{StaticResource Panel}">
                 <Grid Margin="16,17,16,14"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <StackPanel>
-                        <TextBlock Text="BIBLIOTECA" Foreground="{StaticResource Subtle}" FontSize="10" FontWeight="SemiBold"/>
-                        <TextBlock x:Name="LibraryTitle" Text="Biblia · demostración" FontSize="21" FontWeight="SemiBold" Margin="0,4,0,14"/>
+                        <TextBlock x:Name="SectionLabel" Text="BIBLIOTECA" Foreground="{StaticResource Subtle}" FontSize="10" FontWeight="SemiBold"/>
+                        <TextBlock x:Name="LibraryTitle" Text="Biblia" FontSize="21" FontWeight="SemiBold" Margin="0,4,0,14"/>
                     </StackPanel>
                     <Grid Grid.Row="1">
                         <TextBox x:Name="SearchBox" TextChanged="SearchBox_TextChanged" ToolTip="Buscar por referencia, número, título o palabras" Padding="36,10,12,10"/>
@@ -98,7 +98,11 @@
                             </Border>
                         </DataTemplate></ListBox.ItemTemplate>
                     </ListBox>
-                    <Button Grid.Row="5" Click="AddLibraryItem_Click" Background="{StaticResource AccentDark}" BorderBrush="#6A5938" Margin="0,9,0,0">＋  Agregar al orden del culto</Button>
+                    <Grid Grid.Row="5" Margin="0,9,0,0">
+                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <Button x:Name="LibraryPrimaryButton" Click="AddLibraryItem_Click" Background="{StaticResource AccentDark}" BorderBrush="#6A5938">＋  Agregar al orden del culto</Button>
+                        <Button x:Name="LibrarySecondaryButton" Grid.Column="1" Click="LibrarySecondary_Click" Visibility="Collapsed" Margin="8,0,0,0">Nuevo</Button>
+                    </Grid>
                 </Grid>
             </Border>
 
@@ -122,8 +126,11 @@
                             </Border>
                         </DataTemplate></ListBox.ItemTemplate>
                     </ListBox>
-                    <Grid Grid.Row="2" Margin="0,10,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition Width="2*"/></Grid.ColumnDefinitions>
-                        <Button Click="MoveUp_Click" Margin="0,0,5,0" ToolTip="Mover arriba">↑</Button><Button Grid.Column="1" Click="MoveDown_Click" Margin="0,0,5,0" ToolTip="Mover abajo">↓</Button><Button Grid.Column="2" Click="RemoveItem_Click">Eliminar del orden</Button>
+                    <Grid Grid.Row="2" Margin="0,10,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition Width="1.6*"/></Grid.ColumnDefinitions>
+                        <Button Click="MoveUp_Click" Margin="0,0,5,0" ToolTip="Mover arriba">↑</Button>
+                        <Button Grid.Column="1" Click="MoveDown_Click" Margin="0,0,5,0" ToolTip="Mover abajo">↓</Button>
+                        <Button Grid.Column="2" Click="EditItem_Click" Margin="0,0,5,0" ToolTip="Editar elemento">Editar</Button>
+                        <Button Grid.Column="3" Click="RemoveItem_Click">Eliminar</Button>
                     </Grid>
                 </Grid>
             </Border>
