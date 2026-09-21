@@ -1,0 +1,36 @@
+# Compilación .NET
+**/bin/
+**/obj/
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Resultados de pruebas y cobertura
+TestResults/
+coverage/
+*.coverage
+*.trx
+
+# Publicaciones generadas
+artifacts/publish/
+
+# Datos locales de ejecución
+*.db
+*.db-shm
+*.db-wal
+*.cultos
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Registros y temporales
+*.log
+*.tmp
+~$*

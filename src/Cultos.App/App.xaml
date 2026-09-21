@@ -1,0 +1,9 @@
+<Application x:Class="Cultos.App.App" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" StartupUri="MainWindow.xaml">
+ <Application.Resources>
+  <SolidColorBrush x:Key="AppBackground" Color="#11110F"/><SolidColorBrush x:Key="Panel" Color="#191917"/><SolidColorBrush x:Key="PanelRaised" Color="#22221F"/><SolidColorBrush x:Key="Border" Color="#34342F"/><SolidColorBrush x:Key="Text" Color="#F4F1E8"/><SolidColorBrush x:Key="Muted" Color="#A6A49C"/><SolidColorBrush x:Key="Accent" Color="#C6A96A"/><SolidColorBrush x:Key="Live" Color="#C65D55"/>
+  <Style TargetType="TextBlock"><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Foreground" Value="{StaticResource Text}"/></Style>
+  <Style TargetType="Button"><Setter Property="Foreground" Value="{StaticResource Text}"/><Setter Property="Background" Value="{StaticResource PanelRaised}"/><Setter Property="BorderBrush" Value="{StaticResource Border}"/><Setter Property="Padding" Value="12,8"/><Setter Property="Cursor" Value="Hand"/><Setter Property="FontSize" Value="14"/></Style>
+  <Style TargetType="TextBox"><Setter Property="Background" Value="#131311"/><Setter Property="Foreground" Value="{StaticResource Text}"/><Setter Property="BorderBrush" Value="{StaticResource Border}"/><Setter Property="CaretBrush" Value="{StaticResource Text}"/><Setter Property="Padding" Value="12,9"/><Setter Property="FontSize" Value="15"/></Style>
+  <Style TargetType="ListBox"><Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/><Setter Property="Foreground" Value="{StaticResource Text}"/></Style>
+ </Application.Resources>
+</Application>
