@@ -33,6 +33,10 @@ public partial class MainWindow : Window
     private OutputWindow? _output;
     private readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly DispatcherTimer _saveTimer = new() { Interval = TimeSpan.FromMilliseconds(700) };
+    private static readonly HashSet<string> SupportedMediaExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".mp4", ".wmv", ".avi", ".mov", ".mkv"
+    };
     private GridLength _orderPanelWidth = new(350);
 
     public MainWindow()
@@ -356,6 +360,8 @@ public partial class MainWindow : Window
             return;
         }
 
+        _blackRestoreSnapshot = null;
+        _blackRestoreType = null;
         _live = new(PresentationState.Content, _preview.Title, _preview.Content, _preview.MediaPath);
         _liveType = _preview.Type;
         _preview.Status = "Presentado";
@@ -396,8 +402,14 @@ public partial class MainWindow : Window
         }
     }
 
-    private void RenderState(PresentationState state)
+    private void RenderState(PresentationState state, bool preserveBlackRestore = false)
     {
+        if (!preserveBlackRestore)
+        {
+            _blackRestoreSnapshot = null;
+            _blackRestoreType = null;
+        }
+
         _live = state switch
         {
             PresentationState.Black => new(state, "Pantalla negra", ""),
@@ -413,6 +425,47 @@ public partial class MainWindow : Window
         LiveContent.Text = state == PresentationState.Black ? "Pantalla negra" : state == PresentationState.Logo ? "Logotipo de la iglesia" : "Sin contenido";
         LiveBadge.Visibility = state == PresentationState.Empty ? Visibility.Collapsed : Visibility.Visible;
         _output?.Render(_live);
+    }
+
+    private void RestoreFromBlack()
+    {
+        var snapshot = _blackRestoreSnapshot;
+        var type = _blackRestoreType;
+        _blackRestoreSnapshot = null;
+        _blackRestoreType = null;
+
+        if (snapshot is null)
+        {
+            RenderState(PresentationState.Empty);
+            return;
+        }
+
+        _live = snapshot;
+        _liveType = type;
+        LiveTitle.Text = "  " + snapshot.Title;
+        LiveBadge.Visibility = snapshot.State == PresentationState.Empty ? Visibility.Collapsed : Visibility.Visible;
+
+        if (snapshot.State == PresentationState.Content)
+        {
+            ShowLiveMedia(new ServiceItem
+            {
+                Type = type ?? ContentType.FreeText,
+                Title = snapshot.Title,
+                Content = snapshot.Content,
+                MediaPath = snapshot.MediaPath
+            });
+        }
+        else
+        {
+            LiveVideo.Stop();
+            LiveVideo.Visibility = Visibility.Collapsed;
+            LiveImage.Visibility = Visibility.Collapsed;
+            LiveContent.Visibility = Visibility.Visible;
+            LiveContent.Text = snapshot.State == PresentationState.Logo ? "Logotipo de la iglesia" : "Sin contenido";
+        }
+
+        _output?.Render(snapshot, type);
+        StatusText.Text = "Contenido anterior restaurado";
     }
 
     private void SearchBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
@@ -783,8 +836,19 @@ public partial class MainWindow : Window
 
     private void SendLive_Click(object sender, RoutedEventArgs e) => SendLive();
 
-    private void Black_Click(object sender, RoutedEventArgs e) =>
-        RenderState(_live.State == PresentationState.Black ? PresentationState.Empty : PresentationState.Black);
+    private void Black_Click(object sender, RoutedEventArgs e)
+    {
+        if (_live.State == PresentationState.Black)
+        {
+            RestoreFromBlack();
+            return;
+        }
+
+        _blackRestoreSnapshot = _live;
+        _blackRestoreType = _liveType;
+        RenderState(PresentationState.Black, preserveBlackRestore: true);
+        StatusText.Text = "Pantalla negra · pulsa B para restaurar";
+    }
 
     private void Clear_Click(object sender, RoutedEventArgs e) => RenderState(PresentationState.Empty);
 
@@ -821,6 +885,45 @@ public partial class MainWindow : Window
         LiveVideo.Stop();
         _output?.StopMedia();
         StatusText.Text = "Video detenido";
+    }
+
+    private void ApplyMediaVolume()
+    {
+        var volume = Math.Clamp(MediaVolumeSlider.Value, 0, 1);
+        PreviewVideo.Volume = volume;
+        LiveVideo.Volume = volume;
+        _output?.SetVolume(volume);
+    }
+
+    private void MediaVolumeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (!IsLoaded) return;
+        _settings.MediaVolume = Math.Clamp(e.NewValue, 0, 1);
+        ApplyMediaVolume();
+        _settingsStore.Save(_settings);
+        StatusText.Text = $"Volumen de video · {Math.Round(_settings.MediaVolume * 100)}%";
+    }
+
+    private void PreviewVideo_MediaFailed(object sender, ExceptionRoutedEventArgs e)
+    {
+        AppLogger.Error("Error al cargar video en vista previa", e.ErrorException);
+        ResetPreviewMedia();
+        PreviewContent.Text = "No se pudo abrir este video. Puede faltar un códec compatible en Windows.";
+        StatusText.Text = "Video incompatible o dañado";
+    }
+
+    private void LiveVideo_MediaFailed(object sender, ExceptionRoutedEventArgs e)
+    {
+        AppLogger.Error("Error al reproducir video en el monitor del operador", e.ErrorException);
+        LiveVideo.Visibility = Visibility.Collapsed;
+        LiveContent.Visibility = Visibility.Visible;
+        LiveContent.Text = "Error de reproducción de video";
+        StatusText.Text = "No se pudo reproducir el video";
+    }
+
+    private void LiveVideo_MediaEnded(object sender, RoutedEventArgs e)
+    {
+        StatusText.Text = "Video finalizado";
     }
 
     private void OpenDisplay_Click(object sender, RoutedEventArgs e) => OpenDisplay();
@@ -905,9 +1008,19 @@ public partial class MainWindow : Window
     {
         var dialog = new OpenFileDialog { Filter = "Copia de Cultos|*.cultos" };
         if (dialog.ShowDialog() != true) return;
+        OpenCultosFile(dialog.FileName);
+    }
+
+    public void OpenCultosFile(string path)
+    {
         try
         {
-            _service = _db.ImportService(dialog.FileName);
+            if (!File.Exists(path)) throw new FileNotFoundException("La copia seleccionada no existe.", path);
+            if (!string.Equals(Path.GetExtension(path), ".cultos", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException("El archivo no es una copia de Cultos.");
+
+            SaveNow();
+            _service = _db.ImportService(path);
             ServiceNameText.Text = _service.Name;
             RefreshRun();
             ClearPreview();
@@ -916,8 +1029,68 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
+            AppLogger.Error("No se pudo abrir una copia .cultos", ex);
             MessageBox.Show("No se pudo importar la copia. " + ex.Message, "Importación fallida", MessageBoxButton.OK, MessageBoxImage.Error);
         }
+    }
+
+    private void Window_DragOver(object sender, DragEventArgs e)
+    {
+        e.Effects = DragDropEffects.None;
+        if (e.Data.GetData(DataFormats.FileDrop) is not string[] files || files.Length == 0)
+        {
+            e.Handled = true;
+            return;
+        }
+
+        if (files.Any(path =>
+            string.Equals(Path.GetExtension(path), ".cultos", StringComparison.OrdinalIgnoreCase) ||
+            SupportedMediaExtensions.Contains(Path.GetExtension(path))))
+        {
+            e.Effects = DragDropEffects.Copy;
+        }
+
+        e.Handled = true;
+    }
+
+    private void Window_Drop(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetData(DataFormats.FileDrop) is not string[] files) return;
+
+        var backup = files.FirstOrDefault(path => string.Equals(Path.GetExtension(path), ".cultos", StringComparison.OrdinalIgnoreCase));
+        if (backup is not null)
+        {
+            OpenCultosFile(backup);
+            return;
+        }
+
+        var added = 0;
+        foreach (var path in files.Where(path => SupportedMediaExtensions.Contains(Path.GetExtension(path))))
+        {
+            try
+            {
+                var media = _db.AddMedia(path);
+                _service.Items.Add(new ServiceItem
+                {
+                    Type = media.Kind == "Image" ? ContentType.Image : ContentType.Video,
+                    Title = media.Name,
+                    Content = media.Kind == "Image" ? "Imagen" : "Video",
+                    MediaPath = media.Path,
+                    Status = "Preparado"
+                });
+                added++;
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Error($"No se pudo agregar el archivo arrastrado: {path}", ex);
+            }
+        }
+
+        if (added <= 0) return;
+        RefreshRun();
+        RunList.SelectedIndex = _run.Count - 1;
+        QueueSave();
+        StatusText.Text = added == 1 ? "Archivo agregado al orden" : $"{added} archivos agregados al orden";
     }
 
     private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
@@ -929,7 +1102,7 @@ public partial class MainWindow : Window
         else if (e.Key == Key.B) Black_Click(sender, e);
         else if (e.Key == Key.C) Clear_Click(sender, e);
         else if (e.Key == Key.F5) OpenDisplay();
-        else if (e.Key == Key.Escape && _live.State == PresentationState.Black) RenderState(PresentationState.Empty);
+        else if (e.Key == Key.Escape && _live.State == PresentationState.Black) RestoreFromBlack();
     }
 }
 
