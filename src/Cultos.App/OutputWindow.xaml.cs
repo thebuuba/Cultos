@@ -29,6 +29,9 @@ public partial class OutputWindow : Window
         PresentationSurface.Background = snapshot.State == PresentationState.Black
             ? MediaBrushes.Black
             : new SolidColorBrush(MediaColor.FromRgb(21, 25, 21));
+        OutputBackgroundImage.Visibility = snapshot.State == PresentationState.Black
+            ? Visibility.Collapsed
+            : Visibility.Visible;
 
         if (snapshot.State == PresentationState.Black)
         {
@@ -83,7 +86,7 @@ public partial class OutputWindow : Window
         OutputText.Text = snapshot.State switch
         {
             PresentationState.Empty => "",
-            PresentationState.Logo => "◇\nIglesia local",
+            PresentationState.Logo => "◇\n" + (string.IsNullOrWhiteSpace(snapshot.Content) ? "Iglesia local" : snapshot.Content),
             _ => snapshot.Content
         };
     }
@@ -106,6 +109,27 @@ public partial class OutputWindow : Window
         {
             OutputWeb.Width = ActualWidth;
             OutputWeb.Height = ActualWidth / ratio;
+        }
+    }
+
+    public void SetDefaultBackground(string? path)
+    {
+        OutputBackgroundImage.Source = null;
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return;
+
+        try
+        {
+            var image = new BitmapImage();
+            image.BeginInit();
+            image.CacheOption = BitmapCacheOption.OnLoad;
+            image.UriSource = new Uri(path);
+            image.EndInit();
+            image.Freeze();
+            OutputBackgroundImage.Source = image;
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Error("No se pudo cargar el fondo predeterminado en la salida externa", ex);
         }
     }
 
