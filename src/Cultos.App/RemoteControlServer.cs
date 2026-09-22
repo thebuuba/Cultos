@@ -27,6 +27,7 @@ public sealed record RemoteControlStatus(bool IsRunning, string Url, string? Err
 public sealed class RemoteControlServer : IAsyncDisposable
 {
     private readonly ConcurrentDictionary<Guid, WebSocket> _clients = new();
+    private readonly SemaphoreSlim _sendLock = new(1, 1);
     private readonly JsonSerializerOptions _json = new(JsonSerializerDefaults.Web);
     private WebApplication? _app;
     private string _pin = "";
@@ -85,7 +86,7 @@ public sealed class RemoteControlServer : IAsyncDisposable
 
                 try
                 {
-                    await SendTextAsync(socket, _stateJson, context.RequestAborted);
+                    await SendSerializedAsync(socket, _stateJson, context.RequestAborted);
                     await ReceiveLoopAsync(socket, context.RequestAborted);
                 }
                 finally
@@ -211,7 +212,7 @@ public sealed class RemoteControlServer : IAsyncDisposable
 
             try
             {
-                await SendTextAsync(socket, json, CancellationToken.None);
+                await SendSerializedAsync(socket, json, CancellationToken.None);
             }
             catch
             {
@@ -220,10 +221,19 @@ public sealed class RemoteControlServer : IAsyncDisposable
         }
     }
 
-    private static Task SendTextAsync(WebSocket socket, string text, CancellationToken cancellationToken)
+    private async Task SendSerializedAsync(WebSocket socket, string text, CancellationToken cancellationToken)
     {
-        var bytes = Encoding.UTF8.GetBytes(text);
-        return socket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, cancellationToken);
+        await _sendLock.WaitAsync(cancellationToken);
+        try
+        {
+            if (socket.State != WebSocketState.Open) return;
+            var bytes = Encoding.UTF8.GetBytes(text);
+            await socket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, cancellationToken);
+        }
+        finally
+        {
+            _sendLock.Release();
+        }
     }
 
     private static string ResolveLanAddress()
