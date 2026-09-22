@@ -70,12 +70,12 @@ public sealed class DisplayManager
             var label = new TextBlock
             {
                 Text = $"Pantalla {index + 1}\n{Describe(screen)}",
-                Foreground = Brushes.White,
+                Foreground = System.Windows.Media.Brushes.White,
                 FontSize = 26,
                 FontWeight = FontWeights.SemiBold,
                 TextAlignment = TextAlignment.Center,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center
             };
 
             var window = new Window
@@ -87,7 +87,7 @@ public sealed class DisplayManager
                 ShowInTaskbar = false,
                 ShowActivated = false,
                 Topmost = true,
-                Background = new SolidColorBrush(Color.FromRgb(24, 25, 22)),
+                Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(24, 25, 22)),
                 Content = label
             };
 
