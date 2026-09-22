@@ -109,7 +109,7 @@ public partial class RemoteControlWindow : Window
             return;
         }
 
-        Clipboard.SetText(status.Url);
+        System.Windows.Clipboard.SetText(status.Url);
         StatusText.Text = "Dirección copiada al portapapeles";
     }
 
