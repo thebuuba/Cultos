@@ -68,6 +68,10 @@ public partial class OutputWindow : Window
     }
 
     public void SetVolume(double volume) => OutputVideo.Volume = Math.Clamp(volume, 0, 1);
+    public void SetPosition(TimeSpan position)
+    {
+        if (OutputVideo.Source is not null) OutputVideo.Position = position;
+    }
     public void PlayMedia() => OutputVideo.Play();
     public void PauseMedia() => OutputVideo.Pause();
     public void StopMedia() => OutputVideo.Stop();
