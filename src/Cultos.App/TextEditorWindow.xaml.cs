@@ -29,7 +29,7 @@ public partial class TextEditorWindow : Window
     {
         if(string.IsNullOrWhiteSpace(ValueTitle))
         {
-            MessageBox.Show("Escribe un nombre o título.","Dato requerido",MessageBoxButton.OK,MessageBoxImage.Information);
+            System.Windows.MessageBox.Show("Escribe un nombre o título.","Dato requerido",MessageBoxButton.OK,MessageBoxImage.Information);
             TitleBox.Focus();
             return;
         }
