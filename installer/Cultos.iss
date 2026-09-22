@@ -15,7 +15,8 @@ OutputBaseFilename=Cultos-Setup-0.2.0
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
-SetupIconFile=..\src\Cultos.App\Assets\Cultos.ico\nChangesAssociations=yes
+SetupIconFile=..\src\Cultos.App\Assets\Cultos.ico
+ChangesAssociations=yes
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=lowest
