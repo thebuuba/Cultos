@@ -1200,7 +1200,7 @@ public partial class MainWindow : Window
 
     private void Window_Drop(object sender, System.Windows.DragEventArgs e)
     {
-        if (e.Data.GetData(DataFormats.FileDrop) is not string[] files) return;
+        if (e.Data.GetData(System.Windows.DataFormats.FileDrop) is not string[] files) return;
 
         var backup = files.FirstOrDefault(path => string.Equals(Path.GetExtension(path), ".cultos", StringComparison.OrdinalIgnoreCase));
         if (backup is not null)
