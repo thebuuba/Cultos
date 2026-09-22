@@ -6,7 +6,12 @@ namespace Cultos.Core;
 public sealed class LocalDatabase
 {
     public string DatabasePath { get; }
-    private string ConnectionString => $"Data Source={DatabasePath};Pooling=False";
+    private string ConnectionString => new SqliteConnectionStringBuilder
+    {
+        DataSource = DatabasePath,
+        Pooling = false,
+        ForeignKeys = true
+    }.ToString();
 
     public LocalDatabase(string databasePath)
     {
@@ -19,7 +24,7 @@ public sealed class LocalDatabase
         using var db = new SqliteConnection(ConnectionString); db.Open();
         using var cmd = db.CreateCommand();
         cmd.CommandText = """
-            PRAGMA journal_mode=WAL;
+            PRAGMA foreign_keys=ON;\n            PRAGMA journal_mode=WAL;\n            PRAGMA user_version=1;
             CREATE TABLE IF NOT EXISTS AppSetting(Key TEXT PRIMARY KEY, Value TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS Service(Id INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT NOT NULL, Date TEXT NOT NULL, UpdatedAt TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS ServiceItem(Id INTEGER PRIMARY KEY AUTOINCREMENT, ServiceId INTEGER NOT NULL, Type INTEGER NOT NULL, Title TEXT NOT NULL, Content TEXT NOT NULL, MediaPath TEXT, Position INTEGER NOT NULL, Status TEXT NOT NULL, FOREIGN KEY(ServiceId) REFERENCES Service(Id) ON DELETE CASCADE);
