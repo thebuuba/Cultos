@@ -259,6 +259,7 @@ public partial class MainWindow : Window
                     new("Modo sin conexión","La aplicación funciona completamente con datos locales.",new SettingInfo("offline")),
                     new("Datos locales",_dataFolder,new SettingInfo("data")),
                     new("Registros de errores",Path.Combine(_dataFolder, "logs"),new SettingInfo("logs")),
+                    new("Identificar pantallas","Muestra durante unos segundos el número de cada monitor.",new SettingInfo("identify")),
                     new("Atajos","←/→ navegar · Espacio enviar · B negra · C limpiar · F5 pantalla",new SettingInfo("keys"))
                 };
                 settingsRows.AddRange(_displayManager.Screens.Select((screen, index) =>
@@ -664,6 +665,13 @@ public partial class MainWindow : Window
                 return;
             }
 
+            if (selected.Source is SettingInfo { Key: "identify" })
+            {
+                _displayManager.IdentifyScreens();
+                StatusText.Text = "Identificando pantallas";
+                return;
+            }
+
             return;
         }
 
@@ -959,15 +967,7 @@ public partial class MainWindow : Window
         if (_output is null) return;
 
         var target = _displayManager.ResolvePresentationScreen();
-        var wasVisible = _output.IsVisible;
-        _output.WindowState = WindowState.Normal;
-        _output.Left = target.Bounds.Left;
-        _output.Top = target.Bounds.Top;
-        _output.Width = target.Bounds.Width;
-        _output.Height = target.Bounds.Height;
-
-        if (!wasVisible) _output.Show();
-        _output.WindowState = WindowState.Maximized;
+        _displayManager.PlacePresentationWindow(_output, target);
 
         DisplayStateText.Text = Forms.Screen.AllScreens.Length > 1
             ? $"Salida · {target.DeviceName}"
