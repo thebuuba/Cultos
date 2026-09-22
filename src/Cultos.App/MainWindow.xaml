@@ -50,7 +50,7 @@
                 <MenuItem Header="Biblia" Click="BibleNav_Click"/>
                 <MenuItem Header="Himnos" Click="HymnNav_Click"/>
                 <MenuItem Header="Canciones" Click="SongsNav_Click"/>
-                <MenuItem Header="Multimedia" Click="MediaNav_Click"/>
+                <MenuItem Header="Archivos" Click="MediaNav_Click"/>
                 <MenuItem Header="Diseños" Click="DesignsNav_Click"/>
                 <MenuItem Header="Cultos" Click="Services_Click"/>
                 <Separator/>
@@ -188,10 +188,10 @@
                         <Button x:Name="MediaNavButton"
                                 Style="{StaticResource TopNavButton}"
                                 Click="MediaNav_Click"
-                                ToolTip="Imágenes y videos">
+                                ToolTip="Archivos, imágenes, videos y audio">
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                 <TextBlock Text="▧" FontSize="15" Margin="0,0,6,0"/>
-                                <TextBlock Text="Medios"/>
+                                <TextBlock Text="Archivos"/>
                             </StackPanel>
                         </Button>
                         <Button x:Name="DesignsNavButton"
