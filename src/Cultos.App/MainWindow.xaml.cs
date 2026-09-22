@@ -1378,7 +1378,7 @@ public partial class MainWindow : Window
 
     private void About_Click(object sender, RoutedEventArgs e)
     {
-        var version = typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "0.2.0";
+        var version = typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "0.3.0";
         MessageBox.Show(
             $"Cultos {version}\nProducción visual para cultos en Windows.\nFunciona completamente sin conexión.",
             "Acerca de Cultos",
