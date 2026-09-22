@@ -23,6 +23,10 @@ public partial class MainWindow : Window
     private readonly DisplayManager _displayManager;
     private WorshipService _service;
     private readonly ObservableCollection<RunRow> _run = [];
+    private readonly ObservableCollection<SceneRow> _sceneRows = [];
+    private List<PresentationScene> _scenes = [];
+    private string? _activeSceneKey;
+    private string? _activeSceneBeforeBlack;
     private string _mode = "Bible";
     private string? _currentMediaFolder;
     private ServiceItem? _preview;
@@ -65,7 +69,9 @@ public partial class MainWindow : Window
         if (_service.Id == 0) _db.SaveService(_service);
 
         RunList.ItemsSource = _run;
+        SceneList.ItemsSource = _sceneRows;
         RefreshRun();
+        LoadScenes();
         ConfigureMode(IsKnownMode(_settings.LastMode) ? _settings.LastMode : "Bible");
         ServiceNameText.Text = _service.Name;
         MediaVolumeSlider.Value = Math.Clamp(_settings.MediaVolume, 0, 1);
@@ -403,6 +409,8 @@ public partial class MainWindow : Window
             if (_previewSlides.Count == 0) _previewSlides = new[] { item.Content };
             RenderPreviewSlide();
         }
+
+        PrepareSceneFromItem(item);
     }
 
     private void RenderPreviewSlide()
@@ -447,6 +455,7 @@ public partial class MainWindow : Window
         });
         LiveBadge.Visibility = Visibility.Visible;
         _output?.Render(_live, _preview.Type);
+        SetActiveSceneForItem(_preview);
         RefreshRun();
         QueueSave();
         StatusText.Text = "Contenido enviado a la congregación";
@@ -511,6 +520,9 @@ public partial class MainWindow : Window
         var type = _blackRestoreType;
         _blackRestoreSnapshot = null;
         _blackRestoreType = null;
+        _activeSceneKey = _activeSceneBeforeBlack;
+        _activeSceneBeforeBlack = null;
+        RefreshSceneRows();
 
         if (snapshot is null)
         {
@@ -544,6 +556,250 @@ public partial class MainWindow : Window
 
         _output?.Render(snapshot, type);
         StatusText.Text = "Contenido anterior restaurado";
+    }
+
+    private void LoadScenes()
+    {
+        _scenes = _db.ListScenes();
+        RefreshSceneRows();
+    }
+
+    private void RefreshSceneRows()
+    {
+        _sceneRows.Clear();
+        foreach (var scene in _scenes.OrderBy(x => x.Position).ThenBy(x => x.Id))
+            _sceneRows.Add(new SceneRow(scene, string.Equals(scene.Key, _activeSceneKey, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private void PrepareSceneFromItem(ServiceItem item)
+    {
+        var key = SceneKeyForContent(item.Type);
+        if (key is null) return;
+
+        try
+        {
+            _db.UpdateSceneContent(key, item.Title, item.Content, item.MediaPath);
+            var scene = _scenes.FirstOrDefault(x => string.Equals(x.Key, key, StringComparison.OrdinalIgnoreCase));
+            if (scene is not null)
+            {
+                scene.Title = item.Title;
+                scene.Content = item.Content;
+                scene.MediaPath = item.MediaPath;
+                scene.UpdatedAt = DateTime.Now;
+            }
+            RefreshSceneRows();
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Error("No se pudo preparar la escena desde el contenido seleccionado", ex);
+        }
+    }
+
+    private static string? SceneKeyForContent(ContentType type) => type switch
+    {
+        ContentType.Bible => "bible",
+        ContentType.Hymn => "hymn",
+        ContentType.Song => "song",
+        ContentType.Video => "video",
+        ContentType.Image => "logo",
+        ContentType.Welcome or ContentType.FreeText or ContentType.Background => "title",
+        _ => null
+    };
+
+    private static ContentType ContentTypeForScene(SceneType type) => type switch
+    {
+        SceneType.Bible => ContentType.Bible,
+        SceneType.Hymn => ContentType.Hymn,
+        SceneType.Song => ContentType.Song,
+        SceneType.Video => ContentType.Video,
+        SceneType.Image or SceneType.Logo => ContentType.Image,
+        _ => ContentType.FreeText
+    };
+
+    private void SetActiveSceneForItem(ServiceItem item)
+    {
+        _activeSceneKey = SceneKeyForContent(item.Type);
+        RefreshSceneRows();
+    }
+
+    private void SceneButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.Button { Tag: int id }) return;
+        var scene = _scenes.FirstOrDefault(x => x.Id == id);
+        if (scene is null) return;
+        ActivateScene(scene);
+    }
+
+    private void ActivateScene(PresentationScene scene)
+    {
+        if (scene.Type == SceneType.Black)
+        {
+            if (_live.State != PresentationState.Black)
+            {
+                _blackRestoreSnapshot = _live;
+                _blackRestoreType = _liveType;
+                _activeSceneBeforeBlack = _activeSceneKey;
+            }
+
+            _activeSceneKey = scene.Key;
+            RenderState(PresentationState.Black, preserveBlackRestore: true);
+            RefreshSceneRows();
+            StatusText.Text = "Escena Fondo oscuro en vivo";
+            return;
+        }
+
+        if (scene.Type == SceneType.Logo && string.IsNullOrWhiteSpace(scene.MediaPath))
+        {
+            _blackRestoreSnapshot = null;
+            _blackRestoreType = null;
+            _activeSceneKey = scene.Key;
+            RenderState(PresentationState.Logo);
+            RefreshSceneRows();
+            StatusText.Text = "Escena Logo en vivo";
+            return;
+        }
+
+        if (scene.Type == SceneType.YouTube)
+        {
+            if (string.IsNullOrWhiteSpace(scene.Content))
+            {
+                StatusText.Text = "Configura un enlace de YouTube para esta escena";
+                return;
+            }
+
+            StatusText.Text = "La reproducción integrada de YouTube se habilitará desde su módulo";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(scene.Title) &&
+            string.IsNullOrWhiteSpace(scene.Content) &&
+            string.IsNullOrWhiteSpace(scene.MediaPath))
+        {
+            OpenModuleForScene(scene);
+            return;
+        }
+
+        var type = ContentTypeForScene(scene.Type);
+        if (type is ContentType.Image or ContentType.Video)
+        {
+            if (string.IsNullOrWhiteSpace(scene.MediaPath) || !File.Exists(scene.MediaPath))
+            {
+                StatusText.Text = "La escena no tiene un archivo multimedia disponible";
+                OpenModuleForScene(scene);
+                return;
+            }
+        }
+
+        var content = scene.Content;
+        if (type is not (ContentType.Image or ContentType.Video))
+        {
+            var slides = TextPaginator.Split(content, 220);
+            if (slides.Count > 0) content = slides[0];
+        }
+
+        _blackRestoreSnapshot = null;
+        _blackRestoreType = null;
+        _activeSceneKey = scene.Key;
+        _live = new(PresentationState.Content, scene.Title, content, scene.MediaPath);
+        _liveType = type;
+
+        LiveTitle.Text = "  " + (string.IsNullOrWhiteSpace(scene.Title) ? scene.Name : scene.Title);
+        ShowLiveMedia(new ServiceItem
+        {
+            Type = type,
+            Title = scene.Title,
+            Content = content,
+            MediaPath = scene.MediaPath
+        });
+
+        LiveBadge.Visibility = Visibility.Visible;
+        _output?.Render(_live, type);
+        RefreshSceneRows();
+        StatusText.Text = $"Escena {scene.Name} en vivo";
+    }
+
+    private void OpenModuleForScene(PresentationScene scene)
+    {
+        switch (scene.Type)
+        {
+            case SceneType.Bible:
+                ConfigureMode("Bible");
+                break;
+            case SceneType.Hymn:
+                ConfigureMode("Hymn");
+                break;
+            case SceneType.Song:
+                ConfigureMode("Song");
+                break;
+            case SceneType.Video:
+            case SceneType.Image:
+            case SceneType.Logo:
+                ConfigureMode("Media");
+                break;
+            case SceneType.Title:
+            case SceneType.Custom:
+                ConfigureMode("Design");
+                break;
+            default:
+                break;
+        }
+
+        StatusText.Text = $"Prepara contenido para la escena {scene.Name}";
+    }
+
+    private void AddScene_Click(object sender, RoutedEventArgs e)
+    {
+        var editor = new TextEditorWindow(
+            "Nueva escena",
+            "Nueva escena",
+            "",
+            false,
+            "Nombre de la escena")
+        {
+            Owner = this
+        };
+
+        if (editor.ShowDialog() != true) return;
+
+        var scene = new PresentationScene
+        {
+            Name = editor.ValueTitle,
+            Type = SceneType.Custom,
+            Position = _scenes.Count == 0 ? 0 : _scenes.Max(x => x.Position) + 1,
+            IsBuiltIn = false
+        };
+
+        if (_preview is not null)
+        {
+            scene.Title = _preview.Title;
+            scene.Content = _preview.Content;
+            scene.MediaPath = _preview.MediaPath;
+            scene.Type = _preview.Type switch
+            {
+                ContentType.Bible => SceneType.Bible,
+                ContentType.Hymn => SceneType.Hymn,
+                ContentType.Song => SceneType.Song,
+                ContentType.Video => SceneType.Video,
+                ContentType.Image => SceneType.Image,
+                _ => SceneType.Custom
+            };
+        }
+
+        _db.SaveScene(scene);
+        LoadScenes();
+        StatusText.Text = $"Escena {scene.Name} creada";
+    }
+
+    private void ManageScenes_Click(object sender, RoutedEventArgs e)
+    {
+        MessageBox.Show(
+            "Las escenas predeterminadas ya están activas.\n\n" +
+            "Puedes crear escenas nuevas con “+ Escena”. Si hay contenido preparado en Vista previa, " +
+            "la nueva escena lo toma como contenido inicial. La administración avanzada de orden, " +
+            "tipo y comportamiento se incorporará en el editor de escenas.",
+            "Escenas",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
     }
 
     private void SearchBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
@@ -992,7 +1248,10 @@ public partial class MainWindow : Window
 
         _blackRestoreSnapshot = _live;
         _blackRestoreType = _liveType;
+        _activeSceneBeforeBlack = _activeSceneKey;
+        _activeSceneKey = "black";
         RenderState(PresentationState.Black, preserveBlackRestore: true);
+        RefreshSceneRows();
         StatusText.Text = "Pantalla negra · pulsa B para restaurar";
     }
 
@@ -1298,6 +1557,49 @@ public sealed record FileSystemEntry(string Name, string Path, bool IsFolder, st
 public sealed record SettingInfo(string Key);
 public sealed record DisplayChoice(string DeviceName);
 public sealed record DesignPreset(string Title, string Content, ContentType Type);
+
+public sealed class SceneRow
+{
+    public SceneRow(PresentationScene scene, bool isLive)
+    {
+        Scene = scene;
+        IsLive = isLive;
+    }
+
+    public PresentationScene Scene { get; }
+    public int Id => Scene.Id;
+    public string Name => Scene.Name;
+    public bool IsLive { get; }
+    public string Icon => Scene.Type switch
+    {
+        SceneType.Logo => "◇",
+        SceneType.Bible => "▤",
+        SceneType.Hymn => "♫",
+        SceneType.Song => "♪",
+        SceneType.Video => "▶",
+        SceneType.YouTube => "▷",
+        SceneType.Title => "T",
+        SceneType.Black => "■",
+        SceneType.Image => "▧",
+        SceneType.Audio => "🔊",
+        _ => "◆"
+    };
+
+    public string StateLabel => Scene.Type switch
+    {
+        SceneType.Black => "Salida inmediata",
+        SceneType.Logo when string.IsNullOrWhiteSpace(Scene.MediaPath) => "Predeterminada",
+        SceneType.YouTube when string.IsNullOrWhiteSpace(Scene.Content) => "Sin configurar",
+        _ when string.IsNullOrWhiteSpace(Scene.Title) &&
+               string.IsNullOrWhiteSpace(Scene.Content) &&
+               string.IsNullOrWhiteSpace(Scene.MediaPath) => "Sin preparar",
+        _ => "Preparada"
+    };
+
+    public string ToolTip => IsLive
+        ? $"{Scene.Name} · EN VIVO"
+        : $"{Scene.Name} · clic para enviar en vivo";
+}
 
 public sealed class RunRow
 {
