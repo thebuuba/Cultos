@@ -34,3 +34,17 @@ jobs:
           name: Cultos-win-x64
           path: artifacts/publish
           if-no-files-found: error
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup --no-progress -y
+          }
+          & $iscc installer\Cultos.iss
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Cultos-Setup
+          path: artifacts/installer/Cultos-Setup-0.2.0.exe
+          if-no-files-found: error
