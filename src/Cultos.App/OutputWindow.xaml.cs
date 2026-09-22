@@ -53,6 +53,16 @@ public partial class OutputWindow : Window
                 OutputVideo.Play();
                 return;
             }
+
+            if (type == ContentType.Audio && File.Exists(snapshot.MediaPath))
+            {
+                OutputVideo.Source = new Uri(snapshot.MediaPath!);
+                OutputVideo.Visibility = Visibility.Visible;
+                OutputText.Visibility = Visibility.Visible;
+                OutputText.Text = "♫\n" + snapshot.Title;
+                OutputVideo.Play();
+                return;
+            }
         }
         catch (Exception ex)
         {
