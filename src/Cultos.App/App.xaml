@@ -17,6 +17,21 @@
         <SolidColorBrush x:Key="Live" Color="#D36A61"/>
         <SolidColorBrush x:Key="Success" Color="#789879"/>
 
+        <Style TargetType="Menu">
+            <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Background" Value="#10110F"/>
+            <Setter Property="Foreground" Value="{StaticResource Text}"/>
+        </Style>
+
+        <Style TargetType="MenuItem">
+            <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="{StaticResource Text}"/>
+            <Setter Property="Background" Value="#151613"/>
+            <Setter Property="Padding" Value="10,5"/>
+        </Style>
+
         <Style TargetType="TextBlock">
             <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI"/>
             <Setter Property="Foreground" Value="{StaticResource Text}"/>
