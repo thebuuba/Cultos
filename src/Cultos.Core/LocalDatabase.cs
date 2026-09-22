@@ -361,7 +361,9 @@ public sealed class LocalDatabase
         var fullPath=Path.GetFullPath(path);
         if(!File.Exists(fullPath))throw new FileNotFoundException("El archivo seleccionado ya no existe.",fullPath);
         var ext=Path.GetExtension(fullPath).ToLowerInvariant();
-        var kind=new[]{".jpg",".jpeg",".png",".webp",".bmp",".gif"}.Contains(ext)?"Image":"Video";
+        var imageExtensions=new[]{".jpg",".jpeg",".png",".webp",".bmp",".gif"};
+        var audioExtensions=new[]{".mp3",".wav",".m4a",".aac",".wma",".flac"};
+        var kind=imageExtensions.Contains(ext)?"Image":audioExtensions.Contains(ext)?"Audio":"Video";
         using var db=new SqliteConnection(ConnectionString);db.Open();using var c=db.CreateCommand();
         c.CommandText="SELECT Id,Name,Path,Kind FROM MediaItem WHERE Path=$p LIMIT 1";c.Parameters.AddWithValue("$p",fullPath);
         using(var r=c.ExecuteReader())if(r.Read())return new(r.GetInt32(0),r.GetString(1),r.GetString(2),r.GetString(3));
