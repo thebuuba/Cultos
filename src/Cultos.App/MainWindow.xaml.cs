@@ -233,6 +233,32 @@ public partial class MainWindow : Window
             ? "Iglesia local"
             : _churchProfile.Name;
         ApplyAccentResource(_churchProfile.AccentHex);
+
+        var background = LoadProfileBitmap(_churchProfile.DefaultBackgroundPath);
+        PreviewBackgroundImage.Source = background;
+        LiveBackgroundImage.Source = background;
+        _output?.SetDefaultBackground(_churchProfile.DefaultBackgroundPath);
+    }
+
+    private static BitmapImage? LoadProfileBitmap(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return null;
+
+        try
+        {
+            var image = new BitmapImage();
+            image.BeginInit();
+            image.CacheOption = BitmapCacheOption.OnLoad;
+            image.UriSource = new Uri(path);
+            image.EndInit();
+            image.Freeze();
+            return image;
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Error("No se pudo cargar un recurso visual del perfil", ex);
+            return null;
+        }
     }
 
     private void ChurchProfile_Click(object sender, RoutedEventArgs e)
@@ -1924,6 +1950,7 @@ public partial class MainWindow : Window
 
         PlaceOutputOnConfiguredScreen();
         _output.SetVolume(_settings.MediaVolume);
+        _output.SetDefaultBackground(_churchProfile.DefaultBackgroundPath);
         _output.Render(_live, _liveType);
     }
 
