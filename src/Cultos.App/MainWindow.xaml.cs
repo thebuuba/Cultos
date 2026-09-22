@@ -1279,7 +1279,7 @@ public partial class MainWindow : Window
         _libraryDragStart = e.GetPosition(LibraryList);
     }
 
-    private void LibraryList_PreviewMouseMove(object sender, MouseEventArgs e)
+    private void LibraryList_PreviewMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
     {
         if (e.LeftButton != MouseButtonState.Pressed) return;
 
@@ -1290,19 +1290,19 @@ public partial class MainWindow : Window
 
         if (LibraryList.SelectedItem is not LibraryRow row) return;
 
-        var data = new DataObject();
+        var data = new System.Windows.DataObject();
         data.SetData("Cultos.LibraryRow", row);
-        DragDrop.DoDragDrop(LibraryList, data, DragDropEffects.Copy);
+        System.Windows.DragDrop.DoDragDrop(LibraryList, data, System.Windows.DragDropEffects.Copy);
     }
 
     private void Scene_DragOver(object sender, System.Windows.DragEventArgs e)
     {
-        e.Effects = DragDropEffects.None;
+        e.Effects = System.Windows.DragDropEffects.None;
         if (sender is not System.Windows.Controls.Button { Tag: int }) return;
 
         if (e.Data.GetDataPresent("Cultos.LibraryRow") ||
             e.Data.GetDataPresent(System.Windows.DataFormats.FileDrop))
-            e.Effects = DragDropEffects.Copy;
+            e.Effects = System.Windows.DragDropEffects.Copy;
 
         e.Handled = true;
     }
