@@ -19,23 +19,69 @@ public sealed class LocalDatabase
         Directory.CreateDirectory(Path.GetDirectoryName(databasePath)!);
     }
 
+    public const int CurrentSchemaVersion = 2;
+
     public void Initialize()
     {
-        using var db = new SqliteConnection(ConnectionString); db.Open();
-        using var cmd = db.CreateCommand();
-        cmd.CommandText = """
-            PRAGMA foreign_keys=ON;\n            PRAGMA journal_mode=WAL;\n            PRAGMA user_version=1;
-            CREATE TABLE IF NOT EXISTS AppSetting(Key TEXT PRIMARY KEY, Value TEXT NOT NULL);
-            CREATE TABLE IF NOT EXISTS Service(Id INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT NOT NULL, Date TEXT NOT NULL, UpdatedAt TEXT NOT NULL);
-            CREATE TABLE IF NOT EXISTS ServiceItem(Id INTEGER PRIMARY KEY AUTOINCREMENT, ServiceId INTEGER NOT NULL, Type INTEGER NOT NULL, Title TEXT NOT NULL, Content TEXT NOT NULL, MediaPath TEXT, Position INTEGER NOT NULL, Status TEXT NOT NULL, FOREIGN KEY(ServiceId) REFERENCES Service(Id) ON DELETE CASCADE);
-            CREATE TABLE IF NOT EXISTS BibleVerse(Id INTEGER PRIMARY KEY, Book TEXT NOT NULL, Chapter INTEGER NOT NULL, Verse INTEGER NOT NULL, Text TEXT NOT NULL, Translation TEXT NOT NULL);
-            CREATE TABLE IF NOT EXISTS Hymn(Id INTEGER PRIMARY KEY, Number INTEGER NOT NULL, Title TEXT NOT NULL, Lyrics TEXT NOT NULL, Sections TEXT NOT NULL);
-            CREATE TABLE IF NOT EXISTS Song(Id INTEGER PRIMARY KEY AUTOINCREMENT, Title TEXT NOT NULL, Author TEXT NOT NULL, Lyrics TEXT NOT NULL, Tags TEXT NOT NULL);
-            CREATE TABLE IF NOT EXISTS MediaItem(Id INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT NOT NULL, Path TEXT NOT NULL, Kind TEXT NOT NULL);
-            CREATE TABLE IF NOT EXISTS Theme(Id INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT NOT NULL, Background TEXT NOT NULL, Foreground TEXT NOT NULL, FontFamily TEXT NOT NULL);
-            """;
-        cmd.ExecuteNonQuery();
+        using var db = new SqliteConnection(ConnectionString);
+        db.Open();
+
+        using (var pragmas = db.CreateCommand())
+        {
+            pragmas.CommandText = """
+                PRAGMA foreign_keys=ON;
+                PRAGMA journal_mode=WAL;
+                PRAGMA busy_timeout=5000;
+                """;
+            pragmas.ExecuteNonQuery();
+        }
+
+        var version = GetSchemaVersion(db);
+
+        if (version < 1)
+        {
+            using var create = db.CreateCommand();
+            create.CommandText = """
+                CREATE TABLE IF NOT EXISTS AppSetting(Key TEXT PRIMARY KEY, Value TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS Service(Id INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT NOT NULL, Date TEXT NOT NULL, UpdatedAt TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS ServiceItem(Id INTEGER PRIMARY KEY AUTOINCREMENT, ServiceId INTEGER NOT NULL, Type INTEGER NOT NULL, Title TEXT NOT NULL, Content TEXT NOT NULL, MediaPath TEXT, Position INTEGER NOT NULL, Status TEXT NOT NULL, FOREIGN KEY(ServiceId) REFERENCES Service(Id) ON DELETE CASCADE);
+                CREATE TABLE IF NOT EXISTS BibleVerse(Id INTEGER PRIMARY KEY, Book TEXT NOT NULL, Chapter INTEGER NOT NULL, Verse INTEGER NOT NULL, Text TEXT NOT NULL, Translation TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS Hymn(Id INTEGER PRIMARY KEY, Number INTEGER NOT NULL, Title TEXT NOT NULL, Lyrics TEXT NOT NULL, Sections TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS Song(Id INTEGER PRIMARY KEY AUTOINCREMENT, Title TEXT NOT NULL, Author TEXT NOT NULL, Lyrics TEXT NOT NULL, Tags TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS MediaItem(Id INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT NOT NULL, Path TEXT NOT NULL, Kind TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS Theme(Id INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT NOT NULL, Background TEXT NOT NULL, Foreground TEXT NOT NULL, FontFamily TEXT NOT NULL);
+                PRAGMA user_version=1;
+                """;
+            create.ExecuteNonQuery();
+            version = 1;
+        }
+
+        if (version < 2)
+        {
+            using var migrate = db.CreateCommand();
+            migrate.CommandText = """
+                CREATE INDEX IF NOT EXISTS IX_ServiceItem_ServiceId_Position ON ServiceItem(ServiceId, Position);
+                CREATE UNIQUE INDEX IF NOT EXISTS IX_MediaItem_Path ON MediaItem(Path);
+                PRAGMA user_version=2;
+                """;
+            migrate.ExecuteNonQuery();
+        }
+
         Seed(db);
+    }
+
+    public int GetSchemaVersion()
+    {
+        using var db = new SqliteConnection(ConnectionString);
+        db.Open();
+        return GetSchemaVersion(db);
+    }
+
+    private static int GetSchemaVersion(SqliteConnection db)
+    {
+        using var command = db.CreateCommand();
+        command.CommandText = "PRAGMA user_version";
+        return Convert.ToInt32((long)command.ExecuteScalar()!);
     }
 
     private static void Seed(SqliteConnection db)
