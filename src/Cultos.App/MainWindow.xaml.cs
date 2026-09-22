@@ -49,7 +49,9 @@ public partial class MainWindow : Window
     private readonly bool _recoveredAfterUnexpectedExit;
     private static readonly HashSet<string> SupportedMediaExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".mp4", ".wmv", ".avi", ".mov", ".mkv"
+        ".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif",
+        ".mp4", ".wmv", ".avi", ".mov", ".mkv",
+        ".mp3", ".wav", ".m4a", ".aac", ".wma", ".flac"
     };
 
     public MainWindow()
@@ -354,7 +356,12 @@ public partial class MainWindow : Window
             DesignPreset d => new() { Type = d.Type, Title = d.Title, Content = d.Content, Status = "Preparado" },
             FileSystemEntry file when !file.IsFolder && File.Exists(file.Path) => new()
             {
-                Type = file.Kind == "Imagen" ? ContentType.Image : ContentType.Video,
+                Type = file.Kind switch
+                {
+                    "Imagen" => ContentType.Image,
+                    "Audio" => ContentType.Audio,
+                    _ => ContentType.Video
+                },
                 Title = file.Name,
                 Content = file.Kind,
                 MediaPath = file.Path,
@@ -367,7 +374,7 @@ public partial class MainWindow : Window
     private void MissingMedia()
     {
         StatusText.Text = "Archivo multimedia ausente · vuelve a localizarlo";
-        MessageBox.Show("El archivo fue movido o eliminado. Vuelve a agregarlo desde Multimedia.", "Archivo no encontrado", MessageBoxButton.OK, MessageBoxImage.Warning);
+        MessageBox.Show("El archivo fue movido o eliminado. Vuelve a agregarlo desde Archivos.", "Archivo no encontrado", MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 
     private void ResetPreviewMedia()
@@ -382,14 +389,15 @@ public partial class MainWindow : Window
 
     private void ShowPreview(ServiceItem item)
     {
-        if ((item.Type == ContentType.Image || item.Type == ContentType.Video) && (string.IsNullOrWhiteSpace(item.MediaPath) || !File.Exists(item.MediaPath)))
+        if (item.Type is ContentType.Image or ContentType.Video or ContentType.Audio &&
+            (string.IsNullOrWhiteSpace(item.MediaPath) || !File.Exists(item.MediaPath)))
         {
             _preview = null;
             _previewSlides = Array.Empty<string>();
             _previewSlideIndex = 0;
             ResetPreviewMedia();
             PreviewTitle.Text = "Archivo no encontrado";
-            PreviewContent.Text = "Vuelve a agregar este archivo desde Multimedia.";
+            PreviewContent.Text = "Vuelve a agregar este archivo desde Archivos.";
             MissingMedia();
             return;
         }
@@ -413,6 +421,15 @@ public partial class MainWindow : Window
             PreviewContent.Visibility = Visibility.Collapsed;
             PreviewVideo.Source = new Uri(item.MediaPath!);
             PreviewVideo.Visibility = Visibility.Visible;
+        }
+        else if (item.Type == ContentType.Audio)
+        {
+            _previewSlides = Array.Empty<string>();
+            PreviewTitle.Text = item.Title;
+            PreviewVideo.Source = new Uri(item.MediaPath!);
+            PreviewVideo.Visibility = Visibility.Visible;
+            PreviewContent.Visibility = Visibility.Visible;
+            PreviewContent.Text = "♫\n" + item.Title;
         }
         else
         {
@@ -443,7 +460,8 @@ public partial class MainWindow : Window
     {
         if (_preview is null) return;
         StopLogoSlideshow();
-        if ((_preview.Type == ContentType.Image || _preview.Type == ContentType.Video) && (string.IsNullOrWhiteSpace(_preview.MediaPath) || !File.Exists(_preview.MediaPath)))
+        if (_preview.Type is ContentType.Image or ContentType.Video or ContentType.Audio &&
+            (string.IsNullOrWhiteSpace(_preview.MediaPath) || !File.Exists(_preview.MediaPath)))
         {
             MissingMedia();
             return;
@@ -451,7 +469,7 @@ public partial class MainWindow : Window
 
         _blackRestoreSnapshot = null;
         _blackRestoreType = null;
-        var liveContent = _preview.Type is ContentType.Image or ContentType.Video
+        var liveContent = _preview.Type is ContentType.Image or ContentType.Video or ContentType.Audio
             ? _preview.Content
             : CurrentPreviewContent();
         _live = new(PresentationState.Content, _preview.Title, liveContent, _preview.MediaPath);
@@ -493,6 +511,14 @@ public partial class MainWindow : Window
             LiveContent.Visibility = Visibility.Collapsed;
             LiveVideo.Source = new Uri(item.MediaPath!);
             LiveVideo.Visibility = Visibility.Visible;
+            LiveVideo.Play();
+        }
+        else if (item.Type == ContentType.Audio && File.Exists(item.MediaPath))
+        {
+            LiveVideo.Source = new Uri(item.MediaPath!);
+            LiveVideo.Visibility = Visibility.Visible;
+            LiveContent.Visibility = Visibility.Visible;
+            LiveContent.Text = "♫\n" + item.Title;
             LiveVideo.Play();
         }
         else
@@ -625,6 +651,7 @@ public partial class MainWindow : Window
         SceneType.Song => ContentType.Song,
         SceneType.Video => ContentType.Video,
         SceneType.Image or SceneType.Logo => ContentType.Image,
+        SceneType.Audio => ContentType.Audio,
         _ => ContentType.FreeText
     };
 
@@ -710,7 +737,7 @@ public partial class MainWindow : Window
         }
 
         var type = ContentTypeForScene(scene.Type);
-        if (type is ContentType.Image or ContentType.Video)
+        if (type is ContentType.Image or ContentType.Video or ContentType.Audio)
         {
             if (string.IsNullOrWhiteSpace(scene.MediaPath) || !File.Exists(scene.MediaPath))
             {
@@ -721,7 +748,7 @@ public partial class MainWindow : Window
         }
 
         var content = scene.Content;
-        if (type is not (ContentType.Image or ContentType.Video))
+        if (type is not (ContentType.Image or ContentType.Video or ContentType.Audio))
         {
             var slides = TextPaginator.Split(content, 220);
             if (slides.Count > 0) content = slides[0];
@@ -763,6 +790,7 @@ public partial class MainWindow : Window
                 break;
             case SceneType.Video:
             case SceneType.Image:
+            case SceneType.Audio:
             case SceneType.Logo:
                 ConfigureMode("Media");
                 break;
@@ -951,6 +979,7 @@ public partial class MainWindow : Window
                 ContentType.Song => SceneType.Song,
                 ContentType.Video => SceneType.Video,
                 ContentType.Image => SceneType.Image,
+                ContentType.Audio => SceneType.Audio,
                 _ => SceneType.Custom
             };
         }
@@ -1091,13 +1120,18 @@ public partial class MainWindow : Window
             try
             {
                 entries.AddRange(Directory.EnumerateDirectories(_currentMediaFolder).Select(p => new FileSystemEntry(Path.GetFileName(p), p, true, "Carpeta")));
-                var supported = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".mp4", ".wmv", ".avi", ".mov", ".mkv" };
+                var supported = SupportedMediaExtensions;
                 entries.AddRange(Directory.EnumerateFiles(_currentMediaFolder)
                     .Where(p => supported.Contains(Path.GetExtension(p)))
                     .Select(p =>
                     {
-                        var video = new[] { ".mp4", ".wmv", ".avi", ".mov", ".mkv" }.Contains(Path.GetExtension(p), StringComparer.OrdinalIgnoreCase);
-                        return new FileSystemEntry(Path.GetFileName(p), p, false, video ? "Video" : "Imagen", new FileInfo(p).Length);
+                        var extension = Path.GetExtension(p);
+                        var audio = new[] { ".mp3", ".wav", ".m4a", ".aac", ".wma", ".flac" }
+                            .Contains(extension, StringComparer.OrdinalIgnoreCase);
+                        var video = new[] { ".mp4", ".wmv", ".avi", ".mov", ".mkv" }
+                            .Contains(extension, StringComparer.OrdinalIgnoreCase);
+                        var kind = audio ? "Audio" : video ? "Video" : "Imagen";
+                        return new FileSystemEntry(Path.GetFileName(p), p, false, kind, new FileInfo(p).Length);
                     }));
             }
             catch (UnauthorizedAccessException)
@@ -1341,7 +1375,7 @@ public partial class MainWindow : Window
         var index = RunList.SelectedIndex;
         if (index < 0) return;
         var item = _service.Items[index];
-        var mediaOnly = item.Type is ContentType.Image or ContentType.Video;
+        var mediaOnly = item.Type is ContentType.Image or ContentType.Video or ContentType.Audio;
         var editor = new TextEditorWindow("Editar elemento", item.Title, item.Content, !mediaOnly, "Título", "Contenido") { Owner = this };
         if (editor.ShowDialog() != true) return;
 
@@ -1689,7 +1723,12 @@ public partial class MainWindow : Window
                 var media = _db.AddMedia(path);
                 _service.Items.Add(new ServiceItem
                 {
-                    Type = media.Kind == "Image" ? ContentType.Image : ContentType.Video,
+                    Type = media.Kind switch
+                    {
+                        "Image" => ContentType.Image,
+                        "Audio" => ContentType.Audio,
+                        _ => ContentType.Video
+                    },
                     Title = media.Name,
                     Content = media.Kind == "Image" ? "Imagen" : "Video",
                     MediaPath = media.Path,
@@ -1785,6 +1824,7 @@ public sealed class RunRow
         ContentType.Song => "Canción",
         ContentType.Image => "Imagen",
         ContentType.Video => "Video",
+        ContentType.Audio => "Audio",
         ContentType.Welcome => "Bienvenida",
         ContentType.Background => "Fondo",
         _ => "Texto libre"
