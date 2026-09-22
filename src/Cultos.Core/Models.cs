@@ -2,6 +2,23 @@ namespace Cultos.Core;
 
 public enum ContentType { Welcome, Bible, Hymn, Song, FreeText, Image, Video, Background }
 public enum PresentationState { Empty, Content, Black, Logo }
+public enum SceneType { Logo, Bible, Hymn, Song, Video, YouTube, Title, Black, Image, Audio, Custom }
+
+public sealed class PresentationScene
+{
+    public int Id { get; set; }
+    public string Key { get; set; } = "";
+    public string Name { get; set; } = "Escena";
+    public SceneType Type { get; set; }
+    public int Position { get; set; }
+    public bool IsBuiltIn { get; set; }
+    public string Title { get; set; } = "";
+    public string Content { get; set; } = "";
+    public string? MediaPath { get; set; }
+    public string SettingsJson { get; set; } = "{}";
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+}
+
 
 public sealed record BibleVerse(int Id, string Book, int Chapter, int Verse, string Text, string Translation)
 {
