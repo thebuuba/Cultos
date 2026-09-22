@@ -199,8 +199,8 @@ public partial class MainWindow : Window
                 break;
             case "Settings":
                 SectionLabel.Text = "CONFIGURACIÓN";
-                LibraryTitle.Text = "Sistema local";
-                LibraryPrimaryButton.Content = "Abrir carpeta de datos";
+                LibraryTitle.Text = "Sistema y pantallas";
+                LibraryPrimaryButton.Content = "Aplicar / Abrir";
                 LibrarySecondaryButton.Content = "Importar copia";
                 LibrarySecondaryButton.Visibility = Visibility.Visible;
                 SearchBox.Visibility = Visibility.Collapsed;
@@ -249,13 +249,20 @@ public partial class MainWindow : Window
                     .Select(s => new LibraryRow(s.Name, $"{s.Date:d} · actualizado {s.UpdatedAt:g}", s)).ToList();
                 break;
             case "Settings":
-                LibraryList.ItemsSource = new[]
+                var selectedScreen = _displayManager.ResolvePresentationScreen().DeviceName;
+                var settingsRows = new List<LibraryRow>
                 {
-                    new LibraryRow("Modo sin conexión","La aplicación funciona con datos locales.",new SettingInfo("offline")),
-                    new LibraryRow("Datos locales",_dataFolder,new SettingInfo("data")),
-                    new LibraryRow("Pantallas detectadas",$"{Forms.Screen.AllScreens.Length} pantalla(s) disponible(s)",new SettingInfo("screens")),
-                    new LibraryRow("Atajos","←/→ navegar · Espacio enviar · B negra · C limpiar · F5 pantalla",new SettingInfo("keys"))
+                    new("Modo sin conexión","La aplicación funciona completamente con datos locales.",new SettingInfo("offline")),
+                    new("Datos locales",_dataFolder,new SettingInfo("data")),
+                    new("Registros de errores",Path.Combine(_dataFolder, "logs"),new SettingInfo("logs")),
+                    new("Atajos","←/→ navegar · Espacio enviar · B negra · C limpiar · F5 pantalla",new SettingInfo("keys"))
                 };
+                settingsRows.AddRange(_displayManager.Screens.Select((screen, index) =>
+                    new LibraryRow(
+                        $"{(screen.DeviceName == selectedScreen ? "●" : "○")} Pantalla {index + 1}",
+                        $"{DisplayManager.Describe(screen)} · {screen.DeviceName}",
+                        new DisplayChoice(screen.DeviceName))));
+                LibraryList.ItemsSource = settingsRows;
                 break;
         }
     }
@@ -572,7 +579,38 @@ public partial class MainWindow : Window
 
         if (_mode == "Settings")
         {
-            OpenDataFolder();
+            if (LibraryList.SelectedItem is not LibraryRow selected) return;
+
+            if (selected.Source is DisplayChoice display)
+            {
+                try
+                {
+                    _displayManager.Select(display.DeviceName);
+                    _settingsStore.Save(_settings);
+                    PlaceOutputOnConfiguredScreen();
+                    LoadLibrary();
+                    StatusText.Text = "Pantalla de congregación guardada";
+                }
+                catch (Exception ex)
+                {
+                    AppLogger.Error("No se pudo seleccionar la pantalla", ex);
+                    StatusText.Text = "La pantalla seleccionada ya no está disponible";
+                }
+                return;
+            }
+
+            if (selected.Source is SettingInfo { Key: "data" })
+            {
+                OpenDataFolder();
+                return;
+            }
+
+            if (selected.Source is SettingInfo { Key: "logs" })
+            {
+                OpenLogsFolder();
+                return;
+            }
+
             return;
         }
 
@@ -631,14 +669,25 @@ public partial class MainWindow : Window
 
     private void OpenDataFolder()
     {
-        Directory.CreateDirectory(_dataFolder);
+        OpenFolder(_dataFolder, "Carpeta de datos abierta");
+    }
+
+    private void OpenLogsFolder()
+    {
+        OpenFolder(Path.Combine(_dataFolder, "logs"), "Carpeta de registros abierta");
+    }
+
+    private void OpenFolder(string path, string successMessage)
+    {
+        Directory.CreateDirectory(path);
         try
         {
-            Process.Start(new ProcessStartInfo("explorer.exe", _dataFolder) { UseShellExecute = true });
-            StatusText.Text = "Carpeta de datos abierta";
+            Process.Start(new ProcessStartInfo("explorer.exe", path) { UseShellExecute = true });
+            StatusText.Text = successMessage;
         }
         catch (Exception ex)
         {
+            AppLogger.Error("No se pudo abrir una carpeta de la aplicación", ex);
             MessageBox.Show("No se pudo abrir la carpeta. " + ex.Message, "Cultos", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
@@ -778,26 +827,63 @@ public partial class MainWindow : Window
 
     private void OpenDisplay()
     {
-        _output?.Close();
-        _output = new OutputWindow();
-        _output.Closed += (_, _) =>
+        if (_output is null)
         {
-            _output = null;
-            DisplayStateText.Text = "Pantalla cerrada";
-            StatusText.Text = "Salida externa cerrada";
-        };
+            _output = new OutputWindow();
+            _output.Closed += (_, _) =>
+            {
+                _output = null;
+                DisplayStateText.Text = "Pantalla cerrada";
+                StatusText.Text = "Salida externa cerrada";
+            };
+            _output.MediaError += (_, message) =>
+            {
+                Dispatcher.BeginInvoke(() =>
+                {
+                    StatusText.Text = "Error de video · " + message;
+                });
+            };
+            _output.MediaEnded += (_, _) => Dispatcher.BeginInvoke(() => StatusText.Text = "Video finalizado");
+        }
 
-        var screens = Forms.Screen.AllScreens;
-        var target = screens.FirstOrDefault(x => !x.Primary) ?? screens[0];
+        PlaceOutputOnConfiguredScreen();
+        _output.SetVolume(_settings.MediaVolume);
+        _output.Render(_live, _liveType);
+    }
+
+    private void PlaceOutputOnConfiguredScreen()
+    {
+        if (_output is null) return;
+
+        var target = _displayManager.ResolvePresentationScreen();
+        var wasVisible = _output.IsVisible;
+        _output.WindowState = WindowState.Normal;
         _output.Left = target.Bounds.Left;
         _output.Top = target.Bounds.Top;
         _output.Width = target.Bounds.Width;
         _output.Height = target.Bounds.Height;
-        _output.Show();
+
+        if (!wasVisible) _output.Show();
         _output.WindowState = WindowState.Maximized;
-        _output.Render(_live, _liveType);
-        DisplayStateText.Text = screens.Length > 1 ? "Pantalla externa conectada" : "Salida en este monitor";
-        StatusText.Text = $"Salida iniciada en {target.DeviceName}";
+
+        DisplayStateText.Text = Forms.Screen.AllScreens.Length > 1
+            ? $"Salida · {target.DeviceName}"
+            : "Salida en este monitor";
+        StatusText.Text = $"Salida preparada en {target.DeviceName}";
+    }
+
+    private void SystemEvents_DisplaySettingsChanged(object? sender, EventArgs e)
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            var configuredAvailable = _displayManager.IsConfiguredScreenAvailable();
+            if (_output is not null) PlaceOutputOnConfiguredScreen();
+            if (_mode == "Settings") LoadLibrary();
+
+            StatusText.Text = configuredAvailable
+                ? "Configuración de pantallas actualizada"
+                : "La pantalla configurada se desconectó · usando una pantalla disponible";
+        });
     }
 
     private void Export_Click(object sender, RoutedEventArgs e)
@@ -851,6 +937,7 @@ public sealed record LibraryRow(string Title, string Subtitle, object Source);
 public sealed record FileSystemEntry(string Name, string Path, bool IsFolder, string Kind, long Size = 0);
 public sealed record QuickAction(string Mode);
 public sealed record SettingInfo(string Key);
+public sealed record DisplayChoice(string DeviceName);
 public sealed record DesignPreset(string Title, string Content, ContentType Type);
 
 public sealed class RunRow
