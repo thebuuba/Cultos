@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [paneles]
 
+concurrency:
+  group: cultos-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   windows:
     runs-on: windows-latest
@@ -22,3 +26,11 @@ jobs:
         run: dotnet build Cultos.sln --configuration Release --no-restore
       - name: Test
         run: dotnet test tests/Cultos.Tests/Cultos.Tests.csproj --configuration Release --no-build --verbosity normal
+      - name: Publish Windows app
+        run: dotnet publish src/Cultos.App/Cultos.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o artifacts/publish
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Cultos-win-x64
+          path: artifacts/publish
+          if-no-files-found: error
