@@ -14,7 +14,8 @@ OutputDir=..\artifacts\installer
 OutputBaseFilename=Cultos-Setup-0.2.0
 Compression=lzma2
 SolidCompression=yes
-WizardStyle=modern\nChangesAssociations=yes
+WizardStyle=modern
+SetupIconFile=..\src\Cultos.App\Assets\Cultos.ico\nChangesAssociations=yes
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=lowest
