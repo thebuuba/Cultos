@@ -64,6 +64,8 @@
             </MenuItem>
             <MenuItem Header="_Configuración">
                 <MenuItem Header="Perfil de iglesia…" Click="ChurchProfile_Click"/>
+                <MenuItem Header="Control remoto…" Click="RemoteControl_Click"/>
+                <Separator/>
                 <MenuItem Header="Sistema y pantallas" Click="Settings_Click"/>
             </MenuItem>
             <MenuItem Header="A_yuda">
