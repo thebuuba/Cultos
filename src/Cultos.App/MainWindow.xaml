@@ -62,7 +62,10 @@
                           IsChecked="True"
                           Click="ToggleMonitorPanel_Click"/>
             </MenuItem>
-            <MenuItem Header="_Configuración" Click="Settings_Click"/>
+            <MenuItem Header="_Configuración">
+                <MenuItem Header="Perfil de iglesia…" Click="ChurchProfile_Click"/>
+                <MenuItem Header="Sistema y pantallas" Click="Settings_Click"/>
+            </MenuItem>
             <MenuItem Header="A_yuda">
                 <MenuItem Header="Atajos de teclado" Click="ShowShortcuts_Click"/>
                 <MenuItem Header="Acerca de Cultos" Click="About_Click"/>
@@ -92,7 +95,7 @@
                     </Border>
                     <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
                         <TextBlock Text="Cultos" FontSize="19" FontWeight="SemiBold"/>
-                        <TextBlock Text="Producción visual" Foreground="{StaticResource Muted}" FontSize="11"/>
+                        <TextBlock x:Name="ChurchNameText" Text="Iglesia local" Foreground="{StaticResource Muted}" FontSize="11" TextTrimming="CharacterEllipsis" MaxWidth="170"/>
                     </StackPanel>
                 </StackPanel>
 
