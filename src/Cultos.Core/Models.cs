@@ -32,6 +32,13 @@ public sealed record MediaLibraryItem(int Id, string Name, string Path, string K
     public bool Exists => File.Exists(Path);
 }
 
+public sealed class LogoSceneSettings
+{
+    public List<string> ImagePaths { get; set; } = [];
+    public int IntervalSeconds { get; set; } = 8;
+    public bool Loop { get; set; } = true;
+}
+
 public sealed class ServiceItem
 {
     public int Id { get; set; }
