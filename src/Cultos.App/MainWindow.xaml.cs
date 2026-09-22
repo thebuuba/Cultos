@@ -45,6 +45,7 @@ public partial class MainWindow : Window
     private List<string> _logoPlaylist = [];
     private int _logoIndex;
     private bool _logoLoop = true;
+    private System.Windows.Point _libraryDragStart;
     private readonly string _sessionMarkerPath;
     private readonly bool _recoveredAfterUnexpectedExit;
     private static readonly HashSet<string> SupportedMediaExtensions = new(StringComparer.OrdinalIgnoreCase)
@@ -352,27 +353,56 @@ public partial class MainWindow : Window
     private ServiceItem? LibrarySelection()
     {
         if (LibraryList.SelectedItem is not LibraryRow row) return null;
-        return row.Source switch
+        return CreateServiceItem(row.Source);
+    }
+
+    private static ServiceItem? CreateServiceItem(object source) => source switch
+    {
+        BibleVerse v => new() { Type = ContentType.Bible, Title = v.Reference, Content = v.Text, Status = "Preparado" },
+        Hymn h => new() { Type = ContentType.Hymn, Title = $"{h.Number} · {h.Title}", Content = h.Lyrics, Status = "Preparado" },
+        LibrarySong song => new() { Type = ContentType.Song, Title = song.Title, Content = song.Lyrics, Status = "Preparado" },
+        DesignPreset d => new() { Type = d.Type, Title = d.Title, Content = d.Content, Status = "Preparado" },
+        FileSystemEntry file when !file.IsFolder && File.Exists(file.Path) => new()
         {
-            BibleVerse v => new() { Type = ContentType.Bible, Title = v.Reference, Content = v.Text, Status = "Preparado" },
-            Hymn h => new() { Type = ContentType.Hymn, Title = $"{h.Number} · {h.Title}", Content = h.Lyrics, Status = "Preparado" },
-            LibrarySong song => new() { Type = ContentType.Song, Title = song.Title, Content = song.Lyrics, Status = "Preparado" },
-            DesignPreset d => new() { Type = d.Type, Title = d.Title, Content = d.Content, Status = "Preparado" },
-            FileSystemEntry file when !file.IsFolder && File.Exists(file.Path) => new()
+            Type = file.Kind switch
             {
-                Type = file.Kind switch
-                {
-                    "Imagen" => ContentType.Image,
-                    "Audio" => ContentType.Audio,
-                    _ => ContentType.Video
-                },
-                Title = file.Name,
-                Content = file.Kind,
-                MediaPath = file.Path,
-                Status = "Preparado"
+                "Imagen" => ContentType.Image,
+                "Audio" => ContentType.Audio,
+                _ => ContentType.Video
             },
-            _ => null
-        };
+            Title = file.Name,
+            Content = file.Kind,
+            MediaPath = file.Path,
+            Status = "Preparado"
+        },
+        _ => null
+    };
+
+    private static ServiceItem? CreateServiceItemFromPath(string path)
+    {
+        if (!File.Exists(path)) return null;
+        var extension = Path.GetExtension(path);
+        var type = new[] { ".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif" }
+            .Contains(extension, StringComparer.OrdinalIgnoreCase)
+            ? ContentType.Image
+            : new[] { ".mp3", ".wav", ".m4a", ".aac", ".wma", ".flac" }
+                .Contains(extension, StringComparer.OrdinalIgnoreCase)
+                ? ContentType.Audio
+                : new[] { ".mp4", ".wmv", ".avi", ".mov", ".mkv" }
+                    .Contains(extension, StringComparer.OrdinalIgnoreCase)
+                    ? ContentType.Video
+                    : (ContentType?)null;
+
+        return type is null
+            ? null
+            : new ServiceItem
+            {
+                Type = type.Value,
+                Title = Path.GetFileName(path),
+                Content = type.Value.ToString(),
+                MediaPath = path,
+                Status = "Preparado"
+            };
     }
 
     private void MissingMedia()
@@ -845,6 +875,17 @@ public partial class MainWindow : Window
             return;
         }
 
+        AddImagesToLogo(paths);
+    }
+
+    private void AddImagesToLogo(IEnumerable<string> imagePaths)
+    {
+        var paths = imagePaths
+            .Where(File.Exists)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (paths.Count == 0) return;
+
         var logo = _scenes.FirstOrDefault(x => x.Type == SceneType.Logo);
         if (logo is null) return;
 
@@ -1232,6 +1273,140 @@ public partial class MainWindow : Window
     }
 
     private void RefreshMedia_Click(object sender, RoutedEventArgs e) => LoadMediaBrowser(SearchBox.Text ?? "");
+
+    private void LibraryList_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        _libraryDragStart = e.GetPosition(LibraryList);
+    }
+
+    private void LibraryList_PreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (e.LeftButton != MouseButtonState.Pressed) return;
+
+        var current = e.GetPosition(LibraryList);
+        if (Math.Abs(current.X - _libraryDragStart.X) < SystemParameters.MinimumHorizontalDragDistance &&
+            Math.Abs(current.Y - _libraryDragStart.Y) < SystemParameters.MinimumVerticalDragDistance)
+            return;
+
+        if (LibraryList.SelectedItem is not LibraryRow row) return;
+
+        var data = new DataObject();
+        data.SetData("Cultos.LibraryRow", row);
+        DragDrop.DoDragDrop(LibraryList, data, DragDropEffects.Copy);
+    }
+
+    private void Scene_DragOver(object sender, System.Windows.DragEventArgs e)
+    {
+        e.Effects = DragDropEffects.None;
+        if (sender is not System.Windows.Controls.Button { Tag: int }) return;
+
+        if (e.Data.GetDataPresent("Cultos.LibraryRow") ||
+            e.Data.GetDataPresent(System.Windows.DataFormats.FileDrop))
+            e.Effects = DragDropEffects.Copy;
+
+        e.Handled = true;
+    }
+
+    private void Scene_Drop(object sender, System.Windows.DragEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.Button { Tag: int id }) return;
+        var scene = _scenes.FirstOrDefault(x => x.Id == id);
+        if (scene is null) return;
+
+        if (e.Data.GetData("Cultos.LibraryRow") is LibraryRow row)
+        {
+            var item = CreateServiceItem(row.Source);
+            if (item is not null) AssignItemToScene(scene, item);
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Data.GetData(System.Windows.DataFormats.FileDrop) is string[] files)
+        {
+            if (scene.Type == SceneType.Logo)
+            {
+                var images = files
+                    .Where(File.Exists)
+                    .Where(path => new[] { ".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif" }
+                        .Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase))
+                    .ToList();
+
+                if (images.Count > 0)
+                    AddImagesToLogo(images);
+
+                e.Handled = true;
+                return;
+            }
+
+            var item = files.Select(CreateServiceItemFromPath).FirstOrDefault(x => x is not null);
+            if (item is not null) AssignItemToScene(scene, item);
+            e.Handled = true;
+        }
+    }
+
+    private void AssignItemToScene(PresentationScene scene, ServiceItem item)
+    {
+        if (scene.Type == SceneType.Black)
+        {
+            StatusText.Text = "Fondo oscuro no recibe contenido";
+            return;
+        }
+
+        if (scene.Type == SceneType.Logo)
+        {
+            if (item.Type != ContentType.Image || string.IsNullOrWhiteSpace(item.MediaPath))
+            {
+                StatusText.Text = "La escena Logo solo acepta imágenes";
+                return;
+            }
+
+            AddImagesToLogo([item.MediaPath]);
+            return;
+        }
+
+        var compatible = scene.Type switch
+        {
+            SceneType.Bible => item.Type == ContentType.Bible,
+            SceneType.Hymn => item.Type == ContentType.Hymn,
+            SceneType.Song => item.Type == ContentType.Song,
+            SceneType.Video => item.Type == ContentType.Video,
+            SceneType.Audio => item.Type == ContentType.Audio,
+            SceneType.YouTube => item.Type == ContentType.Web,
+            SceneType.Image => item.Type == ContentType.Image,
+            SceneType.Title => item.Type is ContentType.FreeText or ContentType.Welcome or ContentType.Background,
+            SceneType.Custom => true,
+            _ => true
+        };
+
+        if (!compatible)
+        {
+            StatusText.Text = $"Ese contenido no corresponde a la escena {scene.Name}";
+            return;
+        }
+
+        if (scene.Type == SceneType.Custom)
+        {
+            scene.Type = item.Type switch
+            {
+                ContentType.Bible => SceneType.Bible,
+                ContentType.Hymn => SceneType.Hymn,
+                ContentType.Song => SceneType.Song,
+                ContentType.Video => SceneType.Video,
+                ContentType.Audio => SceneType.Audio,
+                ContentType.Image => SceneType.Image,
+                ContentType.Web => SceneType.YouTube,
+                _ => SceneType.Custom
+            };
+        }
+
+        scene.Title = item.Title;
+        scene.Content = item.Content;
+        scene.MediaPath = item.MediaPath;
+        _db.SaveScene(scene);
+        LoadScenes();
+        ShowPreview(item);
+        StatusText.Text = $"{item.Title} asignado a {scene.Name}";
+    }
 
     private void LibraryList_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
