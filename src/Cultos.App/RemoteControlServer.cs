@@ -163,7 +163,7 @@ public sealed class RemoteControlServer : IAsyncDisposable
 
             do
             {
-                result = await socket.ReceiveAsync(buffer, cancellationToken);
+                result = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken);
                 if (result.MessageType == WebSocketMessageType.Close) return;
                 stream.Write(buffer, 0, result.Count);
             }
@@ -220,7 +220,7 @@ public sealed class RemoteControlServer : IAsyncDisposable
     private static Task SendTextAsync(WebSocket socket, string text, CancellationToken cancellationToken)
     {
         var bytes = Encoding.UTF8.GetBytes(text);
-        return socket.SendAsync(bytes, WebSocketMessageType.Text, true, cancellationToken);
+        return socket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, cancellationToken);
     }
 
     private static string ResolveLanAddress()
