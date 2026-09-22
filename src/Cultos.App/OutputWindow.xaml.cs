@@ -24,7 +24,8 @@ public partial class OutputWindow : Window
         OutputImage.Visibility = Visibility.Collapsed;
         OutputText.Visibility = Visibility.Visible;
 
-        Root.Background = snapshot.State == PresentationState.Black
+        Root.Background = MediaBrushes.Black;
+        PresentationSurface.Background = snapshot.State == PresentationState.Black
             ? MediaBrushes.Black
             : new SolidColorBrush(MediaColor.FromRgb(21, 25, 21));
 
