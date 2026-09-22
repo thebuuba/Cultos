@@ -1,36 +1,80 @@
 <Window x:Class="Cultos.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Cultos · Producción visual" Width="1440" Height="900"
-        MinWidth="1060" MinHeight="680" Background="{StaticResource AppBackground}" UseLayoutRounding="True" SnapsToDevicePixels="True"
-        WindowStartupLocation="CenterScreen" KeyDown="Window_KeyDown" AllowDrop="True" DragOver="Window_DragOver" Drop="Window_Drop">
-    <Grid>
-        <Grid.RowDefinitions><RowDefinition Height="70"/><RowDefinition/><RowDefinition Height="36"/></Grid.RowDefinitions>
+        Title="Cultos · Producción visual"
+        Width="1440"
+        Height="900"
+        MinWidth="1060"
+        MinHeight="680"
+        Background="{StaticResource AppBackground}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        WindowStartupLocation="CenterScreen"
+        KeyDown="Window_KeyDown"
+        AllowDrop="True"
+        DragOver="Window_DragOver"
+        Drop="Window_Drop">
 
-        <!-- Barra superior -->
-        <Border Grid.Row="0" Background="#151613" BorderBrush="{StaticResource Border}" BorderThickness="0,0,0,1">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="70"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="36"/>
+        </Grid.RowDefinitions>
+
+        <!-- Barra superior de aplicación -->
+        <Border Grid.Row="0"
+                Background="#151613"
+                BorderBrush="{StaticResource Border}"
+                BorderThickness="0,0,0,1">
             <Grid Margin="18,0">
-                <Grid.ColumnDefinitions><ColumnDefinition Width="210"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="210"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Border Width="40" Height="40" CornerRadius="10" Background="{StaticResource Accent}">
-                        <TextBlock Text="C" Foreground="#18170F" FontWeight="Bold" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBlock Text="C"
+                                   Foreground="#18170F"
+                                   FontWeight="Bold"
+                                   FontSize="20"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"/>
                     </Border>
                     <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
                         <TextBlock Text="Cultos" FontSize="19" FontWeight="SemiBold"/>
                         <TextBlock Text="Producción visual" Foreground="{StaticResource Muted}" FontSize="11"/>
                     </StackPanel>
                 </StackPanel>
+
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="ServiceNameText" Text="Culto divino" FontSize="16" FontWeight="SemiBold"/>
                     <Border Width="1" Height="18" Background="{StaticResource Border}" Margin="14,0"/>
                     <TextBlock Text="●" Foreground="{StaticResource Success}" FontSize="9" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="SaveStateText" Text="Guardado" Foreground="{StaticResource Muted}" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="SaveStateText"
+                               Text="Guardado"
+                               Foreground="{StaticResource Muted}"
+                               Margin="6,0,0,0"
+                               VerticalAlignment="Center"/>
                 </StackPanel>
+
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Border x:Name="LiveBadge" Visibility="Collapsed" Background="#3B211F" CornerRadius="7" Padding="11,7" Margin="0,0,8,0">
-                        <StackPanel Orientation="Horizontal"><TextBlock Text="●" Foreground="#F19A92" FontSize="9" VerticalAlignment="Center"/><TextBlock Text=" EN VIVO" Foreground="#F1B1AB" FontWeight="SemiBold"/></StackPanel>
+                    <Border x:Name="LiveBadge"
+                            Visibility="Collapsed"
+                            Background="#3B211F"
+                            CornerRadius="7"
+                            Padding="11,7"
+                            Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="●" Foreground="#F19A92" FontSize="9" VerticalAlignment="Center"/>
+                            <TextBlock Text=" EN VIVO" Foreground="#F1B1AB" FontWeight="SemiBold"/>
+                        </StackPanel>
                     </Border>
-                    <Button Click="OpenDisplay_Click" Margin="0,0,8,0" ToolTip="Abrir o recuperar la salida externa (F5)">▣  Pantalla externa</Button>
+                    <Button Click="OpenDisplay_Click"
+                            Margin="0,0,8,0"
+                            ToolTip="Abrir o recuperar la salida externa (F5)">▣  Pantalla externa</Button>
                     <Border Width="1" Height="24" Background="{StaticResource Border}" Margin="3,0,11,0"/>
                     <TextBlock x:Name="ClockText" VerticalAlignment="Center" FontSize="15" FontWeight="SemiBold" MinWidth="72"/>
                     <Button Click="Settings_Click" Margin="9,0,0,0" Padding="11,9" ToolTip="Configuración">⚙</Button>
@@ -38,148 +82,609 @@
             </Grid>
         </Border>
 
+        <!-- Zona principal -->
         <Grid Grid.Row="1">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="48"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="310" MinWidth="240"/>
-                <ColumnDefinition Width="5"/>
-                <ColumnDefinition x:Name="OrderColumn" Width="0" MinWidth="0"/>
-                <ColumnDefinition x:Name="OrderSplitterColumn" Width="0"/>
-                <ColumnDefinition Width="*" MinWidth="420"/>
+                <!-- Área de trabajo: siempre recibe el espacio sobrante -->
+                <ColumnDefinition Width="*" MinWidth="560"/>
+                <!-- Columna de monitores: ancho acotado -->
+                <ColumnDefinition Width="450" MinWidth="400" MaxWidth="480"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Navegación superior estilo aplicación de escritorio -->
-            <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="5"
-                    Background="{StaticResource Sidebar}"
-                    BorderBrush="{StaticResource Border}"
-                    BorderThickness="0,0,0,1">
-                <UniformGrid Rows="1" Columns="8" Margin="8,3">
-                    <Button x:Name="OrderNavButton" Style="{StaticResource TopNavButton}" Click="OrderNav_Click" ToolTip="Mostrar u ocultar el orden del culto">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"><TextBlock Text="☷" FontSize="15" Margin="0,0,6,0"/><TextBlock Text="Orden"/></StackPanel>
-                    </Button>
-                    <Button x:Name="BibleNavButton" Style="{StaticResource TopNavButton}" Click="BibleNav_Click" ToolTip="Biblioteca bíblica">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"><TextBlock Text="▤" FontSize="15" Margin="0,0,6,0"/><TextBlock Text="Biblia"/></StackPanel>
-                    </Button>
-                    <Button x:Name="HymnNavButton" Style="{StaticResource TopNavButton}" Click="HymnNav_Click" ToolTip="Himnario">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"><TextBlock Text="♫" FontSize="15" Margin="0,0,6,0"/><TextBlock Text="Himnos"/></StackPanel>
-                    </Button>
-                    <Button x:Name="SongsNavButton" Style="{StaticResource TopNavButton}" Click="SongsNav_Click" ToolTip="Canciones de la iglesia">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"><TextBlock Text="♪" FontSize="15" Margin="0,0,6,0"/><TextBlock Text="Canciones"/></StackPanel>
-                    </Button>
-                    <Button x:Name="MediaNavButton" Style="{StaticResource TopNavButton}" Click="MediaNav_Click" ToolTip="Imágenes y videos">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"><TextBlock Text="▧" FontSize="15" Margin="0,0,6,0"/><TextBlock Text="Medios"/></StackPanel>
-                    </Button>
-                    <Button x:Name="DesignsNavButton" Style="{StaticResource TopNavButton}" Click="DesignsNav_Click" ToolTip="Diseños visuales">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"><TextBlock Text="◫" FontSize="15" Margin="0,0,6,0"/><TextBlock Text="Diseños"/></StackPanel>
-                    </Button>
-                    <Button x:Name="ServicesNavButton" Style="{StaticResource TopNavButton}" Click="Services_Click" ToolTip="Abrir o crear un culto">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"><TextBlock Text="▱" FontSize="15" Margin="0,0,6,0"/><TextBlock Text="Cultos"/></StackPanel>
-                    </Button>
-                    <Button x:Name="SettingsNavButton" Style="{StaticResource TopNavButton}" Click="Settings_Click" ToolTip="Configuración">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"><TextBlock Text="⚙" FontSize="14" Margin="0,0,6,0"/><TextBlock Text="Ajustes"/></StackPanel>
-                    </Button>
-                </UniformGrid>
-            </Border>
+            <!-- IZQUIERDA: navegación + área de trabajo -->
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="48"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
 
-            <!-- Biblioteca -->
-            <Border Grid.Row="1" Grid.Column="0" Background="{StaticResource Panel}">
-                <Grid Margin="16,17,16,14"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                    <StackPanel>
-                        <TextBlock x:Name="SectionLabel" Text="BIBLIOTECA" Foreground="{StaticResource Subtle}" FontSize="10" FontWeight="SemiBold"/>
-                        <TextBlock x:Name="LibraryTitle" Text="Biblia" FontSize="21" FontWeight="SemiBold" Margin="0,4,0,14"/>
-                    </StackPanel>
-                    <Grid Grid.Row="1">
-                        <TextBox x:Name="SearchBox" TextChanged="SearchBox_TextChanged" ToolTip="Buscar por referencia, número, título o palabras" Padding="36,10,12,10"/>
-                        <TextBlock Text="⌕" Foreground="{StaticResource Muted}" FontSize="19" Margin="12,0,0,2" VerticalAlignment="Center" IsHitTestVisible="False"/>
-                        <TextBlock Text="Buscar referencia o palabras…" Foreground="{StaticResource Subtle}" Margin="37,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False">
-                            <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
-                        </TextBlock>
-                    </Grid>
-                    <Grid x:Name="MediaToolbar" Grid.Row="2" Visibility="Collapsed" Margin="0,9,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><Button Click="MediaUp_Click" Padding="9,7" ToolTip="Subir un nivel">↑</Button><Border Grid.Column="1" Background="#11120F" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="5" Margin="6,0" Padding="8,0"><TextBlock x:Name="MediaPathText" Text="Este equipo" Foreground="{StaticResource Muted}" FontSize="10" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/></Border><Button Grid.Column="2" Click="RefreshMedia_Click" Padding="9,7" ToolTip="Actualizar carpeta">↻</Button></Grid>
-                    <Grid Grid.Row="3" Margin="0,12,0,8"><TextBlock Text="RESULTADOS" Foreground="{StaticResource Subtle}" FontSize="10" FontWeight="SemiBold"/><TextBlock Text="Doble clic para enviar" HorizontalAlignment="Right" Foreground="{StaticResource Subtle}" FontSize="10"/></Grid>
-                    <ListBox x:Name="LibraryList" Grid.Row="4" SelectionChanged="LibraryList_SelectionChanged" MouseDoubleClick="LibraryList_MouseDoubleClick">
-                        <ListBox.ItemTemplate><DataTemplate>
-                            <Border Padding="11" Background="{StaticResource PanelRaised}" CornerRadius="7">
-                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="30"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                                    <Border Width="25" Height="25" CornerRadius="5" Background="#34342D" VerticalAlignment="Top"><TextBlock Text="▤" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-                                    <StackPanel Grid.Column="1"><TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis"/><TextBlock Text="{Binding Subtitle}" Foreground="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" MaxHeight="34" Margin="0,4,0,0"/></StackPanel>
-                                </Grid>
-                            </Border>
-                        </DataTemplate></ListBox.ItemTemplate>
-                    </ListBox>
-                    <Grid Grid.Row="5" Margin="0,9,0,0">
-                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                        <Button x:Name="LibraryPrimaryButton" Click="AddLibraryItem_Click" Background="{StaticResource AccentDark}" BorderBrush="#6A5938">＋  Agregar al orden del culto</Button>
-                        <Button x:Name="LibrarySecondaryButton" Grid.Column="1" Click="LibrarySecondary_Click" Visibility="Collapsed" Margin="8,0,0,0">Nuevo</Button>
-                    </Grid>
-                </Grid>
-            </Border>
+                <!-- Navegación. Se detiene antes de la columna de monitores -->
+                <Border Grid.Row="0"
+                        Background="{StaticResource Sidebar}"
+                        BorderBrush="{StaticResource Border}"
+                        BorderThickness="0,0,1,1">
+                    <UniformGrid Rows="1" Columns="8" Margin="8,3">
+                        <Button x:Name="OrderNavButton"
+                                Style="{StaticResource TopNavButton}"
+                                Click="OrderNav_Click"
+                                ToolTip="Mostrar u ocultar el orden del culto">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock Text="☷" FontSize="15" Margin="0,0,6,0"/>
+                                <TextBlock Text="Orden"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="BibleNavButton"
+                                Style="{StaticResource TopNavButton}"
+                                Click="BibleNav_Click"
+                                ToolTip="Biblioteca bíblica">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock Text="▤" FontSize="15" Margin="0,0,6,0"/>
+                                <TextBlock Text="Biblia"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="HymnNavButton"
+                                Style="{StaticResource TopNavButton}"
+                                Click="HymnNav_Click"
+                                ToolTip="Himnario">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock Text="♫" FontSize="15" Margin="0,0,6,0"/>
+                                <TextBlock Text="Himnos"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="SongsNavButton"
+                                Style="{StaticResource TopNavButton}"
+                                Click="SongsNav_Click"
+                                ToolTip="Canciones de la iglesia">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock Text="♪" FontSize="15" Margin="0,0,6,0"/>
+                                <TextBlock Text="Canciones"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="MediaNavButton"
+                                Style="{StaticResource TopNavButton}"
+                                Click="MediaNav_Click"
+                                ToolTip="Imágenes y videos">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock Text="▧" FontSize="15" Margin="0,0,6,0"/>
+                                <TextBlock Text="Medios"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="DesignsNavButton"
+                                Style="{StaticResource TopNavButton}"
+                                Click="DesignsNav_Click"
+                                ToolTip="Diseños visuales">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock Text="◫" FontSize="15" Margin="0,0,6,0"/>
+                                <TextBlock Text="Diseños"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="ServicesNavButton"
+                                Style="{StaticResource TopNavButton}"
+                                Click="Services_Click"
+                                ToolTip="Abrir o crear un culto">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock Text="▱" FontSize="15" Margin="0,0,6,0"/>
+                                <TextBlock Text="Cultos"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="SettingsNavButton"
+                                Style="{StaticResource TopNavButton}"
+                                Click="Settings_Click"
+                                ToolTip="Configuración">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock Text="⚙" FontSize="14" Margin="0,0,6,0"/>
+                                <TextBlock Text="Ajustes"/>
+                            </StackPanel>
+                        </Button>
+                    </UniformGrid>
+                </Border>
 
-            <GridSplitter Grid.Row="1" Grid.Column="1" Style="{StaticResource WorkspaceSplitter}" HorizontalAlignment="Stretch" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" Cursor="SizeWE" ToolTip="Arrastra para cambiar el ancho"/>
+                <!-- Contenido del módulo activo -->
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MinWidth="320"/>
+                        <ColumnDefinition Width="5"/>
+                        <ColumnDefinition x:Name="OrderColumn" Width="0" MinWidth="0"/>
+                        <ColumnDefinition x:Name="OrderSplitterColumn" Width="0"/>
+                    </Grid.ColumnDefinitions>
 
-            <!-- Orden -->
-            <Border x:Name="OrderPanel" Grid.Row="1" Grid.Column="2" Background="#151613" Visibility="Collapsed">
-                <Grid Margin="16,17,16,14"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                    <Grid Margin="0,0,0,13"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                        <StackPanel><TextBlock Text="ORDEN DEL CULTO" Foreground="{StaticResource Subtle}" FontSize="10" FontWeight="SemiBold"/><TextBlock x:Name="ItemCountText" Text="0 elementos" Foreground="{StaticResource Muted}" FontSize="12" Margin="0,5,0,0"/></StackPanel>
-                        <Button Grid.Column="1" Click="AddFreeText_Click" Padding="12,7">＋  Agregar</Button>
-                    </Grid>
-                    <ListBox x:Name="RunList" Grid.Row="1" SelectionChanged="RunList_SelectionChanged">
-                        <ListBox.ItemTemplate><DataTemplate>
-                            <Border Padding="10" Background="{StaticResource PanelRaised}" CornerRadius="7">
-                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="23"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                    <TextBlock Text="⠿" Foreground="{StaticResource Subtle}" VerticalAlignment="Center" FontSize="15"/>
-                                    <StackPanel Grid.Column="1"><TextBlock Text="{Binding TypeLabel}" Foreground="{StaticResource Muted}" FontSize="10"/><TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis"/></StackPanel>
-                                    <Border Grid.Column="2" Background="#302B20" CornerRadius="8" Padding="7,3" VerticalAlignment="Center"><TextBlock Text="{Binding Status}" Foreground="{StaticResource Accent}" FontSize="9"/></Border>
-                                </Grid>
-                            </Border>
-                        </DataTemplate></ListBox.ItemTemplate>
-                    </ListBox>
-                    <Grid Grid.Row="2" Margin="0,10,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition Width="1.6*"/></Grid.ColumnDefinitions>
-                        <Button Click="MoveUp_Click" Margin="0,0,5,0" ToolTip="Mover arriba">↑</Button>
-                        <Button Grid.Column="1" Click="MoveDown_Click" Margin="0,0,5,0" ToolTip="Mover abajo">↓</Button>
-                        <Button Grid.Column="2" Click="EditItem_Click" Margin="0,0,5,0" ToolTip="Editar elemento">Editar</Button>
-                        <Button Grid.Column="3" Click="RemoveItem_Click">Eliminar</Button>
-                    </Grid>
-                </Grid>
-            </Border>
+                    <!-- Biblioteca / módulo principal -->
+                    <Border Grid.Column="0"
+                            Background="{StaticResource Panel}"
+                            BorderBrush="{StaticResource Border}"
+                            BorderThickness="0,0,1,0">
+                        <Grid Margin="20,18,20,16">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
 
-            <GridSplitter x:Name="OrderSplitter" Grid.Row="1" Grid.Column="3" Visibility="Collapsed" Style="{StaticResource WorkspaceSplitter}" HorizontalAlignment="Stretch" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" Cursor="SizeWE" ToolTip="Arrastra para cambiar el ancho"/>
+                            <StackPanel>
+                                <TextBlock x:Name="SectionLabel"
+                                           Text="BIBLIOTECA"
+                                           Foreground="{StaticResource Subtle}"
+                                           FontSize="10"
+                                           FontWeight="SemiBold"/>
+                                <TextBlock x:Name="LibraryTitle"
+                                           Text="Biblia"
+                                           FontSize="23"
+                                           FontWeight="SemiBold"
+                                           Margin="0,4,0,14"/>
+                            </StackPanel>
 
-            <!-- Presentación -->
-            <Grid Grid.Row="1" Grid.Column="4" Margin="18,12,18,14">
-                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*" MinHeight="150"/><RowDefinition Height="Auto"/><RowDefinition Height="7"/><RowDefinition Height="Auto"/><RowDefinition Height="*" MinHeight="150"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                <Grid><StackPanel><TextBlock Text="VISTA PREVIA" Foreground="{StaticResource Subtle}" FontSize="10" FontWeight="SemiBold"/><TextBlock x:Name="PreviewTitle" Text="Selecciona contenido" FontWeight="SemiBold" FontSize="16" Margin="0,3,0,0"/></StackPanel><Border HorizontalAlignment="Right" VerticalAlignment="Top" Background="{StaticResource PanelRaised}" CornerRadius="5" Padding="7,4"><TextBlock Text="16:9" Foreground="{StaticResource Muted}" FontSize="10"/></Border></Grid>
-                <Viewbox Grid.Row="1" Margin="0,10,0,12" Stretch="Uniform" StretchDirection="Both" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                    <Border Width="1600" Height="900" Background="#20251F" BorderBrush="#3B4239" BorderThickness="2" CornerRadius="16" ClipToBounds="True">
-                        <Grid><Ellipse Width="760" Height="760" Fill="#263527" Opacity=".45" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-390,-300,0"/><Image x:Name="PreviewImage" Visibility="Collapsed" Stretch="Uniform"/><MediaElement x:Name="PreviewVideo" Visibility="Collapsed" Stretch="Uniform" LoadedBehavior="Manual" UnloadedBehavior="Stop" MediaFailed="PreviewVideo_MediaFailed"/><TextBlock x:Name="PreviewContent" Text="Selecciona un elemento para preparar la salida" FontSize="62" FontWeight="SemiBold" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="150" MaxWidth="1180"/></Grid>
-                    </Border>
-                </Viewbox>
-                <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><Button Click="Previous_Click" Padding="15,10">←  Anterior</Button><Button Grid.Column="1" Click="SendLive_Click" Style="{StaticResource PrimaryButton}" Margin="8,0" Padding="22,11">▶  ENVIAR EN VIVO</Button><Button Grid.Column="2" Click="Next_Click" Padding="15,10">Siguiente  →</Button></Grid>
-                <GridSplitter Grid.Row="3" Style="{StaticResource WorkspaceSplitter}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" Cursor="SizeNS" ToolTip="Arrastra para cambiar la altura"/>
-                <Grid Grid.Row="4" Margin="0,8,0,0"><StackPanel Orientation="Horizontal"><TextBlock Text="●" Foreground="{StaticResource Live}" FontSize="10" VerticalAlignment="Center"/><TextBlock Text=" EN VIVO" Foreground="#EB9A92" FontWeight="SemiBold" FontSize="11"/><TextBlock x:Name="LiveTitle" Text="  · Sin contenido" FontWeight="SemiBold" FontSize="13"/></StackPanel><StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><TextBlock Text="▣  " Foreground="{StaticResource Muted}"/><TextBlock x:Name="DisplayStateText" Text="Pantalla no iniciada" Foreground="{StaticResource Muted}" FontSize="11"/></StackPanel></Grid>
-                <Viewbox Grid.Row="5" Margin="0,9,0,11" Stretch="Uniform" StretchDirection="Both" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                    <Border Width="1600" Height="900" Background="#0E0F0E" BorderBrush="{StaticResource Live}" BorderThickness="2" CornerRadius="16" ClipToBounds="True">
-                        <Grid>
-                            <Image x:Name="LiveImage" Visibility="Collapsed" Stretch="Uniform"/>
-                            <MediaElement x:Name="LiveVideo" Visibility="Collapsed" Stretch="Uniform" LoadedBehavior="Manual" UnloadedBehavior="Stop" MediaFailed="LiveVideo_MediaFailed" MediaEnded="LiveVideo_MediaEnded" MediaOpened="LiveVideo_MediaOpened"/>
-                            <TextBlock x:Name="LiveContent" Text="Sin contenido en vivo" Foreground="#EDEAE2" FontSize="52" FontWeight="SemiBold" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="150" MaxWidth="1300"/>
-                            <Border HorizontalAlignment="Right" VerticalAlignment="Top" Background="#391F1D" CornerRadius="0,14,0,10" Padding="14,8">
-                                <TextBlock Text="SALIDA · 16:9" Foreground="#EAA09A" FontSize="16" FontWeight="SemiBold"/>
-                            </Border>
+                            <Grid Grid.Row="1">
+                                <TextBox x:Name="SearchBox"
+                                         TextChanged="SearchBox_TextChanged"
+                                         ToolTip="Buscar por referencia, número, título o palabras"
+                                         Padding="36,10,12,10"/>
+                                <TextBlock Text="⌕"
+                                           Foreground="{StaticResource Muted}"
+                                           FontSize="19"
+                                           Margin="12,0,0,2"
+                                           VerticalAlignment="Center"
+                                           IsHitTestVisible="False"/>
+                                <TextBlock Text="Buscar referencia o palabras…"
+                                           Foreground="{StaticResource Subtle}"
+                                           Margin="37,0,0,0"
+                                           VerticalAlignment="Center"
+                                           IsHitTestVisible="False">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+
+                            <Grid x:Name="MediaToolbar"
+                                  Grid.Row="2"
+                                  Visibility="Collapsed"
+                                  Margin="0,9,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Button Click="MediaUp_Click" Padding="9,7" ToolTip="Subir un nivel">↑</Button>
+                                <Border Grid.Column="1"
+                                        Background="#11120F"
+                                        BorderBrush="{StaticResource Border}"
+                                        BorderThickness="1"
+                                        CornerRadius="5"
+                                        Margin="6,0"
+                                        Padding="8,0">
+                                    <TextBlock x:Name="MediaPathText"
+                                               Text="Este equipo"
+                                               Foreground="{StaticResource Muted}"
+                                               FontSize="10"
+                                               TextTrimming="CharacterEllipsis"
+                                               VerticalAlignment="Center"/>
+                                </Border>
+                                <Button Grid.Column="2"
+                                        Click="RefreshMedia_Click"
+                                        Padding="9,7"
+                                        ToolTip="Actualizar carpeta">↻</Button>
+                            </Grid>
+
+                            <Grid Grid.Row="3" Margin="0,12,0,8">
+                                <TextBlock Text="RESULTADOS"
+                                           Foreground="{StaticResource Subtle}"
+                                           FontSize="10"
+                                           FontWeight="SemiBold"/>
+                                <TextBlock Text="Doble clic para enviar"
+                                           HorizontalAlignment="Right"
+                                           Foreground="{StaticResource Subtle}"
+                                           FontSize="10"/>
+                            </Grid>
+
+                            <ListBox x:Name="LibraryList"
+                                     Grid.Row="4"
+                                     SelectionChanged="LibraryList_SelectionChanged"
+                                     MouseDoubleClick="LibraryList_MouseDoubleClick">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Padding="11"
+                                                Background="{StaticResource PanelRaised}"
+                                                CornerRadius="7">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="30"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Border Width="25"
+                                                        Height="25"
+                                                        CornerRadius="5"
+                                                        Background="#34342D"
+                                                        VerticalAlignment="Top">
+                                                    <TextBlock Text="▤"
+                                                               Foreground="{StaticResource Accent}"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center"/>
+                                                </Border>
+                                                <StackPanel Grid.Column="1">
+                                                    <TextBlock Text="{Binding Title}"
+                                                               FontWeight="SemiBold"
+                                                               FontSize="13"
+                                                               TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Text="{Binding Subtitle}"
+                                                               Foreground="{StaticResource Muted}"
+                                                               FontSize="11"
+                                                               TextWrapping="Wrap"
+                                                               MaxHeight="34"
+                                                               Margin="0,4,0,0"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+
+                            <Grid Grid.Row="5" Margin="0,9,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Button x:Name="LibraryPrimaryButton"
+                                        Click="AddLibraryItem_Click"
+                                        Background="{StaticResource AccentDark}"
+                                        BorderBrush="#6A5938">＋  Agregar al orden del culto</Button>
+                                <Button x:Name="LibrarySecondaryButton"
+                                        Grid.Column="1"
+                                        Click="LibrarySecondary_Click"
+                                        Visibility="Collapsed"
+                                        Margin="8,0,0,0">Nuevo</Button>
+                            </Grid>
                         </Grid>
                     </Border>
-                </Viewbox>
-                <WrapPanel Grid.Row="6"><Button Click="PlayMedia_Click" Margin="0,0,5,5">▶ Reproducir</Button><Button Click="PauseMedia_Click" Margin="0,0,5,5">Ⅱ Pausar</Button><Button Click="StopMedia_Click" Margin="0,0,5,5">■ Detener</Button><Button Click="Black_Click" Margin="0,0,5,5" ToolTip="Pantalla negra (B)">■ Negra</Button><Button Click="Clear_Click" Margin="0,0,5,5" ToolTip="Limpiar todo (C)">✕ Limpiar</Button><Button Click="RemoveText_Click" Margin="0,0,5,5">T̶ Texto</Button><Button Click="Logo_Click" Margin="0,0,5,5">◇ Logo</Button><Button Click="Export_Click" Margin="0,0,9,5">⇧ Copia</Button><TextBlock x:Name="MediaTimeText" Text="0:00 / 0:00" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="2,0,6,5"/><Slider x:Name="MediaProgressSlider" Width="150" Minimum="0" Maximum="1" IsMoveToPointEnabled="True" VerticalAlignment="Center" Margin="0,0,10,5" PreviewMouseLeftButtonUp="MediaProgressSlider_PreviewMouseLeftButtonUp" ToolTip="Posición del video"/><TextBlock Text="Vol." Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="2,0,6,5"/><Slider x:Name="MediaVolumeSlider" Width="100" Minimum="0" Maximum="1" Value=".8" TickFrequency=".1" VerticalAlignment="Center" Margin="0,0,5,5" ValueChanged="MediaVolumeSlider_ValueChanged" ToolTip="Volumen de los videos"/></WrapPanel>
+
+                    <GridSplitter Grid.Column="1"
+                                  Style="{StaticResource WorkspaceSplitter}"
+                                  HorizontalAlignment="Stretch"
+                                  ResizeDirection="Columns"
+                                  ResizeBehavior="PreviousAndNext"
+                                  Cursor="SizeWE"/>
+
+                    <!-- Orden del culto opcional -->
+                    <Border x:Name="OrderPanel"
+                            Grid.Column="2"
+                            Background="#151613"
+                            Visibility="Collapsed">
+                        <Grid Margin="16,17,16,14">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Grid Margin="0,0,0,13">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="ORDEN DEL CULTO"
+                                               Foreground="{StaticResource Subtle}"
+                                               FontSize="10"
+                                               FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="ItemCountText"
+                                               Text="0 elementos"
+                                               Foreground="{StaticResource Muted}"
+                                               FontSize="12"
+                                               Margin="0,5,0,0"/>
+                                </StackPanel>
+                                <Button Grid.Column="1"
+                                        Click="AddFreeText_Click"
+                                        Padding="12,7">＋  Agregar</Button>
+                            </Grid>
+
+                            <ListBox x:Name="RunList"
+                                     Grid.Row="1"
+                                     SelectionChanged="RunList_SelectionChanged">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Padding="10"
+                                                Background="{StaticResource PanelRaised}"
+                                                CornerRadius="7">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="23"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="⠿"
+                                                           Foreground="{StaticResource Subtle}"
+                                                           VerticalAlignment="Center"
+                                                           FontSize="15"/>
+                                                <StackPanel Grid.Column="1">
+                                                    <TextBlock Text="{Binding TypeLabel}"
+                                                               Foreground="{StaticResource Muted}"
+                                                               FontSize="10"/>
+                                                    <TextBlock Text="{Binding Title}"
+                                                               FontWeight="SemiBold"
+                                                               FontSize="13"
+                                                               TextTrimming="CharacterEllipsis"/>
+                                                </StackPanel>
+                                                <Border Grid.Column="2"
+                                                        Background="#302B20"
+                                                        CornerRadius="8"
+                                                        Padding="7,3"
+                                                        VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Status}"
+                                                               Foreground="{StaticResource Accent}"
+                                                               FontSize="9"/>
+                                                </Border>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+
+                            <Grid Grid.Row="2" Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="1.6*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button Click="MoveUp_Click" Margin="0,0,5,0">↑</Button>
+                                <Button Grid.Column="1" Click="MoveDown_Click" Margin="0,0,5,0">↓</Button>
+                                <Button Grid.Column="2" Click="EditItem_Click" Margin="0,0,5,0">Editar</Button>
+                                <Button Grid.Column="3" Click="RemoveItem_Click">Eliminar</Button>
+                            </Grid>
+                        </Grid>
+                    </Border>
+
+                    <GridSplitter x:Name="OrderSplitter"
+                                  Grid.Column="3"
+                                  Visibility="Collapsed"
+                                  Style="{StaticResource WorkspaceSplitter}"
+                                  HorizontalAlignment="Stretch"
+                                  ResizeDirection="Columns"
+                                  ResizeBehavior="PreviousAndNext"
+                                  Cursor="SizeWE"/>
+                </Grid>
             </Grid>
+
+            <!-- DERECHA: monitores. Nunca ocupa más de 480 px -->
+            <Border Grid.Column="1"
+                    Background="#0D0E0C"
+                    BorderBrush="{StaticResource Border}"
+                    BorderThickness="1,0,0,0">
+                <Grid Margin="14,12,14,12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*" MinHeight="130"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*" MinHeight="130"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Vista previa -->
+                    <Grid Grid.Row="0">
+                        <StackPanel>
+                            <TextBlock Text="VISTA PREVIA"
+                                       Foreground="{StaticResource Subtle}"
+                                       FontSize="10"
+                                       FontWeight="SemiBold"/>
+                            <TextBlock x:Name="PreviewTitle"
+                                       Text="Selecciona contenido"
+                                       FontWeight="SemiBold"
+                                       FontSize="14"
+                                       Margin="0,3,0,0"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                        <Border HorizontalAlignment="Right"
+                                VerticalAlignment="Top"
+                                Background="{StaticResource PanelRaised}"
+                                CornerRadius="5"
+                                Padding="7,4">
+                            <TextBlock Text="16:9" Foreground="{StaticResource Muted}" FontSize="10"/>
+                        </Border>
+                    </Grid>
+
+                    <Viewbox Grid.Row="1"
+                             Margin="0,8,0,9"
+                             Stretch="Uniform"
+                             StretchDirection="Both"
+                             HorizontalAlignment="Stretch"
+                             VerticalAlignment="Stretch">
+                        <Border Width="1600"
+                                Height="900"
+                                Background="#20251F"
+                                BorderBrush="#3B4239"
+                                BorderThickness="2"
+                                CornerRadius="12"
+                                ClipToBounds="True">
+                            <Grid>
+                                <Ellipse Width="760"
+                                         Height="760"
+                                         Fill="#263527"
+                                         Opacity=".45"
+                                         HorizontalAlignment="Right"
+                                         VerticalAlignment="Top"
+                                         Margin="0,-390,-300,0"/>
+                                <Image x:Name="PreviewImage" Visibility="Collapsed" Stretch="Uniform"/>
+                                <MediaElement x:Name="PreviewVideo"
+                                              Visibility="Collapsed"
+                                              Stretch="Uniform"
+                                              LoadedBehavior="Manual"
+                                              UnloadedBehavior="Stop"
+                                              MediaFailed="PreviewVideo_MediaFailed"/>
+                                <TextBlock x:Name="PreviewContent"
+                                           Text="Selecciona un elemento para preparar la salida"
+                                           FontSize="62"
+                                           FontWeight="SemiBold"
+                                           TextWrapping="Wrap"
+                                           TextAlignment="Center"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           Margin="150"
+                                           MaxWidth="1180"/>
+                            </Grid>
+                        </Border>
+                    </Viewbox>
+
+                    <!-- Transición / envío -->
+                    <Grid Grid.Row="2" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Click="Previous_Click" Padding="10,8" ToolTip="Anterior">←</Button>
+                        <Button Grid.Column="1"
+                                Click="SendLive_Click"
+                                Style="{StaticResource PrimaryButton}"
+                                Margin="7,0"
+                                Padding="12,9">▶  ENVIAR EN VIVO</Button>
+                        <Button Grid.Column="2" Click="Next_Click" Padding="10,8" ToolTip="Siguiente">→</Button>
+                    </Grid>
+
+                    <!-- En vivo -->
+                    <Grid Grid.Row="3" Margin="0,0,0,4">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="●" Foreground="{StaticResource Live}" FontSize="10" VerticalAlignment="Center"/>
+                            <TextBlock Text=" EN VIVO" Foreground="#EB9A92" FontWeight="SemiBold" FontSize="11"/>
+                            <TextBlock x:Name="LiveTitle"
+                                       Text="  · Sin contenido"
+                                       FontWeight="SemiBold"
+                                       FontSize="12"
+                                       TextTrimming="CharacterEllipsis"
+                                       MaxWidth="210"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <TextBlock Text="▣  " Foreground="{StaticResource Muted}"/>
+                            <TextBlock x:Name="DisplayStateText"
+                                       Text="Pantalla no iniciada"
+                                       Foreground="{StaticResource Muted}"
+                                       FontSize="10"
+                                       TextTrimming="CharacterEllipsis"
+                                       MaxWidth="145"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <Viewbox Grid.Row="4"
+                             Margin="0,5,0,9"
+                             Stretch="Uniform"
+                             StretchDirection="Both"
+                             HorizontalAlignment="Stretch"
+                             VerticalAlignment="Stretch">
+                        <Border Width="1600"
+                                Height="900"
+                                Background="#0E0F0E"
+                                BorderBrush="{StaticResource Live}"
+                                BorderThickness="2"
+                                CornerRadius="12"
+                                ClipToBounds="True">
+                            <Grid>
+                                <Image x:Name="LiveImage" Visibility="Collapsed" Stretch="Uniform"/>
+                                <MediaElement x:Name="LiveVideo"
+                                              Visibility="Collapsed"
+                                              Stretch="Uniform"
+                                              LoadedBehavior="Manual"
+                                              UnloadedBehavior="Stop"
+                                              MediaFailed="LiveVideo_MediaFailed"
+                                              MediaEnded="LiveVideo_MediaEnded"
+                                              MediaOpened="LiveVideo_MediaOpened"/>
+                                <TextBlock x:Name="LiveContent"
+                                           Text="Sin contenido en vivo"
+                                           Foreground="#EDEAE2"
+                                           FontSize="52"
+                                           FontWeight="SemiBold"
+                                           TextWrapping="Wrap"
+                                           TextAlignment="Center"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           Margin="150"
+                                           MaxWidth="1300"/>
+                                <Border HorizontalAlignment="Right"
+                                        VerticalAlignment="Top"
+                                        Background="#391F1D"
+                                        CornerRadius="0,10,0,8"
+                                        Padding="12,6">
+                                    <TextBlock Text="SALIDA · 16:9"
+                                               Foreground="#EAA09A"
+                                               FontSize="14"
+                                               FontWeight="SemiBold"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+                    </Viewbox>
+
+                    <!-- Controles compactos -->
+                    <WrapPanel Grid.Row="5">
+                        <Button Click="PlayMedia_Click" Margin="0,0,5,5" Padding="9,7">▶</Button>
+                        <Button Click="PauseMedia_Click" Margin="0,0,5,5" Padding="9,7">Ⅱ</Button>
+                        <Button Click="StopMedia_Click" Margin="0,0,5,5" Padding="9,7">■</Button>
+                        <Button Click="Black_Click" Margin="0,0,5,5" Padding="9,7" ToolTip="Pantalla negra (B)">Negra</Button>
+                        <Button Click="Clear_Click" Margin="0,0,5,5" Padding="9,7" ToolTip="Limpiar todo (C)">Limpiar</Button>
+                        <Button Click="RemoveText_Click" Margin="0,0,5,5" Padding="9,7">Texto</Button>
+                        <Button Click="Logo_Click" Margin="0,0,5,5" Padding="9,7">Logo</Button>
+                        <Button Click="Export_Click" Margin="0,0,5,5" Padding="9,7">Copia</Button>
+
+                        <TextBlock x:Name="MediaTimeText"
+                                   Text="0:00 / 0:00"
+                                   Foreground="{StaticResource Muted}"
+                                   VerticalAlignment="Center"
+                                   Margin="2,0,6,5"
+                                   FontSize="10"/>
+                        <Slider x:Name="MediaProgressSlider"
+                                Width="100"
+                                Minimum="0"
+                                Maximum="1"
+                                IsMoveToPointEnabled="True"
+                                VerticalAlignment="Center"
+                                Margin="0,0,8,5"
+                                PreviewMouseLeftButtonUp="MediaProgressSlider_PreviewMouseLeftButtonUp"/>
+                        <TextBlock Text="Vol."
+                                   Foreground="{StaticResource Muted}"
+                                   VerticalAlignment="Center"
+                                   Margin="2,0,5,5"
+                                   FontSize="10"/>
+                        <Slider x:Name="MediaVolumeSlider"
+                                Width="75"
+                                Minimum="0"
+                                Maximum="1"
+                                Value=".8"
+                                TickFrequency=".1"
+                                VerticalAlignment="Center"
+                                Margin="0,0,5,5"
+                                ValueChanged="MediaVolumeSlider_ValueChanged"/>
+                    </WrapPanel>
+                </Grid>
+            </Border>
         </Grid>
 
-        <!-- Estado -->
-        <Border Grid.Row="2" Background="#151613" BorderBrush="{StaticResource Border}" BorderThickness="0,1,0,0">
-            <Grid Margin="15,0"><StackPanel Orientation="Horizontal" VerticalAlignment="Center"><TextBlock Text="← →" Foreground="{StaticResource Accent}" FontSize="11"/><TextBlock Text="  Navegar   ·   Espacio  Enviar   ·   B  Negra   ·   C  Limpiar   ·   F5  Pantalla" Foreground="{StaticResource Muted}" FontSize="10"/></StackPanel><StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"><TextBlock Text="●" Foreground="{StaticResource Success}" FontSize="8"/><TextBlock x:Name="StatusText" Foreground="{StaticResource Muted}" Text="  Listo · modo offline" FontSize="10"/></StackPanel></Grid>
+        <!-- Barra de estado -->
+        <Border Grid.Row="2"
+                Background="#151613"
+                BorderBrush="{StaticResource Border}"
+                BorderThickness="0,1,0,0">
+            <Grid Margin="15,0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="← →" Foreground="{StaticResource Accent}" FontSize="11"/>
+                    <TextBlock Text="  Navegar   ·   Espacio  Enviar   ·   B  Negra   ·   C  Limpiar   ·   F5  Pantalla"
+                               Foreground="{StaticResource Muted}"
+                               FontSize="10"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <TextBlock Text="●" Foreground="{StaticResource Success}" FontSize="8"/>
+                    <TextBlock x:Name="StatusText"
+                               Foreground="{StaticResource Muted}"
+                               Text="  Listo · modo offline"
+                               FontSize="10"/>
+                </StackPanel>
+            </Grid>
         </Border>
     </Grid>
 </Window>
