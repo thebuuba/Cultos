@@ -18,9 +18,9 @@
     <Product>Cultos</Product>
     <Description>Producción visual de cultos para Windows</Description>
     <Company>Cultos</Company>
-    <Version>0.2.0</Version>
-    <FileVersion>0.2.0.0</FileVersion>
-    <AssemblyVersion>0.2.0.0</AssemblyVersion>
+    <Version>0.3.0</Version>
+    <FileVersion>0.3.0.0</FileVersion>
+    <AssemblyVersion>0.3.0.0</AssemblyVersion>
   </PropertyGroup>
 
 </Project>
