@@ -26,6 +26,8 @@ public partial class MainWindow : Window
     private string _mode = "Bible";
     private string? _currentMediaFolder;
     private ServiceItem? _preview;
+    private IReadOnlyList<string> _previewSlides = Array.Empty<string>();
+    private int _previewSlideIndex;
     private PresentationSnapshot _live = new(PresentationState.Empty, "Sin contenido", "");
     private ContentType? _liveType;
     private PresentationSnapshot? _blackRestoreSnapshot;
@@ -345,6 +347,8 @@ public partial class MainWindow : Window
         if ((item.Type == ContentType.Image || item.Type == ContentType.Video) && (string.IsNullOrWhiteSpace(item.MediaPath) || !File.Exists(item.MediaPath)))
         {
             _preview = null;
+            _previewSlides = Array.Empty<string>();
+            _previewSlideIndex = 0;
             ResetPreviewMedia();
             PreviewTitle.Text = "Archivo no encontrado";
             PreviewContent.Text = "Vuelve a agregar este archivo desde Multimedia.";
@@ -353,26 +357,47 @@ public partial class MainWindow : Window
         }
 
         _preview = item;
-        PreviewTitle.Text = item.Title;
+        _previewSlideIndex = 0;
         ResetPreviewMedia();
 
         if (item.Type == ContentType.Image)
         {
+            _previewSlides = Array.Empty<string>();
+            PreviewTitle.Text = item.Title;
             PreviewContent.Visibility = Visibility.Collapsed;
             PreviewImage.Source = new BitmapImage(new Uri(item.MediaPath!));
             PreviewImage.Visibility = Visibility.Visible;
         }
         else if (item.Type == ContentType.Video)
         {
+            _previewSlides = Array.Empty<string>();
+            PreviewTitle.Text = item.Title;
             PreviewContent.Visibility = Visibility.Collapsed;
             PreviewVideo.Source = new Uri(item.MediaPath!);
             PreviewVideo.Visibility = Visibility.Visible;
         }
         else
         {
-            PreviewContent.Text = item.Content;
+            _previewSlides = TextPaginator.Split(item.Content, 220);
+            if (_previewSlides.Count == 0) _previewSlides = new[] { item.Content };
+            RenderPreviewSlide();
         }
     }
+
+    private void RenderPreviewSlide()
+    {
+        if (_preview is null || _previewSlides.Count == 0) return;
+        _previewSlideIndex = Math.Clamp(_previewSlideIndex, 0, _previewSlides.Count - 1);
+        PreviewTitle.Text = _previewSlides.Count > 1
+            ? $"{_preview.Title} · {_previewSlideIndex + 1}/{_previewSlides.Count}"
+            : _preview.Title;
+        PreviewContent.Text = _previewSlides[_previewSlideIndex];
+    }
+
+    private string CurrentPreviewContent() =>
+        _previewSlides.Count > 0
+            ? _previewSlides[Math.Clamp(_previewSlideIndex, 0, _previewSlides.Count - 1)]
+            : _preview?.Content ?? "";
 
     private void SendLive()
     {
@@ -385,11 +410,20 @@ public partial class MainWindow : Window
 
         _blackRestoreSnapshot = null;
         _blackRestoreType = null;
-        _live = new(PresentationState.Content, _preview.Title, _preview.Content, _preview.MediaPath);
+        var liveContent = _preview.Type is ContentType.Image or ContentType.Video
+            ? _preview.Content
+            : CurrentPreviewContent();
+        _live = new(PresentationState.Content, _preview.Title, liveContent, _preview.MediaPath);
         _liveType = _preview.Type;
         _preview.Status = "Presentado";
         LiveTitle.Text = "  " + _preview.Title;
-        ShowLiveMedia(_preview);
+        ShowLiveMedia(new ServiceItem
+        {
+            Type = _preview.Type,
+            Title = _preview.Title,
+            Content = liveContent,
+            MediaPath = _preview.MediaPath
+        });
         LiveBadge.Visibility = Visibility.Visible;
         _output?.Render(_live, _preview.Type);
         RefreshRun();
@@ -778,6 +812,8 @@ public partial class MainWindow : Window
     private void ClearPreview()
     {
         _preview = null;
+        _previewSlides = Array.Empty<string>();
+        _previewSlideIndex = 0;
         ResetPreviewMedia();
         PreviewTitle.Text = "Selecciona contenido";
         PreviewContent.Text = "Selecciona un elemento para preparar la salida";
@@ -854,12 +890,26 @@ public partial class MainWindow : Window
 
     private void Previous_Click(object sender, RoutedEventArgs e)
     {
+        if (_previewSlides.Count > 1 && _previewSlideIndex > 0)
+        {
+            _previewSlideIndex--;
+            RenderPreviewSlide();
+            return;
+        }
+
         if (RunList.SelectedIndex > 0) RunList.SelectedIndex--;
         else if (RunList.SelectedIndex < 0 && _run.Count > 0) RunList.SelectedIndex = 0;
     }
 
     private void Next_Click(object sender, RoutedEventArgs e)
     {
+        if (_previewSlides.Count > 1 && _previewSlideIndex < _previewSlides.Count - 1)
+        {
+            _previewSlideIndex++;
+            RenderPreviewSlide();
+            return;
+        }
+
         if (RunList.SelectedIndex < 0 && _run.Count > 0) RunList.SelectedIndex = 0;
         else if (RunList.SelectedIndex < _run.Count - 1) RunList.SelectedIndex++;
     }
