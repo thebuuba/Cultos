@@ -10,10 +10,10 @@ public sealed class AppSettings
     public double MainWidth { get; set; } = 1440;
     public double MainHeight { get; set; } = 900;
     public bool MainMaximized { get; set; }
-    public double OrderPanelWidth { get; set; } = 350;
     public string LastMode { get; set; } = "Bible";
     public string? DisplayDeviceName { get; set; }
     public double MediaVolume { get; set; } = 0.8;
+    public bool MonitorPanelVisible { get; set; } = true;
 }
 
 public sealed class AppSettingsStore
