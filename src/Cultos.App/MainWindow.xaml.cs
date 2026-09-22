@@ -237,13 +237,13 @@ public partial class MainWindow : Window
         try
         {
             var color = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(accentHex);
-            Application.Current.Resources["Accent"] = new System.Windows.Media.SolidColorBrush(color);
+            System.Windows.Application.Current.Resources["Accent"] = new System.Windows.Media.SolidColorBrush(color);
 
             var dark = System.Windows.Media.Color.FromRgb(
                 (byte)Math.Clamp(color.R * 0.24, 0, 255),
                 (byte)Math.Clamp(color.G * 0.24, 0, 255),
                 (byte)Math.Clamp(color.B * 0.24, 0, 255));
-            Application.Current.Resources["AccentDark"] = new System.Windows.Media.SolidColorBrush(dark);
+            System.Windows.Application.Current.Resources["AccentDark"] = new System.Windows.Media.SolidColorBrush(dark);
         }
         catch
         {
