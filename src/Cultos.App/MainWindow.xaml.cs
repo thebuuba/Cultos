@@ -1001,14 +1001,10 @@ public partial class MainWindow : Window
 
     private void ManageScenes_Click(object sender, RoutedEventArgs e)
     {
-        MessageBox.Show(
-            "Las escenas predeterminadas ya están activas.\n\n" +
-            "Puedes crear escenas nuevas con “+ Escena”. Si hay contenido preparado en Vista previa, " +
-            "la nueva escena lo toma como contenido inicial. La administración avanzada de orden, " +
-            "tipo y comportamiento se incorporará en el editor de escenas.",
-            "Escenas",
-            MessageBoxButton.OK,
-            MessageBoxImage.Information);
+        var manager = new SceneManagerWindow(_db) { Owner = this };
+        manager.ShowDialog();
+        LoadScenes();
+        StatusText.Text = "Configuración de escenas actualizada";
     }
 
     private void SearchBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
