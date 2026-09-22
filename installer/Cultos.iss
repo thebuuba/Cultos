@@ -1,5 +1,5 @@
 #define MyAppName "Cultos"
-#define MyAppVersion "0.2.0"
+#define MyAppVersion "0.3.0"
 #define MyAppPublisher "Cultos"
 #define MyAppExeName "Cultos.App.exe"
 
@@ -11,7 +11,7 @@ AppPublisher={#MyAppPublisher}
 DefaultDirName={autopf}\Cultos
 DefaultGroupName=Cultos
 OutputDir=..\artifacts\installer
-OutputBaseFilename=Cultos-Setup-0.2.0
+OutputBaseFilename=Cultos-Setup-0.3.0
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
