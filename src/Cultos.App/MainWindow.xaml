@@ -605,6 +605,7 @@
                                 CornerRadius="12"
                                 ClipToBounds="True">
                             <Grid>
+                                <Image x:Name="PreviewBackgroundImage" Stretch="UniformToFill" Opacity=".38"/>
                                 <Ellipse Width="760"
                                          Height="760"
                                          Fill="#263527"
@@ -686,6 +687,7 @@
                                 CornerRadius="12"
                                 ClipToBounds="True">
                             <Grid>
+                                <Image x:Name="LiveBackgroundImage" Stretch="UniformToFill" Opacity=".38"/>
                                 <Image x:Name="LiveImage" Visibility="Collapsed" Stretch="Uniform"/>
                                 <MediaElement x:Name="LiveVideo"
                                               Visibility="Collapsed"
