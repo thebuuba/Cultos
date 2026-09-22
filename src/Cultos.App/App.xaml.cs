@@ -41,13 +41,13 @@ public partial class App : System.Windows.Application
             window.Topmost = false;
             window.Focus();
 
-            if (!string.IsNullOrWhiteSpace(fileToOpen)) window.OpenCultosFile(fileToOpen);
+            if (!string.IsNullOrWhiteSpace(fileToOpen)) window.OpenExternalFile(fileToOpen);
         });
 
         window.Show();
 
         if (e.Args.FirstOrDefault() is { Length: > 0 } startupFile)
-            window.OpenCultosFile(startupFile);
+            window.OpenExternalFile(startupFile);
     }
 
     protected override void OnExit(ExitEventArgs e)
