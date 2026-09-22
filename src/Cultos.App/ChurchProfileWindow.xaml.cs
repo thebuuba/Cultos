@@ -5,6 +5,10 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using MessageBox = System.Windows.MessageBox;
+using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
+using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
+using MediaColor = System.Windows.Media.Color;
+using MediaColorConverter = System.Windows.Media.ColorConverter;
 
 namespace Cultos.App;
 
@@ -106,7 +110,7 @@ public partial class ChurchProfileWindow : Window
         var accent = AccentBox.Text.Trim();
         try
         {
-            _ = (Color)ColorConverter.ConvertFromString(accent);
+            _ = (MediaColor)MediaColorConverter.ConvertFromString(accent);
         }
         catch
         {
