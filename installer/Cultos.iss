@@ -41,3 +41,7 @@ Root: HKCU; Subkey: "Software\Classes\.cultos"; ValueType: string; ValueData: "C
 Root: HKCU; Subkey: "Software\Classes\Cultos.Backup"; ValueType: string; ValueData: "Copia de Cultos"; Flags: uninsdeletekey
 Root: HKCU; Subkey: "Software\Classes\Cultos.Backup\DefaultIcon"; ValueType: string; ValueData: "{app}\{#MyAppExeName},0"
 Root: HKCU; Subkey: "Software\Classes\Cultos.Backup\shell\open\command"; ValueType: string; ValueData: """{app}\{#MyAppExeName}"" ""%1"""
+Root: HKCU; Subkey: "Software\Classes\.cultosperfil"; ValueType: string; ValueData: "Cultos.Profile"; Flags: uninsdeletevalue
+Root: HKCU; Subkey: "Software\Classes\Cultos.Profile"; ValueType: string; ValueData: "Perfil de iglesia de Cultos"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\Cultos.Profile\DefaultIcon"; ValueType: string; ValueData: "{app}\{#MyAppExeName},0"
+Root: HKCU; Subkey: "Software\Classes\Cultos.Profile\shell\open\command"; ValueType: string; ValueData: """{app}\{#MyAppExeName}"" ""%1"""
