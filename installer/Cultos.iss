@@ -1,5 +1,5 @@
 #define MyAppName "Cultos"
-#define MyAppVersion "0.1.0"
+#define MyAppVersion "0.2.0"
 #define MyAppPublisher "Cultos"
 #define MyAppExeName "Cultos.App.exe"
 
@@ -11,10 +11,10 @@ AppPublisher={#MyAppPublisher}
 DefaultDirName={autopf}\Cultos
 DefaultGroupName=Cultos
 OutputDir=..\artifacts\installer
-OutputBaseFilename=Cultos-Setup-0.1.0
+OutputBaseFilename=Cultos-Setup-0.2.0
 Compression=lzma2
 SolidCompression=yes
-WizardStyle=modern
+WizardStyle=modern\nChangesAssociations=yes
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=lowest
@@ -32,3 +32,10 @@ Name: "desktopicon"; Description: "Crear un acceso directo en el escritorio"; Gr
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "Abrir Cultos"; Flags: nowait postinstall skipifsilent
+
+
+[Registry]
+Root: HKCU; Subkey: "Software\Classes\.cultos"; ValueType: string; ValueData: "Cultos.Backup"; Flags: uninsdeletevalue
+Root: HKCU; Subkey: "Software\Classes\Cultos.Backup"; ValueType: string; ValueData: "Copia de Cultos"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\Cultos.Backup\DefaultIcon"; ValueType: string; ValueData: "{app}\{#MyAppExeName},0"
+Root: HKCU; Subkey: "Software\Classes\Cultos.Backup\shell\open\command"; ValueType: string; ValueData: """{app}\{#MyAppExeName}"" ""%1"""
