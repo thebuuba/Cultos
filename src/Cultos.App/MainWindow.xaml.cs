@@ -173,9 +173,18 @@ public partial class MainWindow : Window
     private void SaveNow()
     {
         _saveTimer.Stop();
-        _db.SaveService(_service);
-        SaveStateText.Text = "Guardado";
-        StatusText.Text = "Guardado local completado";
+        try
+        {
+            _db.SaveService(_service);
+            SaveStateText.Text = "Guardado";
+            StatusText.Text = "Guardado local completado";
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Error("No se pudo guardar el culto activo", ex);
+            SaveStateText.Text = "Error al guardar";
+            StatusText.Text = "No se pudo guardar · revisa los registros";
+        }
     }
 
     private void ConfigureMode(string mode)
