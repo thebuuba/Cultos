@@ -108,7 +108,7 @@ public partial class MainWindow : Window
     }
 
     private static bool IsKnownMode(string mode) =>
-        mode is "Home" or "Bible" or "Hymn" or "Song" or "Media" or "Design" or "Services" or "Settings";
+        mode is "Bible" or "Hymn" or "Song" or "Media" or "Design" or "Services" or "Settings";
 
     private void ApplyWindowSettings()
     {
@@ -198,12 +198,6 @@ public partial class MainWindow : Window
 
         switch (mode)
         {
-            case "Home":
-                SectionLabel.Text = "INICIO";
-                LibraryTitle.Text = "Accesos rápidos";
-                LibraryPrimaryButton.Content = "Abrir";
-                SearchBox.Visibility = Visibility.Collapsed;
-                break;
             case "Bible":
                 LibraryTitle.Text = "Biblia";
                 LibraryPrimaryButton.Content = "＋  Agregar al orden del culto";
@@ -257,7 +251,6 @@ public partial class MainWindow : Window
 
         var buttons = new (System.Windows.Controls.Button Button, string Mode)[]
         {
-            (HomeNavButton, "Home"),
             (BibleNavButton, "Bible"),
             (HymnNavButton, "Hymn"),
             (SongsNavButton, "Song"),
@@ -280,16 +273,6 @@ public partial class MainWindow : Window
         var query = SearchBox.Text ?? "";
         switch (_mode)
         {
-            case "Home":
-                LibraryList.ItemsSource = new[]
-                {
-                    new LibraryRow("Biblia","Buscar y proyectar textos bíblicos",new QuickAction("Bible")),
-                    new LibraryRow("Himnos","Buscar y proyectar himnos",new QuickAction("Hymn")),
-                    new LibraryRow("Canciones","Biblioteca local de canciones",new QuickAction("Song")),
-                    new LibraryRow("Multimedia","Imágenes y videos del equipo",new QuickAction("Media")),
-                    new LibraryRow("Cultos guardados","Crear o abrir órdenes de culto",new QuickAction("Services"))
-                };
-                break;
             case "Bible":
                 LibraryList.ItemsSource = _db.SearchBible(query).Select(v => new LibraryRow(v.Reference, v.Text, v)).ToList();
                 break;
@@ -595,7 +578,6 @@ public partial class MainWindow : Window
         }
     }
 
-    private void HomeNav_Click(object sender, RoutedEventArgs e) => ConfigureMode("Home");
     private void BibleNav_Click(object sender, RoutedEventArgs e) => ConfigureMode("Bible");
     private void HymnNav_Click(object sender, RoutedEventArgs e) => ConfigureMode("Hymn");
     private void SongsNav_Click(object sender, RoutedEventArgs e) => ConfigureMode("Song");
@@ -680,7 +662,7 @@ public partial class MainWindow : Window
 
     private void LibraryList_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
-        if (_mode is "Home" or "Services" or "Settings") return;
+        if (_mode is "Services" or "Settings") return;
         var item = LibrarySelection();
         if (item is not null) ShowPreview(item);
     }
@@ -697,7 +679,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (_mode is "Home" or "Services" or "Settings")
+        if (_mode is "Services" or "Settings")
         {
             ExecutePrimaryLibraryAction();
             return;
@@ -715,12 +697,6 @@ public partial class MainWindow : Window
 
     private void ExecutePrimaryLibraryAction()
     {
-        if (_mode == "Home")
-        {
-            if (LibraryList.SelectedItem is LibraryRow { Source: QuickAction action }) ConfigureMode(action.Mode);
-            return;
-        }
-
         if (_mode == "Services")
         {
             OpenSelectedService();
@@ -1269,7 +1245,6 @@ public partial class MainWindow : Window
 
 public sealed record LibraryRow(string Title, string Subtitle, object Source);
 public sealed record FileSystemEntry(string Name, string Path, bool IsFolder, string Kind, long Size = 0);
-public sealed record QuickAction(string Mode);
 public sealed record SettingInfo(string Key);
 public sealed record DisplayChoice(string DeviceName);
 public sealed record DesignPreset(string Title, string Content, ContentType Type);
