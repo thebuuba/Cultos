@@ -12,6 +12,7 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>Cultos.App</AssemblyName>
+    <ApplicationIcon>Assets\Cultos.ico</ApplicationIcon>
     <Product>Cultos</Product>
     <Description>Producción visual de cultos para Windows</Description>
     <Company>Cultos</Company>
