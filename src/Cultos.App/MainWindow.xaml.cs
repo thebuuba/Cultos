@@ -122,7 +122,7 @@ public partial class MainWindow : Window
     }
 
     private static bool IsKnownMode(string mode) =>
-        mode is "Bible" or "Hymn" or "Song" or "Media" or "Design" or "Services" or "Settings";
+        mode is "Bible" or "Hymn" or "Song" or "Media" or "YouTube" or "Design" or "Services" or "Settings";
 
     private void ApplyWindowSettings()
     {
@@ -204,8 +204,9 @@ public partial class MainWindow : Window
     private void ConfigureMode(string mode)
     {
         _mode = mode;
-        LibraryPanel.Visibility = Visibility.Visible;
+        LibraryPanel.Visibility = mode == "YouTube" ? Visibility.Collapsed : Visibility.Visible;
         OrderPanel.Visibility = Visibility.Collapsed;
+        YouTubePanel.Visibility = mode == "YouTube" ? Visibility.Visible : Visibility.Collapsed;
         MediaToolbar.Visibility = mode == "Media" ? Visibility.Visible : Visibility.Collapsed;
         LibrarySecondaryButton.Visibility = Visibility.Collapsed;
         LibraryPrimaryButton.Visibility = Visibility.Visible;
@@ -236,6 +237,9 @@ public partial class MainWindow : Window
                 LibrarySecondaryButton.Visibility = Visibility.Visible;
                 LibraryList.SelectionMode = System.Windows.Controls.SelectionMode.Extended;
                 _currentMediaFolder = null;
+                break;
+            case "YouTube":
+                LoadPreparedYouTubeScene();
                 break;
             case "Design":
                 LibraryTitle.Text = "Diseños rápidos";
@@ -276,9 +280,9 @@ public partial class MainWindow : Window
             (HymnNavButton, "Hymn"),
             (SongsNavButton, "Song"),
             (MediaNavButton, "Media"),
+            (YouTubeNavButton, "YouTube"),
             (DesignsNavButton, "Design"),
-            (ServicesNavButton, "Services"),
-            (SettingsNavButton, "Settings")
+            (ServicesNavButton, "Services")
         };
 
         foreach (var (button, buttonMode) in buttons)
@@ -431,6 +435,13 @@ public partial class MainWindow : Window
             PreviewContent.Visibility = Visibility.Visible;
             PreviewContent.Text = "♫\n" + item.Title;
         }
+        else if (item.Type == ContentType.Web)
+        {
+            _previewSlides = Array.Empty<string>();
+            PreviewTitle.Text = item.Title;
+            PreviewContent.Visibility = Visibility.Visible;
+            PreviewContent.Text = "▷ YouTube\n" + item.Title;
+        }
         else
         {
             _previewSlides = TextPaginator.Split(item.Content, 220);
@@ -469,7 +480,7 @@ public partial class MainWindow : Window
 
         _blackRestoreSnapshot = null;
         _blackRestoreType = null;
-        var liveContent = _preview.Type is ContentType.Image or ContentType.Video or ContentType.Audio
+        var liveContent = _preview.Type is ContentType.Image or ContentType.Video or ContentType.Audio or ContentType.Web
             ? _preview.Content
             : CurrentPreviewContent();
         _live = new(PresentationState.Content, _preview.Title, liveContent, _preview.MediaPath);
@@ -520,6 +531,11 @@ public partial class MainWindow : Window
             LiveContent.Visibility = Visibility.Visible;
             LiveContent.Text = "♫\n" + item.Title;
             LiveVideo.Play();
+        }
+        else if (item.Type == ContentType.Web)
+        {
+            LiveContent.Visibility = Visibility.Visible;
+            LiveContent.Text = "▷ YouTube\n" + item.Title;
         }
         else
         {
@@ -640,6 +656,7 @@ public partial class MainWindow : Window
         ContentType.Song => "song",
         ContentType.Video => "video",
         ContentType.Image => "logo",
+        ContentType.Web => "youtube",
         ContentType.Welcome or ContentType.FreeText or ContentType.Background => "title",
         _ => null
     };
@@ -650,6 +667,7 @@ public partial class MainWindow : Window
         SceneType.Hymn => ContentType.Hymn,
         SceneType.Song => ContentType.Song,
         SceneType.Video => ContentType.Video,
+        SceneType.YouTube => ContentType.Web,
         SceneType.Image or SceneType.Logo => ContentType.Image,
         SceneType.Audio => ContentType.Audio,
         _ => ContentType.FreeText
@@ -716,18 +734,6 @@ public partial class MainWindow : Window
             }
         }
 
-        if (scene.Type == SceneType.YouTube)
-        {
-            if (string.IsNullOrWhiteSpace(scene.Content))
-            {
-                StatusText.Text = "Configura un enlace de YouTube para esta escena";
-                return;
-            }
-
-            StatusText.Text = "La reproducción integrada de YouTube se habilitará desde su módulo";
-            return;
-        }
-
         if (string.IsNullOrWhiteSpace(scene.Title) &&
             string.IsNullOrWhiteSpace(scene.Content) &&
             string.IsNullOrWhiteSpace(scene.MediaPath))
@@ -748,7 +754,7 @@ public partial class MainWindow : Window
         }
 
         var content = scene.Content;
-        if (type is not (ContentType.Image or ContentType.Video or ContentType.Audio))
+        if (type is not (ContentType.Image or ContentType.Video or ContentType.Audio or ContentType.Web))
         {
             var slides = TextPaginator.Split(content, 220);
             if (slides.Count > 0) content = slides[0];
@@ -793,6 +799,9 @@ public partial class MainWindow : Window
             case SceneType.Audio:
             case SceneType.Logo:
                 ConfigureMode("Media");
+                break;
+            case SceneType.YouTube:
+                ConfigureMode("YouTube");
                 break;
             case SceneType.Title:
             case SceneType.Custom:
@@ -980,6 +989,7 @@ public partial class MainWindow : Window
                 ContentType.Video => SceneType.Video,
                 ContentType.Image => SceneType.Image,
                 ContentType.Audio => SceneType.Audio,
+                ContentType.Web => SceneType.YouTube,
                 _ => SceneType.Custom
             };
         }
@@ -1027,6 +1037,7 @@ public partial class MainWindow : Window
     private void HymnNav_Click(object sender, RoutedEventArgs e) => ConfigureMode("Hymn");
     private void SongsNav_Click(object sender, RoutedEventArgs e) => ConfigureMode("Song");
     private void MediaNav_Click(object sender, RoutedEventArgs e) => ConfigureMode("Media");
+    private void YouTubeNav_Click(object sender, RoutedEventArgs e) => ConfigureMode("YouTube");
     private void DesignsNav_Click(object sender, RoutedEventArgs e) => ConfigureMode("Design");
     private void Services_Click(object sender, RoutedEventArgs e) => ConfigureMode("Services");
     private void Settings_Click(object sender, RoutedEventArgs e) => ConfigureMode("Settings");
@@ -1089,6 +1100,62 @@ public partial class MainWindow : Window
             "Acerca de Cultos",
             MessageBoxButton.OK,
             MessageBoxImage.Information);
+    }
+
+    private void LoadPreparedYouTubeScene()
+    {
+        var scene = _scenes.FirstOrDefault(x => x.Type == SceneType.YouTube);
+        if (scene is null || string.IsNullOrWhiteSpace(scene.Content)) return;
+
+        YouTubeTitleBox.Text = string.IsNullOrWhiteSpace(scene.Title) ? "YouTube" : scene.Title;
+        YouTubeUrlBox.Text = scene.Content;
+
+        if (YouTubeUrlHelper.TryBuildEmbedUrl(scene.Content, false, out var previewUrl))
+            YouTubeBrowser.Source = new Uri(previewUrl);
+    }
+
+    private void PrepareYouTube_Click(object sender, RoutedEventArgs e)
+    {
+        PrepareYouTube();
+    }
+
+    private bool PrepareYouTube()
+    {
+        var input = YouTubeUrlBox.Text?.Trim() ?? "";
+        if (!YouTubeUrlHelper.TryBuildEmbedUrl(input, false, out var previewUrl) ||
+            !YouTubeUrlHelper.TryBuildEmbedUrl(input, true, out var liveUrl))
+        {
+            StatusText.Text = "El enlace de YouTube no es válido";
+            MessageBox.Show(
+                "Pega un enlace válido de YouTube, youtu.be o Shorts.",
+                "YouTube",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return false;
+        }
+
+        var title = string.IsNullOrWhiteSpace(YouTubeTitleBox.Text)
+            ? "YouTube"
+            : YouTubeTitleBox.Text.Trim();
+
+        YouTubeBrowser.Source = new Uri(previewUrl);
+
+        ShowPreview(new ServiceItem
+        {
+            Type = ContentType.Web,
+            Title = title,
+            Content = liveUrl,
+            Status = "Preparado"
+        });
+
+        StatusText.Text = "YouTube preparado en su escena";
+        return true;
+    }
+
+    private void SendYouTubeLive_Click(object sender, RoutedEventArgs e)
+    {
+        if (_preview?.Type != ContentType.Web && !PrepareYouTube()) return;
+        SendLive();
     }
 
     private void LoadMediaBrowser(string query = "")
@@ -1825,6 +1892,7 @@ public sealed class RunRow
         ContentType.Image => "Imagen",
         ContentType.Video => "Video",
         ContentType.Audio => "Audio",
+        ContentType.Web => "YouTube",
         ContentType.Welcome => "Bienvenida",
         ContentType.Background => "Fondo",
         _ => "Texto libre"
