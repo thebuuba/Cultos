@@ -554,8 +554,13 @@ public partial class MainWindow : Window
         var show = OrderPanel.Visibility != Visibility.Visible;
         if (show)
         {
+            var available = Math.Max(520, WorkspaceArea.ActualWidth);
+            var desired = _orderPanelWidth.Value > 0 ? _orderPanelWidth.Value : 320;
+            var maxOrderWidth = Math.Max(240, Math.Min(360, available - 280));
+            var finalWidth = Math.Clamp(desired, 240, maxOrderWidth);
+
             OrderColumn.MinWidth = 240;
-            OrderColumn.Width = _orderPanelWidth.Value > 0 ? _orderPanelWidth : new GridLength(350);
+            OrderColumn.Width = new GridLength(finalWidth);
             OrderSplitterColumn.Width = new GridLength(5);
             OrderPanel.Visibility = Visibility.Visible;
             OrderSplitter.Visibility = Visibility.Visible;
