@@ -39,41 +39,53 @@
         </Border>
 
         <Grid Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="48"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="88" MinWidth="76" MaxWidth="220"/>
-                <ColumnDefinition Width="5"/>
-                <ColumnDefinition Width="310" MinWidth="220"/>
+                <ColumnDefinition Width="310" MinWidth="240"/>
                 <ColumnDefinition Width="5"/>
                 <ColumnDefinition x:Name="OrderColumn" Width="0" MinWidth="0"/>
                 <ColumnDefinition x:Name="OrderSplitterColumn" Width="0"/>
-                <ColumnDefinition Width="*" MinWidth="340"/>
+                <ColumnDefinition Width="*" MinWidth="420"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Paleta de herramientas de escritorio -->
-            <Border Grid.Column="0" Background="{StaticResource Sidebar}" BorderBrush="{StaticResource Border}" BorderThickness="0,0,1,0">
-                <Grid Margin="9,12"><Grid.RowDefinitions><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                    <StackPanel HorizontalAlignment="Center">
-                        <Button x:Name="HomeNavButton" Style="{StaticResource ToolRailButton}" Click="HomeNav_Click" ToolTip="Inicio"><StackPanel><TextBlock Text="⌂" FontSize="19" HorizontalAlignment="Center"/><TextBlock Text="Inicio" Margin="0,3,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
-                        <Button x:Name="OrderNavButton" Style="{StaticResource ToolRailButton}" Click="OrderNav_Click" ToolTip="Mostrar u ocultar el orden del culto"><StackPanel><TextBlock Text="☷" FontSize="19" HorizontalAlignment="Center"/><TextBlock Text="Orden" Margin="0,3,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
-                        <Border Width="50" Height="1" Background="{StaticResource Border}" Margin="0,4,0,9"/>
-                        <Button x:Name="BibleNavButton" Style="{StaticResource ToolRailButton}" Click="BibleNav_Click" ToolTip="Biblioteca bíblica"><StackPanel><TextBlock Text="▤" FontSize="19" HorizontalAlignment="Center"/><TextBlock Text="Biblia" Margin="0,3,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
-                        <Button x:Name="HymnNavButton" Style="{StaticResource ToolRailButton}" Click="HymnNav_Click" ToolTip="Himnario"><StackPanel><TextBlock Text="♫" FontSize="19" HorizontalAlignment="Center"/><TextBlock Text="Himnos" Margin="0,3,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
-                        <Button x:Name="SongsNavButton" Style="{StaticResource ToolRailButton}" Click="SongsNav_Click" ToolTip="Canciones de la iglesia"><StackPanel><TextBlock Text="♪" FontSize="19" HorizontalAlignment="Center"/><TextBlock Text="Canciones" Margin="0,3,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
-                        <Button x:Name="MediaNavButton" Style="{StaticResource ToolRailButton}" Click="MediaNav_Click" ToolTip="Imágenes y videos"><StackPanel><TextBlock Text="▧" FontSize="19" HorizontalAlignment="Center"/><TextBlock Text="Medios" Margin="0,3,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
-                        <Button x:Name="DesignsNavButton" Style="{StaticResource ToolRailButton}" Click="DesignsNav_Click" ToolTip="Diseños visuales"><StackPanel><TextBlock Text="◫" FontSize="19" HorizontalAlignment="Center"/><TextBlock Text="Diseños" Margin="0,3,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
-                    </StackPanel>
-                    <StackPanel Grid.Row="1" HorizontalAlignment="Center">
-                        <Border Width="50" Height="1" Background="{StaticResource Border}" Margin="0,0,0,9"/>
-                        <Button x:Name="ServicesNavButton" Style="{StaticResource ToolRailButton}" Click="Services_Click" ToolTip="Abrir o crear un culto"><StackPanel><TextBlock Text="▱" FontSize="19" HorizontalAlignment="Center"/><TextBlock Text="Cultos" Margin="0,3,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
-                        <Button x:Name="SettingsNavButton" Style="{StaticResource ToolRailButton}" Click="Settings_Click" ToolTip="Configuración"><StackPanel><TextBlock Text="⚙" FontSize="18" HorizontalAlignment="Center"/><TextBlock Text="Ajustes" Margin="0,3,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
-                    </StackPanel>
-                </Grid>
+            <!-- Navegación superior estilo aplicación de escritorio -->
+            <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="5"
+                    Background="{StaticResource Sidebar}"
+                    BorderBrush="{StaticResource Border}"
+                    BorderThickness="0,0,0,1">
+                <UniformGrid Rows="1" Columns="8" Margin="8,3">
+                    <Button x:Name="OrderNavButton" Style="{StaticResource TopNavButton}" Click="OrderNav_Click" ToolTip="Mostrar u ocultar el orden del culto">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"><TextBlock Text="☷" FontSize="15" Margin="0,0,6,0"/><TextBlock Text="Orden"/></StackPanel>
+                    </Button>
+                    <Button x:Name="BibleNavButton" Style="{StaticResource TopNavButton}" Click="BibleNav_Click" ToolTip="Biblioteca bíblica">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"><TextBlock Text="▤" FontSize="15" Margin="0,0,6,0"/><TextBlock Text="Biblia"/></StackPanel>
+                    </Button>
+                    <Button x:Name="HymnNavButton" Style="{StaticResource TopNavButton}" Click="HymnNav_Click" ToolTip="Himnario">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"><TextBlock Text="♫" FontSize="15" Margin="0,0,6,0"/><TextBlock Text="Himnos"/></StackPanel>
+                    </Button>
+                    <Button x:Name="SongsNavButton" Style="{StaticResource TopNavButton}" Click="SongsNav_Click" ToolTip="Canciones de la iglesia">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"><TextBlock Text="♪" FontSize="15" Margin="0,0,6,0"/><TextBlock Text="Canciones"/></StackPanel>
+                    </Button>
+                    <Button x:Name="MediaNavButton" Style="{StaticResource TopNavButton}" Click="MediaNav_Click" ToolTip="Imágenes y videos">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"><TextBlock Text="▧" FontSize="15" Margin="0,0,6,0"/><TextBlock Text="Medios"/></StackPanel>
+                    </Button>
+                    <Button x:Name="DesignsNavButton" Style="{StaticResource TopNavButton}" Click="DesignsNav_Click" ToolTip="Diseños visuales">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"><TextBlock Text="◫" FontSize="15" Margin="0,0,6,0"/><TextBlock Text="Diseños"/></StackPanel>
+                    </Button>
+                    <Button x:Name="ServicesNavButton" Style="{StaticResource TopNavButton}" Click="Services_Click" ToolTip="Abrir o crear un culto">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"><TextBlock Text="▱" FontSize="15" Margin="0,0,6,0"/><TextBlock Text="Cultos"/></StackPanel>
+                    </Button>
+                    <Button x:Name="SettingsNavButton" Style="{StaticResource TopNavButton}" Click="Settings_Click" ToolTip="Configuración">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"><TextBlock Text="⚙" FontSize="14" Margin="0,0,6,0"/><TextBlock Text="Ajustes"/></StackPanel>
+                    </Button>
+                </UniformGrid>
             </Border>
 
-            <GridSplitter Grid.Column="1" Style="{StaticResource WorkspaceSplitter}" HorizontalAlignment="Stretch" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" Cursor="SizeWE" ToolTip="Arrastra para cambiar el ancho"/>
-
             <!-- Biblioteca -->
-            <Border Grid.Column="2" Background="{StaticResource Panel}">
+            <Border Grid.Row="1" Grid.Column="0" Background="{StaticResource Panel}">
                 <Grid Margin="16,17,16,14"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <StackPanel>
                         <TextBlock x:Name="SectionLabel" Text="BIBLIOTECA" Foreground="{StaticResource Subtle}" FontSize="10" FontWeight="SemiBold"/>
@@ -106,10 +118,10 @@
                 </Grid>
             </Border>
 
-            <GridSplitter Grid.Column="3" Style="{StaticResource WorkspaceSplitter}" HorizontalAlignment="Stretch" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" Cursor="SizeWE" ToolTip="Arrastra para cambiar el ancho"/>
+            <GridSplitter Grid.Row="1" Grid.Column="1" Style="{StaticResource WorkspaceSplitter}" HorizontalAlignment="Stretch" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" Cursor="SizeWE" ToolTip="Arrastra para cambiar el ancho"/>
 
             <!-- Orden -->
-            <Border x:Name="OrderPanel" Grid.Column="4" Background="#151613" Visibility="Collapsed">
+            <Border x:Name="OrderPanel" Grid.Row="1" Grid.Column="2" Background="#151613" Visibility="Collapsed">
                 <Grid Margin="16,17,16,14"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <Grid Margin="0,0,0,13"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                         <StackPanel><TextBlock Text="ORDEN DEL CULTO" Foreground="{StaticResource Subtle}" FontSize="10" FontWeight="SemiBold"/><TextBlock x:Name="ItemCountText" Text="0 elementos" Foreground="{StaticResource Muted}" FontSize="12" Margin="0,5,0,0"/></StackPanel>
@@ -135,11 +147,11 @@
                 </Grid>
             </Border>
 
-            <GridSplitter x:Name="OrderSplitter" Grid.Column="5" Visibility="Collapsed" Style="{StaticResource WorkspaceSplitter}" HorizontalAlignment="Stretch" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" Cursor="SizeWE" ToolTip="Arrastra para cambiar el ancho"/>
+            <GridSplitter x:Name="OrderSplitter" Grid.Row="1" Grid.Column="3" Visibility="Collapsed" Style="{StaticResource WorkspaceSplitter}" HorizontalAlignment="Stretch" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" Cursor="SizeWE" ToolTip="Arrastra para cambiar el ancho"/>
 
             <!-- Presentación -->
-            <Grid Grid.Column="6" Margin="18,16,18,14">
-                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="2.05*" MinHeight="150"/><RowDefinition Height="Auto"/><RowDefinition Height="7"/><RowDefinition Height="Auto"/><RowDefinition Height="1.15*" MinHeight="115"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+            <Grid Grid.Row="1" Grid.Column="4" Margin="18,12,18,14">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*" MinHeight="150"/><RowDefinition Height="Auto"/><RowDefinition Height="7"/><RowDefinition Height="Auto"/><RowDefinition Height="*" MinHeight="150"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                 <Grid><StackPanel><TextBlock Text="VISTA PREVIA" Foreground="{StaticResource Subtle}" FontSize="10" FontWeight="SemiBold"/><TextBlock x:Name="PreviewTitle" Text="Selecciona contenido" FontWeight="SemiBold" FontSize="16" Margin="0,3,0,0"/></StackPanel><Border HorizontalAlignment="Right" VerticalAlignment="Top" Background="{StaticResource PanelRaised}" CornerRadius="5" Padding="7,4"><TextBlock Text="16:9" Foreground="{StaticResource Muted}" FontSize="10"/></Border></Grid>
                 <Viewbox Grid.Row="1" Margin="0,10,0,12" Stretch="Uniform" StretchDirection="Both" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                     <Border Width="1600" Height="900" Background="#20251F" BorderBrush="#3B4239" BorderThickness="2" CornerRadius="16" ClipToBounds="True">
@@ -149,7 +161,18 @@
                 <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><Button Click="Previous_Click" Padding="15,10">←  Anterior</Button><Button Grid.Column="1" Click="SendLive_Click" Style="{StaticResource PrimaryButton}" Margin="8,0" Padding="22,11">▶  ENVIAR EN VIVO</Button><Button Grid.Column="2" Click="Next_Click" Padding="15,10">Siguiente  →</Button></Grid>
                 <GridSplitter Grid.Row="3" Style="{StaticResource WorkspaceSplitter}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" Cursor="SizeNS" ToolTip="Arrastra para cambiar la altura"/>
                 <Grid Grid.Row="4" Margin="0,8,0,0"><StackPanel Orientation="Horizontal"><TextBlock Text="●" Foreground="{StaticResource Live}" FontSize="10" VerticalAlignment="Center"/><TextBlock Text=" EN VIVO" Foreground="#EB9A92" FontWeight="SemiBold" FontSize="11"/><TextBlock x:Name="LiveTitle" Text="  · Sin contenido" FontWeight="SemiBold" FontSize="13"/></StackPanel><StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><TextBlock Text="▣  " Foreground="{StaticResource Muted}"/><TextBlock x:Name="DisplayStateText" Text="Pantalla no iniciada" Foreground="{StaticResource Muted}" FontSize="11"/></StackPanel></Grid>
-                <Border Grid.Row="5" Margin="0,9,0,11" Background="#0E0F0E" BorderBrush="{StaticResource Live}" BorderThickness="1" CornerRadius="9"><Grid><Image x:Name="LiveImage" Visibility="Collapsed" Stretch="Uniform"/><MediaElement x:Name="LiveVideo" Visibility="Collapsed" Stretch="Uniform" LoadedBehavior="Manual" UnloadedBehavior="Stop" MediaFailed="LiveVideo_MediaFailed" MediaEnded="LiveVideo_MediaEnded" MediaOpened="LiveVideo_MediaOpened"/><TextBlock x:Name="LiveContent" Text="Sin contenido en vivo" Foreground="#EDEAE2" FontSize="20" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="38"/><Border HorizontalAlignment="Right" VerticalAlignment="Top" Background="#391F1D" CornerRadius="0,8,0,7" Padding="8,4"><TextBlock Text="SALIDA" Foreground="#EAA09A" FontSize="9" FontWeight="SemiBold"/></Border></Grid></Border>
+                <Viewbox Grid.Row="5" Margin="0,9,0,11" Stretch="Uniform" StretchDirection="Both" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                    <Border Width="1600" Height="900" Background="#0E0F0E" BorderBrush="{StaticResource Live}" BorderThickness="2" CornerRadius="16" ClipToBounds="True">
+                        <Grid>
+                            <Image x:Name="LiveImage" Visibility="Collapsed" Stretch="Uniform"/>
+                            <MediaElement x:Name="LiveVideo" Visibility="Collapsed" Stretch="Uniform" LoadedBehavior="Manual" UnloadedBehavior="Stop" MediaFailed="LiveVideo_MediaFailed" MediaEnded="LiveVideo_MediaEnded" MediaOpened="LiveVideo_MediaOpened"/>
+                            <TextBlock x:Name="LiveContent" Text="Sin contenido en vivo" Foreground="#EDEAE2" FontSize="52" FontWeight="SemiBold" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="150" MaxWidth="1300"/>
+                            <Border HorizontalAlignment="Right" VerticalAlignment="Top" Background="#391F1D" CornerRadius="0,14,0,10" Padding="14,8">
+                                <TextBlock Text="SALIDA · 16:9" Foreground="#EAA09A" FontSize="16" FontWeight="SemiBold"/>
+                            </Border>
+                        </Grid>
+                    </Border>
+                </Viewbox>
                 <WrapPanel Grid.Row="6"><Button Click="PlayMedia_Click" Margin="0,0,5,5">▶ Reproducir</Button><Button Click="PauseMedia_Click" Margin="0,0,5,5">Ⅱ Pausar</Button><Button Click="StopMedia_Click" Margin="0,0,5,5">■ Detener</Button><Button Click="Black_Click" Margin="0,0,5,5" ToolTip="Pantalla negra (B)">■ Negra</Button><Button Click="Clear_Click" Margin="0,0,5,5" ToolTip="Limpiar todo (C)">✕ Limpiar</Button><Button Click="RemoveText_Click" Margin="0,0,5,5">T̶ Texto</Button><Button Click="Logo_Click" Margin="0,0,5,5">◇ Logo</Button><Button Click="Export_Click" Margin="0,0,9,5">⇧ Copia</Button><TextBlock x:Name="MediaTimeText" Text="0:00 / 0:00" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="2,0,6,5"/><Slider x:Name="MediaProgressSlider" Width="150" Minimum="0" Maximum="1" IsMoveToPointEnabled="True" VerticalAlignment="Center" Margin="0,0,10,5" PreviewMouseLeftButtonUp="MediaProgressSlider_PreviewMouseLeftButtonUp" ToolTip="Posición del video"/><TextBlock Text="Vol." Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="2,0,6,5"/><Slider x:Name="MediaVolumeSlider" Width="100" Minimum="0" Maximum="1" Value=".8" TickFrequency=".1" VerticalAlignment="Center" Margin="0,0,5,5" ValueChanged="MediaVolumeSlider_ValueChanged" ToolTip="Volumen de los videos"/></WrapPanel>
             </Grid>
         </Grid>
