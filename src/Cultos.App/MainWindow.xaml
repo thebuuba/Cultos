@@ -17,13 +17,57 @@
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="70"/>
+            <RowDefinition Height="30"/>
+            <RowDefinition Height="62"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="36"/>
         </Grid.RowDefinitions>
 
+        <!-- Menú principal tipo aplicación de escritorio -->
+        <Menu Grid.Row="0"
+              Background="#10110F"
+              Foreground="{StaticResource Text}"
+              BorderBrush="{StaticResource Border}"
+              BorderThickness="0,0,0,1"
+              VerticalContentAlignment="Center">
+            <MenuItem Header="_Archivo">
+                <MenuItem Header="Nuevo culto" Click="MenuNewService_Click"/>
+                <MenuItem Header="Cultos guardados" Click="MenuServices_Click"/>
+                <Separator/>
+                <MenuItem Header="Importar copia…" Click="Import_Click"/>
+                <MenuItem Header="Exportar copia…" Click="Export_Click"/>
+                <Separator/>
+                <MenuItem Header="Salir" Click="MenuExit_Click"/>
+            </MenuItem>
+            <MenuItem Header="_Visualización">
+                <MenuItem Header="Abrir pantalla externa" InputGestureText="F5" Click="OpenDisplay_Click"/>
+                <MenuItem Header="Identificar pantallas" Click="IdentifyDisplays_Click"/>
+            </MenuItem>
+            <MenuItem Header="_Paneles">
+                <MenuItem Header="Orden del culto" Click="OrderNav_Click"/>
+                <Separator/>
+                <MenuItem Header="Biblia" Click="BibleNav_Click"/>
+                <MenuItem Header="Himnos" Click="HymnNav_Click"/>
+                <MenuItem Header="Canciones" Click="SongsNav_Click"/>
+                <MenuItem Header="Multimedia" Click="MediaNav_Click"/>
+                <MenuItem Header="Diseños" Click="DesignsNav_Click"/>
+                <MenuItem Header="Cultos" Click="Services_Click"/>
+                <Separator/>
+                <MenuItem x:Name="MonitorPanelMenuItem"
+                          Header="Monitores de presentación"
+                          IsCheckable="True"
+                          IsChecked="True"
+                          Click="ToggleMonitorPanel_Click"/>
+            </MenuItem>
+            <MenuItem Header="_Configuración" Click="Settings_Click"/>
+            <MenuItem Header="A_yuda">
+                <MenuItem Header="Atajos de teclado" Click="ShowShortcuts_Click"/>
+                <MenuItem Header="Acerca de Cultos" Click="About_Click"/>
+            </MenuItem>
+        </Menu>
+
         <!-- Barra superior de aplicación -->
-        <Border Grid.Row="0"
+        <Border Grid.Row="1"
                 Background="#151613"
                 BorderBrush="{StaticResource Border}"
                 BorderThickness="0,0,0,1">
@@ -83,12 +127,12 @@
         </Border>
 
         <!-- Zona principal -->
-        <Grid Grid.Row="1">
+        <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
                 <!-- Área de trabajo: siempre recibe el espacio sobrante -->
                 <ColumnDefinition Width="*" MinWidth="560"/>
                 <!-- Columna de monitores: ancho acotado -->
-                <ColumnDefinition Width="450" MinWidth="400" MaxWidth="480"/>
+                <ColumnDefinition x:Name="MonitorColumn" Width="450" MinWidth="400" MaxWidth="480"/>
             </Grid.ColumnDefinitions>
 
             <!-- IZQUIERDA: navegación + área de trabajo -->
@@ -179,17 +223,9 @@
                     </UniformGrid>
                 </Border>
 
-                <!-- Contenido del módulo activo -->
+                <!-- Área activa: cada panel sustituye al anterior, estilo OBS -->
                 <Grid Grid.Row="1">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" MinWidth="260"/>
-                        <ColumnDefinition Width="5"/>
-                        <ColumnDefinition x:Name="OrderColumn" Width="0" MinWidth="0"/>
-                        <ColumnDefinition x:Name="OrderSplitterColumn" Width="0"/>
-                    </Grid.ColumnDefinitions>
-
-                    <!-- Biblioteca / módulo principal -->
-                    <Border Grid.Column="0"
+                    <Border x:Name="LibraryPanel"
                             Background="{StaticResource Panel}"
                             BorderBrush="{StaticResource Border}"
                             BorderThickness="0,0,1,0">
@@ -346,16 +382,8 @@
                         </Grid>
                     </Border>
 
-                    <GridSplitter Grid.Column="1"
-                                  Style="{StaticResource WorkspaceSplitter}"
-                                  HorizontalAlignment="Stretch"
-                                  ResizeDirection="Columns"
-                                  ResizeBehavior="PreviousAndNext"
-                                  Cursor="SizeWE"/>
 
-                    <!-- Orden del culto opcional -->
                     <Border x:Name="OrderPanel"
-                            Grid.Column="2"
                             Background="#151613"
                             Visibility="Collapsed">
                         <Grid Margin="16,17,16,14">
@@ -443,19 +471,13 @@
                         </Grid>
                     </Border>
 
-                    <GridSplitter x:Name="OrderSplitter"
-                                  Grid.Column="3"
-                                  Visibility="Collapsed"
-                                  Style="{StaticResource WorkspaceSplitter}"
-                                  HorizontalAlignment="Stretch"
-                                  ResizeDirection="Columns"
-                                  ResizeBehavior="PreviousAndNext"
-                                  Cursor="SizeWE"/>
+
                 </Grid>
             </Grid>
 
             <!-- DERECHA: monitores. Nunca ocupa más de 480 px -->
-            <Border Grid.Column="1"
+            <Border x:Name="MonitorPanel"
+                    Grid.Column="1"
                     Background="#0D0E0C"
                     BorderBrush="{StaticResource Border}"
                     BorderThickness="1,0,0,0">
@@ -666,7 +688,7 @@
         </Grid>
 
         <!-- Barra de estado -->
-        <Border Grid.Row="2"
+        <Border Grid.Row="3"
                 Background="#151613"
                 BorderBrush="{StaticResource Border}"
                 BorderThickness="0,1,0,0">
