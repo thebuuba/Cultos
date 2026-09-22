@@ -304,6 +304,79 @@ public sealed class LocalDatabase
         return c.ExecuteNonQuery() > 0;
     }
 
+    public void ImportSceneProfile(IEnumerable<PresentationScene> scenes)
+    {
+        using var db = new SqliteConnection(ConnectionString);
+        db.Open();
+        using var tx = db.BeginTransaction();
+
+        using (var removeCustom = db.CreateCommand())
+        {
+            removeCustom.Transaction = tx;
+            removeCustom.CommandText = "DELETE FROM Scene WHERE IsBuiltIn=0";
+            removeCustom.ExecuteNonQuery();
+        }
+
+        foreach (var source in scenes.OrderBy(x => x.Position))
+        {
+            var key = string.IsNullOrWhiteSpace(source.Key)
+                ? "custom-" + Guid.NewGuid().ToString("N")
+                : source.Key;
+
+            if (source.IsBuiltIn)
+            {
+                using var update = db.CreateCommand();
+                update.Transaction = tx;
+                update.CommandText = """
+                    UPDATE Scene
+                    SET Name=$name,Type=$type,Position=$position,Title=$title,Content=$content,
+                        MediaPath=$media,SettingsJson=$settings,UpdatedAt=$updated
+                    WHERE SceneKey=$key AND IsBuiltIn=1
+                    """;
+                update.Parameters.AddWithValue("$key", key);
+                update.Parameters.AddWithValue("$name", source.Name.Trim());
+                update.Parameters.AddWithValue("$type", (int)source.Type);
+                update.Parameters.AddWithValue("$position", source.Position);
+                update.Parameters.AddWithValue("$title", source.Title);
+                update.Parameters.AddWithValue("$content", source.Content);
+                update.Parameters.AddWithValue("$media", (object?)source.MediaPath ?? DBNull.Value);
+                update.Parameters.AddWithValue("$settings", source.SettingsJson);
+                update.Parameters.AddWithValue("$updated", DateTime.Now.ToString("O"));
+                update.ExecuteNonQuery();
+                continue;
+            }
+
+            using (var guard = db.CreateCommand())
+            {
+                guard.Transaction = tx;
+                guard.CommandText = "SELECT IsBuiltIn FROM Scene WHERE SceneKey=$key LIMIT 1";
+                guard.Parameters.AddWithValue("$key", key);
+                var existing = guard.ExecuteScalar();
+                if (existing is long value && value == 1)
+                    key = "custom-" + Guid.NewGuid().ToString("N");
+            }
+
+            using var insert = db.CreateCommand();
+            insert.Transaction = tx;
+            insert.CommandText = """
+                INSERT INTO Scene(SceneKey,Name,Type,Position,IsBuiltIn,Title,Content,MediaPath,SettingsJson,UpdatedAt)
+                VALUES($key,$name,$type,$position,0,$title,$content,$media,$settings,$updated)
+                """;
+            insert.Parameters.AddWithValue("$key", key);
+            insert.Parameters.AddWithValue("$name", source.Name.Trim());
+            insert.Parameters.AddWithValue("$type", (int)source.Type);
+            insert.Parameters.AddWithValue("$position", source.Position);
+            insert.Parameters.AddWithValue("$title", source.Title);
+            insert.Parameters.AddWithValue("$content", source.Content);
+            insert.Parameters.AddWithValue("$media", (object?)source.MediaPath ?? DBNull.Value);
+            insert.Parameters.AddWithValue("$settings", source.SettingsJson);
+            insert.Parameters.AddWithValue("$updated", DateTime.Now.ToString("O"));
+            insert.ExecuteNonQuery();
+        }
+
+        tx.Commit();
+    }
+
     public List<BibleVerse> SearchBible(string query)
     {
         using var db=new SqliteConnection(ConnectionString);db.Open();using var c=db.CreateCommand();
