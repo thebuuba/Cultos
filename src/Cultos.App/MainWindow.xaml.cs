@@ -1121,12 +1121,19 @@ public partial class MainWindow : Window
         if (_output is null) return;
 
         var target = _displayManager.ResolvePresentationScreen();
-        _displayManager.PlacePresentationWindow(_output, target);
+        var hasExternalDisplay = Forms.Screen.AllScreens.Length > 1;
 
-        DisplayStateText.Text = Forms.Screen.AllScreens.Length > 1
+        if (hasExternalDisplay)
+            _displayManager.PlacePresentationWindow(_output, target);
+        else
+            _displayManager.PlaceTestWindow(_output, target);
+
+        DisplayStateText.Text = hasExternalDisplay
             ? $"Salida · {target.DeviceName}"
-            : "Salida en este monitor";
-        StatusText.Text = $"Salida preparada en {target.DeviceName}";
+            : "Modo de prueba · una pantalla";
+        StatusText.Text = hasExternalDisplay
+            ? $"Salida preparada en {target.DeviceName}"
+            : "Salida abierta en modo de prueba";
     }
 
     private void SystemEvents_DisplaySettingsChanged(object? sender, EventArgs e)
