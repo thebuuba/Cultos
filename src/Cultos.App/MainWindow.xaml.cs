@@ -3,6 +3,7 @@ using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
@@ -40,6 +41,10 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly DispatcherTimer _saveTimer = new() { Interval = TimeSpan.FromMilliseconds(700) };
     private readonly DispatcherTimer _mediaTimer = new() { Interval = TimeSpan.FromMilliseconds(250) };
+    private readonly DispatcherTimer _logoTimer = new();
+    private List<string> _logoPlaylist = [];
+    private int _logoIndex;
+    private bool _logoLoop = true;
     private readonly string _sessionMarkerPath;
     private readonly bool _recoveredAfterUnexpectedExit;
     private static readonly HashSet<string> SupportedMediaExtensions = new(StringComparer.OrdinalIgnoreCase)
@@ -83,6 +88,7 @@ public partial class MainWindow : Window
         _saveTimer.Tick += (_, _) => SaveNow();
         _mediaTimer.Tick += MediaTimer_Tick;
         _mediaTimer.Start();
+        _logoTimer.Tick += LogoTimer_Tick;
 
         Loaded += (_, _) =>
         {
@@ -98,6 +104,7 @@ public partial class MainWindow : Window
         {
             SystemEvents.DisplaySettingsChanged -= SystemEvents_DisplaySettingsChanged;
             _mediaTimer.Stop();
+            _logoTimer.Stop();
             SaveNow();
             SaveWindowSettings();
             _output?.Close();
@@ -200,6 +207,7 @@ public partial class MainWindow : Window
         MediaToolbar.Visibility = mode == "Media" ? Visibility.Visible : Visibility.Collapsed;
         LibrarySecondaryButton.Visibility = Visibility.Collapsed;
         LibraryPrimaryButton.Visibility = Visibility.Visible;
+        LibraryList.SelectionMode = System.Windows.Controls.SelectionMode.Single;
         SearchBox.Visibility = Visibility.Visible;
         SectionLabel.Text = "BIBLIOTECA";
 
@@ -220,8 +228,11 @@ public partial class MainWindow : Window
                 LibrarySecondaryButton.Visibility = Visibility.Visible;
                 break;
             case "Media":
-                LibraryTitle.Text = "Multimedia";
+                LibraryTitle.Text = "Archivos del equipo";
                 LibraryPrimaryButton.Content = "＋  Agregar al orden del culto";
+                LibrarySecondaryButton.Content = "Agregar a Logo";
+                LibrarySecondaryButton.Visibility = Visibility.Visible;
+                LibraryList.SelectionMode = System.Windows.Controls.SelectionMode.Extended;
                 _currentMediaFolder = null;
                 break;
             case "Design":
@@ -431,6 +442,7 @@ public partial class MainWindow : Window
     private void SendLive()
     {
         if (_preview is null) return;
+        StopLogoSlideshow();
         if ((_preview.Type == ContentType.Image || _preview.Type == ContentType.Video) && (string.IsNullOrWhiteSpace(_preview.MediaPath) || !File.Exists(_preview.MediaPath)))
         {
             MissingMedia();
@@ -632,6 +644,8 @@ public partial class MainWindow : Window
 
     private void ActivateScene(PresentationScene scene)
     {
+        if (scene.Type != SceneType.Logo) StopLogoSlideshow();
+
         if (scene.Type == SceneType.Black)
         {
             if (_live.State != PresentationState.Black)
@@ -648,15 +662,31 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (scene.Type == SceneType.Logo && string.IsNullOrWhiteSpace(scene.MediaPath))
+        if (scene.Type == SceneType.Logo)
         {
-            _blackRestoreSnapshot = null;
-            _blackRestoreType = null;
-            _activeSceneKey = scene.Key;
-            RenderState(PresentationState.Logo);
-            RefreshSceneRows();
-            StatusText.Text = "Escena Logo en vivo";
-            return;
+            var settings = ReadLogoSettings(scene);
+            var images = settings.ImagePaths
+                .Where(File.Exists)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (images.Count > 0)
+            {
+                StartLogoScene(scene, settings, images);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(scene.MediaPath))
+            {
+                StopLogoSlideshow();
+                _blackRestoreSnapshot = null;
+                _blackRestoreType = null;
+                _activeSceneKey = scene.Key;
+                RenderState(PresentationState.Logo);
+                RefreshSceneRows();
+                StatusText.Text = "Escena Logo en vivo";
+                return;
+            }
         }
 
         if (scene.Type == SceneType.YouTube)
@@ -745,6 +775,146 @@ public partial class MainWindow : Window
         }
 
         StatusText.Text = $"Prepara contenido para la escena {scene.Name}";
+    }
+
+    private LogoSceneSettings ReadLogoSettings(PresentationScene scene)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<LogoSceneSettings>(scene.SettingsJson) ?? new LogoSceneSettings();
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Error("No se pudo leer la configuración de la escena Logo", ex);
+            return new LogoSceneSettings();
+        }
+    }
+
+    private void AddSelectedMediaToLogo()
+    {
+        var paths = LibraryList.SelectedItems
+            .OfType<LibraryRow>()
+            .Select(x => x.Source)
+            .OfType<FileSystemEntry>()
+            .Where(x => !x.IsFolder && string.Equals(x.Kind, "Imagen", StringComparison.OrdinalIgnoreCase))
+            .Select(x => x.Path)
+            .Where(File.Exists)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (paths.Count == 0)
+        {
+            StatusText.Text = "Selecciona una o varias imágenes para agregarlas a Logo";
+            return;
+        }
+
+        var logo = _scenes.FirstOrDefault(x => x.Type == SceneType.Logo);
+        if (logo is null) return;
+
+        var settings = ReadLogoSettings(logo);
+        foreach (var path in paths)
+        {
+            if (!settings.ImagePaths.Contains(path, StringComparer.OrdinalIgnoreCase))
+                settings.ImagePaths.Add(path);
+        }
+
+        logo.SettingsJson = JsonSerializer.Serialize(settings);
+        logo.Title = "Presentación de Logo";
+        logo.Content = $"{settings.ImagePaths.Count} imágenes";
+        logo.MediaPath = settings.ImagePaths.FirstOrDefault(File.Exists);
+        _db.SaveScene(logo);
+        LoadScenes();
+
+        if (logo.MediaPath is not null)
+        {
+            ShowPreview(new ServiceItem
+            {
+                Type = ContentType.Image,
+                Title = logo.Title,
+                Content = logo.Content,
+                MediaPath = logo.MediaPath,
+                Status = "Preparado"
+            });
+        }
+
+        StatusText.Text = paths.Count == 1
+            ? "Imagen agregada a la escena Logo"
+            : $"{paths.Count} imágenes agregadas a la escena Logo";
+    }
+
+    private void StartLogoScene(PresentationScene scene, LogoSceneSettings settings, List<string> images)
+    {
+        _logoPlaylist = images;
+        _logoIndex = 0;
+        _logoLoop = settings.Loop;
+        _logoTimer.Interval = TimeSpan.FromSeconds(Math.Clamp(settings.IntervalSeconds, 2, 120));
+
+        _blackRestoreSnapshot = null;
+        _blackRestoreType = null;
+        _activeSceneKey = scene.Key;
+        ShowLogoFrame(scene);
+
+        if (_logoPlaylist.Count > 1)
+            _logoTimer.Start();
+
+        RefreshSceneRows();
+        StatusText.Text = $"Escena Logo en vivo · {_logoPlaylist.Count} imágenes";
+    }
+
+    private void ShowLogoFrame(PresentationScene scene)
+    {
+        if (_logoPlaylist.Count == 0) return;
+        _logoIndex = Math.Clamp(_logoIndex, 0, _logoPlaylist.Count - 1);
+        var path = _logoPlaylist[_logoIndex];
+
+        _live = new(
+            PresentationState.Content,
+            scene.Name,
+            $"Imagen {_logoIndex + 1} de {_logoPlaylist.Count}",
+            path);
+        _liveType = ContentType.Image;
+
+        LiveTitle.Text = $"  {scene.Name} · {_logoIndex + 1}/{_logoPlaylist.Count}";
+        ShowLiveMedia(new ServiceItem
+        {
+            Type = ContentType.Image,
+            Title = scene.Name,
+            Content = _live.Content,
+            MediaPath = path
+        });
+        LiveBadge.Visibility = Visibility.Visible;
+        _output?.Render(_live, ContentType.Image);
+    }
+
+    private void LogoTimer_Tick(object? sender, EventArgs e)
+    {
+        if (_logoPlaylist.Count <= 1)
+        {
+            _logoTimer.Stop();
+            return;
+        }
+
+        var next = _logoIndex + 1;
+        if (next >= _logoPlaylist.Count)
+        {
+            if (!_logoLoop)
+            {
+                _logoTimer.Stop();
+                return;
+            }
+            next = 0;
+        }
+
+        _logoIndex = next;
+        var scene = _scenes.FirstOrDefault(x => x.Type == SceneType.Logo);
+        if (scene is not null) ShowLogoFrame(scene);
+    }
+
+    private void StopLogoSlideshow()
+    {
+        _logoTimer.Stop();
+        _logoPlaylist = [];
+        _logoIndex = 0;
     }
 
     private void AddScene_Click(object sender, RoutedEventArgs e)
@@ -1066,6 +1236,7 @@ public partial class MainWindow : Window
     {
         if (_mode == "Services") CreateNewService();
         else if (_mode == "Song") CreateSong();
+        else if (_mode == "Media") AddSelectedMediaToLogo();
         else if (_mode == "Settings") Import_Click(sender, e);
     }
 
