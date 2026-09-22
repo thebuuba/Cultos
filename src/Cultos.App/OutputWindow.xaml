@@ -14,6 +14,7 @@
     <Grid x:Name="Root" Background="Black">
         <Viewbox Stretch="Uniform" StretchDirection="Both" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
             <Grid x:Name="PresentationSurface" Width="1600" Height="900" Background="#151915" ClipToBounds="True">
+                <Image x:Name="OutputBackgroundImage" Stretch="UniformToFill" Opacity=".38"/>
                 <Image x:Name="OutputImage" Visibility="Collapsed" Stretch="Uniform"/>
                 <MediaElement x:Name="OutputVideo"
                               Visibility="Collapsed"
