@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
+using System.IO;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
@@ -125,7 +126,8 @@ public sealed class RemoteControlServer : IAsyncDisposable
 
         try
         {
-            await _app.StopAsync(TimeSpan.FromSeconds(2));
+            using var stopTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+            await _app.StopAsync(stopTimeout.Token);
             await _app.DisposeAsync();
         }
         catch (Exception ex)
