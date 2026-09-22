@@ -22,5 +22,10 @@ public sealed class CoreTests : IDisposable
     [Fact] public void SeedsDefaultScenes(){var db=CreateDb();var scenes=db.ListScenes();Assert.Contains(scenes,x=>x.Key=="logo");Assert.Contains(scenes,x=>x.Key=="bible");Assert.Contains(scenes,x=>x.Key=="video");Assert.Contains(scenes,x=>x.Key=="black");}
     [Fact] public void PersistsSceneContent(){var db=CreateDb();db.UpdateSceneContent("bible","Juan 3:16","Texto preparado",null);var scene=db.GetScene("bible");Assert.NotNull(scene);Assert.Equal("Juan 3:16",scene!.Title);Assert.Equal("Texto preparado",scene.Content);}
     [Fact] public void SavesAndDeletesCustomScene(){var db=CreateDb();var scene=db.SaveScene(new PresentationScene{Name="Anuncios",Type=SceneType.Custom,Position=20});Assert.True(scene.Id>0);Assert.Contains(db.ListScenes(),x=>x.Id==scene.Id);Assert.True(db.DeleteScene(scene.Id));Assert.DoesNotContain(db.ListScenes(),x=>x.Id==scene.Id);}
+    [Theory]
+    [InlineData("https://www.youtube.com/watch?v=dQw4w9WgXcQ","dQw4w9WgXcQ")]
+    [InlineData("https://youtu.be/dQw4w9WgXcQ","dQw4w9WgXcQ")]
+    [InlineData("https://www.youtube.com/shorts/dQw4w9WgXcQ","dQw4w9WgXcQ")]
+    public void NormalizesYouTubeUrls(string url,string id){Assert.Equal(id,YouTubeUrlHelper.ExtractVideoId(url));Assert.True(YouTubeUrlHelper.TryBuildEmbedUrl(url,true,out var embed));Assert.Contains(id,embed);}
     public void Dispose(){if(Directory.Exists(_folder))Directory.Delete(_folder,true);}
 }
