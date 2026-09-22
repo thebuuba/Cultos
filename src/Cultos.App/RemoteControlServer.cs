@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Security.Cryptography;
@@ -227,12 +228,38 @@ public sealed class RemoteControlServer : IAsyncDisposable
     {
         try
         {
-            var addresses = Dns.GetHostEntry(Dns.GetHostName()).AddressList
-                .Where(a => a.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(a))
-                .OrderByDescending(IsPrivateAddress)
+            var candidates = NetworkInterface.GetAllNetworkInterfaces()
+                .Where(nic =>
+                    nic.OperationalStatus == OperationalStatus.Up &&
+                    nic.NetworkInterfaceType is NetworkInterfaceType.Ethernet or NetworkInterfaceType.Wireless80211)
+                .Select(nic => new
+                {
+                    Interface = nic,
+                    Properties = nic.GetIPProperties()
+                })
+                .SelectMany(item => item.Properties.UnicastAddresses
+                    .Where(address =>
+                        address.Address.AddressFamily == AddressFamily.InterNetwork &&
+                        !IPAddress.IsLoopback(address.Address) &&
+                        !address.Address.ToString().StartsWith("169.254.", StringComparison.Ordinal))
+                    .Select(address => new
+                    {
+                        address.Address,
+                        HasGateway = item.Properties.GatewayAddresses.Any(g =>
+                            g.Address.AddressFamily == AddressFamily.InterNetwork &&
+                            !g.Address.Equals(IPAddress.Any))
+                    }))
+                .OrderByDescending(x => x.HasGateway)
+                .ThenByDescending(x => IsPrivateAddress(x.Address))
+                .Select(x => x.Address)
                 .ToList();
 
-            return addresses.FirstOrDefault()?.ToString() ?? "127.0.0.1";
+            if (candidates.Count > 0)
+                return candidates[0].ToString();
+
+            return Dns.GetHostEntry(Dns.GetHostName()).AddressList
+                .FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(a))
+                ?.ToString() ?? "127.0.0.1";
         }
         catch
         {
