@@ -12,7 +12,7 @@ public partial class App : System.Windows.Application
         _singleInstance = new SingleInstanceCoordinator();
         if (!_singleInstance.IsPrimary)
         {
-            await _singleInstance.SignalPrimaryAsync();
+            await _singleInstance.SignalPrimaryAsync(e.Args.FirstOrDefault());
             Shutdown();
             return;
         }
@@ -32,7 +32,7 @@ public partial class App : System.Windows.Application
 
         var window = new MainWindow();
         MainWindow = window;
-        _singleInstance.StartListening(() =>
+        _singleInstance.StartListening(fileToOpen =>
         {
             if (window.WindowState == WindowState.Minimized) window.WindowState = WindowState.Normal;
             if (!window.IsVisible) window.Show();
@@ -40,8 +40,14 @@ public partial class App : System.Windows.Application
             window.Topmost = true;
             window.Topmost = false;
             window.Focus();
+
+            if (!string.IsNullOrWhiteSpace(fileToOpen)) window.OpenCultosFile(fileToOpen);
         });
+
         window.Show();
+
+        if (e.Args.FirstOrDefault() is { Length: > 0 } startupFile)
+            window.OpenCultosFile(startupFile);
     }
 
     protected override void OnExit(ExitEventArgs e)
