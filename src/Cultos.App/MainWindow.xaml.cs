@@ -18,6 +18,9 @@ public partial class MainWindow : Window
 {
     private readonly LocalDatabase _db;
     private readonly string _dataFolder;
+    private readonly AppSettingsStore _settingsStore;
+    private readonly AppSettings _settings;
+    private readonly DisplayManager _displayManager;
     private WorshipService _service;
     private readonly ObservableCollection<RunRow> _run = [];
     private string _mode = "Bible";
@@ -25,6 +28,8 @@ public partial class MainWindow : Window
     private ServiceItem? _preview;
     private PresentationSnapshot _live = new(PresentationState.Empty, "Sin contenido", "");
     private ContentType? _liveType;
+    private PresentationSnapshot? _blackRestoreSnapshot;
+    private ContentType? _blackRestoreType;
     private OutputWindow? _output;
     private readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly DispatcherTimer _saveTimer = new() { Interval = TimeSpan.FromMilliseconds(700) };
@@ -33,7 +38,14 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+
         _dataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Cultos");
+        _settingsStore = new AppSettingsStore(_dataFolder);
+        _settings = _settingsStore.Load();
+        _displayManager = new DisplayManager(_settings);
+        _orderPanelWidth = new GridLength(Math.Max(240, _settings.OrderPanelWidth));
+        ApplyWindowSettings();
+
         _db = new LocalDatabase(Path.Combine(_dataFolder, "cultos.db"));
         _db.Initialize();
         _service = _db.LoadActive() ?? CreateDemoService();
@@ -41,19 +53,66 @@ public partial class MainWindow : Window
 
         RunList.ItemsSource = _run;
         RefreshRun();
-        ConfigureMode("Bible");
+        ConfigureMode(IsKnownMode(_settings.LastMode) ? _settings.LastMode : "Bible");
         ServiceNameText.Text = _service.Name;
+        MediaVolumeSlider.Value = Math.Clamp(_settings.MediaVolume, 0, 1);
 
         _clock.Tick += (_, _) => ClockText.Text = DateTime.Now.ToString("h:mm tt");
         ClockText.Text = DateTime.Now.ToString("h:mm tt");
         _clock.Start();
 
         _saveTimer.Tick += (_, _) => SaveNow();
+
+        Loaded += (_, _) =>
+        {
+            ApplyMediaVolume();
+            if (_settings.MainMaximized) WindowState = WindowState.Maximized;
+            SystemEvents.DisplaySettingsChanged += SystemEvents_DisplaySettingsChanged;
+        };
+
         Closed += (_, _) =>
         {
+            SystemEvents.DisplaySettingsChanged -= SystemEvents_DisplaySettingsChanged;
             SaveNow();
+            SaveWindowSettings();
             _output?.Close();
         };
+    }
+
+    private static bool IsKnownMode(string mode) =>
+        mode is "Home" or "Bible" or "Hymn" or "Song" or "Media" or "Design" or "Services" or "Settings";
+
+    private void ApplyWindowSettings()
+    {
+        Width = Math.Max(MinWidth, _settings.MainWidth);
+        Height = Math.Max(MinHeight, _settings.MainHeight);
+
+        if (_settings.MainLeft is not double left || _settings.MainTop is not double top) return;
+
+        var maxLeft = SystemParameters.VirtualScreenLeft + Math.Max(0, SystemParameters.VirtualScreenWidth - Math.Min(Width, SystemParameters.VirtualScreenWidth));
+        var maxTop = SystemParameters.VirtualScreenTop + Math.Max(0, SystemParameters.VirtualScreenHeight - Math.Min(Height, SystemParameters.VirtualScreenHeight));
+
+        Left = Math.Clamp(left, SystemParameters.VirtualScreenLeft, maxLeft);
+        Top = Math.Clamp(top, SystemParameters.VirtualScreenTop, maxTop);
+        WindowStartupLocation = WindowStartupLocation.Manual;
+    }
+
+    private void SaveWindowSettings()
+    {
+        var bounds = WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds;
+        if (!bounds.IsEmpty)
+        {
+            _settings.MainLeft = bounds.Left;
+            _settings.MainTop = bounds.Top;
+            _settings.MainWidth = Math.Max(MinWidth, bounds.Width);
+            _settings.MainHeight = Math.Max(MinHeight, bounds.Height);
+        }
+
+        _settings.MainMaximized = WindowState == WindowState.Maximized;
+        _settings.OrderPanelWidth = Math.Max(240, _orderPanelWidth.Value);
+        _settings.LastMode = _mode;
+        _settings.MediaVolume = MediaVolumeSlider.Value;
+        _settingsStore.Save(_settings);
     }
 
     private static WorshipService CreateDemoService() => new()
