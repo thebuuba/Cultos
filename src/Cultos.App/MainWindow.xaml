@@ -92,7 +92,7 @@
             </Grid.ColumnDefinitions>
 
             <!-- IZQUIERDA: navegación + área de trabajo -->
-            <Grid Grid.Column="0">
+            <Grid x:Name="WorkspaceArea" Grid.Column="0">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="48"/>
                     <RowDefinition Height="*"/>
@@ -182,7 +182,7 @@
                 <!-- Contenido del módulo activo -->
                 <Grid Grid.Row="1">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" MinWidth="320"/>
+                        <ColumnDefinition Width="*" MinWidth="260"/>
                         <ColumnDefinition Width="5"/>
                         <ColumnDefinition x:Name="OrderColumn" Width="0" MinWidth="0"/>
                         <ColumnDefinition x:Name="OrderSplitterColumn" Width="0"/>
