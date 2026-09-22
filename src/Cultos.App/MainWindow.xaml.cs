@@ -42,7 +42,6 @@ public partial class MainWindow : Window
     {
         ".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".mp4", ".wmv", ".avi", ".mov", ".mkv"
     };
-    private GridLength _orderPanelWidth = new(350);
 
     public MainWindow()
     {
@@ -58,7 +57,6 @@ public partial class MainWindow : Window
         _settingsStore = new AppSettingsStore(_dataFolder);
         _settings = _settingsStore.Load();
         _displayManager = new DisplayManager(_settings);
-        _orderPanelWidth = new GridLength(Math.Max(240, _settings.OrderPanelWidth));
         ApplyWindowSettings();
 
         _db = new LocalDatabase(Path.Combine(_dataFolder, "cultos.db"));
@@ -83,6 +81,7 @@ public partial class MainWindow : Window
         Loaded += (_, _) =>
         {
             ApplyMediaVolume();
+            SetMonitorPanelVisibility(_settings.MonitorPanelVisible);
             if (_settings.MainMaximized) WindowState = WindowState.Maximized;
             SystemEvents.DisplaySettingsChanged += SystemEvents_DisplaySettingsChanged;
             if (_recoveredAfterUnexpectedExit)
@@ -137,9 +136,9 @@ public partial class MainWindow : Window
         }
 
         _settings.MainMaximized = WindowState == WindowState.Maximized;
-        _settings.OrderPanelWidth = Math.Max(240, _orderPanelWidth.Value);
         _settings.LastMode = _mode;
         _settings.MediaVolume = MediaVolumeSlider.Value;
+        _settings.MonitorPanelVisible = MonitorPanel.Visibility == Visibility.Visible;
         _settingsStore.Save(_settings);
     }
 
@@ -190,6 +189,8 @@ public partial class MainWindow : Window
     private void ConfigureMode(string mode)
     {
         _mode = mode;
+        LibraryPanel.Visibility = Visibility.Visible;
+        OrderPanel.Visibility = Visibility.Collapsed;
         MediaToolbar.Visibility = mode == "Media" ? Visibility.Visible : Visibility.Collapsed;
         LibrarySecondaryButton.Visibility = Visibility.Collapsed;
         LibraryPrimaryButton.Visibility = Visibility.Visible;
@@ -251,6 +252,7 @@ public partial class MainWindow : Window
 
         var buttons = new (System.Windows.Controls.Button Button, string Mode)[]
         {
+            (OrderNavButton, "Order"),
             (BibleNavButton, "Bible"),
             (HymnNavButton, "Hymn"),
             (SongsNavButton, "Song"),
@@ -551,36 +553,19 @@ public partial class MainWindow : Window
 
     private void OrderNav_Click(object sender, RoutedEventArgs e)
     {
-        var show = OrderPanel.Visibility != Visibility.Visible;
-        if (show)
+        if (OrderPanel.Visibility == Visibility.Visible)
         {
-            var available = Math.Max(520, WorkspaceArea.ActualWidth);
-            var desired = _orderPanelWidth.Value > 0 ? _orderPanelWidth.Value : 320;
-            var maxOrderWidth = Math.Max(240, Math.Min(360, available - 280));
-            var finalWidth = Math.Clamp(desired, 240, maxOrderWidth);
-
-            OrderColumn.MinWidth = 240;
-            OrderColumn.Width = new GridLength(finalWidth);
-            OrderSplitterColumn.Width = new GridLength(5);
-            OrderPanel.Visibility = Visibility.Visible;
-            OrderSplitter.Visibility = Visibility.Visible;
-            OrderNavButton.Background = (System.Windows.Media.Brush)FindResource("AccentDark");
-            OrderNavButton.BorderBrush = (System.Windows.Media.Brush)FindResource("Accent");
-            StatusText.Text = "Orden del culto visible";
-        }
-        else
-        {
-            if (OrderColumn.ActualWidth > 0)
-                _orderPanelWidth = OrderColumn.Width.Value > 0 ? OrderColumn.Width : new GridLength(OrderColumn.ActualWidth);
             OrderPanel.Visibility = Visibility.Collapsed;
-            OrderSplitter.Visibility = Visibility.Collapsed;
-            OrderColumn.MinWidth = 0;
-            OrderColumn.Width = new GridLength(0);
-            OrderSplitterColumn.Width = new GridLength(0);
-            OrderNavButton.Background = System.Windows.Media.Brushes.Transparent;
-            OrderNavButton.BorderBrush = System.Windows.Media.Brushes.Transparent;
-            StatusText.Text = "Orden del culto oculto";
+            LibraryPanel.Visibility = Visibility.Visible;
+            UpdateNavSelection(_mode);
+            StatusText.Text = "Volviste al panel anterior";
+            return;
         }
+
+        LibraryPanel.Visibility = Visibility.Collapsed;
+        OrderPanel.Visibility = Visibility.Visible;
+        UpdateNavSelection("Order");
+        StatusText.Text = "Orden del culto";
     }
 
     private void BibleNav_Click(object sender, RoutedEventArgs e) => ConfigureMode("Bible");
@@ -590,6 +575,66 @@ public partial class MainWindow : Window
     private void DesignsNav_Click(object sender, RoutedEventArgs e) => ConfigureMode("Design");
     private void Services_Click(object sender, RoutedEventArgs e) => ConfigureMode("Services");
     private void Settings_Click(object sender, RoutedEventArgs e) => ConfigureMode("Settings");
+
+    private void MenuNewService_Click(object sender, RoutedEventArgs e) => CreateNewService();
+
+    private void MenuServices_Click(object sender, RoutedEventArgs e) => ConfigureMode("Services");
+
+    private void MenuExit_Click(object sender, RoutedEventArgs e) => Close();
+
+    private void IdentifyDisplays_Click(object sender, RoutedEventArgs e)
+    {
+        _displayManager.IdentifyScreens();
+        StatusText.Text = "Identificando pantallas";
+    }
+
+    private void ToggleMonitorPanel_Click(object sender, RoutedEventArgs e)
+    {
+        SetMonitorPanelVisibility(MonitorPanel.Visibility != Visibility.Visible);
+    }
+
+    private void SetMonitorPanelVisibility(bool visible)
+    {
+        MonitorPanel.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+        MonitorColumn.MinWidth = visible ? 400 : 0;
+        MonitorColumn.MaxWidth = visible ? 480 : 0;
+        MonitorColumn.Width = visible ? new GridLength(450) : new GridLength(0);
+        MonitorPanelMenuItem.IsChecked = visible;
+        _settings.MonitorPanelVisible = visible;
+
+        if (IsLoaded)
+        {
+            _settingsStore.Save(_settings);
+            StatusText.Text = visible
+                ? "Monitores de presentación visibles"
+                : "Monitores de presentación ocultos";
+        }
+    }
+
+    private void ShowShortcuts_Click(object sender, RoutedEventArgs e)
+    {
+        MessageBox.Show(
+            "Atajos de Cultos\n\n" +
+            "← / →   Navegar\n" +
+            "Espacio   Enviar en vivo\n" +
+            "B   Pantalla negra / restaurar\n" +
+            "C   Limpiar salida\n" +
+            "F5   Abrir pantalla externa\n" +
+            "Esc   Restaurar desde pantalla negra",
+            "Atajos de teclado",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
+    }
+
+    private void About_Click(object sender, RoutedEventArgs e)
+    {
+        var version = typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "0.2.0";
+        MessageBox.Show(
+            $"Cultos {version}\nProducción visual para cultos en Windows.\nFunciona completamente sin conexión.",
+            "Acerca de Cultos",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
+    }
 
     private void LoadMediaBrowser(string query = "")
     {
