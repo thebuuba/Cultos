@@ -46,8 +46,12 @@ public sealed class DisplayManager
 
     public void PlacePresentationWindow(Window window, Forms.Screen screen)
     {
-        if (!window.IsVisible) window.Show();
         window.WindowState = WindowState.Normal;
+        window.WindowStyle = WindowStyle.None;
+        window.ResizeMode = ResizeMode.NoResize;
+        window.ShowInTaskbar = false;
+        window.Topmost = true;
+        if (!window.IsVisible) window.Show();
 
         var handle = new WindowInteropHelper(window).Handle;
         var bounds = screen.Bounds;
@@ -59,6 +63,30 @@ public sealed class DisplayManager
             bounds.Width,
             bounds.Height,
             SwpNoActivate | SwpShowWindow);
+    }
+
+    public void PlaceTestWindow(Window window, Forms.Screen screen)
+    {
+        window.WindowState = WindowState.Normal;
+        window.WindowStyle = WindowStyle.SingleBorderWindow;
+        window.ResizeMode = ResizeMode.CanResize;
+        window.ShowInTaskbar = true;
+        window.Topmost = false;
+        if (!window.IsVisible) window.Show();
+
+        var area = screen.WorkingArea;
+        var width = Math.Min(1100, Math.Max(720, (int)(area.Width * 0.78)));
+        var height = (int)(width * 9d / 16d);
+        if (height > area.Height * 0.78)
+        {
+            height = (int)(area.Height * 0.78);
+            width = (int)(height * 16d / 9d);
+        }
+
+        var x = area.Left + (area.Width - width) / 2;
+        var y = area.Top + (area.Height - height) / 2;
+        var handle = new WindowInteropHelper(window).Handle;
+        SetWindowPos(handle, IntPtr.Zero, x, y, width, height, SwpNoActivate | SwpShowWindow);
     }
 
     public void IdentifyScreens()
