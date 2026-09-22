@@ -46,5 +46,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Cultos-Setup
-          path: artifacts/installer/Cultos-Setup-0.2.0.exe
+          path: artifacts/installer/Cultos-Setup-0.3.0.exe
           if-no-files-found: error
