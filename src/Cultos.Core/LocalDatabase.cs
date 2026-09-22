@@ -19,7 +19,7 @@ public sealed class LocalDatabase
         Directory.CreateDirectory(Path.GetDirectoryName(databasePath)!);
     }
 
-    public const int CurrentSchemaVersion = 2;
+    public const int CurrentSchemaVersion = 3;
 
     public void Initialize()
     {
@@ -65,9 +65,35 @@ public sealed class LocalDatabase
                 PRAGMA user_version=2;
                 """;
             migrate.ExecuteNonQuery();
+            version = 2;
+        }
+
+        if (version < 3)
+        {
+            using var migrate = db.CreateCommand();
+            migrate.CommandText = """
+                CREATE TABLE IF NOT EXISTS Scene(
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    SceneKey TEXT NOT NULL UNIQUE,
+                    Name TEXT NOT NULL,
+                    Type INTEGER NOT NULL,
+                    Position INTEGER NOT NULL,
+                    IsBuiltIn INTEGER NOT NULL DEFAULT 0,
+                    Title TEXT NOT NULL DEFAULT '',
+                    Content TEXT NOT NULL DEFAULT '',
+                    MediaPath TEXT,
+                    SettingsJson TEXT NOT NULL DEFAULT '{}',
+                    UpdatedAt TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS IX_Scene_Position ON Scene(Position);
+                PRAGMA user_version=3;
+                """;
+            migrate.ExecuteNonQuery();
+            version = 3;
         }
 
         Seed(db);
+        SeedScenes(db);
     }
 
     public int GetSchemaVersion()
@@ -98,6 +124,184 @@ public sealed class LocalDatabase
         var hymns = new[] { new Hymn(1,156,"Himno de demostración 156","Esta es una letra breve de demostración para probar la presentación.\n\nCoro: Cantemos juntos con esperanza.","Estrofa 1|Coro"), new Hymn(2,77,"Canto de esperanza","Texto demostrativo autorizado para el prototipo.\n\nCoro: Caminamos por la fe.","Estrofa 1|Coro") };
         foreach(var h in hymns){using var c=db.CreateCommand();c.Transaction=tx;c.CommandText="INSERT INTO Hymn VALUES($id,$n,$t,$l,$s)";c.Parameters.AddWithValue("$id",h.Id);c.Parameters.AddWithValue("$n",h.Number);c.Parameters.AddWithValue("$t",h.Title);c.Parameters.AddWithValue("$l",h.Lyrics);c.Parameters.AddWithValue("$s",h.Sections);c.ExecuteNonQuery();}
         tx.Commit();
+    }
+
+    private static void SeedScenes(SqliteConnection db)
+    {
+        using var count = db.CreateCommand();
+        count.CommandText = "SELECT COUNT(*) FROM Scene";
+        if (Convert.ToInt32((long)count.ExecuteScalar()!) > 0) return;
+
+        var defaults = new[]
+        {
+            ("logo","Logo",SceneType.Logo,0),
+            ("bible","Biblia",SceneType.Bible,1),
+            ("hymn","Himnos",SceneType.Hymn,2),
+            ("song","Canciones",SceneType.Song,3),
+            ("video","Video",SceneType.Video,4),
+            ("youtube","YouTube",SceneType.YouTube,5),
+            ("title","Tema",SceneType.Title,6),
+            ("black","Fondo oscuro",SceneType.Black,7)
+        };
+
+        using var tx = db.BeginTransaction();
+        foreach (var (key,name,type,position) in defaults)
+        {
+            using var c = db.CreateCommand();
+            c.Transaction = tx;
+            c.CommandText = """
+                INSERT INTO Scene(SceneKey,Name,Type,Position,IsBuiltIn,Title,Content,MediaPath,SettingsJson,UpdatedAt)
+                VALUES($key,$name,$type,$position,1,'','',NULL,'{}',$updated)
+                """;
+            c.Parameters.AddWithValue("$key", key);
+            c.Parameters.AddWithValue("$name", name);
+            c.Parameters.AddWithValue("$type", (int)type);
+            c.Parameters.AddWithValue("$position", position);
+            c.Parameters.AddWithValue("$updated", DateTime.Now.ToString("O"));
+            c.ExecuteNonQuery();
+        }
+        tx.Commit();
+    }
+
+    public List<PresentationScene> ListScenes()
+    {
+        using var db = new SqliteConnection(ConnectionString);
+        db.Open();
+        using var c = db.CreateCommand();
+        c.CommandText = """
+            SELECT Id,SceneKey,Name,Type,Position,IsBuiltIn,Title,Content,MediaPath,SettingsJson,UpdatedAt
+            FROM Scene
+            ORDER BY Position,Id
+            """;
+        using var r = c.ExecuteReader();
+        var result = new List<PresentationScene>();
+        while (r.Read())
+        {
+            result.Add(new PresentationScene
+            {
+                Id = r.GetInt32(0),
+                Key = r.GetString(1),
+                Name = r.GetString(2),
+                Type = (SceneType)r.GetInt32(3),
+                Position = r.GetInt32(4),
+                IsBuiltIn = r.GetInt32(5) == 1,
+                Title = r.GetString(6),
+                Content = r.GetString(7),
+                MediaPath = r.IsDBNull(8) ? null : r.GetString(8),
+                SettingsJson = r.GetString(9),
+                UpdatedAt = DateTime.Parse(r.GetString(10))
+            });
+        }
+        return result;
+    }
+
+    public PresentationScene? GetScene(string key)
+    {
+        using var db = new SqliteConnection(ConnectionString);
+        db.Open();
+        using var c = db.CreateCommand();
+        c.CommandText = """
+            SELECT Id,SceneKey,Name,Type,Position,IsBuiltIn,Title,Content,MediaPath,SettingsJson,UpdatedAt
+            FROM Scene WHERE SceneKey=$key LIMIT 1
+            """;
+        c.Parameters.AddWithValue("$key", key);
+        using var r = c.ExecuteReader();
+        if (!r.Read()) return null;
+        return new PresentationScene
+        {
+            Id = r.GetInt32(0),
+            Key = r.GetString(1),
+            Name = r.GetString(2),
+            Type = (SceneType)r.GetInt32(3),
+            Position = r.GetInt32(4),
+            IsBuiltIn = r.GetInt32(5) == 1,
+            Title = r.GetString(6),
+            Content = r.GetString(7),
+            MediaPath = r.IsDBNull(8) ? null : r.GetString(8),
+            SettingsJson = r.GetString(9),
+            UpdatedAt = DateTime.Parse(r.GetString(10))
+        };
+    }
+
+    public void UpdateSceneContent(string key, string title, string content, string? mediaPath)
+    {
+        using var db = new SqliteConnection(ConnectionString);
+        db.Open();
+        using var c = db.CreateCommand();
+        c.CommandText = """
+            UPDATE Scene
+            SET Title=$title,Content=$content,MediaPath=$media,UpdatedAt=$updated
+            WHERE SceneKey=$key
+            """;
+        c.Parameters.AddWithValue("$key", key);
+        c.Parameters.AddWithValue("$title", title ?? "");
+        c.Parameters.AddWithValue("$content", content ?? "");
+        c.Parameters.AddWithValue("$media", (object?)mediaPath ?? DBNull.Value);
+        c.Parameters.AddWithValue("$updated", DateTime.Now.ToString("O"));
+        c.ExecuteNonQuery();
+    }
+
+    public PresentationScene SaveScene(PresentationScene scene)
+    {
+        using var db = new SqliteConnection(ConnectionString);
+        db.Open();
+        scene.UpdatedAt = DateTime.Now;
+
+        if (scene.Id == 0)
+        {
+            if (string.IsNullOrWhiteSpace(scene.Key))
+                scene.Key = "custom-" + Guid.NewGuid().ToString("N");
+
+            using var c = db.CreateCommand();
+            c.CommandText = """
+                INSERT INTO Scene(SceneKey,Name,Type,Position,IsBuiltIn,Title,Content,MediaPath,SettingsJson,UpdatedAt)
+                VALUES($key,$name,$type,$position,$builtin,$title,$content,$media,$settings,$updated);
+                SELECT last_insert_rowid();
+                """;
+            c.Parameters.AddWithValue("$key", scene.Key);
+            c.Parameters.AddWithValue("$name", scene.Name.Trim());
+            c.Parameters.AddWithValue("$type", (int)scene.Type);
+            c.Parameters.AddWithValue("$position", scene.Position);
+            c.Parameters.AddWithValue("$builtin", scene.IsBuiltIn ? 1 : 0);
+            c.Parameters.AddWithValue("$title", scene.Title);
+            c.Parameters.AddWithValue("$content", scene.Content);
+            c.Parameters.AddWithValue("$media", (object?)scene.MediaPath ?? DBNull.Value);
+            c.Parameters.AddWithValue("$settings", scene.SettingsJson);
+            c.Parameters.AddWithValue("$updated", scene.UpdatedAt.ToString("O"));
+            scene.Id = Convert.ToInt32((long)c.ExecuteScalar()!);
+            return scene;
+        }
+
+        using (var c = db.CreateCommand())
+        {
+            c.CommandText = """
+                UPDATE Scene
+                SET Name=$name,Type=$type,Position=$position,Title=$title,Content=$content,
+                    MediaPath=$media,SettingsJson=$settings,UpdatedAt=$updated
+                WHERE Id=$id
+                """;
+            c.Parameters.AddWithValue("$id", scene.Id);
+            c.Parameters.AddWithValue("$name", scene.Name.Trim());
+            c.Parameters.AddWithValue("$type", (int)scene.Type);
+            c.Parameters.AddWithValue("$position", scene.Position);
+            c.Parameters.AddWithValue("$title", scene.Title);
+            c.Parameters.AddWithValue("$content", scene.Content);
+            c.Parameters.AddWithValue("$media", (object?)scene.MediaPath ?? DBNull.Value);
+            c.Parameters.AddWithValue("$settings", scene.SettingsJson);
+            c.Parameters.AddWithValue("$updated", scene.UpdatedAt.ToString("O"));
+            c.ExecuteNonQuery();
+        }
+        return scene;
+    }
+
+    public bool DeleteScene(int id)
+    {
+        using var db = new SqliteConnection(ConnectionString);
+        db.Open();
+        using var c = db.CreateCommand();
+        c.CommandText = "DELETE FROM Scene WHERE Id=$id AND IsBuiltIn=0";
+        c.Parameters.AddWithValue("$id", id);
+        return c.ExecuteNonQuery() > 0;
     }
 
     public List<BibleVerse> SearchBible(string query)
