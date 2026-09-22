@@ -24,6 +24,7 @@ public partial class MainWindow : Window
     private readonly ChurchProfileStore _profileStore;
     private ChurchProfile _churchProfile;
     private readonly DisplayManager _displayManager;
+    private readonly RemoteControlServer _remoteServer = new();
     private WorshipService _service;
     private readonly ObservableCollection<RunRow> _run = [];
     private readonly ObservableCollection<SceneRow> _sceneRows = [];
@@ -73,7 +74,14 @@ public partial class MainWindow : Window
 
         _settingsStore = new AppSettingsStore(_dataFolder);
         _settings = _settingsStore.Load();
+        if (string.IsNullOrWhiteSpace(_settings.RemoteControlPin))
+        {
+            _settings.RemoteControlPin = RemoteControlServer.GeneratePin();
+            _settingsStore.Save(_settings);
+        }
+
         _displayManager = new DisplayManager(_settings);
+        _remoteServer.CommandReceived += RemoteServer_CommandReceived;
         ApplyWindowSettings();
 
         _db = new LocalDatabase(Path.Combine(_dataFolder, "cultos.db"));
@@ -99,12 +107,18 @@ public partial class MainWindow : Window
         _mediaTimer.Start();
         _logoTimer.Tick += LogoTimer_Tick;
 
-        Loaded += (_, _) =>
+        Loaded += async (_, _) =>
         {
             ApplyMediaVolume();
             SetMonitorPanelVisibility(_settings.MonitorPanelVisible);
             if (_settings.MainMaximized) WindowState = WindowState.Maximized;
             SystemEvents.DisplaySettingsChanged += SystemEvents_DisplaySettingsChanged;
+
+            if (_settings.RemoteControlEnabled)
+                await StartRemoteControlFromSettingsAsync();
+
+            PublishRemoteState();
+
             if (_recoveredAfterUnexpectedExit)
                 StatusText.Text = "Sesión anterior recuperada después de un cierre inesperado";
         };
@@ -117,6 +131,15 @@ public partial class MainWindow : Window
             SaveNow();
             SaveWindowSettings();
             _output?.Close();
+            try
+            {
+                _remoteServer.StopAsync().GetAwaiter().GetResult();
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Error("No se pudo detener el control remoto al cerrar", ex);
+            }
+
             try
             {
                 if (File.Exists(_sessionMarkerPath)) File.Delete(_sessionMarkerPath);
@@ -182,6 +205,7 @@ public partial class MainWindow : Window
         _run.Clear();
         foreach (var item in _service.Items) _run.Add(new(item));
         ItemCountText.Text = $"{_run.Count} elementos";
+        PublishRemoteState();
     }
 
     private void QueueSave()
@@ -273,7 +297,128 @@ public partial class MainWindow : Window
         ApplyChurchProfile();
         LoadScenes();
         if (_mode == "Settings") LoadLibrary();
+        PublishRemoteState();
         StatusText.Text = "Perfil de iglesia actualizado";
+    }
+
+    private async Task<RemoteControlStatus> StartRemoteControlFromSettingsAsync()
+    {
+        var status = await _remoteServer.StartAsync(
+            _settings.RemoteControlPort,
+            _settings.RemoteControlPin);
+
+        if (!status.IsRunning)
+        {
+            _settings.RemoteControlEnabled = false;
+            _settingsStore.Save(_settings);
+            StatusText.Text = "No se pudo iniciar el control remoto";
+            return status;
+        }
+
+        PublishRemoteState();
+        StatusText.Text = $"Control remoto activo · {status.Url}";
+        return status;
+    }
+
+    private async Task<RemoteControlStatus> ApplyRemoteControlSettingsAsync(bool enabled, int port, string pin)
+    {
+        _settings.RemoteControlEnabled = enabled;
+        _settings.RemoteControlPort = Math.Clamp(port, 1024, 65535);
+        _settings.RemoteControlPin = pin;
+        _settingsStore.Save(_settings);
+
+        if (!enabled)
+        {
+            await _remoteServer.StopAsync();
+            if (_mode == "Settings") LoadLibrary();
+            StatusText.Text = "Control remoto detenido";
+            return new RemoteControlStatus(false, "");
+        }
+
+        var status = await StartRemoteControlFromSettingsAsync();
+        if (_mode == "Settings") LoadLibrary();
+        return status;
+    }
+
+    private RemoteControlStatus CurrentRemoteControlStatus() =>
+        _remoteServer.IsRunning
+            ? new RemoteControlStatus(true, _remoteServer.Url)
+            : new RemoteControlStatus(false, "");
+
+    private void RemoteControl_Click(object sender, RoutedEventArgs e)
+    {
+        var window = new RemoteControlWindow(
+            _settings,
+            ApplyRemoteControlSettingsAsync,
+            CurrentRemoteControlStatus)
+        {
+            Owner = this
+        };
+        window.ShowDialog();
+    }
+
+    private void RemoteServer_CommandReceived(object? sender, RemoteCommand command)
+    {
+        Dispatcher.BeginInvoke(() => HandleRemoteCommand(command));
+    }
+
+    private void HandleRemoteCommand(RemoteCommand command)
+    {
+        switch (command.Command.ToLowerInvariant())
+        {
+            case "scene":
+                var scene = _scenes.FirstOrDefault(x =>
+                    string.Equals(x.Key, command.Value, StringComparison.OrdinalIgnoreCase));
+                if (scene is not null) ActivateScene(scene);
+                break;
+            case "send":
+                SendLive();
+                break;
+            case "previous":
+                Previous_Click(this, new RoutedEventArgs());
+                break;
+            case "next":
+                Next_Click(this, new RoutedEventArgs());
+                break;
+            case "play":
+                PlayMedia_Click(this, new RoutedEventArgs());
+                break;
+            case "pause":
+                PauseMedia_Click(this, new RoutedEventArgs());
+                break;
+            case "logo":
+                Logo_Click(this, new RoutedEventArgs());
+                break;
+            case "black":
+                Black_Click(this, new RoutedEventArgs());
+                break;
+            case "clear":
+                Clear_Click(this, new RoutedEventArgs());
+                break;
+        }
+
+        PublishRemoteState();
+    }
+
+    private void PublishRemoteState()
+    {
+        if (!_remoteServer.IsRunning) return;
+
+        var scenes = _sceneRows
+            .Select(row => new RemoteSceneState(
+                row.Scene.Key,
+                row.Name,
+                row.Icon,
+                row.StateLabel,
+                row.IsLive))
+            .ToList();
+
+        _remoteServer.UpdateState(new RemoteControlState(
+            string.IsNullOrWhiteSpace(_churchProfile.Name) ? "Cultos" : _churchProfile.Name,
+            _service?.Name ?? "",
+            _live.Title,
+            _activeSceneKey,
+            scenes));
     }
 
     private void ConfigureMode(string mode)
@@ -400,6 +545,7 @@ public partial class MainWindow : Window
                 var settingsRows = new List<LibraryRow>
                 {
                     new("Perfil de iglesia",_churchProfile.Name,new SettingInfo("profile")),
+                    new("Control remoto",_remoteServer.IsRunning ? $"Activo · {_remoteServer.Url}" : "Detenido",new SettingInfo("remote")),
                     new("Modo sin conexión","La aplicación funciona completamente con datos locales.",new SettingInfo("offline")),
                     new("Datos locales",_dataFolder,new SettingInfo("data")),
                     new("Registros de errores",Path.Combine(_dataFolder, "logs"),new SettingInfo("logs")),
@@ -675,6 +821,7 @@ public partial class MainWindow : Window
                 : "Sin contenido";
         LiveBadge.Visibility = state == PresentationState.Empty ? Visibility.Collapsed : Visibility.Visible;
         _output?.Render(_live);
+        PublishRemoteState();
     }
 
     private void RestoreFromBlack()
@@ -719,6 +866,7 @@ public partial class MainWindow : Window
 
         _output?.Render(snapshot, type);
         StatusText.Text = "Contenido anterior restaurado";
+        PublishRemoteState();
     }
 
     private void LoadScenes()
@@ -732,6 +880,7 @@ public partial class MainWindow : Window
         _sceneRows.Clear();
         foreach (var scene in _scenes.OrderBy(x => x.Position).ThenBy(x => x.Id))
             _sceneRows.Add(new SceneRow(scene, string.Equals(scene.Key, _activeSceneKey, StringComparison.OrdinalIgnoreCase)));
+        PublishRemoteState();
     }
 
     private void PrepareSceneFromItem(ServiceItem item)
@@ -1574,6 +1723,12 @@ public partial class MainWindow : Window
             if (selected.Source is SettingInfo { Key: "profile" })
             {
                 ChurchProfile_Click(this, new RoutedEventArgs());
+                return;
+            }
+
+            if (selected.Source is SettingInfo { Key: "remote" })
+            {
+                RemoteControl_Click(this, new RoutedEventArgs());
                 return;
             }
 
