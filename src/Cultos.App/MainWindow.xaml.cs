@@ -33,6 +33,9 @@ public partial class MainWindow : Window
     private OutputWindow? _output;
     private readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly DispatcherTimer _saveTimer = new() { Interval = TimeSpan.FromMilliseconds(700) };
+    private readonly DispatcherTimer _mediaTimer = new() { Interval = TimeSpan.FromMilliseconds(250) };
+    private readonly string _sessionMarkerPath;
+    private readonly bool _recoveredAfterUnexpectedExit;
     private static readonly HashSet<string> SupportedMediaExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
         ".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".mp4", ".wmv", ".avi", ".mov", ".mkv"
@@ -44,6 +47,12 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         _dataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Cultos");
+        Directory.CreateDirectory(_dataFolder);
+        _sessionMarkerPath = Path.Combine(_dataFolder, "session.running");
+        _recoveredAfterUnexpectedExit = File.Exists(_sessionMarkerPath);
+        try { File.WriteAllText(_sessionMarkerPath, DateTime.Now.ToString("O")); }
+        catch (Exception ex) { AppLogger.Error("No se pudo crear el marcador de sesión", ex); }
+
         _settingsStore = new AppSettingsStore(_dataFolder);
         _settings = _settingsStore.Load();
         _displayManager = new DisplayManager(_settings);
@@ -66,20 +75,33 @@ public partial class MainWindow : Window
         _clock.Start();
 
         _saveTimer.Tick += (_, _) => SaveNow();
+        _mediaTimer.Tick += MediaTimer_Tick;
+        _mediaTimer.Start();
 
         Loaded += (_, _) =>
         {
             ApplyMediaVolume();
             if (_settings.MainMaximized) WindowState = WindowState.Maximized;
             SystemEvents.DisplaySettingsChanged += SystemEvents_DisplaySettingsChanged;
+            if (_recoveredAfterUnexpectedExit)
+                StatusText.Text = "Sesión anterior recuperada después de un cierre inesperado";
         };
 
         Closed += (_, _) =>
         {
             SystemEvents.DisplaySettingsChanged -= SystemEvents_DisplaySettingsChanged;
+            _mediaTimer.Stop();
             SaveNow();
             SaveWindowSettings();
             _output?.Close();
+            try
+            {
+                if (File.Exists(_sessionMarkerPath)) File.Delete(_sessionMarkerPath);
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Error("No se pudo limpiar el marcador de sesión", ex);
+            }
         };
     }
 
@@ -892,7 +914,49 @@ public partial class MainWindow : Window
         PreviewVideo.Stop();
         LiveVideo.Stop();
         _output?.StopMedia();
+        MediaProgressSlider.Value = 0;
+        MediaTimeText.Text = "0:00 / 0:00";
         StatusText.Text = "Video detenido";
+    }
+
+    private void LiveVideo_MediaOpened(object sender, RoutedEventArgs e)
+    {
+        UpdateMediaTimeline();
+        StatusText.Text = "Video listo";
+    }
+
+    private void MediaTimer_Tick(object? sender, EventArgs e) => UpdateMediaTimeline();
+
+    private void UpdateMediaTimeline()
+    {
+        if (LiveVideo.Visibility != Visibility.Visible || !LiveVideo.NaturalDuration.HasTimeSpan)
+        {
+            if (LiveVideo.Visibility != Visibility.Visible)
+            {
+                MediaProgressSlider.Maximum = 1;
+                MediaProgressSlider.Value = 0;
+                MediaTimeText.Text = "0:00 / 0:00";
+            }
+            return;
+        }
+
+        var duration = LiveVideo.NaturalDuration.TimeSpan;
+        var totalSeconds = Math.Max(1, duration.TotalSeconds);
+        MediaProgressSlider.Maximum = totalSeconds;
+        MediaProgressSlider.Value = Math.Clamp(LiveVideo.Position.TotalSeconds, 0, totalSeconds);
+        MediaTimeText.Text = $"{FormatMediaTime(LiveVideo.Position)} / {FormatMediaTime(duration)}";
+    }
+
+    private static string FormatMediaTime(TimeSpan time) =>
+        time.TotalHours >= 1 ? time.ToString(@"h\:mm\:ss") : time.ToString(@"m\:ss");
+
+    private void MediaProgressSlider_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (LiveVideo.Visibility != Visibility.Visible || !LiveVideo.NaturalDuration.HasTimeSpan) return;
+        var position = TimeSpan.FromSeconds(Math.Clamp(MediaProgressSlider.Value, 0, LiveVideo.NaturalDuration.TimeSpan.TotalSeconds));
+        LiveVideo.Position = position;
+        _output?.SetPosition(position);
+        UpdateMediaTimeline();
     }
 
     private void ApplyMediaVolume()
