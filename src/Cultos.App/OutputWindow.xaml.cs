@@ -20,6 +20,7 @@ public partial class OutputWindow : Window
         OutputVideo.Stop();
         OutputVideo.Source = null;
         OutputVideo.Visibility = Visibility.Collapsed;
+        OutputWeb.Visibility = Visibility.Collapsed;
         OutputImage.Source = null;
         OutputImage.Visibility = Visibility.Collapsed;
         OutputText.Visibility = Visibility.Visible;
@@ -63,6 +64,15 @@ public partial class OutputWindow : Window
                 OutputVideo.Play();
                 return;
             }
+
+            if (type == ContentType.Web && Uri.TryCreate(snapshot.Content, UriKind.Absolute, out var webUri))
+            {
+                OutputText.Visibility = Visibility.Collapsed;
+                OutputWeb.Visibility = Visibility.Visible;
+                UpdateWebSurfaceSize();
+                OutputWeb.Source = webUri;
+                return;
+            }
         }
         catch (Exception ex)
         {
@@ -76,6 +86,27 @@ public partial class OutputWindow : Window
             PresentationState.Logo => "◇\nIglesia local",
             _ => snapshot.Content
         };
+    }
+
+    private void Window_SizeChanged(object sender, SizeChangedEventArgs e) => UpdateWebSurfaceSize();
+
+    private void UpdateWebSurfaceSize()
+    {
+        if (ActualWidth <= 0 || ActualHeight <= 0) return;
+
+        const double ratio = 16d / 9d;
+        var availableRatio = ActualWidth / ActualHeight;
+
+        if (availableRatio > ratio)
+        {
+            OutputWeb.Height = ActualHeight;
+            OutputWeb.Width = ActualHeight * ratio;
+        }
+        else
+        {
+            OutputWeb.Width = ActualWidth;
+            OutputWeb.Height = ActualWidth / ratio;
+        }
     }
 
     public void SetVolume(double volume) => OutputVideo.Volume = Math.Clamp(volume, 0, 1);
