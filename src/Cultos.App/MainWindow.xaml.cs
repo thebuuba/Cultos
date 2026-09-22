@@ -1034,7 +1034,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void Window_DragOver(object sender, DragEventArgs e)
+    private void Window_DragOver(object sender, System.Windows.DragEventArgs e)
     {
         e.Effects = DragDropEffects.None;
         if (e.Data.GetData(DataFormats.FileDrop) is not string[] files || files.Length == 0)
@@ -1053,7 +1053,7 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
-    private void Window_Drop(object sender, DragEventArgs e)
+    private void Window_Drop(object sender, System.Windows.DragEventArgs e)
     {
         if (e.Data.GetData(DataFormats.FileDrop) is not string[] files) return;
 
