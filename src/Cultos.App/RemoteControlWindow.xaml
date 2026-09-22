@@ -1,0 +1,157 @@
+<Window x:Class="Cultos.App.RemoteControlWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Control remoto"
+        Width="640"
+        Height="500"
+        MinWidth="560"
+        MinHeight="450"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource AppBackground}">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel>
+            <TextBlock Text="CONTROL REMOTO LOCAL"
+                       Foreground="{StaticResource Subtle}"
+                       FontSize="10"
+                       FontWeight="SemiBold"/>
+            <TextBlock Text="Controla Cultos desde un teléfono o tablet"
+                       FontSize="22"
+                       FontWeight="SemiBold"
+                       Margin="0,4,0,7"/>
+            <TextBlock Text="Funciona por la misma red Wi‑Fi o LAN. No necesita internet."
+                       Foreground="{StaticResource Muted}"
+                       FontSize="11"/>
+        </StackPanel>
+
+        <Border Grid.Row="1"
+                Margin="0,18,0,12"
+                Background="{StaticResource Panel}"
+                BorderBrush="{StaticResource Border}"
+                BorderThickness="1"
+                CornerRadius="9"
+                Padding="15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Servidor remoto" FontSize="15" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="StatusText"
+                               Text="Detenido"
+                               Foreground="{StaticResource Muted}"
+                               FontSize="11"
+                               Margin="0,4,0,0"/>
+                </StackPanel>
+                <CheckBox x:Name="EnabledBox"
+                          Grid.Column="1"
+                          Content="Activar"
+                          Foreground="{StaticResource Text}"
+                          VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="2" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="16"/>
+                <ColumnDefinition Width="180"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel>
+                <TextBlock Text="PIN de acceso"
+                           Foreground="{StaticResource Muted}"
+                           FontSize="11"
+                           Margin="0,0,0,5"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="PinBox"
+                             MaxLength="6"
+                             FontSize="18"
+                             FontWeight="SemiBold"
+                             Padding="12,8"/>
+                    <Button Grid.Column="1"
+                            Click="RegeneratePin_Click"
+                            Margin="7,0,0,0">Regenerar</Button>
+                </Grid>
+            </StackPanel>
+
+            <StackPanel Grid.Column="2">
+                <TextBlock Text="Puerto"
+                           Foreground="{StaticResource Muted}"
+                           FontSize="11"
+                           Margin="0,0,0,5"/>
+                <TextBox x:Name="PortBox" Padding="12,8"/>
+            </StackPanel>
+        </Grid>
+
+        <Border Grid.Row="3"
+                Background="#10110F"
+                BorderBrush="{StaticResource Border}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="14">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Dirección en la red"
+                               Foreground="{StaticResource Muted}"
+                               FontSize="10"/>
+                    <TextBlock x:Name="UrlText"
+                               Text="El servidor está detenido"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Margin="0,5,0,0"
+                               TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+                <Button Grid.Column="1"
+                        Click="CopyUrl_Click"
+                        Margin="10,0,0,0"
+                        VerticalAlignment="Center">Copiar</Button>
+            </Grid>
+        </Border>
+
+        <StackPanel Grid.Row="4" Margin="0,15,0,0">
+            <TextBlock Text="Cómo usarlo"
+                       FontSize="14"
+                       FontWeight="SemiBold"
+                       Margin="0,0,0,7"/>
+            <TextBlock Foreground="{StaticResource Muted}"
+                       FontSize="11"
+                       TextWrapping="Wrap"
+                       Text="1. Conecta el teléfono o tablet a la misma red que la computadora.&#x0a;2. Abre la dirección mostrada arriba en el navegador.&#x0a;3. Escribe el PIN.&#x0a;4. Podrás cambiar escenas, poner negro, limpiar, reproducir, pausar y navegar sin tocar la computadora."/>
+            <TextBlock Foreground="{StaticResource Muted}"
+                       FontSize="10"
+                       TextWrapping="Wrap"
+                       Margin="0,12,0,0"
+                       Text="La primera vez, Windows puede pedir permiso para que Cultos se comunique en redes privadas. Permite únicamente redes privadas de confianza."/>
+        </StackPanel>
+
+        <Grid Grid.Row="5" Margin="0,18,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Button Grid.Column="1" Click="Close_Click" Margin="0,0,8,0">Cerrar</Button>
+            <Button Grid.Column="2"
+                    Click="Apply_Click"
+                    Style="{StaticResource PrimaryButton}">Aplicar</Button>
+        </Grid>
+    </Grid>
+</Window>
