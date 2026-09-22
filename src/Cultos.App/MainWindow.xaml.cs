@@ -21,6 +21,8 @@ public partial class MainWindow : Window
     private readonly string _dataFolder;
     private readonly AppSettingsStore _settingsStore;
     private readonly AppSettings _settings;
+    private readonly ChurchProfileStore _profileStore;
+    private ChurchProfile _churchProfile;
     private readonly DisplayManager _displayManager;
     private WorshipService _service;
     private readonly ObservableCollection<RunRow> _run = [];
@@ -57,10 +59,13 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
-        InitializeComponent();
-
         _dataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Cultos");
         Directory.CreateDirectory(_dataFolder);
+        _profileStore = new ChurchProfileStore(_dataFolder);
+        _churchProfile = _profileStore.Load();
+        ApplyAccentResource(_churchProfile.AccentHex);
+
+        InitializeComponent();
         _sessionMarkerPath = Path.Combine(_dataFolder, "session.running");
         _recoveredAfterUnexpectedExit = File.Exists(_sessionMarkerPath);
         try { File.WriteAllText(_sessionMarkerPath, DateTime.Now.ToString("O")); }
@@ -82,6 +87,7 @@ public partial class MainWindow : Window
         LoadScenes();
         ConfigureMode(IsKnownMode(_settings.LastMode) ? _settings.LastMode : "Bible");
         ServiceNameText.Text = _service.Name;
+        ApplyChurchProfile();
         MediaVolumeSlider.Value = Math.Clamp(_settings.MediaVolume, 0, 1);
 
         _clock.Tick += (_, _) => ClockText.Text = DateTime.Now.ToString("h:mm tt");
@@ -200,6 +206,48 @@ public partial class MainWindow : Window
             SaveStateText.Text = "Error al guardar";
             StatusText.Text = "No se pudo guardar · revisa los registros";
         }
+    }
+
+    private static void ApplyAccentResource(string accentHex)
+    {
+        try
+        {
+            var color = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(accentHex);
+            Application.Current.Resources["Accent"] = new System.Windows.Media.SolidColorBrush(color);
+
+            var dark = System.Windows.Media.Color.FromRgb(
+                (byte)Math.Clamp(color.R * 0.24, 0, 255),
+                (byte)Math.Clamp(color.G * 0.24, 0, 255),
+                (byte)Math.Clamp(color.B * 0.24, 0, 255));
+            Application.Current.Resources["AccentDark"] = new System.Windows.Media.SolidColorBrush(dark);
+        }
+        catch
+        {
+            // Si el perfil contiene un color inválido, se conservan los recursos predeterminados.
+        }
+    }
+
+    private void ApplyChurchProfile()
+    {
+        ChurchNameText.Text = string.IsNullOrWhiteSpace(_churchProfile.Name)
+            ? "Iglesia local"
+            : _churchProfile.Name;
+        ApplyAccentResource(_churchProfile.AccentHex);
+    }
+
+    private void ChurchProfile_Click(object sender, RoutedEventArgs e)
+    {
+        var editor = new ChurchProfileWindow(_profileStore, _db) { Owner = this };
+        editor.ShowDialog();
+
+        if (!editor.ProfileChanged) return;
+
+        StopLogoSlideshow();
+        _churchProfile = _profileStore.Load();
+        ApplyChurchProfile();
+        LoadScenes();
+        if (_mode == "Settings") LoadLibrary();
+        StatusText.Text = "Perfil de iglesia actualizado";
     }
 
     private void ConfigureMode(string mode)
@@ -325,6 +373,7 @@ public partial class MainWindow : Window
                 var selectedScreen = _displayManager.ResolvePresentationScreen().DeviceName;
                 var settingsRows = new List<LibraryRow>
                 {
+                    new("Perfil de iglesia",_churchProfile.Name,new SettingInfo("profile")),
                     new("Modo sin conexión","La aplicación funciona completamente con datos locales.",new SettingInfo("offline")),
                     new("Datos locales",_dataFolder,new SettingInfo("data")),
                     new("Registros de errores",Path.Combine(_dataFolder, "logs"),new SettingInfo("logs")),
@@ -584,7 +633,7 @@ public partial class MainWindow : Window
         _live = state switch
         {
             PresentationState.Black => new(state, "Pantalla negra", ""),
-            PresentationState.Logo => new(state, "Logotipo", "Iglesia local"),
+            PresentationState.Logo => new(state, "Logotipo", _churchProfile.Name),
             _ => new(PresentationState.Empty, "Sin contenido", "")
         };
         _liveType = null;
@@ -593,7 +642,11 @@ public partial class MainWindow : Window
         LiveImage.Visibility = Visibility.Collapsed;
         LiveContent.Visibility = Visibility.Visible;
         LiveTitle.Text = "  " + _live.Title;
-        LiveContent.Text = state == PresentationState.Black ? "Pantalla negra" : state == PresentationState.Logo ? "Logotipo de la iglesia" : "Sin contenido";
+        LiveContent.Text = state == PresentationState.Black
+            ? "Pantalla negra"
+            : state == PresentationState.Logo
+                ? _churchProfile.Name
+                : "Sin contenido";
         LiveBadge.Visibility = state == PresentationState.Empty ? Visibility.Collapsed : Visibility.Visible;
         _output?.Render(_live);
     }
@@ -756,7 +809,27 @@ public partial class MainWindow : Window
                 _blackRestoreSnapshot = null;
                 _blackRestoreType = null;
                 _activeSceneKey = scene.Key;
-                RenderState(PresentationState.Logo);
+
+                if (!string.IsNullOrWhiteSpace(_churchProfile.LogoPath) && File.Exists(_churchProfile.LogoPath))
+                {
+                    _live = new(PresentationState.Content, _churchProfile.Name, "Logo de la iglesia", _churchProfile.LogoPath);
+                    _liveType = ContentType.Image;
+                    LiveTitle.Text = "  " + _churchProfile.Name;
+                    ShowLiveMedia(new ServiceItem
+                    {
+                        Type = ContentType.Image,
+                        Title = _churchProfile.Name,
+                        Content = "Logo de la iglesia",
+                        MediaPath = _churchProfile.LogoPath
+                    });
+                    LiveBadge.Visibility = Visibility.Visible;
+                    _output?.Render(_live, ContentType.Image);
+                }
+                else
+                {
+                    RenderState(PresentationState.Logo);
+                }
+
                 RefreshSceneRows();
                 StatusText.Text = "Escena Logo en vivo";
                 return;
@@ -1472,6 +1545,12 @@ public partial class MainWindow : Window
                 return;
             }
 
+            if (selected.Source is SettingInfo { Key: "profile" })
+            {
+                ChurchProfile_Click(this, new RoutedEventArgs());
+                return;
+            }
+
             if (selected.Source is SettingInfo { Key: "data" })
             {
                 OpenDataFolder();
@@ -1708,7 +1787,12 @@ public partial class MainWindow : Window
         StatusText.Text = "Texto retirado de la salida";
     }
 
-    private void Logo_Click(object sender, RoutedEventArgs e) => RenderState(PresentationState.Logo);
+    private void Logo_Click(object sender, RoutedEventArgs e)
+    {
+        var logo = _scenes.FirstOrDefault(x => x.Type == SceneType.Logo);
+        if (logo is not null) ActivateScene(logo);
+        else RenderState(PresentationState.Logo);
+    }
 
     private void PlayMedia_Click(object sender, RoutedEventArgs e)
     {
