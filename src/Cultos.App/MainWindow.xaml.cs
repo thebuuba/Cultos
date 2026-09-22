@@ -235,8 +235,35 @@ public partial class MainWindow : Window
                 break;
         }
 
+        UpdateNavSelection(mode);
         SearchBox.Text = "";
         LoadLibrary();
+    }
+
+    private void UpdateNavSelection(string mode)
+    {
+        var selectedBackground = (System.Windows.Media.Brush)FindResource("AccentDark");
+        var selectedBorder = (System.Windows.Media.Brush)FindResource("Accent");
+        var transparent = System.Windows.Media.Brushes.Transparent;
+
+        var buttons = new (System.Windows.Controls.Button Button, string Mode)[]
+        {
+            (HomeNavButton, "Home"),
+            (BibleNavButton, "Bible"),
+            (HymnNavButton, "Hymn"),
+            (SongsNavButton, "Song"),
+            (MediaNavButton, "Media"),
+            (DesignsNavButton, "Design"),
+            (ServicesNavButton, "Services"),
+            (SettingsNavButton, "Settings")
+        };
+
+        foreach (var (button, buttonMode) in buttons)
+        {
+            var selected = buttonMode == mode;
+            button.Background = selected ? selectedBackground : transparent;
+            button.BorderBrush = selected ? selectedBorder : transparent;
+        }
     }
 
     private void LoadLibrary()
@@ -540,6 +567,8 @@ public partial class MainWindow : Window
             OrderSplitterColumn.Width = new GridLength(5);
             OrderPanel.Visibility = Visibility.Visible;
             OrderSplitter.Visibility = Visibility.Visible;
+            OrderNavButton.Background = (System.Windows.Media.Brush)FindResource("AccentDark");
+            OrderNavButton.BorderBrush = (System.Windows.Media.Brush)FindResource("Accent");
             StatusText.Text = "Orden del culto visible";
         }
         else
@@ -551,6 +580,8 @@ public partial class MainWindow : Window
             OrderColumn.MinWidth = 0;
             OrderColumn.Width = new GridLength(0);
             OrderSplitterColumn.Width = new GridLength(0);
+            OrderNavButton.Background = System.Windows.Media.Brushes.Transparent;
+            OrderNavButton.BorderBrush = System.Windows.Media.Brushes.Transparent;
             StatusText.Text = "Orden del culto oculto";
         }
     }
