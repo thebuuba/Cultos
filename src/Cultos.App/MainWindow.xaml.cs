@@ -685,7 +685,6 @@ public partial class MainWindow : Window
         ContentType.Hymn => "hymn",
         ContentType.Song => "song",
         ContentType.Video => "video",
-        ContentType.Image => "logo",
         ContentType.Web => "youtube",
         ContentType.Welcome or ContentType.FreeText or ContentType.Background => "title",
         _ => null
