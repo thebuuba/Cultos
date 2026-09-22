@@ -22,6 +22,54 @@ public sealed class CoreTests : IDisposable
     [Fact] public void SeedsDefaultScenes(){var db=CreateDb();var scenes=db.ListScenes();Assert.Contains(scenes,x=>x.Key=="logo");Assert.Contains(scenes,x=>x.Key=="bible");Assert.Contains(scenes,x=>x.Key=="video");Assert.Contains(scenes,x=>x.Key=="black");}
     [Fact] public void PersistsSceneContent(){var db=CreateDb();db.UpdateSceneContent("bible","Juan 3:16","Texto preparado",null);var scene=db.GetScene("bible");Assert.NotNull(scene);Assert.Equal("Juan 3:16",scene!.Title);Assert.Equal("Texto preparado",scene.Content);}
     [Fact] public void SavesAndDeletesCustomScene(){var db=CreateDb();var scene=db.SaveScene(new PresentationScene{Name="Anuncios",Type=SceneType.Custom,Position=20});Assert.True(scene.Id>0);Assert.Contains(db.ListScenes(),x=>x.Id==scene.Id);Assert.True(db.DeleteScene(scene.Id));Assert.DoesNotContain(db.ListScenes(),x=>x.Id==scene.Id);}
+    [Fact]
+    public void ExportsAndImportsPortableChurchProfile()
+    {
+        Directory.CreateDirectory(_folder);
+        var logo=Path.Combine(_folder,"logo.png");
+        var slide=Path.Combine(_folder,"slide.png");
+        File.WriteAllBytes(logo,[1,2,3,4]);
+        File.WriteAllBytes(slide,[5,6,7,8]);
+
+        var profile=new ChurchProfile{Name="Iglesia de prueba",LogoPath=logo,Location="Ciudad"};
+        var logoSettings=new LogoSceneSettings{ImagePaths=[slide],IntervalSeconds=6,Loop=true};
+        var scenes=new List<PresentationScene>
+        {
+            new(){Key="logo",Name="Logo",Type=SceneType.Logo,Position=0,IsBuiltIn=true,SettingsJson=System.Text.Json.JsonSerializer.Serialize(logoSettings)},
+            new(){Key="title",Name="Tema",Type=SceneType.Title,Position=1,IsBuiltIn=true,Title="Tema preparado",Content="Contenido"}
+        };
+
+        var package=Path.Combine(_folder,"perfil.cultosperfil");
+        ChurchProfilePackageService.Export(package,profile,scenes);
+        var imported=ChurchProfilePackageService.Import(package,Path.Combine(_folder,"destino"));
+
+        Assert.Equal("Iglesia de prueba",imported.Profile.Name);
+        Assert.True(File.Exists(imported.Profile.LogoPath));
+        var importedLogo=imported.Scenes.Single(x=>x.Key=="logo");
+        var settings=System.Text.Json.JsonSerializer.Deserialize<LogoSceneSettings>(importedLogo.SettingsJson);
+        Assert.NotNull(settings);
+        Assert.Single(settings!.ImagePaths);
+        Assert.True(File.Exists(settings.ImagePaths[0]));
+    }
+
+    [Fact]
+    public void ImportsSceneProfileWithoutRemovingBuiltInScenes()
+    {
+        var db=CreateDb();
+        db.SaveScene(new PresentationScene{Name="Antigua personalizada",Type=SceneType.Custom,Position=20});
+
+        db.ImportSceneProfile([
+            new(){Key="bible",Name="Biblia principal",Type=SceneType.Bible,Position=2,IsBuiltIn=true},
+            new(){Key="custom-anuncios",Name="Anuncios",Type=SceneType.Custom,Position=10,IsBuiltIn=false}
+        ]);
+
+        var scenes=db.ListScenes();
+        Assert.Contains(scenes,x=>x.Key=="bible"&&x.Name=="Biblia principal");
+        Assert.Contains(scenes,x=>x.Key=="logo"&&x.IsBuiltIn);
+        Assert.Contains(scenes,x=>x.Key=="custom-anuncios");
+        Assert.DoesNotContain(scenes,x=>x.Name=="Antigua personalizada");
+    }
+
     [Theory]
     [InlineData("https://www.youtube.com/watch?v=dQw4w9WgXcQ","dQw4w9WgXcQ")]
     [InlineData("https://youtu.be/dQw4w9WgXcQ","dQw4w9WgXcQ")]
