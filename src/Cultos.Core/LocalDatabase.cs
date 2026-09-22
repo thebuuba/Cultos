@@ -61,7 +61,7 @@ public sealed class LocalDatabase
             using var migrate = db.CreateCommand();
             migrate.CommandText = """
                 CREATE INDEX IF NOT EXISTS IX_ServiceItem_ServiceId_Position ON ServiceItem(ServiceId, Position);
-                CREATE UNIQUE INDEX IF NOT EXISTS IX_MediaItem_Path ON MediaItem(Path);
+                CREATE INDEX IF NOT EXISTS IX_MediaItem_Path ON MediaItem(Path);
                 PRAGMA user_version=2;
                 """;
             migrate.ExecuteNonQuery();
