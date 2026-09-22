@@ -1957,7 +1957,13 @@ public partial class MainWindow : Window
         StatusText.Text = "Pantalla negra · pulsa B para restaurar";
     }
 
-    private void Clear_Click(object sender, RoutedEventArgs e) => RenderState(PresentationState.Empty);
+    private void Clear_Click(object sender, RoutedEventArgs e)
+    {
+        StopLogoSlideshow();
+        _activeSceneKey = null;
+        RenderState(PresentationState.Empty);
+        RefreshSceneRows();
+    }
 
     private void RemoveText_Click(object sender, RoutedEventArgs e)
     {
