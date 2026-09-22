@@ -59,7 +59,7 @@ public partial class App : System.Windows.Application
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         AppLogger.Error("Excepción no controlada de interfaz", e.Exception);
-        MessageBox.Show(
+        System.Windows.MessageBox.Show(
             "Cultos encontró un error inesperado. El detalle fue guardado en la carpeta de registros de la aplicación.",
             "Cultos",
             MessageBoxButton.OK,
