@@ -1,6 +1,6 @@
 namespace Cultos.Core;
 
-public enum ContentType { Welcome, Bible, Hymn, Song, FreeText, Image, Video, Background }
+public enum ContentType { Welcome, Bible, Hymn, Song, FreeText, Image, Video, Background, Audio }
 public enum PresentationState { Empty, Content, Black, Logo }
 public enum SceneType { Logo, Bible, Hymn, Song, Video, YouTube, Title, Black, Image, Audio, Custom }
 
