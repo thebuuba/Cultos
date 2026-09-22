@@ -14,6 +14,9 @@ public sealed class AppSettings
     public string? DisplayDeviceName { get; set; }
     public double MediaVolume { get; set; } = 0.8;
     public bool MonitorPanelVisible { get; set; } = true;
+    public bool RemoteControlEnabled { get; set; }
+    public int RemoteControlPort { get; set; } = 8777;
+    public string RemoteControlPin { get; set; } = "";
 }
 
 public sealed class AppSettingsStore
