@@ -2165,6 +2165,67 @@ public partial class MainWindow : Window
         OpenCultosFile(dialog.FileName);
     }
 
+    public void OpenExternalFile(string path)
+    {
+        var extension = Path.GetExtension(path);
+        if (string.Equals(extension, ".cultos", StringComparison.OrdinalIgnoreCase))
+        {
+            OpenCultosFile(path);
+            return;
+        }
+
+        if (string.Equals(extension, ".cultosperfil", StringComparison.OrdinalIgnoreCase))
+        {
+            ImportChurchProfileFile(path);
+            return;
+        }
+
+        MessageBox.Show(
+            "Cultos no reconoce este tipo de archivo.",
+            "Abrir archivo",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
+    }
+
+    private void ImportChurchProfileFile(string path)
+    {
+        if (!File.Exists(path))
+        {
+            MessageBox.Show("El perfil seleccionado no existe.", "Cultos", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        if (MessageBox.Show(
+                "Importar este perfil reemplazará las escenas personalizadas y la identidad visual actual. ¿Continuar?",
+                "Importar perfil de iglesia",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question) != MessageBoxResult.Yes)
+            return;
+
+        try
+        {
+            StopLogoSlideshow();
+            var result = _profileStore.ImportPackage(path);
+            _db.ImportSceneProfile(result.Scenes);
+            _profileStore.Save(result.Profile);
+            _churchProfile = result.Profile;
+            ApplyChurchProfile();
+            LoadScenes();
+            if (_mode == "Settings") LoadLibrary();
+            PublishRemoteState();
+            StatusText.Text = $"Perfil de {_churchProfile.Name} importado";
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Error("No se pudo importar un archivo .cultosperfil", ex);
+            MessageBox.Show(
+                "No se pudo importar el perfil. " + ex.Message,
+                "Importación fallida",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+    }
+
     public void OpenCultosFile(string path)
     {
         try
@@ -2199,6 +2260,7 @@ public partial class MainWindow : Window
 
         if (files.Any(path =>
             string.Equals(Path.GetExtension(path), ".cultos", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(Path.GetExtension(path), ".cultosperfil", StringComparison.OrdinalIgnoreCase) ||
             SupportedMediaExtensions.Contains(Path.GetExtension(path))))
         {
             e.Effects = System.Windows.DragDropEffects.Copy;
@@ -2211,10 +2273,12 @@ public partial class MainWindow : Window
     {
         if (e.Data.GetData(System.Windows.DataFormats.FileDrop) is not string[] files) return;
 
-        var backup = files.FirstOrDefault(path => string.Equals(Path.GetExtension(path), ".cultos", StringComparison.OrdinalIgnoreCase));
-        if (backup is not null)
+        var cultosFile = files.FirstOrDefault(path =>
+            string.Equals(Path.GetExtension(path), ".cultos", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(Path.GetExtension(path), ".cultosperfil", StringComparison.OrdinalIgnoreCase));
+        if (cultosFile is not null)
         {
-            OpenCultosFile(backup);
+            OpenExternalFile(cultosFile);
             return;
         }
 
