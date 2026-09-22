@@ -1150,8 +1150,8 @@ public partial class MainWindow : Window
 
     private void Window_DragOver(object sender, System.Windows.DragEventArgs e)
     {
-        e.Effects = DragDropEffects.None;
-        if (e.Data.GetData(DataFormats.FileDrop) is not string[] files || files.Length == 0)
+        e.Effects = System.Windows.DragDropEffects.None;
+        if (e.Data.GetData(System.Windows.DataFormats.FileDrop) is not string[] files || files.Length == 0)
         {
             e.Handled = true;
             return;
@@ -1161,7 +1161,7 @@ public partial class MainWindow : Window
             string.Equals(Path.GetExtension(path), ".cultos", StringComparison.OrdinalIgnoreCase) ||
             SupportedMediaExtensions.Contains(Path.GetExtension(path))))
         {
-            e.Effects = DragDropEffects.Copy;
+            e.Effects = System.Windows.DragDropEffects.Copy;
         }
 
         e.Handled = true;
