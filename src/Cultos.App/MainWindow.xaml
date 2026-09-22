@@ -20,6 +20,7 @@
             <RowDefinition Height="30"/>
             <RowDefinition Height="62"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="112"/>
             <RowDefinition Height="36"/>
         </Grid.RowDefinitions>
 
@@ -687,8 +688,100 @@
             </Border>
         </Grid>
 
-        <!-- Barra de estado -->
+        <!-- Escenas rápidas: equivalentes a las escenas de OBS/Deckboard -->
         <Border Grid.Row="3"
+                Background="#121310"
+                BorderBrush="{StaticResource Border}"
+                BorderThickness="0,1,0,0">
+            <Grid Margin="12,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                    <TextBlock Text="ESCENAS"
+                               Foreground="{StaticResource Subtle}"
+                               FontSize="10"
+                               FontWeight="SemiBold"/>
+                    <TextBlock Text="Salida rápida"
+                               Foreground="{StaticResource Muted}"
+                               FontSize="11"
+                               Margin="0,4,0,0"/>
+                </StackPanel>
+
+                <ScrollViewer Grid.Column="1"
+                              HorizontalScrollBarVisibility="Auto"
+                              VerticalScrollBarVisibility="Disabled"
+                              CanContentScroll="False">
+                    <ItemsControl x:Name="SceneList">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Click="SceneButton_Click"
+                                        Tag="{Binding Id}"
+                                        MinWidth="112"
+                                        Height="70"
+                                        Margin="0,0,7,0"
+                                        Padding="10,7"
+                                        ToolTip="{Binding ToolTip}">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                            <Setter Property="Background" Value="{StaticResource PanelRaised}"/>
+                                            <Setter Property="BorderBrush" Value="{StaticResource Border}"/>
+                                            <Setter Property="BorderThickness" Value="1"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsLive}" Value="True">
+                                                    <Setter Property="Background" Value="#47231F"/>
+                                                    <Setter Property="BorderBrush" Value="{StaticResource Live}"/>
+                                                    <Setter Property="BorderThickness" Value="2"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <TextBlock Text="{Binding Icon}"
+                                                       Foreground="{StaticResource Accent}"
+                                                       FontSize="17"
+                                                       Margin="0,0,6,0"/>
+                                            <TextBlock Text="{Binding Name}"
+                                                       FontWeight="SemiBold"
+                                                       FontSize="12"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       MaxWidth="82"/>
+                                        </StackPanel>
+                                        <TextBlock Grid.Row="1"
+                                                   Text="{Binding StateLabel}"
+                                                   Foreground="{StaticResource Muted}"
+                                                   FontSize="9"
+                                                   HorizontalAlignment="Center"
+                                                   Margin="0,5,0,0"/>
+                                    </Grid>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0">
+                    <Button Click="AddScene_Click" Padding="11,9" ToolTip="Crear una nueva escena">＋ Escena</Button>
+                    <Button Click="ManageScenes_Click" Margin="6,0,0,0" Padding="11,9" ToolTip="Administrar escenas">⚙</Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Barra de estado -->
+        <Border Grid.Row="4"
                 Background="#151613"
                 BorderBrush="{StaticResource Border}"
                 BorderThickness="0,1,0,0">
