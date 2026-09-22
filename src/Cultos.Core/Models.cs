@@ -20,6 +20,26 @@ public sealed class PresentationScene
 }
 
 
+public sealed class ChurchProfile
+{
+    public int Version { get; set; } = 1;
+    public string Name { get; set; } = "Iglesia local";
+    public string ShortName { get; set; } = "";
+    public string Location { get; set; } = "";
+    public string? LogoPath { get; set; }
+    public string? DefaultBackgroundPath { get; set; }
+    public string AccentHex { get; set; } = "#D8B765";
+    public string PreferredBibleTranslation { get; set; } = "";
+    public string PreferredHymnal { get; set; } = "";
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+}
+
+public sealed class ChurchProfileImportResult
+{
+    public required ChurchProfile Profile { get; init; }
+    public required List<PresentationScene> Scenes { get; init; }
+}
+
 public sealed record BibleVerse(int Id, string Book, int Chapter, int Verse, string Text, string Translation)
 {
     public string Reference => $"{Book} {Chapter}:{Verse}";
