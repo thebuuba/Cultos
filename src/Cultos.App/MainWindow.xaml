@@ -328,7 +328,9 @@
                             <ListBox x:Name="LibraryList"
                                      Grid.Row="4"
                                      SelectionChanged="LibraryList_SelectionChanged"
-                                     MouseDoubleClick="LibraryList_MouseDoubleClick">
+                                     MouseDoubleClick="LibraryList_MouseDoubleClick"
+                                     PreviewMouseLeftButtonDown="LibraryList_PreviewMouseLeftButtonDown"
+                                     PreviewMouseMove="LibraryList_PreviewMouseMove">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <Border Padding="11"
@@ -796,6 +798,9 @@
                             <DataTemplate>
                                 <Button Click="SceneButton_Click"
                                         Tag="{Binding Id}"
+                                        AllowDrop="True"
+                                        DragOver="Scene_DragOver"
+                                        Drop="Scene_Drop"
                                         MinWidth="112"
                                         Height="70"
                                         Margin="0,0,7,0"
