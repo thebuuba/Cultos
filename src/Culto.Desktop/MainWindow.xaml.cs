@@ -105,14 +105,14 @@ public partial class MainWindow : Window
         PreviewPositionSlider.Value = 0;
         PreparedTitleText.Text = cue.Title;
         UpdateUsabilityState();
-        SetStatus($"Vista previa: {cue.Title}. Doble clic en el orden o F5 para proyectar.");
+        SetStatus($"Vista previa: {cue.Title}");
     }
 
     private void UpdateSessionLabels()
     {
-        PreparedTitleText.Text = _session.Prepared?.Title ?? "Selecciona un contenido";
+        PreparedTitleText.Text = _session.Prepared?.Title ?? "Sin contenido";
         var live = _session.Live;
-        LiveTitleText.Text = live?.Title ?? "Listo cuando tú lo estés";
+        LiveTitleText.Text = live?.Title ?? "Sin contenido";
         LiveReferenceText.Text = live is null ? "" : string.Join(" · ", new[] { live.Reference, live.Version }.Where(s => !string.IsNullOrWhiteSpace(s)));
         LiveBodyText.Text = _outputWindow is null ? "La salida está cerrada." : _session.IsBlackout ? "Pantalla en negro" : _session.IsTextHidden ? "Fondo sin contenido" : live?.Kind switch
         {

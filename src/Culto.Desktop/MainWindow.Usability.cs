@@ -54,16 +54,16 @@ public partial class MainWindow
     private string NextLiveHint()
     {
         var live = _session.Live;
-        if (_outputWindow is null || live is null) return "Prepara un contenido y pulsa Proyectar para comenzar.";
+        if (_outputWindow is null || live is null) return "Sin contenido en salida";
         var orderIndex = _plan.ToList().FindIndex(cue => cue.Id == live.Id);
         if (orderIndex >= 0)
-            return orderIndex + 1 < _plan.Count ? "Siguiente: " + _plan[orderIndex + 1].Title : "Fin del orden · prepara otro contenido.";
+            return orderIndex + 1 < _plan.Count ? "Siguiente: " + _plan[orderIndex + 1].Title : "Fin del orden";
         if (_liveReading is not null)
         {
             var readingIndex = _liveReading.ToList().FindIndex(cue => cue.Id == live.Id);
             if (readingIndex >= 0)
-                return readingIndex + 1 < _liveReading.Count ? "Siguiente: " + _liveReading[readingIndex + 1].Title : "Fin de la lectura · busca otro pasaje.";
+                return readingIndex + 1 < _liveReading.Count ? "Siguiente: " + _liveReading[readingIndex + 1].Title : "Fin de la lectura";
         }
-        return "Fuera del orden · prepara el siguiente contenido.";
+        return "Fuera del orden";
     }
 }

@@ -79,7 +79,7 @@ public partial class MainWindow
             {
                 await host.StartAsync(18765, GetRemoteState, HandleRemote);
                 _remote = host; RemoteButton.Header = "Mando móvil activo…";
-                SetStatus("Mando local activado. Vincula el teléfono con el código QR.");
+                SetStatus("Mando local activado.");
                 return host;
             }
             catch { await host.DisposeAsync(); throw; }

@@ -76,7 +76,7 @@ public partial class MainWindow
             _output?.SetPaused(true); _output?.Dispose();
             _output = null; _outputWindow = null; _outputDisplay = null;
             _isPaused = true; UpdateSessionLabels();
-            SetStatus("Salida cerrada. Pulsa Proyectar para abrirla de nuevo.");
+            SetStatus("Salida cerrada.");
         };
         DisplayService.PlaceWindow(window, display, fullscreen: !test);
         window.Show();
@@ -104,7 +104,7 @@ public partial class MainWindow
         if (dialog.CloseOutput) { CloseOutput(); SetStatus("Salida de proyección cerrada."); return; }
         if (dialog.SelectedDisplay is null) return;
         OpenOutput(dialog.SelectedDisplay, dialog.TestWindow);
-        SetStatus("Salida abierta con fondo vacío. Prepara un contenido y pulsa Proyectar.");
+        SetStatus("Salida abierta.");
     }
     private void NextClick(object sender, RoutedEventArgs e) => MoveLive(1);
     private void PreviousClick(object sender, RoutedEventArgs e) => MoveLive(-1);
@@ -147,7 +147,7 @@ public partial class MainWindow
         _output.ShowCue(_session.Live, _session.IsBlackout, _session.IsTextHidden);
         _isPaused = true;
         UpdateSessionLabels();
-        SetStatus(_session.IsBlackout ? "Salida en negro; reproducción pausada." : "Imagen restaurada. Pulsa Continuar para reanudar el video.");
+        SetStatus(_session.IsBlackout ? "Salida en negro; reproducción pausada." : "Imagen restaurada; reproducción pausada.");
     }
     private void BackgroundClick(object sender, RoutedEventArgs e) => ShowBackground();
     private void ShowBackground()
@@ -156,7 +156,7 @@ public partial class MainWindow
         _session.ShowBackground();
         _output.ShowCue(_session.Live, _session.IsBlackout, _session.IsTextHidden);
         _isPaused = true; UpdateSessionLabels();
-        SetStatus("Fondo sin contenido. Pulsa Proyectar para mostrar el preparado.");
+        SetStatus("Fondo sin contenido.");
     }
     private void PauseClick(object sender, RoutedEventArgs e) => TogglePause();
     private void TogglePause()

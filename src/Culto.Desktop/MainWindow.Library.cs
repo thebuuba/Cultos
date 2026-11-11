@@ -35,10 +35,10 @@ public partial class MainWindow
         LibraryEmpty.Visibility = _libraryView.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         var category = (LibraryFilter.SelectedItem as ListBoxItem)?.Content?.ToString() ?? "Todo";
         LibraryEmpty.Text = _workspace.Library.Count == 0
-            ? "Tu biblioteca empieza aquí.\n\nImporta videos MKV, imágenes o pistas de audio."
+            ? "Biblioteca vacía"
             : query.Length > 0
-                ? $"Sin resultados para «{query}» en {category}.\n\nPrueba otro título, número o categoría."
-                : $"Todavía no hay contenido en {category}.\n\nImporta archivos o elige otra categoría.";
+                ? $"Sin resultados para «{query}» en {category}."
+                : $"Sin contenido en {category}.";
     }
     private void LibrarySearchChanged(object sender, TextChangedEventArgs e) => RefreshLibrary();
     private void LibrarySearchKeyDown(object sender, KeyEventArgs e)
@@ -48,7 +48,7 @@ public partial class MainWindow
         var query = LibrarySearch.Text.Trim();
         var cue = _libraryView.FirstOrDefault(item => item.Title.Equals(query, StringComparison.CurrentCultureIgnoreCase))
             ?? _libraryView.FirstOrDefault();
-        if (cue is null) { SetStatus("No hay resultados. Prueba otro número, título o categoría."); return; }
+        if (cue is null) { SetStatus("Sin resultados."); return; }
         var alreadySelected = ReferenceEquals(LibraryList.SelectedItem, cue);
         LibraryList.SelectedItem = cue;
         if (alreadySelected) PrepareCue(cue);
@@ -100,7 +100,7 @@ public partial class MainWindow
         });
         _workspace.Library.AddRange(result.added);
         RefreshLibrary(); SaveWorkspace();
-        SetStatus($"{result.added.Count} archivos incorporados" + (result.failed > 0 ? $"; {result.failed} no se pudieron leer." : ". Los originales permanecen en su carpeta."), result.failed > 0);
+        SetStatus($"{result.added.Count} archivos incorporados" + (result.failed > 0 ? $"; {result.failed} no se pudieron leer." : "."), result.failed > 0);
         if (result.added.Count > 0) LibraryList.SelectedItem = result.added[0];
     }
     private static Cue CopyCue(Cue c, bool newId = false) => new()
@@ -149,7 +149,7 @@ public partial class MainWindow
     {
         if (PlanList.SelectedItem is not Cue cue) return;
         CommitNotes(); _plan.Remove(cue); UpdatePlanCount(); SaveWorkspace();
-        SetStatus("Elemento retirado del orden. La proyección actual se conserva.");
+        SetStatus("Elemento retirado del orden.");
     }
     private void PlanMouseDown(object sender, MouseButtonEventArgs e)
     {
@@ -183,7 +183,7 @@ public partial class MainWindow
         try { _store.Archive(_workspace.Plan); }
         catch (Exception ex) { SetStatus("No se pudo guardar el culto anterior: " + ex.Message, true); return; }
         _plan.Clear(); PlanNameBox.Text = name; UpdatePlanCount(); SaveWorkspace();
-        SetStatus("Nuevo orden creado. El anterior se conserva en el historial local.");
+        SetStatus("Nuevo orden creado.");
     }
     private void OpenPlanClick(object sender, RoutedEventArgs e)
     {
@@ -197,7 +197,7 @@ public partial class MainWindow
             CommitNotes(); SaveWorkspace(); _store.Archive(_workspace.Plan);
             _plan.Clear(); foreach (var cue in plan.Items) _plan.Add(CopyCue(cue, true));
             PlanNameBox.Text = plan.Name; UpdatePlanCount(); SaveWorkspace();
-            SetStatus("Culto abierto. La proyección actual no ha cambiado.");
+            SetStatus("Culto abierto.");
         }
         catch (Exception ex) { SetStatus("No se pudo abrir el culto: " + ex.Message, true); }
     }
@@ -212,7 +212,7 @@ public partial class MainWindow
     {
         CommitNotes(); SaveWorkspace();
         JsonFileStore.Save(path, _workspace.Plan);
-        SetStatus("Copia del orden guardada. Conserva también los archivos multimedia originales. La biblioteca, el mando y la configuración se guardan por separado en esta computadora.");
+        SetStatus("Copia del orden guardada.");
     }
 
     private async void CaptureClick(object sender, RoutedEventArgs e)
@@ -228,7 +228,7 @@ public partial class MainWindow
             var saved = CaptureService.CaptureDisplay(dialog.SelectedDisplay, path);
             WindowState = state; Activate();
             await ImportMediaAsync([saved]);
-            SetStatus("Captura preparada. Pulsa Proyectar para mostrarla.");
+            SetStatus("Captura preparada.");
         }
         catch (Exception ex) { SetStatus("No se pudo capturar la pantalla: " + ex.Message, true); }
         finally { WindowState = state; Activate(); }

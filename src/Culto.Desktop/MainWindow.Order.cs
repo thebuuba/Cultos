@@ -41,12 +41,7 @@ public partial class MainWindow
     {
         if (sender is not MenuItem item || !int.TryParse(item.Tag?.ToString(), out var source)) return;
         SelectContentSource(source);
-        SetStatus(source switch
-        {
-            1 => "Busca un pasaje y pulsa + Versículo al orden o Pasaje para agregarlo.",
-            2 => "Escribe el anuncio y pulsa + Guardar en biblioteca y orden.",
-            _ => "Busca y selecciona un contenido; pulsa + Añadir al orden para agregarlo."
-        });
+        SetStatus(source switch { 1 => "Biblia", 2 => "Texto", _ => "Biblioteca" });
     }
 
     private async void AddOrderFilesClick(object sender, RoutedEventArgs e)

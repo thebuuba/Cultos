@@ -74,7 +74,7 @@ public partial class MainWindow
         {
             SetStatus("Comprobando el texto bíblico…");
             await ImportBibleFileAsync(dialog.FileName);
-            SetStatus("Biblia importada. Elige un libro o escribe una cita o frase para buscar.");
+            SetStatus("Biblia importada.");
         }
         catch (Exception ex) { SetStatus("No se pudo importar la Biblia: " + ex.Message, true); }
     }
