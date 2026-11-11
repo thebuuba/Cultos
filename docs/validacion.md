@@ -46,11 +46,24 @@ Se comprobó la búsqueda por número (`613`) y por título (`Cantad`), la vista
 
 Durante la primera importación la ventana mostró temporalmente «No responde» y se recuperó sin intervención; los datos quedaron guardados. La enumeración posterior de la carpeta fue rápida. No se determinó la causa exacta de esa demora inicial.
 
+## Biblia local de esta PC
+
+Se importó mediante la interfaz una **Reina-Valera 1960 completa**, convertida desde el archivo local `Documentos\Easy Worshipp\Programa EasyWorship\Biblias\RV1960.ewb`. El original se conserva. El catálogo guardado contiene **66 libros, 1.189 capítulos y 31.102 versículos** y está disponible sin internet.
+
+Se verificaron los conteos y la fidelidad de la conversión respecto a la fuente local, junto con un muestreo de lecturas para identificar la versión. Estas comprobaciones no equivalen a un cotejo editorial completo de la edición. El [informe de importación y procedencia](importacion-biblia-local.md) detalla la fuente, las correcciones y la persistencia.
+
+Con el catálogo real, `BibleCatalog` validó nueve citas, incluidas lecturas del principio y final de la Biblia y de los tres capítulos de 2 Tesalonicenses. También se comprobaron búsqueda sin tildes y creación de elementos preparados con texto, referencia y versión.
+
+Se volvió a cargar `%LOCALAPPDATA%\CultoStudio\biblia.json` y se repitieron las nueve consultas y la búsqueda por frase. Los 31.102 textos y sus coordenadas coinciden con el archivo convertido; los alias de libros quedaron normalizados a nombres canónicos.
+
+En la aplicación se observaron los 31.102 versículos disponibles, los 17 resultados de `2 Tesalonicenses 2:1-17` y la consulta `Apocalipsis 22:21`. Se preparó `Juan 3:16` con el texto y la versión correctos. La salida quedó cerrada y se conservaron los tres elementos del orden, los 616 contenidos de biblioteca y los seis botones del mando.
+
+El corpus permanece en los datos locales, fuera de Git y de la distribución ejecutable. Esta carga modificó datos del usuario y no requirió reconstruir el código del programa.
+
 ## Verificaciones pendientes y alcance
 
 - Probar las tres pantallas conectadas al HDMI y el dispositivo de audio real de la iglesia.
 - Probar el mando en el teléfono físico y su red Wi-Fi. No se cambiaron firewall ni router.
-- Importar una fuente autorizada de Reina-Valera 1960. El importador y la búsqueda están implementados; el texto completo no está incluido ni cargado.
 - Ensayar el orden y cada archivo que se utilizará antes del culto.
 
 Esta versión ofrece capturas estáticas; no incorpora captura continua, transmisión, grabación ni PowerPoint. El panel «En pantalla» resume el contenido y estado; no duplica el video en vivo. Estos límites también se explican en la guía.

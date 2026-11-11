@@ -6,7 +6,7 @@ Primera versión de una consola nativa para Windows destinada a preparar y proye
 
 Ejecuta **Abrir Culto Studio.cmd** en esta carpeta, o abre `artifacts/CultoStudio/CultoStudio.exe`. La distribución publicada incluye .NET y el reproductor nativo; conserva todos los archivos de esa carpeta junto al ejecutable. Windows x64.
 
-La primera apertura ofrece una plantilla sencilla con bienvenida, oración y despedida. No incluye videos del himnario ni el texto completo de una traducción bíblica.
+Una instalación nueva ofrece una plantilla sencilla con bienvenida, oración y despedida. La distribución del programa no incluye videos del himnario ni el texto completo de una traducción bíblica.
 
 En esta PC ya se incorporaron a la biblioteca los **613 videos MKV** encontrados en `Documentos\Himnario Adventista 2022 VIDEOS\Data\Himnario Videos`. La instalación original se identifica como Himnario Adventista 2023. Los videos se conservan allí y la biblioteca guarda sus ubicaciones; no forman parte de la distribución del programa.
 
@@ -24,11 +24,13 @@ El orden muestra la posición de cada momento; esos números son independientes 
 
 ## Biblia
 
-La versión preferida es **Reina-Valera 1960**. El módulo está preparado para importar una fuente autorizada y consultarla sin internet; **el texto completo RVR1960 no viene incluido**.
+En esta PC ya está cargada **Reina-Valera 1960 completa**, con **66 libros, 1.189 capítulos y 31.102 versículos**, disponible sin internet. Se importó desde el archivo local `Documentos\Easy Worshipp\Programa EasyWorship\Biblias\RV1960.ewb`, que se conserva en su ubicación original.
 
-En la pestaña Biblia pulsa **Importar Biblia** y elige JSON o Zefania XML. Consulta [el formato de importación](docs/formato-biblia.md). Escribe una cita (`Juan 3:16`, `1 Juan 2:1-3`) o una frase. Seleccionar prepara el versículo; Proyectar lo envía a la salida. La búsqueda no interrumpe la lectura que ya está en pantalla. Las lecturas también se pueden añadir al orden.
+En la pestaña **Biblia**, escribe una cita (`Juan 3:16`, `1 Juan 2:1-3`) o una frase. Seleccionar prepara el versículo; Proyectar lo envía a la salida. La búsqueda no interrumpe la lectura que ya está en pantalla. Las lecturas también se pueden añadir al orden.
 
-El nombre de la versión importada se muestra realmente; el programa no renombra otra traducción como RVR1960. La información de atribución del archivo se conserva. La integración/distribución del texto completo RVR1960 debe contar con la autorización correspondiente: [American Bible Society](https://www.americanbible.org/rights-and-permissions/).
+El texto se guarda con los datos locales, fuera de Git y de la distribución ejecutable. La copia importada identifica la versión y registra la atribución y procedencia. Consulta el [informe de importación y procedencia](docs/importacion-biblia-local.md) para conocer la conversión y las comprobaciones realizadas.
+
+Para incorporar otra Biblia o instalarla en otra PC, **Importar Biblia** acepta JSON o Zefania XML. Consulta [el formato de importación](docs/formato-biblia.md).
 
 ## Proyectar a las tres pantallas
 
@@ -84,12 +86,12 @@ El primer comando compila Release y ejecuta las pruebas del núcleo y del servid
 node tests/Culto.Remote.Tests/mobile-smoke.cjs
 ```
 
-Los tests de Biblia emplean textos sintéticos y nunca los presentan como traducción real. El ensayo de reproducción utiliza un MKV corto generado localmente. Las pantallas HDMI y el teléfono físico de la iglesia deben verificarse antes de usar esta versión en un culto.
+Los tests automatizados de Biblia emplean textos sintéticos y nunca los presentan como traducción real. La Biblia local instalada se comprobó por separado, como recoge el [informe de importación](docs/importacion-biblia-local.md). El ensayo de reproducción utiliza un MKV corto generado localmente. Las pantallas HDMI y el teléfono físico de la iglesia deben verificarse antes de usar esta versión en un culto.
 
 Resultados y límites de la comprobación: [validación de esta entrega](docs/validacion.md).
 
 ## Alcance de esta versión
 
-No incluye transmisión, grabación, mezcla de cámaras, captura continua, importación directa de bases de EasyWorship, reproducción de PowerPoint ni salidas independientes para escenario. El texto de RVR1960 y los videos reales del himnario los incorpora la iglesia desde fuentes autorizadas. Es una primera versión funcional para ensayar y ajustar al equipo real.
+No incluye transmisión, grabación, mezcla de cámaras, captura continua, importación directa de bases de EasyWorship, reproducción de PowerPoint ni salidas independientes para escenario. La Biblia RVR1960 y los videos del himnario ya incorporados en esta PC se guardan por separado del programa. Es una primera versión funcional para ensayar y ajustar al equipo real.
 
 Código organizado en `src/Culto.Core`, `src/Culto.Desktop` y `src/Culto.Remote`. Diseño y plan en `docs/superpowers`. Dependencias: [WPF/.NET](https://dotnet.microsoft.com/), [LibVLCSharp/VideoLAN](https://docs.videolan.me/libvlcsharp/), [QRCoder](https://github.com/codebude/QRCoder). Véase [componentes de terceros](THIRD-PARTY-NOTICES.md).
