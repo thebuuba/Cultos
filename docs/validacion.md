@@ -4,6 +4,16 @@ Comprobación realizada el 11 de noviembre de 2026 en esta PC Windows. Entrega a
 
 ## Compilación y pruebas
 
+### Diseño de referencia — versión 0.5
+
+Se estudió el video local facilitado por el usuario, correspondiente al pin `141300507053011816`, a lo largo de sus 46 segundos. La consola adopta superficies carbón con matiz verdoso, acento lima, pequeños iconos pastel y radios de 10–18 px. La navegación permanece arriba, sin barra lateral de navegación. El orden conserva su panel de trabajo y el botón Agregar al pie.
+
+Poppins se incluye en cuatro pesos con licencia OFL para funcionar sin instalación ni internet. Es una aproximación visual: la fuente exacta del video no está identificada. El cambio de sección usa entrada de 180 ms y el hover de los botones 130 ms. Se respeta `SystemParameters.ClientAreaAnimation`; los valores finales no dependen de terminar una animación. El reproductor nativo y la salida no reciben transformaciones ni animaciones.
+
+Se ejecutó `scripts/build.ps1 -Smoke` y, tras corregir la herencia del color de las pestañas, se repitió el ensayo de escritorio. Resultado: **60 núcleo + 39 mando + 44 escritorio + 24 reproductor = 167 comprobaciones correctas**. Las cuatro nuevas verificaciones cubren resolución de los pesos de fuente desde el paquete, cambios rápidos de sección sin alterar la salida, contraste del contenido de Biblia y comandos/enlace del deslizador. Continúan pasando las comprobaciones de tamaño a 1280×680 y 1280×720.
+
+Se publicó Windows x64 y se verificó visualmente el ejecutable: consulta de Juan 3:16 con contraste legible, pestañas redondeadas, biblioteca completa y reproducción del MKV 012 en el minirreproductor. Se dejó abierto con el video pausado a 00:06, búsqueda vacía y salida cerrada. Se conservan los 4 elementos del orden y los 616 contenidos; el SHA-256 de la Biblia local permanece igual.
+
 ### Orden del culto y minirreproductor — versión 0.4
 
 El orden incluye **+ Agregar** al pie: biblioteca/himnario, Biblia y texto abren la sección correspondiente; archivos permite seleccionar multimedia y añadirla directamente. Un clic prepara, incluido volver a una fila ya seleccionada después de consultar otra fuente; doble clic proyecta la fila pulsada e inicia video/audio. El espacio vacío no proyecta. El arrastre comienza sólo desde una fila y se distingue del clic.

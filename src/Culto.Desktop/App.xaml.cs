@@ -7,6 +7,13 @@ namespace Culto.Desktop;
 
 public partial class App : Application
 {
+    private void ButtonHoverChanged(object sender, System.Windows.Input.MouseEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button button &&
+            button.Template.FindName("ButtonHighlight", button) is UIElement highlight)
+            UiMotion.Fade(highlight, button.IsMouseOver ? .07 : 0);
+    }
+
     protected override void OnStartup(StartupEventArgs e)
     {
         CultureInfo.DefaultThreadCurrentCulture = CultureInfo.GetCultureInfo("es-DO");

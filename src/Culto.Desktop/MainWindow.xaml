@@ -43,8 +43,8 @@
             <ControlTemplate.Triggers>
               <Trigger Property="IsSelected" Value="True">
                 <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
-                <Setter TargetName="Chip" Property="Background" Value="#2A2A2A"/>
-                <Setter TargetName="Chip" Property="BorderBrush" Value="#666666"/>
+                <Setter TargetName="Chip" Property="Background" Value="{StaticResource SelectedBrush}"/>
+                <Setter TargetName="Chip" Property="BorderBrush" Value="#677659"/>
               </Trigger>
               <Trigger Property="IsMouseOver" Value="True">
                 <Setter TargetName="Chip" Property="BorderBrush" Value="{StaticResource MutedBrush}"/>
@@ -77,9 +77,9 @@
     <DataTemplate x:Key="LibraryItemTemplate">
       <Grid ToolTip="{Binding Title}" MinHeight="30">
         <Grid.ColumnDefinitions><ColumnDefinition Width="36"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-        <Border Width="28" Height="28" CornerRadius="8" Background="{StaticResource RaisedBrush}" VerticalAlignment="Center">
+        <Border x:Name="KindBadge" Width="30" Height="30" CornerRadius="10" Background="#D1BEEA" VerticalAlignment="Center">
           <Path x:Name="KindIcon" Data="M 4,3 L 16,3 L 16,17 L 4,17 Z M 7,7 L 13,7 M 7,10 L 13,10 M 7,13 L 11,13"
-                Stroke="{StaticResource MutedBrush}" StrokeThickness="1.4" Width="15" Height="17" Stretch="Uniform"/>
+                Stroke="#33383B" StrokeThickness="1.4" Width="15" Height="17" Stretch="Uniform"/>
         </Border>
         <TextBlock Grid.Column="1" Text="{Binding Title}" FontSize="14" FontWeight="Medium" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
         <TextBlock Grid.Column="2" Text="{Binding Kind, Converter={StaticResource CueKindConverter}}" FontSize="10"
@@ -88,23 +88,25 @@
       <DataTemplate.Triggers>
         <DataTrigger Binding="{Binding Kind}" Value="Video">
           <Setter TargetName="KindIcon" Property="Data" Value="M 5,3 L 17,10 L 5,17 Z"/>
-          <Setter TargetName="KindIcon" Property="Stroke" Value="{StaticResource AccentBrush}"/>
+          <Setter TargetName="KindBadge" Property="Background" Value="#B5E4CC"/>
         </DataTrigger>
         <DataTrigger Binding="{Binding Kind}" Value="Audio">
+          <Setter TargetName="KindBadge" Property="Background" Value="#EFC6AD"/>
           <Setter TargetName="KindIcon" Property="Data" Value="M 8,14 L 8,4 L 17,2 L 17,12 M 8,14 C 8,18 1,18 1,15 C 1,12 8,12 8,14 M 17,12 C 17,16 10,16 10,13 C 10,10 17,10 17,12"/>
         </DataTrigger>
         <DataTrigger Binding="{Binding Kind}" Value="Image">
+          <Setter TargetName="KindBadge" Property="Background" Value="#A7D4E6"/>
           <Setter TargetName="KindIcon" Property="Data" Value="M 2,3 L 18,3 L 18,17 L 2,17 Z M 2,14 L 8,8 L 13,13 L 16,10 L 18,12"/>
         </DataTrigger>
       </DataTemplate.Triggers>
     </DataTemplate>
   </Window.Resources>
 
-  <Grid Margin="12,0,12,10">
+  <Grid Margin="14,8,14,10">
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto"/><RowDefinition Height="12"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/>
     </Grid.RowDefinitions>
-    <Border Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Margin="-12,0,-12,0" Padding="14,8">
+    <Border Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0" CornerRadius="14" Padding="8,6">
     <Grid>
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
       <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -142,7 +144,7 @@
 
     <Grid Grid.Row="2">
       <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="0.31*" MinWidth="220" MaxWidth="340"/>
+        <ColumnDefinition Width="0.36*" MinWidth="250" MaxWidth="340"/>
         <ColumnDefinition Width="10"/>
         <ColumnDefinition Width="*" MinWidth="390"/>
         <ColumnDefinition Width="10"/>
@@ -154,7 +156,7 @@
           <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
           <Grid Margin="0,0,0,12">
             <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-            <TextBlock Text="Orden del culto" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            <TextBlock Text="Orden del culto" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"/>
             <TextBlock Grid.Column="1" x:Name="PlanCountText" Text="0" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="8,0"/>
             <Button Grid.Column="2" Content="⋯" Click="OpenActionsClick" Padding="8,2" MinHeight="30" FontSize="18" AutomationProperties.Name="Organizar el orden">
               <Button.ContextMenu><ContextMenu>
@@ -173,7 +175,7 @@
           <StackPanel Grid.Row="2" Margin="0,10,0,0">
             <Grid>
               <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-              <Button x:Name="AddOrderButton" Click="OpenActionsClick" MinHeight="40" Padding="10,5" HorizontalContentAlignment="Center" AutomationProperties.Name="Agregar al orden de culto">
+              <Button x:Name="AddOrderButton" Background="{StaticResource SelectedBrush}" Foreground="{StaticResource AccentBrush}" BorderBrush="{StaticResource SelectedBrush}" Click="OpenActionsClick" MinHeight="40" Padding="10,5" HorizontalContentAlignment="Center" AutomationProperties.Name="Agregar al orden de culto">
                 <StackPanel Orientation="Horizontal"><TextBlock Text="+" FontSize="23" Margin="0,0,8,0" VerticalAlignment="Center"/><TextBlock Text="Agregar" VerticalAlignment="Center"/></StackPanel>
                 <Button.ContextMenu><ContextMenu>
                   <MenuItem x:Name="AddOrderLibrary" Header="Himno o contenido de biblioteca…" Tag="0" Click="AddOrderSourceClick"/>
@@ -195,14 +197,14 @@
       <GridSplitter Grid.Column="1" Style="{StaticResource PaneSplitter}" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" ShowsPreview="True" AutomationProperties.Name="Ancho del orden de culto"/>
 
       <Border Grid.Column="2" Style="{StaticResource Card}" Padding="14,12,14,14">
-        <TabControl x:Name="ContentTabs">
+        <TabControl x:Name="ContentTabs" SelectionChanged="ContentTabChanged">
           <TabItem Header="Himnario y medios">
             <Grid>
               <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
               <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <StackPanel>
-                  <TextBlock Text="Número de himno o nombre del contenido" Style="{StaticResource MutedText}" Margin="0,0,0,6"/>
+                  <TextBlock Text="Buscar himno o contenido" Style="{StaticResource MutedText}" Margin="0,0,0,6"/>
                   <TextBox x:Name="LibrarySearch" TextChanged="LibrarySearchChanged" KeyDown="LibrarySearchKeyDown" AutomationProperties.Name="Buscar en biblioteca" MinHeight="42" FontSize="17"/>
                 </StackPanel>
                 <Button x:Name="ClearSearchButton" Grid.Column="1" Content="Limpiar" Click="ClearLibrarySearchClick" VerticalAlignment="Bottom" Margin="6,0,0,0" Padding="9,8" MinHeight="42" AutomationProperties.Name="Limpiar búsqueda"/>
@@ -218,7 +220,7 @@
               </Grid>
               <Grid Grid.Row="4" Margin="0,10,0,0">
                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                <Button Content="+ Añadir al orden" Click="AddLibraryToPlanClick" MinHeight="40"/>
+                <Button Content="+ Añadir al orden" Click="AddLibraryToPlanClick" Background="{StaticResource SelectedBrush}" BorderBrush="{StaticResource SelectedBrush}" MinHeight="40"/>
               </Grid>
             </Grid>
           </TabItem>

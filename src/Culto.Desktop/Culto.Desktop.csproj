@@ -9,13 +9,15 @@
     <AssemblyName>CultoStudio</AssemblyName>
     <RootNamespace>Culto.Desktop</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>0.4.0</Version>
+    <Version>0.5.0</Version>
     <Authors>Culto Studio</Authors>
     <Description>Consola local para preparar y proyectar cultos.</Description>
     <!-- WPF owns startup/DPI; WinForms is referenced only for display enumeration. -->
     <NoWarn>$(NoWarn);WFO0003</NoWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Resource Include="Assets/Fonts/*.ttf" />
+    <None Update="Assets/Fonts/OFL.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <ProjectReference Include="../Culto.Core/Culto.Core.csproj" />
     <ProjectReference Include="../Culto.Remote/Culto.Remote.csproj" />
     <PackageReference Include="LibVLCSharp.WPF" Version="3.10.2" />

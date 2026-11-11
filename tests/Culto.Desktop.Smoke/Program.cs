@@ -310,6 +310,7 @@ internal static partial class Program
             Call(window, "CloseOutput");
         });
 
+        RunThemeTests(window);
         RunUsabilityTests(window, directory);
         RunOrderInteractionTests(window);
         RunBibleNavigationTests(window, directory);
