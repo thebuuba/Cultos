@@ -1,0 +1,249 @@
+using System;
+using System.IO;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using Culto.Core;
+using LibVLCSharp.Shared;
+using LibVLCSharp.WPF;
+using MediaPlayer = LibVLCSharp.Shared.MediaPlayer;
+
+namespace Culto.Desktop.Projection;
+
+public sealed class ProjectionSurface : UserControl, IDisposable
+{
+    private readonly bool _preview;
+    private readonly Grid _root = new() { Background = BackgroundBrush, ClipToBounds = true };
+    private readonly TextBlock _body = Text(72);
+    private readonly TextBlock _reference = Text(40);
+    private readonly TextBlock _version = Text(28);
+    private readonly Viewbox _text;
+    private readonly StackPanel _words;
+    private readonly Image _image = new() { Stretch = Stretch.Uniform };
+    private readonly VideoView _video = new() { Visibility = Visibility.Collapsed };
+    private LibVLC? _vlc;
+    private MediaPlayer? _player;
+    private Media? _media;
+    private string? _mediaKey;
+    private bool _suppressed;
+    private bool _pauseRequested;
+    private bool _started;
+    private bool _disposed;
+    private int _volume = 80;
+    private static readonly Brush BackgroundBrush = new SolidColorBrush(Color.FromRgb(16, 23, 34));
+
+    public event Action<string>? PlaybackError;
+
+    public ProjectionSurface(bool preview = false)
+    {
+        _preview = preview;
+        _words = new StackPanel { Width = 1400, VerticalAlignment = VerticalAlignment.Center };
+        _words.Children.Add(_body);
+        _reference.Margin = new Thickness(0, 48, 0, 0);
+        _words.Children.Add(_reference);
+        _version.Margin = new Thickness(0, 18, 0, 0);
+        _words.Children.Add(_version);
+        var canvas = new Grid { Width = 1600, Height = 900 };
+        canvas.Children.Add(_words);
+        _text = new Viewbox { Stretch = Stretch.Uniform, Child = canvas, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        _root.Children.Add(_image);
+        _root.Children.Add(_text);
+        _root.Children.Add(_video);
+        Content = _root;
+        ShowCue(null);
+    }
+
+    private static TextBlock Text(double size) => new()
+    {
+        FontFamily = new FontFamily("Segoe UI"), FontSize = size, Foreground = Brushes.White,
+        TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap
+    };
+
+    public int Volume
+    {
+        get => _preview ? 0 : _volume;
+        set
+        {
+            _volume = Math.Clamp(value, 0, 100);
+            if (_player is not null) { _player.Volume = Volume; _player.Mute = _preview; }
+        }
+    }
+    public bool Loop { get; set; }
+    public double Position => _player is null || _disposed ? 0 : Math.Max(0, _player.Time / 1000d);
+    public double Duration => _player is null || _disposed ? 0 : Math.Max(0, _player.Length / 1000d);
+    public bool IsPlaying => !_disposed && _player?.IsPlaying == true;
+
+    public void ShowCue(Cue? cue, bool blackout = false, bool hideText = false)
+    {
+        if (_disposed) return;
+        _suppressed = blackout || hideText;
+        _root.Background = blackout ? Brushes.Black : BackgroundBrush;
+        _image.Visibility = _text.Visibility = _video.Visibility = Visibility.Collapsed;
+        if (_suppressed) SetPaused(true);
+
+        bool mediaCue = cue?.Kind is CueKind.Video or CueKind.Audio;
+        string? key = mediaCue ? $"{cue!.Id}|{cue.Kind}|{cue.FilePath}" : null;
+        if (key != _mediaKey)
+        {
+            _player?.Stop();
+            if (_player is not null) _player.Media = null;
+            _media?.Dispose(); _media = null;
+            _mediaKey = key;
+            _started = false;
+            _pauseRequested = _suppressed;
+        }
+        if (_suppressed) return;
+
+        try
+        {
+            if (cue is null)
+            {
+                if (_preview) ShowText("Vista previa");
+                return;
+            }
+            switch (cue.Kind)
+            {
+                case CueKind.Text:
+                case CueKind.Bible:
+                    ShowText(string.IsNullOrWhiteSpace(cue.Body) ? cue.Title : cue.Body, cue.Reference, cue.Version);
+                    break;
+                case CueKind.Image:
+                    RequireFile(cue.FilePath);
+                    using (var stream = File.Open(cue.FilePath!, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                    {
+                        var bitmap = new BitmapImage();
+                        bitmap.BeginInit(); bitmap.CacheOption = BitmapCacheOption.OnLoad; bitmap.StreamSource = stream; bitmap.EndInit(); bitmap.Freeze();
+                        _image.Source = bitmap;
+                    }
+                    _image.Visibility = Visibility.Visible;
+                    break;
+                case CueKind.Video:
+                case CueKind.Audio:
+                    RequireFile(cue.FilePath);
+                    EnsurePlayer();
+                    if (cue.Kind == CueKind.Video) _video.Visibility = Visibility.Visible;
+                    else ShowText(cue.Title);
+                    if (_media is null)
+                    {
+                        _media = new Media(_vlc!, Path.GetFullPath(cue.FilePath!), FromType.FromPath);
+                        if (_preview) _media.AddOption(":no-audio");
+                        _player!.Media = _media;
+                    }
+                    if (!_started && !_pauseRequested) Start();
+                    break;
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException or VLCException)
+        {
+            ReportError("No se pudo mostrar el contenido. " + ex.Message);
+        }
+    }
+
+    private static void RequireFile(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) throw new FileNotFoundException("El archivo ya no está disponible.");
+    }
+
+    private void ShowText(string body, string reference = "", string version = "")
+    {
+        _text.Visibility = Visibility.Visible;
+        _body.Text = body; _reference.Text = reference; _version.Text = version;
+        _reference.Visibility = string.IsNullOrWhiteSpace(reference) ? Visibility.Collapsed : Visibility.Visible;
+        _version.Visibility = string.IsNullOrWhiteSpace(version) ? Visibility.Collapsed : Visibility.Visible;
+        // Fit wrapped text to a full-width 16:9 canvas, keeping room for citations.
+        double small = 1, large = 76;
+        for (int attempt = 0; attempt < 12; attempt++)
+        {
+            double size = (small + large) / 2;
+            _body.FontSize = size; _reference.FontSize = size * .56; _version.FontSize = size * .39;
+            _words.InvalidateMeasure();
+            _words.Measure(new Size(1400, double.PositiveInfinity));
+            if (_words.DesiredSize.Height > 760) large = size; else small = size;
+        }
+        _body.FontSize = small; _reference.FontSize = small * .56; _version.FontSize = small * .39;
+    }
+
+    private void EnsurePlayer()
+    {
+        if (_player is not null) return;
+        _vlc = new LibVLC("--no-video-title-show", "--quiet");
+        _player = new MediaPlayer(_vlc) { Volume = Volume, Mute = _preview, EnableMouseInput = false, EnableKeyInput = false };
+        _video.MediaPlayer = _player;
+        _player.EncounteredError += OnPlaybackError;
+        _player.Playing += OnPlaying;
+        _player.EndReached += OnEndReached;
+    }
+
+    private void OnPlaybackError(object? sender, EventArgs args) => Dispatcher.BeginInvoke(new Action(() =>
+    {
+        if (!_disposed) ReportError("No se pudo reproducir el archivo. Compruebe que sea compatible y esté disponible.");
+    }));
+
+    private void OnPlaying(object? sender, EventArgs args) => Dispatcher.BeginInvoke(new Action(() =>
+    {
+        if (_disposed || _player is null) return;
+        _player.Mute = _preview;
+        _player.Volume = Volume;
+        if (_suppressed || _pauseRequested) _player.SetPause(true);
+    }));
+
+    private void OnEndReached(object? sender, EventArgs args) => Dispatcher.BeginInvoke(new Action(() =>
+    {
+        if (!_disposed && Loop && !_suppressed && !_pauseRequested) Restart();
+    }));
+
+    private void ReportError(string message)
+    {
+        if (_disposed) return;
+        _player?.Stop();
+        _video.Visibility = _image.Visibility = Visibility.Collapsed;
+        if (!_suppressed) ShowText("No se pudo mostrar el contenido");
+        PlaybackError?.Invoke(message);
+    }
+
+    private void Start()
+    {
+        if (_player is null || _media is null) return;
+        _player.Volume = Volume; _player.Mute = _preview;
+        _started = _player.Play();
+        if (!_started) ReportError("No se pudo iniciar la reproducción del archivo.");
+    }
+
+    public void SetPaused(bool paused)
+    {
+        if (_disposed) return;
+        _pauseRequested = paused || _suppressed;
+        if (_player is null) return;
+        if (!_pauseRequested && !_started) Start();
+        else _player.SetPause(_pauseRequested);
+    }
+
+    public void Restart()
+    {
+        if (_disposed || _player is null || _media is null) return;
+        _player.Stop();
+        _started = false;
+        _pauseRequested = _suppressed;
+        if (!_suppressed) Start();
+    }
+
+    public void Seek(double fraction)
+    {
+        if (_disposed || _player is null || !double.IsFinite(fraction)) return;
+        _player.Position = (float)Math.Clamp(fraction, 0, 1);
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        if (_player is not null)
+        {
+            _player.EncounteredError -= OnPlaybackError; _player.Playing -= OnPlaying; _player.EndReached -= OnEndReached;
+            _player.Stop(); _video.MediaPlayer = null; _player.Dispose();
+        }
+        _video.Dispose(); _media?.Dispose(); _vlc?.Dispose();
+        _image.Source = null;
+    }
+}

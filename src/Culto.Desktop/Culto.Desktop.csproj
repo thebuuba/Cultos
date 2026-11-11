@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>CultoStudio</AssemblyName>
+    <RootNamespace>Culto.Desktop</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Version>0.1.0</Version>
+    <Authors>Culto Studio</Authors>
+    <Description>Consola local para preparar y proyectar cultos.</Description>
+    <!-- WPF owns startup/DPI; WinForms is referenced only for display enumeration. -->
+    <NoWarn>$(NoWarn);WFO0003</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Culto.Core/Culto.Core.csproj" />
+    <ProjectReference Include="../Culto.Remote/Culto.Remote.csproj" />
+    <PackageReference Include="LibVLCSharp.WPF" Version="3.10.2" />
+    <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.24" />
+    <PackageReference Include="QRCoder" Version="1.8.1" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,91 @@
+# Culto Studio
+
+Primera versión de una consola nativa para Windows destinada a preparar y proyectar cultos. Reúne el orden del culto, himnario en video, imágenes, textos, Biblia importable y mando desde el teléfono. No depende de OBS.
+
+## Abrir el programa
+
+Ejecuta **Abrir Culto Studio.cmd** en esta carpeta, o abre `artifacts/CultoStudio/CultoStudio.exe`. La distribución publicada incluye .NET y el reproductor nativo; conserva todos los archivos de esa carpeta junto al ejecutable. Windows x64.
+
+La primera apertura ofrece una plantilla sencilla con bienvenida, oración y despedida. No incluye videos del himnario ni el texto completo de una traducción bíblica.
+
+En esta PC ya se incorporaron a la biblioteca los **613 videos MKV** encontrados en `Documentos\Himnario Adventista 2022 VIDEOS\Data\Himnario Videos`. La instalación original se identifica como Himnario Adventista 2023. Los videos se conservan allí y la biblioteca guarda sus ubicaciones; no forman parte de la distribución del programa.
+
+## Preparar un culto
+
+1. Escribe el nombre del culto arriba. Puedes guardar una copia o abrir otro orden con los botones de la cabecera.
+2. En **Biblioteca**, importa los archivos o la carpeta del himnario. Se admiten MKV, MP4, MOV, WEBM, AVI, WMV, MP3, WAV, FLAC, OGG, JPG, JPEG, PNG y BMP. La compatibilidad final depende del contenido interno del archivo; prueba los videos que usarás antes del culto.
+3. Los números al inicio del nombre se reconocen como números de himno. **Editar** permite corregir título y número. Los archivos permanecen en su carpeta original: conserva la ubicación y conecta cualquier disco externo antes de comenzar.
+4. Selecciona un elemento y pulsa **Añadir al orden**. Reordena con Subir/Bajar o arrastrando. Las notas son privadas y no se proyectan.
+5. En **Texto**, prepara anuncios, bienvenidas o letras. Puedes guardarlos en la biblioteca y el orden.
+
+## Biblia
+
+La versión preferida es **Reina-Valera 1960**. El módulo está preparado para importar una fuente autorizada y consultarla sin internet; **el texto completo RVR1960 no viene incluido**.
+
+En la pestaña Biblia pulsa **Importar Biblia** y elige JSON o Zefania XML. Consulta [el formato de importación](docs/formato-biblia.md). Escribe una cita (`Juan 3:16`, `1 Juan 2:1-3`) o una frase. Seleccionar prepara el versículo; Proyectar lo envía a la salida. La búsqueda no interrumpe la lectura que ya está en pantalla. Las lecturas también se pueden añadir al orden.
+
+El nombre de la versión importada se muestra realmente; el programa no renombra otra traducción como RVR1960. La información de atribución del archivo se conserva. La integración/distribución del texto completo RVR1960 debe contar con la autorización correspondiente: [American Bible Society](https://www.americanbible.org/rights-and-permissions/).
+
+## Proyectar a las tres pantallas
+
+Las tres pantallas que reciben el mismo HDMI muestran una sola salida. Configura Windows con **Extender** para conservar la consola en el monitor del operador. En **Pantalla**, selecciona la salida HDMI y abre la proyección. El programa abre primero un fondo vacío.
+
+- **Preparado** es una vista previa silenciosa. Buscar y seleccionar no cambian lo que está en pantalla.
+- **Proyectar / F5** envía el contenido preparado.
+- **Siguiente / F6** y **Anterior / F7** avanzan desde el elemento en vivo, aunque hayas preparado otro contenido.
+- **Negro / F8** oculta la salida y pausa el audio/video. Restaurar la imagen mantiene el video pausado hasta pulsar Continuar.
+- **Fondo** oculta el contenido y pausa la reproducción. Proyectar vuelve a mostrar el preparado.
+- Volumen, posición, Reiniciar y Repetir actúan sobre la reproducción de salida, no sobre la vista previa.
+
+Si sólo hay un monitor, se abre una **ventana de ensayo**. El monitor principal nunca se ocupa automáticamente a pantalla completa. Si se desconecta la salida, se detiene y debe elegirse de nuevo.
+
+El panel «En pantalla» muestra el estado, título y texto actual. Para video e imagen es un resumen del contenido, no un segundo monitor de video sincronizado. La salida externa sí reproduce el archivo.
+
+**Captura** toma una imagen estática de la pantalla elegida: la consola se minimiza durante 1,5 segundos y luego permite revisar la imagen. Esta versión no incluye captura continua de ventanas.
+
+## Control desde el teléfono
+
+1. Conecta PC y teléfono a la misma red local.
+2. Abre **Mando móvil → Activar mando local**.
+3. Selecciona la dirección IP de la PC que corresponde a esa red y escanea el QR con el teléfono.
+4. En **Personalizar botones** crea accesos a acciones o contenidos concretos. Puedes cambiar nombre y color.
+
+El mando utiliza el puerto TCP **18765**. No necesita internet y sólo permite acciones propias de la consola. La vinculación cambia al desactivar y activar el mando. No compartas el enlace fuera del equipo que dirige el culto. Usa una red local de confianza; esta versión usa HTTP dentro de esa red.
+
+La aplicación no configura el firewall. Si Windows solicita acceso, el usuario debe decidir si permite el programa en su **red privada**. Si el teléfono no abre el mando, comprueba la misma Wi-Fi, dirección elegida, aislamiento de clientes del router y permiso del firewall. No hace falta abrir puertos del router hacia internet.
+
+Si el teléfono pierde conexión, la proyección continúa y los controles de la PC siguen disponibles. **Desactivar mando** invalida el enlace sin cerrar la salida.
+
+## Guardado y copias
+
+Los datos se guardan en `%LOCALAPPDATA%\CultoStudio`, fuera de la carpeta del programa. El orden, biblioteca, botones y preferencias se guardan automáticamente. Los archivos JSON mantienen una copia `.bak` para recuperación. Al crear o abrir un culto, el anterior se archiva en la carpeta `Historial`.
+
+**Guardar** exporta una copia del orden; no copia los videos. Para trasladarlo a otra computadora debes conservar también los archivos multimedia y ajustar/importar sus ubicaciones. Si un archivo falta, la aplicación avisa antes de cambiar la proyección.
+
+Si falla el guardado local al cerrar, la opción predeterminada mantiene abierta la consola. Puedes exportar el orden a otra ubicación y después elegir expresamente cerrar sin guardar localmente; esa exportación no respalda cambios de biblioteca, botones o configuración.
+
+## Desarrollo y comprobaciones
+
+El SDK .NET 10 se encuentra en `.tools/dotnet` en esta computadora. También puedes instalar el SDK .NET 10 oficial. El SDK no forma parte de la distribución para el operador.
+
+```powershell
+.\scripts\build.ps1
+.\scripts\build.ps1 -Publish
+```
+
+El primer comando compila Release y ejecuta las pruebas del núcleo y del servidor. `-Publish` genera además una distribución autónoma Windows x64. `-Smoke` ejecuta las pruebas de integración de escritorio, que abren ventanas de ensayo y usan una carpeta temporal aislada.
+
+```powershell
+.\scripts\build.ps1 -Smoke
+node tests/Culto.Remote.Tests/mobile-smoke.cjs
+```
+
+Los tests de Biblia emplean textos sintéticos y nunca los presentan como traducción real. El ensayo de reproducción utiliza un MKV corto generado localmente. Las pantallas HDMI y el teléfono físico de la iglesia deben verificarse antes de usar esta versión en un culto.
+
+Resultados y límites de la comprobación: [validación de esta entrega](docs/validacion.md).
+
+## Alcance de esta versión
+
+No incluye transmisión, grabación, mezcla de cámaras, captura continua, importación directa de bases de EasyWorship, reproducción de PowerPoint ni salidas independientes para escenario. El texto de RVR1960 y los videos reales del himnario los incorpora la iglesia desde fuentes autorizadas. Es una primera versión funcional para ensayar y ajustar al equipo real.
+
+Código organizado en `src/Culto.Core`, `src/Culto.Desktop` y `src/Culto.Remote`. Diseño y plan en `docs/superpowers`. Dependencias: [WPF/.NET](https://dotnet.microsoft.com/), [LibVLCSharp/VideoLAN](https://docs.videolan.me/libvlcsharp/), [QRCoder](https://github.com/codebude/QRCoder). Véase [componentes de terceros](THIRD-PARTY-NOTICES.md).

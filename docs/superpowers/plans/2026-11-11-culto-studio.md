@@ -1,6 +1,6 @@
 # Culto Studio Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Construir una primera aplicación Windows ejecutable que gestione y proyecte un culto, con Biblia importable, videos MKV y mando local.
 
@@ -31,7 +31,7 @@
 
 **Interfaces:** implementa exactamente los contratos C# de la especificación. No depende de Desktop ni Remote.
 
-- [ ] Crear pruebas para preparación independiente, snapshot en vivo, navegación, Biblia, importación MKV y guardado recuperable. Ejemplo:
+- [x] Crear pruebas para preparación independiente, snapshot en vivo, navegación, Biblia, importación MKV y guardado recuperable. Ejemplo:
 ```csharp
 var s = new PresentationSession();
 var a = new Cue { Title = "Primero", Body = "Original" };
@@ -39,9 +39,9 @@ s.Prepare(a); s.GoLive(); a.Body = "Editado";
 s.Prepare(new Cue { Title = "Segundo" });
 Assert.Equal("Original", s.Live!.Body);
 ```
-- [ ] Ejecutar `.tools/dotnet/dotnet test tests/Culto.Core.Tests` y comprobar fallo de los comportamientos aún ausentes.
-- [ ] Implementar contratos; normalizar tildes/abreviaturas, mantener orden canónico, rechazar referencias incompletas, XML con DTD y duplicados. Reconocer MKV, MP4, MOV, WEBM, AVI, WMV, MP3, WAV, FLAC, OGG, JPG, JPEG, PNG y BMP.
-- [ ] Ejecutar pruebas completas y revisar cambios de este componente.
+- [x] Ejecutar `.tools/dotnet/dotnet test tests/Culto.Core.Tests` y comprobar fallo de los comportamientos aún ausentes.
+- [x] Implementar contratos; normalizar tildes/abreviaturas, mantener orden canónico, rechazar referencias incompletas, XML con DTD y duplicados. Reconocer MKV, MP4, MOV, WEBM, AVI, WMV, MP3, WAV, FLAC, OGG, JPG, JPEG, PNG y BMP.
+- [x] Ejecutar pruebas completas y revisar cambios de este componente.
 
 ## Task 2: Mando local
 
@@ -62,10 +62,10 @@ public sealed class RemoteHost : IAsyncDisposable {
  public ValueTask DisposeAsync();
 }
 ```
-- [ ] Crear pruebas HTTP reales con servidor loopback en puerto 0: sin token retorna 401, comando desconocido 400, duplicación de requestId ejecuta una sola vez y estado refleja callback.
-- [ ] Ejecutar filtro RemoteTests y observar fallo antes de implementar.
-- [ ] Implementar API GET /api/state y POST /api/command; serialización camelCase; protección de token, origen y tamaño; página móvil autónoma sin CDN; botones de estado y deck.
-- [ ] Ejecutar pruebas y revisar que ninguna respuesta revele rutas ni notas.
+- [x] Crear pruebas HTTP reales con servidor loopback en puerto 0: sin token retorna 401, comando desconocido 400, duplicación de requestId ejecuta una sola vez y estado refleja callback.
+- [x] Ejecutar filtro RemoteTests y observar fallo antes de implementar.
+- [x] Implementar API GET /api/state y POST /api/command; serialización camelCase; protección de token, origen y tamaño; página móvil autónoma sin CDN; botones de estado y deck.
+- [x] Ejecutar pruebas y revisar que ninguna respuesta revele rutas ni notas.
 
 ## Task 3: Proyección y reproducción
 
@@ -73,10 +73,10 @@ public sealed class RemoteHost : IAsyncDisposable {
 
 **Interfaces:** en Culto.Desktop.Projection, `ProjectionSurface(bool preview = false)` con `ShowCue(Cue? cue, bool blackout = false, bool hideText = false)`, `SetPaused(bool)`, `Restart()`, `Seek(double fraction)`, `int Volume {get;set;}`, `bool Loop {get;set;}`, `double Position {get;}`, `double Duration {get;}`, `bool IsPlaying {get;}`, `event Action<string>? PlaybackError`, `Dispose()`. En Culto.Desktop.Services, `DisplayInfo(string DeviceName,string Label,int Left,int Top,int Width,int Height,bool IsPrimary)`; `DisplayService.GetDisplays()`, `PlaceWindow(Window,DisplayInfo,bool fullscreen)`; `CaptureService.CaptureDisplay(DisplayInfo,string outputPath)` devuelve ruta PNG.
 
-- [ ] Preparar prueba manual reproductible: texto largo, imagen panorámica, archivo MKV de 3 segundos con sonido, negro y restauración pausada. La prueba falla inicialmente al no haber renderer.
-- [ ] Implementar Surface con vídeo silencioso en previa, texto ajustable, errores visibles y evento para operador, liberación de recursos, pausa segura al poner negro/fondo.
-- [ ] Implementar posicionamiento DPI correcto y ventana de salida que reporta cierre/desconexión. Permitir ventana de ensayo cuando solo hay un monitor.
-- [ ] Compilar y ejecutar prueba de texto/imagen/MKV; comprobar duración/pausa/posición mediante API del reproductor y captura visual.
+- [x] Preparar prueba manual reproductible: texto largo, imagen panorámica, archivo MKV de 3 segundos con sonido, negro y restauración pausada. La prueba falla inicialmente al no haber renderer.
+- [x] Implementar Surface con vídeo silencioso en previa, texto ajustable, errores visibles y evento para operador, liberación de recursos, pausa segura al poner negro/fondo.
+- [x] Implementar posicionamiento DPI correcto y ventana de salida que reporta cierre/desconexión. Permitir ventana de ensayo cuando solo hay un monitor.
+- [x] Compilar y ejecutar prueba de texto/imagen/MKV; comprobar duración/pausa/posición mediante API del reproductor y captura visual.
 
 ## Task 4: Consola del operador e integración
 
@@ -84,13 +84,13 @@ public sealed class RemoteHost : IAsyncDisposable {
 
 **Interfaces:** consume las APIs anteriores. `MainWindow` posee PresentationSession, plan y biblioteca; todos los comandos móviles pasan por Dispatcher.InvokeAsync. Preferencias locales serializan plan, biblioteca, deck y dispositivo seleccionado.
 
-- [ ] Construir shell con nombre de culto, orden, biblioteca, Biblia, texto libre, previa, resumen en vivo y barra de acciones. Usar recursos XAML de color/tipografía y etiquetas accesibles.
-- [ ] Conectar importar/abrir/guardar, orden, búsqueda, notas, preparar/proyectar, navegación, reproducción, pantalla y captura estática. Guardar tras cambios; mostrar error recuperable si falla escritura.
-- [ ] Conectar importación de Biblia JSON/XML, citas y frases, división por versículos y transición al siguiente versículo durante lectura espontánea. Nunca etiquetar datos sintéticos como RVR1960.
-- [ ] Conectar QR de mando, inicio/cierre explícitos y editor de botones con acciones predefinidas.
-- [ ] Compilar Release, ejecutar todas las pruebas y comprobar la aplicación con uso de escritorio; corregir fallos reales.
-- [ ] Publicar carpeta autónoma Windows x64 en artifacts/CultoStudio y un iniciador fácil de encontrar. Documentar instalación, uso, formato bíblico y limitaciones reales.
-- [ ] Revisión final independiente y repetir solo las comprobaciones afectadas por correcciones.
+- [x] Construir shell con nombre de culto, orden, biblioteca, Biblia, texto libre, previa, resumen en vivo y barra de acciones. Usar recursos XAML de color/tipografía y etiquetas accesibles.
+- [x] Conectar importar/abrir/guardar, orden, búsqueda, notas, preparar/proyectar, navegación, reproducción, pantalla y captura estática. Guardar tras cambios; mostrar error recuperable si falla escritura.
+- [x] Conectar importación de Biblia JSON/XML, citas y frases, división por versículos y transición al siguiente versículo durante lectura espontánea. Nunca etiquetar datos sintéticos como RVR1960.
+- [x] Conectar QR de mando, inicio/cierre explícitos y editor de botones con acciones predefinidas.
+- [x] Compilar Release, ejecutar todas las pruebas y comprobar la aplicación con uso de escritorio; corregir fallos reales.
+- [x] Publicar carpeta autónoma Windows x64 en artifacts/CultoStudio y un iniciador fácil de encontrar. Documentar instalación, uso, formato bíblico y limitaciones reales.
+- [x] Revisión final independiente y repetir solo las comprobaciones afectadas por correcciones.
 
 ## Aceptación
 

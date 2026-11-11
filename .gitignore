@@ -6,4 +6,8 @@ artifacts/
 *.user
 *.suo
 TestResults/
+tests/Culto.Renderer.Smoke/fixtures/result.txt
+tests/Culto.Renderer.Smoke/fixtures/text.png
+tests/Culto.Renderer.Smoke/fixtures/image.png
+tests/Culto.Renderer.Smoke/fixtures/video.png
 

@@ -1,0 +1,31 @@
+namespace Culto.Core;
+
+public enum CueKind { Text, Bible, Image, Video, Audio }
+
+public sealed class Cue
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Title { get; set; } = "";
+    public CueKind Kind { get; set; }
+    public string Body { get; set; } = "";
+    public string Reference { get; set; } = "";
+    public string Version { get; set; } = "";
+    public string? FilePath { get; set; }
+    public int? HymnNumber { get; set; }
+    public string Notes { get; set; } = "";
+}
+
+public sealed class ServicePlan
+{
+    public string Name { get; set; } = "Culto del sábado";
+    public List<Cue> Items { get; set; } = [];
+}
+
+public sealed record BibleVerse(string Book, int Chapter, int Verse, string Text);
+
+public sealed class BibleDocument
+{
+    public string Name { get; set; } = "";
+    public string Attribution { get; set; } = "";
+    public List<BibleVerse> Verses { get; set; } = [];
+}

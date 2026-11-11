@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101722">
+<title>Mando · Culto Studio</title>
+<style>
+:root{color-scheme:dark;--bg:#101722;--surface:#192332;--line:#2B3A4D;--text:#F0F4FA;--muted:#A6B7CB;--accent:#43D9BE;--amber:#FFCF75;--danger:#FFADAD}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 "Segoe UI",system-ui,sans-serif}main{max-width:680px;margin:auto;padding:24px 20px calc(32px + env(safe-area-inset-bottom))}header{display:flex;gap:16px;align-items:center;justify-content:space-between;margin-bottom:24px}.brand{font-weight:700;font-size:20px;letter-spacing:-.4px}.eyebrow{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:700}.status{font-size:13px;border:1px solid var(--line);border-radius:999px;padding:7px 12px;color:var(--amber)}.status.connected{color:var(--accent)}h1{font-size:28px;line-height:1.2;letter-spacing:-.7px;margin:6px 0 24px;overflow-wrap:anywhere}h2{font-size:16px;margin:0 0 16px}.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px}.live{border-left:3px solid var(--accent)}.title{font-size:22px;font-weight:600;margin:4px 0;overflow-wrap:anywhere}.prepared{color:var(--amber)}.detail{color:var(--muted);font-size:14px;margin:5px 0 0}.row{display:flex;align-items:center;justify-content:space-between;gap:12px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.controls{margin:20px 0}button{font:600 16px/1.25 "Segoe UI",system-ui,sans-serif;min-height:54px;padding:14px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--text);cursor:pointer;touch-action:manipulation;overflow-wrap:anywhere;transition:background .15s,border-color .15s}button:hover:not(:disabled){border-color:var(--accent);background:#233446}button:active:not(:disabled){transform:translateY(1px)}button.primary{background:var(--accent);color:var(--bg);border-color:var(--accent);grid-column:1/-1;font-size:19px;min-height:64px}button[aria-pressed=true]{border-color:var(--amber);color:var(--amber)}button:disabled{opacity:.4;cursor:not-allowed}:focus-visible{outline:3px solid var(--accent);outline-offset:4px}label{display:block;font-size:14px;color:var(--muted)}input[type=range]{display:block;width:100%;min-height:48px;accent-color:var(--accent);cursor:pointer}input:disabled{opacity:.4}output{font-variant-numeric:tabular-nums;color:var(--text)}.field{margin-top:16px}.message{color:var(--muted);min-height:48px;margin:0 0 16px;font-size:14px}.message.error{color:var(--danger)}#retry{min-height:48px;margin-top:12px;width:100%}#deck button{text-align:left;min-height:72px;border-top:3px solid var(--accent)}footer{font-size:12px;color:var(--muted);text-align:center;margin-top:24px}.empty{color:var(--muted);font-size:14px;margin:0}noscript{display:block;padding:20px;color:var(--amber)}@media(min-width:560px){main{padding-top:36px}.title{font-size:26px}}@media(max-width:350px){main{padding:16px 12px}.brand{font-size:18px}.status{font-size:12px;padding:6px 8px}}@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<noscript>Activa JavaScript para usar el mando local.</noscript>
+<main>
+<header><div class="brand">Culto Studio<div class="eyebrow">Mando local</div></div><span id="connection" class="status" role="status">Conectando…</span></header>
+<div class="eyebrow">Orden del culto</div><h1 id="plan">Esperando la consola</h1>
+<div id="notice" class="message" role="status" aria-live="polite">Vinculando con la consola del operador…</div>
+<section class="panel live" aria-labelledby="live-label"><div class="row"><span id="live-label" class="eyebrow">En vivo</span><span id="blackout-state" class="detail">Sin confirmar</span></div><div id="live-title" class="title">—</div><p id="play-state" class="detail">Esperando estado</p></section>
+<section class="panel" aria-labelledby="prepared-label"><span id="prepared-label" class="eyebrow prepared">Preparado</span><div id="prepared-title" class="title">—</div><p class="detail">Solo se proyecta al pulsar Proyectar.</p></section>
+<div class="grid controls" aria-label="Controles de proyección">
+<button class="primary" data-action="project" disabled>Proyectar preparado</button>
+<button data-action="previous" disabled>Anterior</button><button data-action="next" disabled>Siguiente</button>
+<button data-action="blackout" id="blackout" aria-pressed="false" disabled>Salida en negro</button><button data-action="background" disabled>Solo fondo</button>
+</div>
+<section class="panel" aria-labelledby="playback-label"><h2 id="playback-label">Reproducción</h2>
+<div class="grid"><button data-action="pause" id="pause" disabled>Reanudar</button><button data-action="restart" disabled>Reiniciar</button></div>
+<div class="field"><div class="row"><label for="position">Posición</label><output id="time" for="position">0:00 / 0:00</output></div><input id="position" type="range" min="0" max="1000" step="1" value="0" disabled aria-label="Posición de reproducción"></div>
+<div class="field"><div class="row"><label for="volume">Volumen de salida</label><output id="volume-value" for="volume">—</output></div><input id="volume" type="range" min="0" max="100" step="1" value="70" disabled></div>
+</section>
+<section class="panel" aria-labelledby="deck-label"><h2 id="deck-label">Accesos del culto</h2><div id="deck" class="grid"></div><p id="deck-empty" class="empty">Los botones se configuran en la consola.</p></section>
+<button id="retry" type="button">Volver a conectar</button>
+<footer>Control desde la red local · La consola conserva el control de la salida.</footer>
+</main>
+<script>
+'use strict';
+const $ = id => document.getElementById(id), storageKey = 'culto.remote.token';
+let token = '', connected = false, pending = false, current = null, polling = false, deckSignature = '';
+try {
+  const fragment = location.hash.slice(1);
+  if (fragment) {
+    token = fragment.startsWith('token=') ? new URLSearchParams(fragment).get('token') || '' : fragment;
+    history.replaceState(null, '', location.pathname + location.search);
+    if (/^[a-zA-Z0-9_-]{40,128}$/.test(token)) sessionStorage.setItem(storageKey, token); else token = '';
+  } else token = sessionStorage.getItem(storageKey) || '';
+} catch (_) { if (location.hash) history.replaceState(null, '', location.pathname + location.search); }
+function message(text, error = false) { $('notice').textContent = text; $('notice').classList.toggle('error', error); }
+function enableControls() {
+  document.querySelectorAll('[data-action],#volume,#position').forEach(element => element.disabled = !connected || pending);
+  if (connected && !pending && (!current || current.duration <= 0)) $('position').disabled = true;
+}
+function connection(ok) {
+  connected = ok; $('connection').textContent = ok ? 'Conectado' : 'Sin conexión';
+  $('connection').classList.toggle('connected', ok); enableControls();
+}
+function time(seconds) {
+  const value = Math.max(0, Math.floor(Number(seconds) || 0));
+  return Math.floor(value / 60) + ':' + String(value % 60).padStart(2, '0');
+}
+function render(state, force = false) {
+  current = state;
+  $('plan').textContent = state.planName || 'Culto'; $('live-title').textContent = state.liveTitle || 'Sin contenido en vivo';
+  $('prepared-title').textContent = state.preparedTitle || 'Sin contenido preparado';
+  $('blackout-state').textContent = state.isBlackout ? 'SALIDA EN NEGRO' : 'Salida visible';
+  $('blackout').setAttribute('aria-pressed', String(state.isBlackout));
+  $('pause').textContent = state.isPaused ? 'Reanudar' : 'Pausar';
+  $('play-state').textContent = state.isPaused ? 'Reproducción pausada' : 'Reproduciendo';
+  $('time').textContent = time(state.position) + ' / ' + time(state.duration); $('volume-value').textContent = state.volume + ' %';
+  if (force || document.activeElement !== $('volume')) $('volume').value = state.volume;
+  if (force || document.activeElement !== $('position')) $('position').value = state.duration > 0 ? Math.round(state.position / state.duration * 1000) : 0;
+  const buttons = Array.isArray(state.buttons) ? state.buttons : [], signature = JSON.stringify(buttons);
+  if (signature !== deckSignature) {
+    deckSignature = signature; $('deck').replaceChildren();
+    buttons.forEach(item => {
+      const button = document.createElement('button'); button.textContent = item.label; button.dataset.action = 'deck';
+      if (/^#[0-9a-f]{6}$/i.test(item.color)) button.style.borderTopColor = item.color;
+      button.addEventListener('click', () => send('deck', { buttonId: item.id })); $('deck').appendChild(button);
+    });
+    $('deck-empty').hidden = buttons.length > 0;
+  }
+  enableControls();
+}
+async function request(path, options = {}) {
+  const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 5000);
+  try {
+    const response = await fetch(path, { ...options, cache: 'no-store', credentials: 'omit', signal: controller.signal,
+      headers: { Authorization: 'Bearer ' + token, ...(options.headers || {}) } });
+    if (response.status === 401) {
+      token = ''; try { sessionStorage.removeItem(storageKey); } catch (_) {}
+      throw new Error('La vinculación venció. Escanea el QR de la consola.');
+    }
+    if (!response.ok) throw new Error('La consola rechazó la solicitud. Revisa el mando en el equipo.');
+    return await response.json();
+  } finally { clearTimeout(timeout); }
+}
+async function refresh(force = false) {
+  if (!token) { connection(false); message('Escanea el QR del mando desde la consola para vincular este teléfono.', true); return false; }
+  if (polling) return false;
+  polling = true;
+  try {
+    const state = await request('/api/state'); render(state, force); connection(true);
+    if (!pending) message('Estado actualizado desde la consola.'); return true;
+  } catch (error) {
+    connection(false); message(token ? 'Sin conexión. Verifica el wifi y que el mando esté activo. La salida sigue bajo control de la consola.' : error.message, true); return false;
+  } finally { polling = false; }
+}
+function requestId() {
+  const bytes = new Uint8Array(16); crypto.getRandomValues(bytes);
+  return Array.from(bytes, value => value.toString(16).padStart(2, '0')).join('');
+}
+async function send(action, extra = {}) {
+  if (!connected || pending) return;
+  pending = true; enableControls(); message('Enviando acción…');
+  try {
+    const result = await request('/api/command', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, requestId: requestId(), ...extra }) });
+    if (!result.success) { message(result.message || 'La acción no se completó. Revisa la consola.', true); if (current) render(current, true); return; }
+    await refresh(true); if (connected) message(result.message || 'Acción confirmada.');
+  } catch (error) {
+    connection(false); if (current) render(current, true);
+    message(token ? 'No se confirmó la acción. Revisa la salida en la consola antes de repetirla.' : error.message, true);
+  } finally { pending = false; enableControls(); }
+}
+document.querySelectorAll('button[data-action]').forEach(button => button.addEventListener('click', () => send(button.dataset.action)));
+$('volume').addEventListener('change', event => send('volume', { value: Number(event.target.value) }));
+$('position').addEventListener('change', event => send('seek', { value: Number(event.target.value) / 1000 }));
+$('retry').addEventListener('click', () => refresh(true));
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(true); });
+async function poll() { if (!document.hidden && !pending) await refresh(); setTimeout(poll, 1500); }
+poll();
+</script>
+</body>
+</html>

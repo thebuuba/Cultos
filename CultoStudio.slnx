@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Culto.Core/Culto.Core.csproj" />
+    <Project Path="src/Culto.Desktop/Culto.Desktop.csproj" />
+    <Project Path="src/Culto.Remote/Culto.Remote.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Culto.Core.Tests/Culto.Core.Tests.csproj" />
+    <Project Path="tests/Culto.Desktop.Smoke/Culto.Desktop.Smoke.csproj" />
+    <Project Path="tests/Culto.Remote.Tests/Culto.Remote.Tests.csproj" />
+    <Project Path="tests/Culto.Renderer.Smoke/Culto.Renderer.Smoke.csproj" />
+  </Folder>
+</Solution>

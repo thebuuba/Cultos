@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Culto.Core/Culto.Core.csproj" />
+    <Compile Include="../../src/Culto.Desktop/Projection/*.cs" Link="Projection/%(Filename)%(Extension)" />
+    <Compile Include="../../src/Culto.Desktop/Services/DisplayService.cs" Link="DisplayService.cs" />
+    <Compile Include="../../src/Culto.Desktop/Services/CaptureService.cs" Link="CaptureService.cs" />
+    <PackageReference Include="LibVLCSharp.WPF" Version="3.10.2" />
+    <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.24" />
+  </ItemGroup>
+</Project>
