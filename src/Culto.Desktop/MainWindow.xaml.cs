@@ -44,6 +44,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         InitializePlayerControls();
         InitializeUsabilityShortcuts();
+        InitializeContentDragDrop();
         _plan.CollectionChanged += (_, _) => UpdateUsabilityState();
         Loaded += (_, _) => InitializeWorkspace();
         Closing += OnWindowClosing;
@@ -212,6 +213,7 @@ public partial class MainWindow : Window
         }
         SaveDockLayout();
         _closing = true; _timer.Stop();
+        DisposeLibraryFolders();
         try { if (_remote is not null) await _remote.DisposeAsync(); }
         catch (Exception) { /* Closing must still release the native media players. */ }
         CloseOutput();

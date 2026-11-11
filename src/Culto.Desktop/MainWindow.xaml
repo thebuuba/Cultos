@@ -487,9 +487,13 @@
               </Grid>
               <ListBox x:Name="LibraryFilter" Grid.Row="1" SelectedIndex="0" SelectionChanged="LibraryFilterChanged" ItemContainerStyle="{StaticResource FilterChip}" Margin="0,10,0,2" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled" AutomationProperties.Name="Categoría de la biblioteca">
                 <ListBox.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ListBox.ItemsPanel>
-                <ListBoxItem Content="Todo"/><ListBoxItem Content="Himnos"/><ListBoxItem Content="Videos"/><ListBoxItem Content="Imágenes"/><ListBoxItem Content="Audio"/><ListBoxItem Content="Textos"/>
+                <ListBoxItem Content="Todo"/><ListBoxItem Content="Himnos"/><ListBoxItem Content="Videos"/><ListBoxItem Content="Imágenes"/><ListBoxItem Content="Audio"/><ListBoxItem Content="Textos"/><ListBoxItem Content="Descargas"/>
               </ListBox>
-              <TextBlock x:Name="LibraryCountText" Grid.Row="2" FontSize="12" Foreground="{StaticResource MutedBrush}" Margin="2,4,0,8"/>
+              <Grid Grid.Row="2" Margin="2,4,0,8">
+                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock x:Name="LibraryCountText" FontSize="12" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                <Button x:Name="RefreshFolderButton" Grid.Column="1" Content="&#xE72C;" FontFamily="Segoe MDL2 Assets" Padding="8" MinWidth="30" MinHeight="30" Visibility="Collapsed" Click="RefreshFolderClick" ToolTip="Actualizar carpeta" AutomationProperties.Name="Actualizar carpeta"/>
+              </Grid>
               <Grid Grid.Row="3">
                 <ListBox x:Name="LibraryList" ItemTemplate="{StaticResource LibraryItemTemplate}" SelectionChanged="LibrarySelectionChanged" MouseDoubleClick="LibraryDoubleClick" AutomationProperties.Name="Biblioteca de contenidos"/>
                 <TextBlock x:Name="LibraryEmpty" Text="Biblioteca vacía" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="18,30" TextAlignment="Center" IsHitTestVisible="False"/>

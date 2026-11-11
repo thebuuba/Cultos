@@ -11,6 +11,7 @@ namespace Culto.Desktop;
 
 public partial class MainWindow
 {
+    private bool _refreshingLibrary;
     private void LibraryDoubleClick(object sender, MouseButtonEventArgs e)
     {
         if (!_ready || e.ChangedButton != MouseButton.Left) return;
@@ -26,10 +27,12 @@ public partial class MainWindow
         if (!_ready) return;
         var query = LibrarySearch.Text.Trim();
         var filter = LibraryFilter.SelectedIndex;
+        SetLibraryFolder(filter);
+        var sourceItems = IsFolderFilter(filter) ? _folderItems : _workspace.Library;
         var numericQuery = query.Length > 0 && query.All(char.IsAsciiDigit);
         var exactHymnSearch = numericQuery && filter is 0 or 1;
         var validNumber = int.TryParse(query, out var number);
-        var items = _workspace.Library.Where(cue => query.Length == 0
+        var items = sourceItems.Where(cue => query.Length == 0
             || (numericQuery && validNumber && cue.HymnNumber == number)
             || (!exactHymnSearch && cue.Title.Contains(query, StringComparison.CurrentCultureIgnoreCase)));
         items = filter switch
@@ -38,13 +41,24 @@ public partial class MainWindow
             3 => items.Where(c => c.Kind == CueKind.Image), 4 => items.Where(c => c.Kind == CueKind.Audio),
             5 => items.Where(c => c.Kind == CueKind.Text), _ => items
         };
-        _libraryView.Clear();
-        foreach (var cue in items.OrderBy(c => c.HymnNumber ?? int.MaxValue).ThenBy(c => c.Title)) _libraryView.Add(cue);
-        LibraryCountText.Text = $"{_libraryView.Count:N0} de {_workspace.Library.Count:N0} contenidos";
+        var selectedId = (LibraryList.SelectedItem as Cue)?.Id;
+        _refreshingLibrary = true;
+        try
+        {
+            _libraryView.Clear();
+            foreach (var cue in items.OrderBy(c => c.HymnNumber ?? int.MaxValue).ThenBy(c => c.Title)) _libraryView.Add(cue);
+            LibraryList.SelectedItem = _libraryView.FirstOrDefault(c => c.Id == selectedId);
+        }
+        finally { _refreshingLibrary = false; }
+        LibraryCountText.Text = _folderLoading && IsFolderFilter(filter) ? "Cargando archivos…" : $"{_libraryView.Count:N0} de {sourceItems.Count:N0} contenidos";
+        LibraryCountText.ToolTip = IsFolderFilter(filter) ? CurrentFolderPath : null;
+        RefreshFolderButton.Visibility = IsFolderFilter(filter) ? Visibility.Visible : Visibility.Collapsed;
         ClearSearchButton.IsEnabled = query.Length > 0;
         LibraryEmpty.Visibility = _libraryView.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         var category = (LibraryFilter.SelectedItem as ListBoxItem)?.Content?.ToString() ?? "Todo";
-        LibraryEmpty.Text = _workspace.Library.Count == 0
+        LibraryEmpty.Text = IsFolderFilter(filter)
+            ? _folderLoading ? "Cargando archivos…" : _folderError ?? (query.Length > 0 ? $"Sin resultados para «{query}»." : $"Sin archivos multimedia en {category}.")
+            : _workspace.Library.Count == 0
             ? "Biblioteca vacía"
             : query.Length > 0
                 ? $"Sin resultados para «{query}» en {category}."
@@ -74,7 +88,13 @@ public partial class MainWindow
         LibrarySearch.Focus();
     }
     private void LibrarySelectionChanged(object sender, SelectionChangedEventArgs e)
-    { if (_ready && LibraryList.SelectedItem is Cue cue) PrepareCue(cue); }
+    {
+        if (!_ready || _refreshingLibrary || LibraryList.SelectedItem is not Cue cue) return;
+        // Loading native media during mouse-down can swallow a quick drag gesture.
+        // The release handler prepares a click; a drop prepares its new order copy.
+        if (_contentDragSource == LibraryList && _contentDragCue is not null && Mouse.LeftButton == MouseButtonState.Pressed) return;
+        PrepareCue(cue);
+    }
 
     private async void ImportFilesClick(object sender, RoutedEventArgs e)
     {
@@ -160,30 +180,6 @@ public partial class MainWindow
         if (PlanList.SelectedItem is not Cue cue) return;
         CommitNotes(); _plan.Remove(cue); UpdatePlanCount(); SaveWorkspace();
         SetStatus("Elemento retirado del orden.");
-    }
-    private void PlanMouseDown(object sender, MouseButtonEventArgs e)
-    {
-        _dragStart = e.GetPosition(PlanList);
-        _orderDragCue = OrderCueAt(e.OriginalSource);
-        _orderDragPerformed = false;
-    }
-    private void PlanMouseMove(object sender, MouseEventArgs e)
-    {
-        if (e.LeftButton != MouseButtonState.Pressed || _orderDragCue is not Cue cue || _orderDragPerformed) return;
-        var delta = e.GetPosition(PlanList) - _dragStart;
-        if (Math.Abs(delta.Y) >= SystemParameters.MinimumVerticalDragDistance)
-        {
-            _orderDragPerformed = true;
-            DragDrop.DoDragDrop(PlanList, new DataObject(typeof(Cue), cue), DragDropEffects.Move);
-            _orderDragCue = null;
-        }
-    }
-    private void PlanDrop(object sender, DragEventArgs e)
-    {
-        if (e.Data.GetData(typeof(Cue)) is not Cue source) return;
-        if (OrderCueAt(e.OriginalSource) is not Cue target) return;
-        var from = _plan.IndexOf(source); var to = _plan.IndexOf(target);
-        if (from >= 0 && to >= 0 && from != to) { _plan.Move(from, to); SaveWorkspace(); }
     }
     private void NewPlanClick(object sender, RoutedEventArgs e)
     {

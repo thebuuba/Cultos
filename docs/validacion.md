@@ -4,6 +4,20 @@ Comprobación realizada el 11 de noviembre de 2026 en esta PC Windows. Entrega a
 
 ## Compilación y pruebas
 
+### Arrastre al orden y carpetas de Windows — versión 0.15.0
+
+La biblioteca y los resultados bíblicos permiten arrastrar contenido al orden. Las fuentes se copian con identificadores independientes; arrastrar dentro del orden mueve el elemento existente. La inserción usa la mitad superior/inferior de cada fila y admite orden vacío o espacio final, con línea violeta y desplazamiento en los bordes. El guardado conserva texto bíblico, referencia, versión, número de himno y ruta multimedia. Un clic prepara; doble clic proyecta el elemento añadido.
+
+Videos e Imágenes leen las carpetas conocidas de Windows; Descargas resuelve su ubicación mediante `SHGetKnownFolderPath`. Incluyen subcarpetas y omiten enlaces de directorio que podrían formar ciclos. La lectura ocurre fuera del hilo de la interfaz, admite cancelación y conserva identificadores por ruta. Un observador actualiza los archivos; el botón circular permite actualizar manualmente. Cambiar de categoría cancela lecturas anteriores. La actualización conserva la preparación y la salida, incluso si se había preparado otro elemento del orden o de la Biblia.
+
+Las pruebas de fuentes usan archivos temporales y ubicaciones de carpetas sustituidas. Cubren persistencia, copias independientes, actualizaciones por creación/borrado, cancelación, recuperación de una carpeta ausente y reproducción MKV/versículo desde el orden.
+
+`scripts/build.ps1 -Smoke` terminó con código 0: **60 núcleo + 60 mando + 94 escritorio + 65 reproductor = 279 comprobaciones**, sin errores ni advertencias. Evidencia: `.tools/folders-full-test.log`.
+
+La verificación con ratón real detectó que cargar la vista previa de un video durante mouse-down podía perder un arrastre rápido. La carga se difiere hasta soltar el clic; el arrastre captura el origen y transporta un identificador de texto mediante OLE, manteniendo los objetos dentro de la aplicación. Se verificó después el arrastre rápido de «002 Da gloria al Señor» al orden y su reproducción con doble clic en la salida local. También se arrastró Juan 3:16. Se retiraron el himno 002 y el versículo duplicado usados en esa comprobación, y se dejaron pausadas previa/salida. Descargas mostró sus cinco archivos multimedia reales. La biblioteca conservó 619 elementos y el orden quedó con cinco, incluido el himno 001 incorporado durante la revisión.
+
+Tras esas correcciones se repitió toda la suite de escritorio: **94 comprobaciones correctas, código 0** (`.tools/folders-desktop-final.log`). Se publicó la distribución autónoma 0.15.0 y quedó abierta en Descargas.
+
 ### Fondos de salida y lista de imágenes — versión 0.14.0
 
 Debajo del reproductor de salida aparecen Fondo iglesia y Fondo negro, fijos fuera del desplazamiento de controles. Fondo iglesia abre una lista con miniaturas; elegir una imagen la envía con disolución. La lista permite agregar varios archivos, quitar referencias sin borrar archivos, elegir fondo sencillo y volver al contenido anterior. La lista y la última imagen elegida se guardan con el espacio de trabajo. Fondo negro activa negro y, al pulsarlo otra vez, devuelve el contenido anterior pausado.

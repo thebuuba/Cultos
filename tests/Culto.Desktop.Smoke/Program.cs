@@ -106,11 +106,12 @@ internal static partial class Program
                 window.Show();
                 app.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
                 {
-                    try { if (args.Contains("--local-output")) RunLocalOutputTests(window); else if (args.Contains("--compact-output")) RunCompactOutputTests(window); else if (args.Contains("--player")) RunPlayerControlsTests(window); else if (args.Contains("--backdrops")) RunBackdropControlsTests(window); else if (args.Contains("--remote-order")) { RunRemoteOrderTests(window); RunRemoteDialogTests(window); } else RunWindowTests(window, directory); }
+                    try { if (args.Contains("--content-sources")) { RunLocalMediaFolderServiceTests(); RunFolderSourcesTests(window); RunContentDragDropTests(window); } else if (args.Contains("--local-output")) RunLocalOutputTests(window); else if (args.Contains("--compact-output")) RunCompactOutputTests(window); else if (args.Contains("--player")) RunPlayerControlsTests(window); else if (args.Contains("--backdrops")) RunBackdropControlsTests(window); else if (args.Contains("--remote-order")) { RunRemoteOrderTests(window); RunRemoteDialogTests(window); } else RunWindowTests(window, directory); }
                     finally
                     {
                         if (!Field<bool>(window, "_closing"))
                         {
+                            Call(window, "DisposeLibraryFolders");
                             Call(window, "CloseOutput");
                             Field<IDisposable>(window, "_preview").Dispose();
                             Field<DispatcherTimer>(window, "_timer").Stop();
@@ -331,6 +332,9 @@ internal static partial class Program
         RunRemoteDialogTests(window);
         RunPlayerControlsTests(window);
         RunBackdropControlsTests(window);
+        RunLocalMediaFolderServiceTests();
+        RunFolderSourcesTests(window);
+        RunContentDragDropTests(window);
 
         Test("Failed save prevents closing", () =>
         {
@@ -398,7 +402,7 @@ internal static partial class Program
                 Check(count.Text == $"{expected} de {total} contenidos", "Library count disagrees with visible results and imported total");
             }
             CheckCount(total);
-            filter.SelectedIndex = 2; CheckCount(2);
+            filter.SelectedIndex = 1; CheckCount(2);
             // Leading zeros make this a hymn-number lookup rather than a title substring match.
             search.Text = "00042"; CheckCount(1);
             Check(((Cue)library.Items[0]).Title == "042 Alabanza sintética", "Hymn number search selected the wrong item");
@@ -408,11 +412,14 @@ internal static partial class Program
             window.Activate(); clear.Focus();
             clear.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Until(() => search.IsKeyboardFocusWithin, "Clear search did not return keyboard focus to the search field");
-            Check(search.Text.Length == 0 && filter.SelectedIndex == 2, "Clear search changed the selected category");
+            Check(search.Text.Length == 0 && filter.SelectedIndex == 1, "Clear search changed the selected category");
             CheckCount(2);
             Check(!clear.IsEnabled, "Clear search remains enabled with an empty query");
             library.SelectedIndex = 0;
-            filter.SelectedIndex = 3; CheckCount(1);
+            Field<Dictionary<int, string>>(window, "_folderPaths")[3] = directory;
+            filter.SelectedIndex = 3;
+            Until(() => !Field<bool>(window, "_folderLoading"), "Pictures folder did not finish loading");
+            Check(library.Items.Count == 1 && count.Text == "1 de 1 contenidos", "Pictures folder did not show its image/count");
             Check(((Cue)library.Items[0]).Kind == CueKind.Image, "Images category contains a different media type");
             filter.SelectedIndex = 5; search.Text = "aviso sintético"; CheckCount(1);
             Check(((Cue)library.Items[0]).Title == "Aviso sintético especial", "Text title search missed the saved announcement");
