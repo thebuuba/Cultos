@@ -36,15 +36,15 @@
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="ListBoxItem">
-            <Border x:Name="Chip" Padding="{TemplateBinding Padding}" CornerRadius="3" BorderThickness="1"
-                    BorderBrush="{StaticResource BorderBrush}" Background="{StaticResource CanvasBrush}">
+            <Border x:Name="Chip" Padding="{TemplateBinding Padding}" CornerRadius="16" BorderThickness="1"
+                    BorderBrush="Transparent" Background="Transparent">
               <ContentPresenter/>
             </Border>
             <ControlTemplate.Triggers>
               <Trigger Property="IsSelected" Value="True">
                 <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
                 <Setter TargetName="Chip" Property="Background" Value="#2A2A2A"/>
-                <Setter TargetName="Chip" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                <Setter TargetName="Chip" Property="BorderBrush" Value="#666666"/>
               </Trigger>
               <Trigger Property="IsMouseOver" Value="True">
                 <Setter TargetName="Chip" Property="BorderBrush" Value="{StaticResource MutedBrush}"/>
@@ -60,7 +60,7 @@
     <DataTemplate x:Key="OrderItemTemplate">
       <Grid ToolTip="{Binding Title}">
         <Grid.ColumnDefinitions><ColumnDefinition Width="34"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-        <Border Width="26" Height="28" CornerRadius="3" Background="{StaticResource CanvasBrush}" VerticalAlignment="Top">
+        <Border Width="26" Height="28" CornerRadius="8" Background="{StaticResource CanvasBrush}" VerticalAlignment="Top">
           <TextBlock Text="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(local:OrderListBox.AbsoluteIndex), Converter={StaticResource OrderNumberConverter}}"
                      FontSize="12" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
         </Border>
@@ -77,7 +77,7 @@
     <DataTemplate x:Key="LibraryItemTemplate">
       <Grid ToolTip="{Binding Title}" MinHeight="30">
         <Grid.ColumnDefinitions><ColumnDefinition Width="36"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-        <Border Width="28" Height="28" CornerRadius="3" Background="{StaticResource RaisedBrush}" VerticalAlignment="Center">
+        <Border Width="28" Height="28" CornerRadius="8" Background="{StaticResource RaisedBrush}" VerticalAlignment="Center">
           <Path x:Name="KindIcon" Data="M 4,3 L 16,3 L 16,17 L 4,17 Z M 7,7 L 13,7 M 7,10 L 13,10 M 7,13 L 11,13"
                 Stroke="{StaticResource MutedBrush}" StrokeThickness="1.4" Width="15" Height="17" Stretch="Uniform"/>
         </Border>
@@ -106,13 +106,8 @@
     </Grid.RowDefinitions>
     <Border Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Margin="-12,0,-12,0" Padding="14,8">
     <Grid>
-      <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
       <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-        <Path Data="M 3,4 L 10,2 L 17,4 L 17,17 L 10,15 L 3,17 Z M 10,2 L 10,15" Stroke="{StaticResource TextBrush}" StrokeThickness="1.5" Width="20" Height="21" Stretch="Uniform" Margin="0,0,10,0"/>
-        <TextBlock Text="Culto Studio" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
-        <Border Width="1" Height="22" Background="{StaticResource BorderBrush}" Margin="20,0,12,0"/>
-      </StackPanel>
-      <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
         <Button x:Name="FileMenuButton" Content="_Archivo" Style="{StaticResource MenuBarButton}" Click="OpenActionsClick" AutomationProperties.Name="Archivo">
           <Button.ContextMenu><ContextMenu>
             <MenuItem Header="Nuevo culto" Click="NewPlanClick"/>
@@ -137,7 +132,7 @@
           </ContextMenu></Button.ContextMenu>
         </Button>
       </StackPanel>
-      <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
+      <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
         <TextBlock Text="Culto actual" Foreground="{StaticResource MutedBrush}" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0"/>
         <TextBox x:Name="PlanNameBox" Text="Culto del sábado" Width="240" FontSize="13" Padding="10,5" MinHeight="32"
                  LostFocus="PlanNameChanged" AutomationProperties.Name="Nombre del culto" ToolTip="Nombre del culto · se guarda automáticamente"/>
@@ -270,14 +265,14 @@
 
       <Grid Grid.Column="4">
         <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="10"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-        <Border Style="{StaticResource Card}" Padding="12" BorderBrush="#383838">
+        <Border Style="{StaticResource Card}" Padding="12" BorderBrush="{StaticResource PanelBorderBrush}">
           <Grid>
             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <Grid Margin="0,0,0,10">
               <TextBlock Text="Vista previa" Foreground="{StaticResource AmberBrush}" FontSize="16" FontWeight="SemiBold"/>
               <TextBlock Text="SIN SONIDO" FontSize="10" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
             </Grid>
-            <Border Grid.Row="1" Background="#050505" CornerRadius="3" ClipToBounds="True"><ContentControl x:Name="PreviewHost" MinHeight="80"/></Border>
+            <Border Grid.Row="1" Background="#050505" CornerRadius="8" ClipToBounds="True"><ContentControl x:Name="PreviewHost" MinHeight="80"/></Border>
             <Grid Grid.Row="2" Margin="0,8,0,8">
               <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
               <TextBlock x:Name="PreparedTitleText" Text="Selecciona un contenido" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" Margin="0,0,6,0"/>
@@ -293,7 +288,7 @@
           </Grid>
         </Border>
 
-        <Border Grid.Row="2" Style="{StaticResource Card}" Padding="10" BorderBrush="#383838">
+        <Border Grid.Row="2" Style="{StaticResource Card}" Padding="10" BorderBrush="{StaticResource PanelBorderBrush}">
           <Grid>
             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <Grid>

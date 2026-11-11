@@ -30,6 +30,8 @@ En el ejecutable publicado se verificaron visualmente los tres menús, sus acces
 
 ### Organización y navegación incorporadas en 0.3
 
+Refinamiento visual posterior: se retiraron el icono y nombre de la cabecera por petición del usuario. Después se suavizaron los paneles (radio 14), controles y campos (radio 8), con bordes de panel menos marcados y categorías sin recuadro salvo selección o foco. Se ejecutaron nuevamente las 159 comprobaciones con salida 0 y, tras ajustar el espacio interior del campo de texto, se repitieron las 36 de escritorio con salida 0. La publicación final se comprobó visualmente buscando Juan 3:16; conservó sus selectores, resultado y vista previa, sin abrir salida.
+
 La cabecera reúne las acciones del culto en un menú. La importación y edición se agrupan en «Administrar»; las notas se abren bajo demanda. Los controles de salida se sitúan junto a la vista previa y muestran reproducción sólo para video/audio. El orden marca el elemento «EN VIVO», mientras que el panel de salida indica qué sigue y mantiene visibles los estados Negro/Fondo.
 
 La búsqueda numérica de himnos es exacta en Todo/Himnos. Enter prepara el resultado visible, Ctrl+F enfoca la búsqueda y Ctrl+1/2/3 cambia de sección. Las otras categorías conservan búsqueda por título y reconocimiento de números de himno.
