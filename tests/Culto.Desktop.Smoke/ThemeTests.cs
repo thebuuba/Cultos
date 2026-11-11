@@ -9,6 +9,16 @@ internal static partial class Program
 {
     private static void RunThemeTests(MainWindow window)
     {
+        Test("Preview and actual output have separate side by side monitors", () =>
+        {
+            var preview = (FrameworkElement)window.FindName("PreviewViewport");
+            var output = window.FindName("OutputViewport") as FrameworkElement;
+            Check(output is not null, "Actual output monitor is missing");
+            window.UpdateLayout();
+            var left = BoundsWithin(preview, window); var right = BoundsWithin(output!, window);
+            Check(left.Right <= right.Left && Math.Abs(left.Top - right.Top) < 80, "Monitors are not side by side");
+            Check(output!.ActualHeight >= 80, "Output monitor is too small");
+        });
         Test("Image thumbnail loading releases files and cannot overwrite a recycled text cue", () =>
         {
             var directory = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "CultoThumb-" + Guid.NewGuid().ToString("N"));

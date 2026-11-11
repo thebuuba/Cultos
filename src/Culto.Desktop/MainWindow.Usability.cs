@@ -18,6 +18,7 @@ public partial class MainWindow
     private void SelectContentSource(int index)
     {
         if (!_ready) return;
+        ActivateWorkspacePanel("sources");
         ContentTabs.SelectedIndex = index;
         ContentTabs.UpdateLayout();
         FocusActiveSource();

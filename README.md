@@ -8,7 +8,11 @@ Ejecuta **Abrir Culto Studio.cmd** en esta carpeta, o abre `artifacts/CultoStudi
 
 Una instalación nueva ofrece una plantilla sencilla con bienvenida, oración y despedida. La distribución del programa no incluye videos del himnario ni el texto completo de una traducción bíblica.
 
-La versión 0.7 organiza la consola alrededor de una vista previa 16:9, con barras compactas de reproducción y una secuencia de miniaturas debajo. El orden permanece a la izquierda y la biblioteca/Biblia/texto a la derecha, sobre superficies grises con acentos violeta. Archivo, Biblioteca y Configuración permanecen arriba, junto al estado real de la salida. Conserva los botones redondos, la tipografía Poppins incluida y las transiciones breves que respetan la preferencia de animaciones de Windows.
+La versión 0.8 tiene dos monitores: **Vista previa a la izquierda y En pantalla a la derecha**. En pantalla refleja la ventana real de proyección, incluidos el video, la pausa, el negro y el fondo, sin otro reproductor ni audio duplicado. Cuando la salida está cerrada muestra «Sin salida».
+
+Vista previa, En pantalla, Orden del culto, Secuencia y Biblioteca/Biblia son paneles independientes. Arrastra sus cabeceras para moverlos, acoplarlos a los bordes, agruparlos en pestañas o separarlos en ventanas; arrastra los separadores para cambiar su tamaño. El menú superior **Espacio de trabajo** permite activar cada panel, guardar la distribución o restablecerla. La distribución también se guarda al cerrar y se recupera al abrir, en `paneles.xml`, aparte de los datos del culto. Los monitores y contenidos conservan su estado al moverlos.
+
+La distribución inicial sitúa los monitores arriba, el orden y la secuencia debajo, y las fuentes a la derecha. Conserva el gris con acentos violeta, los botones redondos, Poppins y las transiciones breves que respetan la preferencia de animaciones de Windows.
 
 La secuencia inferior sigue el orden del culto: un clic prepara y doble clic proyecta. Los textos y versículos muestran su contenido en miniatura; las imágenes se cargan como vistas reducidas. Videos y audio usan portadas con título, sin abrir reproductores adicionales.
 
@@ -59,7 +63,7 @@ Los controles de reproducción aparecen cuando la salida tiene un video o audio.
 
 Si sólo hay un monitor, se abre una **ventana de ensayo**. El monitor principal nunca se ocupa automáticamente a pantalla completa. Si se desconecta la salida, se detiene y debe elegirse de nuevo.
 
-El panel «En pantalla» muestra el estado, título y texto actual. Para video e imagen es un resumen del contenido, no un segundo monitor de video sincronizado. La salida externa sí reproduce el archivo.
+El monitor «En pantalla» refleja la ventana real de salida, además de mostrar su estado y controles. Esa ventana debe permanecer abierta y sin minimizar para que Windows mantenga su imagen actualizada.
 
 **Biblioteca → Capturar una pantalla** toma una imagen estática: la consola se minimiza durante 1,5 segundos y luego permite revisar la imagen. Esta versión no incluye captura continua de ventanas.
 

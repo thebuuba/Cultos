@@ -8,6 +8,7 @@ Culto Studio integra componentes con sus respectivas licencias. No se atribuye l
 | LibVLCSharp.WPF | 3.10.2 | LGPL-2.1-or-later; https://code.videolan.org/videolan/LibVLCSharp |
 | VideoLAN.LibVLC.Windows | 3.0.24 | Bibliotecas y módulos VideoLAN con licencias individuales; https://www.videolan.org/legal.html |
 | QRCoder | 1.8.1 | MIT; https://github.com/codebude/QRCoder |
+| AvalonDock, Core, Serializer.Xml y Themes.Arc | 5.0.1 | Microsoft Public License (Ms-PL), según los archivos LICENSE de estos paquetes; https://github.com/Dirkster99/AvalonDock; copia incluida en `Assets/Licenses/AvalonDock.txt` |
 | Poppins | Regular, Medium, SemiBold, Bold | SIL Open Font License 1.1; https://github.com/google/fonts/tree/main/ofl/poppins; licencia incluida en `Assets/Fonts/OFL.txt` |
 
 LibVLC se distribuye como bibliotecas dinámicas y módulos separados. Sus fuentes y licencias están disponibles en los enlaces oficiales anteriores. Conserva los avisos y licencias que acompañan los paquetes. Los paquetes originales se obtienen de NuGet, bajo el propietario correspondiente.

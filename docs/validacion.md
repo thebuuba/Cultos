@@ -4,6 +4,18 @@ Comprobación realizada el 11 de noviembre de 2026 en esta PC Windows. Entrega a
 
 ## Compilación y pruebas
 
+### Dos monitores y paneles acoplables — versión 0.8
+
+Vista previa y En pantalla son monitores independientes, a izquierda y derecha. En pantalla muestra una miniatura DWM de la ventana real de proyección, incluidos sus hijos nativos de video; no crea otro reproductor ni otra pista de audio. Al separar el monitor en una ventana, se vuelve a enlazar al HWND superior correcto, incluso cuando AvalonDock aloja el contenido en un HWND intermedio. Se libera la miniatura al cerrar la salida, ocultar su pestaña o descargar el control.
+
+AvalonDock 5.0.1 permite mover, redimensionar, agrupar y separar los cinco paneles. El menú Espacio de trabajo ofrece activación, guardado y restablecimiento. `paneles.xml` se guarda aparte de `workspace.json`, con sustitución atómica; la restauración conserva las mismas instancias de controles. Se validan los cinco identificadores y se recuperan posiciones flotantes fuera del escritorio virtual. Se incluyen las licencias de las cuatro dependencias nuevas.
+
+`scripts/build.ps1 -Smoke` terminó con código 0, sin advertencias ni errores: **60 núcleo + 39 mando + 52 escritorio + 24 reproductor = 175 comprobaciones**. Las cinco pruebas añadidas verifican ambos monitores, el enlace y cierre de la salida, flotación/acoplamiento de todos los paneles, agrupación y persistencia sin modificar la sesión, rechazo de distribuciones incompletas y recuperación de ventanas flotantes fuera de pantalla. Las pruebas de geometría siguen cubriendo 1280×680 y 1280×720, las tres fuentes y sus controles.
+
+En una instancia aislada con copia de los datos se reprodujo el himno 012 en previa y salida de ensayo. Se observó el video real dentro del monitor En pantalla; al pausarlo a 00:26, la previa siguió avanzando. Se arrastró la cabecera En pantalla hasta separarla en una ventana flotante: siguió mostrando la misma imagen pausada. La copia de prueba se cerró sin sustituir los datos del usuario. La Biblia local mantiene su SHA-256 y sus 31.102 versículos. La prueba de HDMI y teléfono físico continúa pendiente.
+
+Se publicó y abrió 0.8.0 con los datos normales. Se comprobaron visualmente ambos marcos alineados, las fuentes a la derecha y el orden y secuencia debajo. Quedó abierta con Bienvenidos en previa, sin salida ni reproducción activas. Se conservan los cuatro elementos del orden, 616 contenidos y seis botones del mando.
+
 ### Composición de la consola — versión 0.7
 
 Se rehízo la estructura con una barra superior integrada, filas compactas en el orden, una vista previa central 16:9 y controles de reproducción y salida agrupados. El marco ajusta las dimensiones reales del reproductor nativo, sin transformaciones visuales sobre su ventana. El botón de proyectar queda junto al título del contenido.
@@ -136,4 +148,4 @@ El corpus permanece en los datos locales, fuera de Git y de la distribución eje
 - Probar el mando en el teléfono físico y su red Wi-Fi. No se cambiaron firewall ni router.
 - Ensayar el orden y cada archivo que se utilizará antes del culto.
 
-Esta versión ofrece capturas estáticas; no incorpora captura continua, transmisión, grabación ni PowerPoint. El panel «En pantalla» resume el contenido y estado; no duplica el video en vivo. Estos límites también se explican en la guía.
+Esta versión ofrece capturas estáticas; no incorpora captura continua de otras aplicaciones, transmisión, grabación ni PowerPoint. Desde 0.8, el monitor «En pantalla» sí refleja el video y contenido de la salida del programa mediante DWM. La ventana de salida debe permanecer abierta y sin minimizar para reflejar su contenido actual.

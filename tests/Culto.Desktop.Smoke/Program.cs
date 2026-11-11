@@ -311,6 +311,7 @@ internal static partial class Program
         });
 
         RunThemeTests(window);
+        RunDockingTests(window, directory);
         RunUsabilityTests(window, directory);
         RunOrderInteractionTests(window);
         RunBibleNavigationTests(window, directory);
@@ -485,14 +486,14 @@ internal static partial class Program
             Check(session.Live!.Id == live, "Preview controls changed live output");
         });
 
-        Test("Compact console stays reachable after resizing columns with multiline live content", () =>
+        Test("Compact docked console keeps both monitors and source controls reachable", () =>
         {
             var width = window.Width; var height = window.Height; var selectedTab = tabs.SelectedIndex;
             var previousLive = session.Live!;
             var client = (FrameworkElement)window.Content;
             var preview = (FrameworkElement)window.FindName("PreviewHost");
-            var columns = Ancestors(plan).OfType<Grid>().First(grid => grid.IsAncestorOf(tabs) && grid.IsAncestorOf(preview));
-            var originalColumns = columns.ColumnDefinitions.Select(column => column.Width).ToArray();
+            var manager = (AvalonDock.DockingManager)window.FindName("WorkspaceDock");
+            var originalLayout = (string)Call(window, "SerializeDockLayout")!;
             try
             {
                 Call(window, "PrepareCue", new Cue
@@ -504,28 +505,15 @@ internal static partial class Program
                 Call(window, "ProjectPrepared");
                 window.WindowState = WindowState.Normal; window.Width = Math.Max(width, 1600); window.Height = 900;
                 window.Activate(); window.UpdateLayout(); PumpFor(50);
-                FrameworkElement ColumnFor(FrameworkElement element)
-                {
-                    var child = element;
-                    while (!ReferenceEquals(VisualTreeHelper.GetParent(child), columns)) child = (FrameworkElement)VisualTreeHelper.GetParent(child);
-                    return child;
-                }
-                var orderColumn = ColumnFor(plan); var contentColumn = ColumnFor(tabs); var outputColumn = ColumnFor(preview);
-                var splitters = Descendants(columns).OfType<GridSplitter>().OrderBy(splitter => BoundsWithin(splitter, client).Left).ToArray();
-                var beforeOrder = orderColumn.ActualWidth; var beforeContent = contentColumn.ActualWidth;
-                void ResizeColumn(GridSplitter splitter, Key direction)
-                {
-                    splitter.Focus();
-                    for (var step = 0; step < 40; step++)
-                        splitter.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(splitter)!, Environment.TickCount, direction)
-                        { RoutedEvent = Keyboard.KeyDownEvent });
-                    window.UpdateLayout();
-                }
-                Check(splitters.Length == 2, "Column resizing is not available for both side panels");
-                ResizeColumn(splitters[0], Key.Right);
-                ResizeColumn(splitters[1], Key.Left);
-                Check(orderColumn.ActualWidth > beforeOrder + 5 && contentColumn.ActualWidth > beforeContent + 5,
-                    "Keyboard column adjustment did not enlarge both side panels before the shrink test");
+                var orderColumn = (FrameworkElement)window.FindName("OrderPanel");
+                var contentColumn = (FrameworkElement)window.FindName("SourcesPanel");
+                var outputColumn = (FrameworkElement)window.FindName("PreviewPanel");
+                var liveColumn = (FrameworkElement)window.FindName("LivePanel");
+                var sourcePane = AvalonDock.Layout.Extensions.Descendents(manager.Layout).OfType<AvalonDock.Layout.LayoutAnchorable>().Single(p => p.ContentId == "sources").Parent as AvalonDock.Layout.LayoutAnchorablePane;
+                var sourceWidth = contentColumn.ActualWidth;
+                sourcePane!.DockWidth = new GridLength(1.2, GridUnitType.Star);
+                window.UpdateLayout();
+                Check(contentColumn.ActualWidth > sourceWidth, "Dock sizing did not enlarge the source panel");
                 foreach (var compactHeight in new[] { 720, 680 })
                 {
                     window.Width = 1280; window.Height = compactHeight;
@@ -534,9 +522,8 @@ internal static partial class Program
                     CheckWithin(orderColumn, client, viewport, $"Order column at height {compactHeight}");
                     CheckWithin(contentColumn, client, viewport, $"Content column at height {compactHeight}");
                     CheckWithin(outputColumn, client, viewport, $"Preview/live column at height {compactHeight}");
-                    Check(BoundsWithin(orderColumn, client).Right <= BoundsWithin(outputColumn, client).Left + 1.5
-                        && BoundsWithin(outputColumn, client).Right <= BoundsWithin(contentColumn, client).Left + 1.5,
-                        "Order, central preview and source columns overlap or are out of order after resizing");
+                    Check(BoundsWithin(outputColumn, client).Right <= BoundsWithin(liveColumn, client).Left + 1.5,
+                        "Preview and live monitors overlap after resizing");
                     foreach (var name in new[] { "ProjectButton", "BlackoutButton", "FileMenuButton", "LibraryMenuButton", "SettingsMenuButton", "AddOrderButton" })
                     {
                         var button = (Button)window.FindName(name);
@@ -569,7 +556,7 @@ internal static partial class Program
                     Call(window, "PrepareCue", video, null); Call(window, "ProjectPrepared");
                     window.UpdateLayout(); PumpFor(25);
                     foreach (var name in new[] { "ProjectButton", "BlackoutButton", "PreviewHost", "PreviewPlaybackPanel", "PreviewPauseButton", "PreviewPositionSlider", "PreviewRestartButton", "MediaPlaybackPanel", "PauseButton", "VolumeSlider", "LoopCheck", "PositionSlider" })
-                        CheckWithin((FrameworkElement)window.FindName(name), client, BoundsWithin(outputColumn, client), $"Media layout: {name} at height {compactHeight}");
+                        CheckWithin((FrameworkElement)window.FindName(name), client, viewport, $"Media layout: {name} at height {compactHeight}");
                     Check(((FrameworkElement)window.FindName("PreviewHost")).ActualHeight >= 80, "Media controls squeeze the preview below its minimum");
                     Call(window, "PrepareCue", new Cue { Kind = CueKind.Bible, Title = "Lectura sintética", Body = "Texto sintético que conserva una vista previa legible.", Reference = "Lectura 1:1", Version = "Prueba" }, null);
                     Call(window, "ProjectPrepared");
@@ -577,7 +564,7 @@ internal static partial class Program
             }
             finally
             {
-                for (var index = 0; index < originalColumns.Length; index++) columns.ColumnDefinitions[index].Width = originalColumns[index];
+                Call(window, "RestoreDockLayout", originalLayout);
                 window.Width = width; window.Height = height; tabs.SelectedIndex = selectedTab; window.UpdateLayout();
                 Call(window, "PrepareCue", previousLive, null); Call(window, "ProjectPrepared");
             }

@@ -75,11 +75,13 @@ public partial class MainWindow
             if (!ReferenceEquals(window, _outputWindow)) return;
             _output?.SetPaused(true); _output?.Dispose();
             _output = null; _outputWindow = null; _outputDisplay = null;
+            LiveMonitor.SetSource(null);
             _isPaused = true; UpdateSessionLabels();
             SetStatus("Salida cerrada.");
         };
         DisplayService.PlaceWindow(window, display, fullscreen: !test);
         window.Show();
+        LiveMonitor.SetSource(window);
         // A retained blackout/background must reach the new renderer before a restore can reveal media.
         _output.ShowCue(_session.IsBlackout || _session.IsTextHidden ? _session.Live : null,
             _session.IsBlackout, _session.IsTextHidden);
@@ -93,6 +95,7 @@ public partial class MainWindow
     {
         var window = _outputWindow; var surface = _output;
         _outputWindow = null; _output = null; _outputDisplay = null;
+        LiveMonitor.SetSource(null);
         surface?.SetPaused(true); window?.Close(); surface?.Dispose();
         _isPaused = true;
         if (_ready) UpdateSessionLabels();

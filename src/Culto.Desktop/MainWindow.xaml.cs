@@ -83,6 +83,7 @@ public partial class MainWindow : Window
         _preview = new ProjectionSurface(preview: true);
         _preview.PlaybackError += message => Dispatcher.BeginInvoke(() => SetStatus(message, true));
         PreviewHost.Content = _preview;
+        InitializeDocking();
         _session.Changed += UpdateSessionLabels;
         _ready = true;
         RefreshLibrary();
@@ -196,11 +197,13 @@ public partial class MainWindow : Window
                 return;
             }
         }
+        SaveDockLayout();
         _closing = true; _timer.Stop();
         try { if (_remote is not null) await _remote.DisposeAsync(); }
         catch (Exception) { /* Closing must still release the native media players. */ }
         CloseOutput();
         _preview?.Dispose();
+        LiveMonitor.Dispose();
         Application.Current.Shutdown();
     }
 }
