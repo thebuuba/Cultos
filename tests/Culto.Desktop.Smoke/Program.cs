@@ -106,7 +106,7 @@ internal static partial class Program
                 window.Show();
                 app.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
                 {
-                    try { if (args.Contains("--local-output")) RunLocalOutputTests(window); else RunWindowTests(window, directory); }
+                    try { if (args.Contains("--local-output")) RunLocalOutputTests(window); else if (args.Contains("--compact-output")) RunCompactOutputTests(window); else RunWindowTests(window, directory); }
                     finally
                     {
                         if (!Field<bool>(window, "_closing"))
@@ -322,6 +322,7 @@ internal static partial class Program
         Call(window, "OpenOutput", DisplayService.GetDisplays().First(), true);
         RunOutputControlTests(window);
         RunThemeTests(window);
+        RunCompactOutputTests(window);
         RunDockingTests(window, directory);
         RunUsabilityTests(window, directory);
         RunOrderInteractionTests(window);

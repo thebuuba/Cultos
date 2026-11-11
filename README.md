@@ -12,6 +12,8 @@ La consola tiene dos monitores: **Vista previa a la izquierda y En pantalla a la
 
 Vista previa, En pantalla, Orden del culto, Secuencia y Biblioteca/Biblia son paneles independientes. Arrastra sus cabeceras para moverlos, acoplarlos a los bordes, agruparlos en pestañas o separarlos en ventanas; arrastra los separadores para cambiar su tamaño. El menú superior **Espacio de trabajo** permite activar cada panel, guardar la distribución o restablecerla. La distribución también se guarda al cerrar y se recupera al abrir, en `paneles.xml`, aparte de los datos del culto. Los monitores y contenidos conservan su estado al moverlos.
 
+En pantalla admite un ancho mínimo de 220 píxeles. Al estrecharlo, el título, los botones y la barra de reproducción se reorganizan en filas, manteniendo el video en 16:9. Si falta altura, se desplazan los controles secundarios; el video, Negro y Fondo permanecen visibles. Las distribuciones guardadas recuperan mínimos adecuados para cada panel, evitando que el de salida quede recortado a la derecha.
+
 La distribución inicial sitúa los monitores arriba, el orden y la secuencia debajo, y las fuentes a la derecha. Conserva el gris con acentos violeta, los botones redondos, Poppins y las transiciones breves que respetan la preferencia de animaciones de Windows.
 
 Desde 0.8.1, el tamaño de los paneles y sus monitores se actualiza continuamente al arrastrar los separadores horizontales o verticales. El ajuste respeta sus tamaños mínimos y se conserva en la distribución guardada.

@@ -24,6 +24,8 @@ public partial class MainWindow
         resources[AvalonDock.Themes.Arc.Themes.ResourceKeys.ToolWindowCaptionInactiveText] = FindResource("MutedBrush");
         foreach (var pane in WorkspaceDock.Layout.Descendents().OfType<LayoutAnchorable>())
             _dockContents[pane.ContentId] = pane.Content;
+        ApplyPaneMinimums();
+        WorkspaceDock.LayoutUpdated += (_, _) => ApplyPaneMinimums();
         _defaultDockLayout = SerializeDockLayout();
         if (File.Exists(DockLayoutPath))
         {
@@ -65,6 +67,7 @@ public partial class MainWindow
             else args.Cancel = true;
         };
         serializer.Deserialize(new StringReader(document.ToString()));
+        ApplyPaneMinimums();
         foreach (var pane in WorkspaceDock.Layout.Descendents().OfType<LayoutAnchorable>())
         {
             pane.CanClose = false; pane.CanHide = false; pane.CanAutoHide = false; pane.CanDockAsTabbedDocument = false;
@@ -85,6 +88,19 @@ public partial class MainWindow
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidOperationException)
         { SetStatus("No se pudo guardar la distribución de paneles. " + error.Message, true); return false; }
+    }
+    private void ApplyPaneMinimums()
+    {
+        // Pane containers can inherit the library's old minimum when tabs are moved.
+        // Derive it from their current contents, including restored user layouts.
+        foreach (var pane in WorkspaceDock.Layout.Descendents().OfType<LayoutAnchorablePane>())
+        {
+            if (pane.Children.Count == 0) continue;
+            var width = pane.Children.Max(p => p.ContentId switch { "sources" => 390d, "preview" => 280d, "output" => 220d, _ => 240d });
+            var height = pane.Children.Max(p => p.ContentId switch { "sources" => 400d, "preview" => 300d, "output" => 280d, "sequence" => 150d, _ => 160d });
+            if (pane.DockMinWidth != width) pane.DockMinWidth = width;
+            if (pane.DockMinHeight != height) pane.DockMinHeight = height;
+        }
     }
     private void SaveDockLayoutClick(object sender, RoutedEventArgs e)
     { if (SaveDockLayout()) SetStatus("Distribución guardada."); }

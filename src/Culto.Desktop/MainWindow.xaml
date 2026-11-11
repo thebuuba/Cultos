@@ -6,7 +6,7 @@
         xmlns:themes="clr-namespace:AvalonDock.Themes;assembly=AvalonDock.Themes.Arc"
         xmlns:projection="clr-namespace:Culto.Desktop.Projection"
         Title="Culto Studio — Consola de iglesia" Width="1480" Height="900"
-        MinWidth="1180" MinHeight="680" WindowStartupLocation="CenterScreen"
+        MinWidth="1200" MinHeight="680" WindowStartupLocation="CenterScreen"
         UseLayoutRounding="True" Style="{StaticResource {x:Type Window}}">
   <Window.Resources>
     <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
@@ -227,7 +227,7 @@
         <ad:LayoutPanel Orientation="Horizontal">
           <ad:LayoutPanel Orientation="Vertical" DockWidth="2.4*">
             <ad:LayoutPanel Orientation="Horizontal" DockHeight="1.5*">
-<ad:LayoutAnchorablePane DockWidth="*" DockHeight="*" DockMinWidth="360" DockMinHeight="300">
+<ad:LayoutAnchorablePane DockWidth="*" DockHeight="*" DockMinWidth="280" DockMinHeight="300">
 <ad:LayoutAnchorable Title="Vista previa" ContentId="preview" CanClose="False" CanHide="False" CanAutoHide="False" CanDockAsTabbedDocument="False">
 <Border x:Name="PreviewPanel" Background="#25232C" CornerRadius="8" Padding="12">
           <Grid>
@@ -258,12 +258,13 @@
           </Grid>
         </Border>
 </ad:LayoutAnchorable>
-</ad:LayoutAnchorablePane><ad:LayoutAnchorablePane DockWidth="*" DockHeight="*" DockMinWidth="360" DockMinHeight="300">
+</ad:LayoutAnchorablePane><ad:LayoutAnchorablePane DockWidth="*" DockHeight="*" DockMinWidth="220" DockMinHeight="280">
 <ad:LayoutAnchorable Title="En pantalla" ContentId="output" CanClose="False" CanHide="False" CanAutoHide="False" CanDockAsTabbedDocument="False">
-<Border x:Name="LivePanel" Background="#302D38" BorderBrush="#48414F" BorderThickness="1,0,0,0" CornerRadius="6" Padding="10,8">
+<Border x:Name="LivePanel" Background="#302D38" BorderBrush="#48414F" BorderThickness="1,0,0,0" CornerRadius="6" Padding="10,8" SizeChanged="OutputPanelSizeChanged">
           <Grid>
-            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-            <Grid>
+            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+            <Grid x:Name="LiveHeaderGrid">
+              <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
               <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
               <Border Background="#273E38" CornerRadius="9" Padding="7,3" Margin="0,0,9,0"><TextBlock Text="En pantalla" Foreground="{StaticResource LiveBrush}" FontSize="10" FontWeight="SemiBold"/></Border>
               <TextBlock Grid.Column="1" x:Name="LiveTitleText" Text="Sin contenido" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
@@ -274,32 +275,36 @@
                 <projection:OutputMonitor x:Name="LiveMonitor" MinHeight="80" AutomationProperties.Name="Monitor de la salida real"/>
               </Border>
             </local:AspectRatioBox>
-            <StackPanel Grid.Row="2" Margin="0,5,0,0">
+            <UniformGrid Grid.Row="2" x:Name="ScreenNavigationPanel" Columns="4">
+              <Button Content="Anterior" Click="PreviousClick" Margin="0,0,5,0" MinHeight="30" Padding="4,5" FontSize="11"/>
+              <Button Content="Siguiente" Click="NextClick" Margin="0,0,5,0" MinHeight="30" Padding="4,5" FontSize="11"/>
+              <Button x:Name="BlackoutButton" Content="Negro" Click="BlackoutClick" Margin="0,0,5,0" MinHeight="30" Padding="4,5" FontSize="11"/>
+              <Button Content="Fondo" Click="BackgroundClick" MinHeight="30" Padding="4,5" FontSize="11"/>
+            </UniformGrid>
+            <ScrollViewer Grid.Row="3" x:Name="LiveScroll" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" CanContentScroll="False" MaxHeight="200">
+            <Grid>
+            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+            <StackPanel Margin="0,5,0,0">
               <TextBlock x:Name="LiveBodyText" Text="La salida está cerrada." Foreground="{StaticResource MutedBrush}" FontSize="12" TextWrapping="Wrap" MaxHeight="18" TextTrimming="CharacterEllipsis">
                 <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><DataTrigger Binding="{Binding Visibility, ElementName=MediaPlaybackPanel}" Value="Visible"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
               </TextBlock>
               <TextBlock x:Name="LiveReferenceText" Foreground="{StaticResource MutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis"/>
               <TextBlock x:Name="OutputStatusText" Text="Una salida HDMI · tres pantallas iguales" Visibility="Collapsed"/>
             </StackPanel>
-            <Grid Grid.Row="3" Margin="0,4,0,6">
+            <Grid Grid.Row="1" x:Name="OutputActionsGrid" Margin="0,4,0,6">
+              <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
               <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
               <TextBlock x:Name="NextLiveText" Text="Sin contenido en salida" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
-              <Button Grid.Column="1" Content="Pantalla…" Click="DisplayClick" FontSize="10" MinHeight="28" Padding="8,4" Margin="5,0"/>
+              <Button Grid.Column="1" x:Name="ChooseOutputButton" Content="Pantalla…" Click="DisplayClick" FontSize="10" MinHeight="28" Padding="8,4" Margin="5,0"/>
               <Button Grid.Column="2" x:Name="ToggleOutputButton" Content="Activar HDMI" Click="ToggleOutputClick" FontSize="10" MinHeight="28" Padding="8,4"/>
             </Grid>
-            <Grid Grid.Row="4" x:Name="ScreenNavigationPanel">
-              <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
-              <Button Content="Anterior" Click="PreviousClick" Margin="0,0,5,0" MinHeight="30" Padding="4,5" FontSize="11"/>
-              <Button Grid.Column="1" Content="Siguiente" Click="NextClick" Margin="0,0,5,0" MinHeight="30" Padding="4,5" FontSize="11"/>
-              <Button Grid.Column="2" x:Name="BlackoutButton" Content="Negro" Click="BlackoutClick" Margin="0,0,5,0" MinHeight="30" Padding="4,5" FontSize="11"/>
-              <Button Grid.Column="3" Content="Fondo" Click="BackgroundClick" MinHeight="30" Padding="4,5" FontSize="11"/>
-            </Grid>
-            <Grid Grid.Row="5" x:Name="MediaPlaybackPanel" Visibility="Collapsed" Margin="0,6,0,0">
+            <Grid Grid.Row="3" x:Name="MediaPlaybackPanel" Visibility="Collapsed" Margin="0,6,0,0">
               <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-              <Grid>
+              <Grid x:Name="OutputTransportGrid">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <Button x:Name="PauseButton" Content="Pausar" Click="PauseClick" Padding="9,5" MinHeight="28" FontSize="10"/>
-                <Button Grid.Column="1" Content="Reiniciar" Click="RestartClick" Padding="9,5" MinHeight="28" FontSize="10" Margin="5,0,0,0"/>
+                <Button Grid.Column="1" x:Name="RestartOutputButton" Content="Reiniciar" Click="RestartClick" Padding="9,5" MinHeight="28" FontSize="10" Margin="5,0,0,0"/>
                 <Slider Grid.Column="2" x:Name="PositionSlider" Minimum="0" Maximum="1" Value="0" Margin="10,0" PreviewMouseLeftButtonUp="PositionSeek" AutomationProperties.Name="Posición del video"/>
                 <TextBlock Grid.Column="3" x:Name="TimeText" Text="00:00 / 00:00" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
               </Grid>
@@ -310,6 +315,8 @@
                 <CheckBox Grid.Column="2" x:Name="LoopCheck" Content="Repetir" Checked="LoopChanged" Unchecked="LoopChanged" FontSize="10" MinHeight="24"/>
               </Grid>
             </Grid>
+            </Grid>
+            </ScrollViewer>
           </Grid>
         </Border>
 </ad:LayoutAnchorable>

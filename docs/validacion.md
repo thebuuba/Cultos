@@ -4,6 +4,14 @@ Comprobación realizada el 11 de noviembre de 2026 en esta PC Windows. Entrega a
 
 ## Compilación y pruebas
 
+### Panel de salida compacto — versión 0.11.1
+
+Se reprodujo el recorte de la captura: una distribución guardada con cuatro columnas heredaba mínimos de 390/390/360/360 y situaba el video fuera del área visible de la consola. La regresión falló con límites 1186,135,337,190 en una ventana de 1280×900. Ahora se calculan los mínimos de cada contenedor según sus paneles actuales, también al restaurar o reagrupar. En pantalla admite 220 píxeles de ancho; por debajo de 320 reorganiza título, selección de HDMI, navegación y reproducción. El video conserva 16:9 y los controles secundarios tienen desplazamiento vertical si falta altura. Negro, Fondo y el video quedan fuera del área desplazable.
+
+La prueba dirigida pasó después del cambio. La suite de escritorio completa terminó con código 0 y **61 comprobaciones correctas**, incluyendo restauración de cuatro columnas a 1280 píxeles, salida a 240/280/420/240 píxeles, acceso a todos sus botones/barras, proporción del video y conservación de la sesión. También se comprobó la consola a 1280×680 y 1280×720. No se modificó el motor de video ni se repitieron las suites de núcleo/mando/reproductor en este ajuste visual.
+
+Se publicó y abrió 0.11.1 en una ventana normal, conservando las cuatro columnas del usuario. Se envió el himno 014, se pausaron salida y previa y se estrechó En pantalla mediante su separador hasta unos 240 píxeles. La captura mostró todo el video, título, navegación en dos filas, botones HDMI, reproducción, tiempo, posición, volumen y Repetir dentro del panel. La salida siguió pausada a 00:04 y la previa a 00:09. Quedó abierta en esa distribución compacta.
+
 ### Reproducción local sin HDMI — versión 0.11.0
 
 El envío al panel En pantalla ya no depende de que Windows detecte un monitor externo. Doble clic o Proyectar crean un único reproductor de salida dentro del programa, con disolución, pausa, posición, negro, fondo y control remoto. El indicador LOCAL distingue esta reproducción de HDMI. La vista previa permanece independiente y silenciosa.
