@@ -51,6 +51,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         _root.Children.Add(_image);
         _root.Children.Add(_text);
         _root.Children.Add(_preview ? _video : _compositedVideo);
+        InitializeAudioFade();
         InitializeDissolve();
         ShowCue(null);
     }
@@ -67,7 +68,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         set
         {
             _volume = Math.Clamp(value, 0, 100);
-            if (_player is not null) { _player.Volume = Volume; _player.Mute = _preview; }
+            ApplyAudioVolume();
         }
     }
     public bool Loop { get; set; }
@@ -76,6 +77,9 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
     public bool IsPlaying => !_disposed && _player?.IsPlaying == true;
 
     public void ShowCue(Cue? cue, bool blackout = false, bool hideText = false)
+        => Present(new Presentation(cue, blackout, hideText, false));
+
+    private void ShowCueCore(Cue? cue, bool blackout = false, bool hideText = false, bool paused = false)
     {
         if (_disposed) return;
         CancelDissolve();
@@ -89,14 +93,18 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         string? key = mediaCue ? $"{cue!.Id}|{cue.Kind}|{cue.FilePath}" : null;
         if (key != _mediaKey)
         {
+            _playbackGeneration++;
+            CancelAudioFade(silence: true);
             _player?.Stop();
             _compositedVideo.Clear();
             if (_player is not null) _player.Media = null;
             _media?.Dispose(); _media = null;
             _mediaKey = key;
             _started = false;
-            _pauseRequested = _suppressed;
+            _ended = false;
+            _pauseRequested = paused || _suppressed;
         }
+        if (paused) _pauseRequested = true;
         if (_suppressed) return;
 
         try
@@ -176,7 +184,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
     {
         if (_player is not null) return;
         _vlc = new LibVLC("--no-video-title-show", "--quiet");
-        _player = new MediaPlayer(_vlc) { Volume = Volume, Mute = _preview, EnableMouseInput = false, EnableKeyInput = false };
+        _player = new MediaPlayer(_vlc) { Volume = 0, Mute = true, EnableMouseInput = false, EnableKeyInput = false };
         if (_preview) _video.MediaPlayer = _player;
         else _compositedVideo.Attach(_player);
         _player.EncounteredError += OnPlaybackError;
@@ -184,28 +192,62 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         _player.EndReached += OnEndReached;
     }
 
-    private void OnPlaybackError(object? sender, EventArgs args) => Dispatcher.BeginInvoke(new Action(() =>
+    private void OnPlaybackError(object? sender, EventArgs args)
     {
-        if (!_disposed) ReportError("No se pudo reproducir el archivo. Compruebe que sea compatible y esté disponible.");
-    }));
+        var generation = System.Threading.Volatile.Read(ref _playbackGeneration);
+        Dispatcher.BeginInvoke(new Action(() =>
+        {
+            if (!_disposed && generation == _playbackGeneration && _pendingPresentation is null)
+                ReportError("No se pudo reproducir el archivo. Compruebe que sea compatible y esté disponible.");
+        }));
+    }
 
-    private void OnPlaying(object? sender, EventArgs args) => Dispatcher.BeginInvoke(new Action(() =>
+    private void OnPlaying(object? sender, EventArgs args)
     {
-        if (_disposed || _player is null) return;
-        _player.Mute = _preview;
-        _player.Volume = Volume;
-        if (_suppressed || _pauseRequested) _player.SetPause(true);
-    }));
+        var generation = System.Threading.Volatile.Read(ref _playbackGeneration);
+        Dispatcher.BeginInvoke(new Action(() =>
+        {
+            if (_disposed || _player is null || generation != _playbackGeneration) return;
+            if (_suppressed || _pauseRequested)
+            {
+                CancelAudioFade(silence: true);
+                _player.SetPause(true);
+                return;
+            }
+            if (_pendingPresentation is not null) return;
+            if (_awaitingAudioStart)
+            {
+                _awaitingAudioStart = false;
+                ApplyAudioVolume();
+                FadeAudio(1, 350);
+            }
+            else ApplyAudioVolume();
+        }));
+    }
 
-    private void OnEndReached(object? sender, EventArgs args) => Dispatcher.BeginInvoke(new Action(() =>
+    private void OnEndReached(object? sender, EventArgs args)
     {
-        if (!_disposed && Loop && !_suppressed && !_pauseRequested) Restart();
-    }));
+        var generation = System.Threading.Volatile.Read(ref _playbackGeneration);
+        Dispatcher.BeginInvoke(new Action(() =>
+        {
+            if (_disposed || generation != _playbackGeneration || _pendingPresentation is not null) return;
+            _ended = true;
+            _started = false;
+            CancelAudioFade(silence: true);
+            if (Loop && !_suppressed && !_pauseRequested) Restart();
+            else _pauseRequested = true;
+        }));
+    }
 
     private void ReportError(string message)
     {
         if (_disposed) return;
         _cueFailed = true;
+        _pendingPresentation = null;
+        _playbackGeneration++;
+        CancelAudioFade(silence: true);
+        _pauseRequested = true;
+        _started = false;
         CancelDissolve();
         _player?.Stop();
         _video.Visibility = _compositedVideo.Visibility = _image.Visibility = Visibility.Collapsed;
@@ -216,7 +258,9 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
     private void Start()
     {
         if (_player is null || _media is null) return;
-        _player.Volume = Volume; _player.Mute = _preview;
+        _playbackGeneration++;
+        BeginAudioPlayback();
+        if (_ended) { _player.Stop(); _ended = false; }
         _started = _player.Play();
         if (!_started) ReportError("No se pudo iniciar la reproducción del archivo.");
     }
@@ -224,30 +268,57 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
     public void SetPaused(bool paused)
     {
         if (_disposed) return;
+        var wasPaused = _pauseRequested;
         _pauseRequested = paused || _suppressed;
+        if (_pauseRequested)
+        {
+            var pending = _pendingPresentation;
+            _pendingPresentation = null;
+            CancelAudioFade(silence: true);
+            if (pending is not null) ApplyPresentation(pending, paused: true);
+            if (_waitingForFrame) CancelDissolve();
+        }
+        else if (_pendingPresentation is not null) return;
         if (_player is null) return;
         if (!_pauseRequested && !_started) Start();
-        else _player.SetPause(_pauseRequested);
+        else
+        {
+            if (!_pauseRequested && (wasPaused || !_player.IsPlaying)) BeginAudioPlayback();
+            _player.SetPause(_pauseRequested);
+            if (!_pauseRequested && _awaitingAudioStart && _player.IsPlaying)
+            {
+                _awaitingAudioStart = false;
+                ApplyAudioVolume();
+                FadeAudio(1, 350);
+            }
+        }
     }
 
     public void Restart()
     {
         if (_disposed || _player is null || _media is null) return;
+        if (_pendingPresentation is not null) return; // The pending cue will start at its beginning.
+        _playbackGeneration++;
+        CancelAudioFade(silence: true);
         _player.Stop();
         _started = false;
+        _ended = false;
         _pauseRequested = _suppressed;
         if (!_suppressed) Start();
     }
 
     public void Seek(double fraction)
     {
-        if (_disposed || _player is null || !double.IsFinite(fraction)) return;
+        if (_disposed || _player is null || _pendingPresentation is not null || !double.IsFinite(fraction)) return;
         _player.Position = (float)Math.Clamp(fraction, 0, 1);
     }
 
     public void Dispose()
     {
         if (_disposed) return;
+        _pendingPresentation = null;
+        _playbackGeneration++;
+        CancelAudioFade(silence: true);
         CancelDissolve();
         _disposed = true;
         if (_player is not null)

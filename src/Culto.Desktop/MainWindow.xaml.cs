@@ -42,6 +42,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        InitializePlayerControls();
         InitializeUsabilityShortcuts();
         _plan.CollectionChanged += (_, _) => UpdateUsabilityState();
         Loaded += (_, _) => InitializeWorkspace();
@@ -101,8 +102,9 @@ public partial class MainWindow : Window
         _session.Prepare(cue);
         _preview.ShowCue(cue);
         _previewPaused = false;
-        PreviewPauseButton.Content = "Pausar previa";
-        PreviewTimeText.Text = "00:00 / 00:00";
+        UpdatePlayButton(PreviewPauseButton, false, true);
+        PreviewTimeText.Text = "00:00";
+        PreviewDurationText.Text = "00:00";
         PreviewPositionSlider.Value = 0;
         PreparedTitleText.Text = cue.Title;
         UpdateUsabilityState();
@@ -184,7 +186,11 @@ public partial class MainWindow : Window
     }
     private void NotesChanged(object sender, RoutedEventArgs e) => CommitNotes();
     private void PreviewPauseClick(object sender, RoutedEventArgs e)
-    { _previewPaused = !_previewPaused; _preview.SetPaused(_previewPaused); ((Button)sender).Content = _previewPaused ? "Continuar previa" : "Pausar previa"; }
+    {
+        if (!_ready || _session.Prepared?.Kind is not (CueKind.Video or CueKind.Audio)) return;
+        _previewPaused = !_preview.IsPaused; _preview.SetPaused(_previewPaused);
+        UpdatePlayButton(PreviewPauseButton, _previewPaused, true);
+    }
 
     private async void OnWindowClosing(object? sender, CancelEventArgs e)
     {

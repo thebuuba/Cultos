@@ -16,7 +16,7 @@ public sealed partial class ProjectionSurface
     private readonly DispatcherTimer _frameTimeout = new() { Interval = TimeSpan.FromSeconds(15) };
     private bool _waitingForFrame, _cueFailed;
     private int _dissolveGeneration;
-    public bool IsTransitioning => _dissolve.Visibility == Visibility.Visible;
+    public bool IsTransitioning => _pendingPresentation?.Dissolve == true || _dissolve.Visibility == Visibility.Visible;
 
     private void InitializeDissolve()
     {
@@ -28,15 +28,18 @@ public sealed partial class ProjectionSurface
     }
 
     public void TransitionTo(Cue cue)
+        => Present(new Presentation(cue, false, false, true));
+
+    private void TransitionToCore(Cue cue)
     {
         if (_disposed) return;
-        if (_preview || ActualWidth < 1 || ActualHeight < 1) { ShowCue(cue); return; }
+        if (_preview || ActualWidth < 1 || ActualHeight < 1) { ShowCueCore(cue); return; }
         UpdateLayout();
         // Retain the composed outgoing frame, including any in-flight dissolve.
         // Only the new video decodes; there is never duplicate output audio.
         var previous = new RenderTargetBitmap((int)Math.Ceiling(ActualWidth), (int)Math.Ceiling(ActualHeight), 96, 96, PixelFormats.Pbgra32);
         previous.Render(_composition); previous.Freeze();
-        ShowCue(cue);
+        ShowCueCore(cue);
         if (_cueFailed) return;
         _dissolve.Source = previous;
         _dissolve.Opacity = 1;

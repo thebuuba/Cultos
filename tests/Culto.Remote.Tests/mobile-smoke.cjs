@@ -1,68 +1,199 @@
-// Runs the embedded page's actual script against a minimal DOM/fetch boundary.
-// Browser layout and physical phone verification are separate manual checks.
+// Exercises the shipped browser script at its DOM/network boundary; visual checks run separately.
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const html = fs.readFileSync(path.join(__dirname, '../../src/Culto.Remote/wwwroot/index.html'), 'utf8');
 const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
-const elements = new Map();
-function element() {
+function element(tag = 'div') {
+  const classes = new Set(), attributes = {}, listeners = {};
   return {
-    textContent: '', value: 0, disabled: true, dataset: {}, style: {},
-    classList: { toggle() {} }, setAttribute() {}, addEventListener() {}, replaceChildren() {}, appendChild() {}
+    tagName: tag.toUpperCase(), children: [], value: 0, disabled: false, hidden: false, dataset: {}, style: {},
+    get textContent() { return this._text || this.children.map(child => child.textContent).join(''); },
+    set textContent(value) { this._text = String(value); this.children = []; },
+    classList: { toggle(name, enabled) { enabled ? classes.add(name) : classes.delete(name); }, contains(name) { return classes.has(name); } },
+    setAttribute(name, value) { attributes[name] = String(value); }, getAttribute(name) { return attributes[name] ?? null; },
+    removeAttribute(name) { delete attributes[name]; },
+    addEventListener(name, handler) { listeners[name] = handler; },
+    async dispatch(name) { if (!this.disabled) return listeners[name]?.({ target: this }); },
+    replaceChildren(...children) { this.children = children; this._text = ''; },
+    appendChild(child) { this.children.push(child); return child; },
+    append(...children) { this.children.push(...children); }
   };
 }
-for (const id of ['connection', 'notice', 'plan', 'live-title', 'prepared-title', 'blackout-state',
-  'blackout', 'pause', 'play-state', 'time', 'volume-value', 'volume', 'position', 'deck', 'deck-empty', 'retry'])
-  elements.set(id, element());
-const buttons = Array.from({ length: 7 }, element);
+const elements = new Map([...html.matchAll(/id="([^"]+)"/g)].map(match => [match[1], element()]));
+const staticButtons = [...html.matchAll(/<button\b([^>]*)>/g)].map(match => {
+  const attributes = match[1], id = attributes.match(/id="([^"]+)"/)?.[1];
+  const button = id ? elements.get(id) : element('button');
+  button.tagName = 'BUTTON'; button.disabled = attributes.includes('disabled');
+  const action = attributes.match(/data-action="([^"]+)"/)?.[1];
+  if (action) button.dataset.action = action;
+  return button;
+});
+const descendants = node => [node, ...node.children.flatMap(descendants)];
+const actionButtons = () => [...staticButtons, ...[...elements.values()].flatMap(descendants)].filter((node, index, all) => node.dataset.action && all.indexOf(node) === index);
 const storage = new Map(), calls = [], token = 'A'.repeat(64);
-const state = {
+let state = {
   planName: 'Culto de prueba', liveTitle: 'Bienvenida', preparedTitle: 'Lectura',
-  isBlackout: false, isPaused: true, volume: 70, position: 3, duration: 10, buttons: []
+  isBlackout: false, isPaused: true, volume: 70, position: 3, duration: 10,
+  hasOutput: true, hasExternalOutput: false, isBackground: false,
+  liveCueId: 'cue-a', preparedCueId: 'cue-b',
+  order: [{ id: 'cue-a', title: 'Bienvenida', kind: 'Text' }, { id: 'cue-b', title: 'Lectura', kind: 'Bible' }],
+  buttons: [{ id: 'deck-1', label: 'Salmo', color: '#A78BFA' }]
 };
+let commandHandler = async () => ({ success: false, message: 'Acción rechazada' });
+let stateHandler = async () => structuredClone(state);
 const context = vm.createContext({
   document: {
     hidden: false, activeElement: null, getElementById: id => elements.get(id),
-    querySelectorAll: () => [...buttons, elements.get('volume'), elements.get('position')],
+    querySelectorAll: selector => selector.includes('#volume') ? [...actionButtons(), elements.get('volume'), elements.get('position')] : actionButtons(),
     createElement: element, addEventListener() {}
   },
   location: { hash: '#token=' + token, pathname: '/', search: '' },
   history: { replaceState() { context.location.hash = ''; } },
-  sessionStorage: {
-    getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value),
-    removeItem: key => storage.delete(key)
-  },
+  sessionStorage: { getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) },
   setTimeout: () => 1, clearTimeout() {}, AbortController, URLSearchParams, crypto: globalThis.crypto,
   fetch: async (url, options) => {
     calls.push({ url, options });
-    return { ok: true, status: 200, json: async () => url === '/api/state' ? state : { success: false, message: 'Acción rechazada' } };
+    const body = await (url === '/api/state' ? stateHandler() : commandHandler(JSON.parse(options.body)));
+    return { ok: true, status: 200, json: async () => body };
   }
 });
+const run = source => vm.runInContext(source, context);
+const settle = () => new Promise(setImmediate);
+const cue = id => actionButtons().find(button => button.dataset.cueId === id);
+const commands = () => calls.filter(call => call.url === '/api/command');
 (async () => {
-  vm.runInContext(script, context);
-  await new Promise(setImmediate);
+  run(script); await settle();
   assert.equal(context.location.hash, '');
   assert.equal(storage.get('culto.remote.token'), token);
-  assert.equal(calls[0].url, '/api/state');
   assert.equal(calls[0].options.headers.Authorization, 'Bearer ' + token);
-  assert.equal(elements.get('live-title').textContent, 'Bienvenida');
   assert.equal(elements.get('connection').textContent, 'Conectado');
+  assert.equal(elements.get('order').children.length, 2, 'The phone must render the real PC order');
+  assert.match(cue('cue-a').textContent, /Bienvenida/);
+  assert.equal(cue('cue-a').getAttribute('aria-current'), 'true');
+  assert.match(cue('cue-b').textContent, /Preparado/);
 
-  await vm.runInContext("send('project')", context);
-  assert.equal(calls.length, 2);
-  assert.equal(elements.get('live-title').textContent, 'Bienvenida');
-  assert.equal(elements.get('notice').textContent, 'Acción rechazada');
-  const sent = JSON.parse(calls[1].options.body);
-  assert.equal(sent.action, 'project');
+  // A rejected tap preserves the confirmed live item and remains visible across polling.
+  await cue('cue-b').dispatch('click');
+  const sent = JSON.parse(commands()[0].options.body);
+  assert.equal(sent.action, 'cue'); assert.equal(sent.cueId, 'cue-b');
   assert.match(sent.requestId, /^[0-9a-f]{32}$/);
+  assert.equal(cue('cue-a').getAttribute('aria-current'), 'true');
+  assert.equal(elements.get('live-title').textContent, 'Bienvenida');
+  await run('refresh()');
+  assert.equal(elements.get('notice').textContent, 'Acción rechazada');
 
-  context.fetch = async () => { throw Error('sin red'); };
-  await vm.runInContext('refresh()', context);
+  // Pending taps cannot produce duplicate commands or an optimistic live marker.
+  let finishCommand;
+  commandHandler = () => new Promise(resolve => { finishCommand = resolve; });
+  const pendingTap = cue('cue-b').dispatch('click'); await settle();
+  await run("send('cue', { cueId: 'cue-b' })");
+  assert.equal(commands().length, 2);
+  assert.equal(cue('cue-b').disabled, true);
+  assert.equal(cue('cue-a').getAttribute('aria-current'), 'true');
+  state.liveCueId = 'cue-b'; state.liveTitle = 'Lectura';
+  finishCommand({ success: true, message: 'Proyección confirmada' }); await pendingTap;
+  assert.equal(cue('cue-b').getAttribute('aria-current'), 'true');
+  assert.equal(cue('cue-a').getAttribute('aria-current'), null);
+  assert.equal(elements.get('live-title').textContent, 'Lectura');
+
+  // PC edits, reorder/removal, identical titles and literal HTML never change ID routing.
+  state.order = [{ id: 'cue-b', title: '<img src=x onerror=alert(1)>', kind: 'Bible' }, { id: 'cue-c', title: 'Lectura', kind: 'Video' }];
+  state.preparedCueId = 'cue-c'; await run('refresh()');
+  assert.equal(elements.get('order').children.length, 2);
+  assert.equal(cue('cue-a'), undefined);
+  assert.match(cue('cue-b').textContent, /<img src=x onerror=alert\(1\)>/);
+  assert.equal(descendants(cue('cue-b')).some(node => node.tagName === 'IMG'), false);
+  commandHandler = async () => ({ success: false, message: 'Elemento eliminado en la consola' });
+  await cue('cue-c').dispatch('click');
+  assert.equal(JSON.parse(commands().at(-1).options.body).cueId, 'cue-c');
+
+  state.hasExternalOutput = true; await run('refresh()');
+  assert.equal(cue('cue-b').getAttribute('aria-current'), 'true', 'HDMI is a destination, not different cue ownership');
+  assert.match(elements.get('output-target').textContent, /HDMI/);
+  state.hasExternalOutput = false; await run('refresh()');
+  assert.equal(cue('cue-b').getAttribute('aria-current'), 'true');
+  assert.match(elements.get('output-target').textContent, /Local/);
+  state.isBlackout = true; await run('refresh()');
+  assert.match(elements.get('blackout-state').textContent, /NEGRO/);
+  assert.equal(elements.get('blackout').getAttribute('aria-pressed'), 'true');
+  assert.equal(cue('cue-b').getAttribute('aria-current'), 'true');
+  assert.match(cue('cue-b').textContent, /En negro/);
+  state.isBlackout = false; state.isBackground = true; await run('refresh()');
+  assert.equal(elements.get('background').getAttribute('aria-pressed'), 'true');
+  assert.equal(cue('cue-b').getAttribute('aria-current'), 'true');
+  assert.match(cue('cue-b').textContent, /Fondo/);
+  state.isBackground = false; state.hasOutput = false; await run('refresh()');
+  assert.match(elements.get('blackout-state').textContent, /Sin salida/);
+  assert.notEqual(cue('cue-b').getAttribute('aria-current'), 'true');
+
+  // Commands serialize after any existing poll, then read a fresh post-command snapshot.
+  state.hasOutput = true;
+  let finishPoll;
+  const stale = structuredClone(state);
+  stateHandler = () => new Promise(resolve => { finishPoll = resolve; });
+  const oldPoll = run('refresh()'); await settle();
+  const commandCount = commands().length;
+  commandHandler = async () => { state.liveCueId = 'cue-c'; state.liveTitle = 'Vídeo'; return { success: true }; };
+  const nextTap = run("send('cue', { cueId: 'cue-c' })"); await settle();
+  assert.equal(commands().length, commandCount, 'Wait for the pre-command poll before sending');
+  stateHandler = async () => structuredClone(state); finishPoll(stale);
+  await oldPoll; await nextTap;
+  assert.equal(cue('cue-c').getAttribute('aria-current'), 'true');
+  assert.equal(elements.get('live-title').textContent, 'Vídeo');
+
+  // Acknowledgment without a readable new snapshot cannot claim updated projection.
+  commandHandler = async () => ({ success: true });
+  stateHandler = async () => { throw Error('snapshot unavailable'); };
+  await cue('cue-b').dispatch('click');
   assert.equal(elements.get('connection').textContent, 'Sin conexión');
-  assert.equal(buttons[0].disabled, true);
-  await vm.runInContext("send('next')", context);
-  assert.equal(calls.length, 2);
-  console.log('Mobile smoke PASS: fragment/sessionStorage, Bearer, failed command preserves state, disconnect disables commands.');
+  assert.equal(elements.get('live-title').textContent, 'Vídeo');
+  assert.equal(cue('cue-c').getAttribute('aria-current'), 'true');
+  assert.match(elements.get('notice').textContent, /No se pudo actualizar/);
+  stateHandler = async () => structuredClone(state); await run('refresh()');
+
+  // Lost command response is not retried, and reconnect never replays it.
+  commandHandler = async () => { throw Error('sin red'); };
+  const beforeFailure = commands().length;
+  await cue('cue-b').dispatch('click');
+  assert.equal(commands().length, beforeFailure + 1);
+  assert.equal(elements.get('connection').textContent, 'Sin conexión');
+  assert.equal(cue('cue-b').disabled, true);
+  assert.match(elements.get('notice').textContent, /No se confirmó/);
+  await run("send('next')"); assert.equal(commands().length, beforeFailure + 1);
+  await run('refresh()'); assert.equal(commands().length, beforeFailure + 1);
+  assert.equal(cue('cue-b').disabled, false);
+  assert.match(elements.get('notice').textContent, /No se confirmó/);
+
+  // Existing physical-console controls keep their actual action/value contracts.
+  commandHandler = async () => ({ success: false });
+  for (const action of ['previous', 'next', 'blackout', 'background', 'project', 'pause', 'restart']) {
+    await staticButtons.find(button => button.dataset.action === action).dispatch('click');
+    assert.equal(JSON.parse(commands().at(-1).options.body).action, action);
+  }
+  elements.get('volume').value = 32; await elements.get('volume').dispatch('change');
+  assert.equal(JSON.parse(commands().at(-1).options.body).value, 32);
+  assert.equal(JSON.parse(commands().at(-1).options.body).action, 'volume');
+  elements.get('position').value = 250; await elements.get('position').dispatch('change');
+  assert.equal(JSON.parse(commands().at(-1).options.body).value, 0.25);
+  assert.equal(JSON.parse(commands().at(-1).options.body).action, 'seek');
+  state.duration = 0; state.liveCueId = 'outside-plan'; await run('refresh()');
+  assert.equal(elements.get('position').disabled, true);
+  assert.equal(actionButtons().some(button => button.getAttribute('aria-current') === 'true'), false);
+
+  state.order = []; await run('refresh()');
+  assert.equal(elements.get('order').children.length, 0); assert.equal(elements.get('order-empty').hidden, false);
+  state.order = null; await run('refresh()');
+  assert.equal(elements.get('order').children.length, 0);
+  assert.equal(elements.get('deck').children.length, 1, 'Legacy/custom deck remains usable without an order');
+  commandHandler = async () => ({ success: false });
+  await elements.get('deck').children[0].dispatch('click');
+  assert.equal(JSON.parse(commands().at(-1).options.body).buttonId, 'deck-1');
+
+  context.fetch = async () => ({ status: 401, ok: false });
+  await run('refresh()');
+  assert.equal(storage.has('culto.remote.token'), false);
+  assert.equal(elements.get('connection').textContent, 'Sin conexión');
+  console.log('Mobile smoke PASS: real order, stable IDs, safe text, live/output states, PC edits, failed commands, duplicate prevention, poll serialization, reconnect, legacy deck and auth.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

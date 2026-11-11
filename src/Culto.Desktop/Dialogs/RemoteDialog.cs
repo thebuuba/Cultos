@@ -21,6 +21,7 @@ public sealed class RemoteDialog : Window
     public Func<Task>? StopRequested { get; set; }
     public Action<List<DeckButton>>? DeckChanged { get; set; }
     private RemoteHost? _host;
+    private bool _changingConnection;
     private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock _stateLabel = new() { FontSize = 11, FontWeight = FontWeights.Bold };
     private readonly TextBox _url = new() { IsReadOnly = true, TextWrapping = TextWrapping.Wrap, FontSize = 12, MinHeight = 50, MaxHeight = 90 };
@@ -90,14 +91,11 @@ public sealed class RemoteDialog : Window
         var controls = new WrapPanel(); _start.Style = (Style)FindResource("PrimaryButton"); controls.Children.Add(_start); controls.Children.Add(_stop); steps.Children.Add(controls);
         steps.Children.Add(Section("2  Revisa la dirección de red", new Thickness(0, 12, 0, 0)));
         DialogUi.Label(steps, "Dirección de esta computadora", _addresses);
-        var addresses = NetworkInterface.GetAllNetworkInterfaces()
-            .Where(n => n.OperationalStatus == OperationalStatus.Up && n.NetworkInterfaceType != NetworkInterfaceType.Loopback)
-            .SelectMany(n => n.GetIPProperties().UnicastAddresses)
-            .Where(a => a.Address.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(a.Address))
-            .Select(a => a.Address.ToString()).Distinct().ToList();
-        if (addresses.Count == 0) addresses.Add("127.0.0.1");
-        _addresses.ItemsSource = addresses; _addresses.SelectedIndex = 0;
+        RefreshAddresses();
         _addresses.SelectionChanged += (_, _) => RefreshConnection(); steps.Children.Add(_addresses);
+        var refresh = new Button { Content = "Actualizar red", HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 8, 0, 0) };
+        refresh.Click += (_, _) => { RefreshAddresses(); RefreshConnection(); };
+        steps.Children.Add(refresh);
         steps.Children.Add(Muted("Si hay varias, elige la conexión que comparte la red del teléfono.", new Thickness(0, 7, 0, 0)));
         var stepsCard = DialogUi.Card(steps); stepsCard.Margin = new Thickness(0, 0, 14, 0); columns.Children.Add(stepsCard);
         var qrContent = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center };
@@ -182,36 +180,69 @@ public sealed class RemoteDialog : Window
 
     private async Task Start()
     {
-        if (StartRequested is null) return;
+        if (StartRequested is null || _changingConnection || _host is not null) return;
+        RefreshAddresses();
+        _changingConnection = true;
         _start.IsEnabled = false; _status.Text = "Activando mando…"; _stateLabel.Text = "ACTIVANDO";
-        try { _host = await StartRequested(); RefreshConnection(); }
+        try { _host = await StartRequested(); _changingConnection = false; RefreshConnection(); }
         catch (Exception ex) { _status.Text = "No se pudo activar el mando: " + ex.Message; _stateLabel.Text = "NO SE PUDO ACTIVAR"; _stateLabel.Foreground = (Brush)FindResource("AmberBrush"); _start.IsEnabled = true; }
+        finally { _changingConnection = false; UpdateConnectionControls(); }
     }
     private async Task Stop()
     {
+        if (_changingConnection || _host is null) return;
+        _changingConnection = true;
         _stop.IsEnabled = false; _copy.IsEnabled = false; _stateLabel.Text = "DESACTIVANDO";
-        try { if (StopRequested is not null) await StopRequested(); _host = null; RefreshConnection(); }
+        try { if (StopRequested is not null) await StopRequested(); _host = null; _changingConnection = false; RefreshConnection(); }
         catch (Exception ex) { _status.Text = "No se pudo cerrar el mando: " + ex.Message; _stateLabel.Text = "REVISA LA CONEXIÓN"; _stateLabel.Foreground = (Brush)FindResource("AmberBrush"); _stop.IsEnabled = true; _copy.IsEnabled = _host is not null; }
+        finally { _changingConnection = false; UpdateConnectionControls(); }
+    }
+    private void UpdateConnectionControls()
+    {
+        _start.IsEnabled = !_changingConnection && _host is null;
+        _stop.IsEnabled = !_changingConnection && _host is not null;
+        _copy.IsEnabled = !_changingConnection && _host is not null && _addresses.SelectedItem is string;
+        _addresses.IsEnabled = !_changingConnection && _host is not null;
     }
     private void RefreshConnection()
     {
+        UpdateConnectionControls();
+        if (_changingConnection) return;
         var active = _host is not null;
-        _start.IsEnabled = !active; _stop.IsEnabled = active; _copy.IsEnabled = active; _addresses.IsEnabled = active;
+        var address = _addresses.SelectedItem as string;
+        var canConnect = active && address is not null;
         _stateLabel.Text = active ? "MANDO ACTIVO" : "MANDO DESACTIVADO";
         _stateLabel.Foreground = (Brush)FindResource(active ? "AccentBrush" : "MutedBrush");
-        _status.Text = active ? "Listo para vincular. Escanea el QR desde tu teléfono." : "Actívalo cuando quieras conectar el teléfono.";
-        _qrFrame.Background = active ? Brushes.White : (Brush)FindResource("RaisedBrush");
-        _qrFrame.BorderBrush = (Brush)FindResource("BorderBrush"); _qrFrame.BorderThickness = active ? new Thickness(0) : new Thickness(1);
-        _qr.Visibility = active ? Visibility.Visible : Visibility.Collapsed; _qrEmpty.Visibility = active ? Visibility.Collapsed : Visibility.Visible;
+        _status.Text = active ? (canConnect ? "Listo para vincular. Escanea el QR desde tu teléfono." : "Sin conexión de red. Conecta la PC y pulsa Actualizar red.") : "Actívalo cuando quieras conectar el teléfono.";
+        _qrFrame.Background = canConnect ? Brushes.White : (Brush)FindResource("RaisedBrush");
+        _qrFrame.BorderBrush = (Brush)FindResource("BorderBrush"); _qrFrame.BorderThickness = canConnect ? new Thickness(0) : new Thickness(1);
+        _qr.Visibility = canConnect ? Visibility.Visible : Visibility.Collapsed; _qrEmpty.Visibility = canConnect ? Visibility.Collapsed : Visibility.Visible;
+        _qrEmpty.Text = active ? "Sin dirección de red" : "El QR aparecerá aquí\nal activar el mando.";
         _qrEmpty.Foreground = (Brush)FindResource("MutedBrush");
         if (_host is null) { _url.Text = "Activa el mando para generar el enlace de vinculación."; _qr.Source = null; return; }
-        var address = _addresses.SelectedItem as string ?? "127.0.0.1";
+        if (address is null) { _url.Text = "Sin dirección de red disponible."; _qr.Source = null; return; }
         _url.Text = $"http://{address}:{_host.Port}/#token={_host.Token}";
         using var data = QRCodeGenerator.GenerateQrCode(_url.Text, QRCodeGenerator.ECCLevel.M);
         using var qr = new PngByteQRCode(data);
         using var stream = new MemoryStream(qr.GetGraphic(8));
         var bitmap = new BitmapImage(); bitmap.BeginInit(); bitmap.CacheOption = BitmapCacheOption.OnLoad; bitmap.StreamSource = stream; bitmap.EndInit(); bitmap.Freeze();
         _qr.Source = bitmap;
+    }
+    private void RefreshAddresses()
+    {
+        var selected = _addresses.SelectedItem as string;
+        var addresses = NetworkInterface.GetAllNetworkInterfaces()
+            .Where(n => n.OperationalStatus == OperationalStatus.Up
+                && n.NetworkInterfaceType is not NetworkInterfaceType.Loopback and not NetworkInterfaceType.Tunnel)
+            .Select(n => n.GetIPProperties())
+            .OrderByDescending(p => p.GatewayAddresses.Any(g => g.Address.AddressFamily == AddressFamily.InterNetwork
+                && !g.Address.Equals(IPAddress.Any)))
+            .SelectMany(p => p.UnicastAddresses)
+            .Where(a => a.Address.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(a.Address)
+                && !a.Address.Equals(IPAddress.Any) && !(a.Address.GetAddressBytes()[0] == 169 && a.Address.GetAddressBytes()[1] == 254))
+            .Select(a => a.Address.ToString()).Distinct().ToList();
+        _addresses.ItemsSource = addresses;
+        _addresses.SelectedItem = selected is not null && addresses.Contains(selected) ? selected : addresses.FirstOrDefault();
     }
     private void SelectButton()
     {

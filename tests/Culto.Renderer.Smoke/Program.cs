@@ -13,17 +13,17 @@ using Culto.Desktop.Projection;
 using Culto.Desktop.Services;
 using LibVLCSharp.WPF;
 
-internal static class Program
+internal static partial class Program
 {
     static readonly string Folder = Path.GetFullPath("tests/Culto.Renderer.Smoke/fixtures");
     static readonly List<string> Results = [];
     [STAThread]
-    static void Main()
+    static void Main(string[] args)
     {
         var app = new System.Windows.Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
         app.Startup += async (_, _) =>
         {
-            try { await Run(); File.WriteAllLines(Path.Combine(Folder, "result.txt"), Results); app.Shutdown(0); }
+            try { await Run(args.Contains("--audio-fades")); File.WriteAllLines(Path.Combine(Folder, "result.txt"), Results); app.Shutdown(0); }
             catch (Exception ex) { File.WriteAllText(Path.Combine(Folder, "result.txt"), ex.ToString()); app.Shutdown(1); }
         };
         app.Run();
@@ -39,7 +39,7 @@ internal static class Program
         for (int i = 0; i < VisualTreeHelper.GetChildrenCount(value); i++)
             foreach (var child in Descendants(VisualTreeHelper.GetChild(value, i))) yield return child;
     }
-    static async Task Run()
+    static async Task Run(bool audioOnly = false)
     {
         using var output = new ProjectionSurface();
         using var preview = new ProjectionSurface(true);
@@ -49,6 +49,13 @@ internal static class Program
         window.Show();
         var previewWindow = new Window { Content = preview, Width = 480, Height = 300, Left = 1000, Top = 20 };
         previewWindow.Show();
+        if (audioOnly)
+        {
+            await RunAudioFadeChecks(output, preview,
+                new Cue { Kind = CueKind.Video, FilePath = Path.Combine(Folder, "test.mkv") },
+                new Cue { Kind = CueKind.Audio, FilePath = Path.Combine(Folder, "audio.wav") });
+            window.Close(); previewWindow.Close(); return;
+        }
         var errors = new List<string>(); output.PlaybackError += errors.Add;
         await Task.Delay(100);
         Check(Descendants(output).OfType<TextBlock>().All(b => b.Text != "Vista previa"), "Empty output contains no preview label");
@@ -119,6 +126,7 @@ internal static class Program
         output.ShowCue(new Cue { Kind = CueKind.Image, FilePath = Path.Combine(Folder, "corrupt.png") });
         Check(errors.Count == 2, "Corrupt image reports recoverable error");
         await RunDissolveChecks(output, video);
+        await RunAudioFadeChecks(output, preview, video, audio);
         window.Close(); previewWindow.Close();
     }
     static async Task RunDissolveChecks(ProjectionSurface output, Cue video)
@@ -160,7 +168,10 @@ internal static class Program
         while (output.IsTransitioning && DateTime.UtcNow < timeout) await Task.Delay(50);
         var rendered = Descendants(output).OfType<CompositedVideo>().Single();
         Check(!output.IsTransitioning && rendered.Source is not null && output.IsPlaying, "Native MKV frames enter and finish the output dissolve");
-        output.TransitionTo(blue); await Task.Delay(60); output.TransitionTo(red); await Task.Delay(600);
+        output.TransitionTo(blue); await Task.Delay(60); output.TransitionTo(red);
+        // A playing video now fades its audio out before the visual dissolve starts.
+        var rapidDeadline = DateTime.UtcNow.AddSeconds(3);
+        while (output.IsTransitioning && DateTime.UtcNow < rapidDeadline) await Task.Delay(25);
         Check(!output.IsTransitioning && Center()[2] > 240, "Rapid consecutive transitions finish on the newest cue");
         output.TransitionTo(video); output.ShowCue(video, blackout: true); await Task.Delay(550);
         Check(!output.IsTransitioning && !output.IsPlaying && Center().Take(3).All(x => x == 0), "Pending video frames cannot restore output after blackout");

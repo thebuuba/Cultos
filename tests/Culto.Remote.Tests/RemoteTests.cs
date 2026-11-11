@@ -10,6 +10,14 @@ namespace Culto.Remote.Tests;
 
 public sealed class RemoteTests
 {
+    private const string FirstCueId = "f5caec32-38ea-4f5e-9074-6359fc995456";
+    private const string SecondCueId = "1081838f-6514-45c0-92da-6cb12ca45f18";
+
+    private static RemoteSnapshot OrderSnapshot() =>
+        new("Culto de prueba", "Lectura", "Bienvenida", false, false, 70, 3, 10, [],
+            [new(FirstCueId, "Bienvenida", "Text"), new(SecondCueId, "Lectura", "Scripture")],
+            FirstCueId, SecondCueId, HasOutput: true, IsBackground: true, HasExternalOutput: true);
+
     private static RemoteSnapshot Snapshot(string live = "Sin salida") =>
         new("Culto de prueba", "Bienvenida", live, false, true, 70, 3, 10,
             [new DeckButton("welcome", "Bienvenida", "#43D9BE", "project", "cue-1")]);
@@ -22,6 +30,116 @@ public sealed class RemoteTests
         var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{host.Port}") };
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", host.Token);
         return (host, client);
+    }
+
+    [Fact]
+    public async Task StatePublishesOrderedCuesAndProjectionStatus()
+    {
+        var (host, client) = await Start(snapshot: OrderSnapshot);
+        await using var cleanup = host; using var http = client;
+        using var json = JsonDocument.Parse(await client.GetStringAsync("/api/state"));
+        var state = json.RootElement;
+        Assert.True(state.TryGetProperty("order", out var order));
+        Assert.Equal(2, order.GetArrayLength());
+        Assert.Equal(FirstCueId, order[0].GetProperty("id").GetString());
+        Assert.Equal("Bienvenida", order[0].GetProperty("title").GetString());
+        Assert.Equal("Text", order[0].GetProperty("kind").GetString());
+        Assert.Equal(SecondCueId, order[1].GetProperty("id").GetString());
+        Assert.Equal("Lectura", order[1].GetProperty("title").GetString());
+        Assert.Equal("Scripture", order[1].GetProperty("kind").GetString());
+        Assert.Equal(FirstCueId, state.GetProperty("liveCueId").GetString());
+        Assert.Equal(SecondCueId, state.GetProperty("preparedCueId").GetString());
+        Assert.True(state.GetProperty("hasOutput").GetBoolean());
+        Assert.True(state.GetProperty("isBackground").GetBoolean());
+        Assert.True(state.GetProperty("hasExternalOutput").GetBoolean());
+        Assert.Equal(new[] { "id", "kind", "title" }, order[0].EnumerateObject().Select(property => property.Name).Order());
+    }
+
+    [Fact]
+    public async Task CueSelectionDispatchesAndConcurrentRetriesExecuteOnce()
+    {
+        var calls = 0;
+        RemoteCommand? received = null;
+        var (host, client) = await Start(input =>
+        {
+            Interlocked.Increment(ref calls); received = input;
+            return Task.FromResult(new CommandResult(true, "Proyectado"));
+        }, OrderSnapshot);
+        await using var cleanup = host; using var http = client;
+        var payload = new RemoteCommand("cue", "select-cue", CueId: SecondCueId);
+        var responses = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => client.PostAsJsonAsync("/api/command", payload)));
+        Assert.All(responses, response => Assert.Equal(HttpStatusCode.OK, response.StatusCode));
+        Assert.Equal(1, calls);
+        Assert.Equal(payload, received);
+    }
+
+    [Fact]
+    public async Task DeletedCueIsRejectedBeforeDispatch()
+    {
+        var calls = 0;
+        var current = OrderSnapshot();
+        var (host, client) = await Start(_ =>
+        {
+            calls++; return Task.FromResult(new CommandResult(true, "Proyectado"));
+        }, () => current);
+        await using var cleanup = host; using var http = client;
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync("/api/command", new { action = "cue", requestId = "before-delete", cueId = FirstCueId })).StatusCode);
+        current = Snapshot();
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/command", new { action = "cue", requestId = "after-delete", cueId = FirstCueId })).StatusCode);
+        Assert.Equal(1, calls);
+    }
+
+    [Theory]
+    [InlineData(null, null, null)]
+    [InlineData("", null, null)]
+    [InlineData("not-a-guid", null, null)]
+    [InlineData("00000000-0000-0000-0000-000000000000", null, null)]
+    [InlineData("44e07557-2287-477c-ad7d-f4d31d15d702", null, null)]
+    [InlineData(FirstCueId, "welcome", null)]
+    [InlineData(FirstCueId, null, 0.5)]
+    public async Task InvalidCueSelectionsNeverReachCallback(string? cueId, string? buttonId, double? value)
+    {
+        var calls = 0;
+        var (host, client) = await Start(_ => { calls++; return Task.FromResult(new CommandResult(true, "No ejecutar")); }, OrderSnapshot);
+        await using var cleanup = host; using var http = client;
+        var response = await client.PostAsJsonAsync("/api/command", new { action = "cue", requestId = "invalid-cue", cueId, buttonId, value });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(0, calls);
+    }
+
+    [Theory]
+    [InlineData("project", null, null)]
+    [InlineData("next", null, null)]
+    [InlineData("previous", null, null)]
+    [InlineData("blackout", null, null)]
+    [InlineData("background", null, null)]
+    [InlineData("pause", null, null)]
+    [InlineData("restart", null, null)]
+    [InlineData("volume", null, 65.0)]
+    [InlineData("seek", null, 0.5)]
+    [InlineData("deck", "welcome", null)]
+    public async Task OtherActionsRejectCueId(string action, string? buttonId, double? value)
+    {
+        var calls = 0;
+        var (host, client) = await Start(_ => { calls++; return Task.FromResult(new CommandResult(true, "No ejecutar")); });
+        await using var cleanup = host; using var http = client;
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/command", new { action, requestId = "extra-cue", buttonId, value, cueId = FirstCueId })).StatusCode);
+        Assert.Equal(0, calls);
+    }
+
+    [Fact]
+    public async Task CueSelectionRequiresAuthenticationAndSameOrigin()
+    {
+        var calls = 0;
+        var (host, client) = await Start(_ => { calls++; return Task.FromResult(new CommandResult(true, "No ejecutar")); }, OrderSnapshot);
+        await using var cleanup = host; using var http = client;
+        var payload = new { action = "cue", requestId = "protected-cue", cueId = FirstCueId };
+        client.DefaultRequestHeaders.Authorization = null;
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/command", payload)).StatusCode);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", host.Token);
+        client.DefaultRequestHeaders.Add("Origin", "https://evil.example");
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/command", payload)).StatusCode);
+        Assert.Equal(0, calls);
     }
 
     [Fact]

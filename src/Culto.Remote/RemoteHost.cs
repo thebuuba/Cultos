@@ -23,7 +23,7 @@ public sealed class RemoteHost : IAsyncDisposable
     private bool disposed;
     private const int BodyLimit = 16 * 1024;
     private static readonly HashSet<string> Actions = new(StringComparer.Ordinal)
-        { "project", "next", "previous", "blackout", "background", "pause", "restart", "volume", "seek", "deck" };
+        { "project", "next", "previous", "blackout", "background", "pause", "restart", "volume", "seek", "deck", "cue" };
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
         UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
@@ -114,10 +114,13 @@ public sealed class RemoteHost : IAsyncDisposable
             try
             {
                 if (completed.TryGetValue(input!.RequestId, out var previous)) return Results.Json(previous, Json);
+                if (input.Action == "cue" && snapshot().Order?.Any(cue =>
+                        Guid.TryParse(cue.Id, out var cueId) && cueId == Guid.Parse(input.CueId!)) != true)
+                    return InvalidCommand();
                 if (input.Action == "deck" && !snapshot().Buttons.Any(button =>
                         button.Id == input.ButtonId && (button.Action == "cue"
                             ? Guid.TryParse(button.CueId, out var cueId) && cueId != Guid.Empty
-                            : Actions.Contains(button.Action) && button.Action != "deck")))
+                            : Actions.Contains(button.Action) && button.Action is not ("deck" or "cue"))))
                     return InvalidCommand();
                 CommandResult result;
                 try { result = await command(input); }
@@ -165,9 +168,12 @@ public sealed class RemoteHost : IAsyncDisposable
     {
         if (input is null || input.Action is null || !Actions.Contains(input.Action)
             || string.IsNullOrWhiteSpace(input.RequestId) || input.RequestId.Length > 128
-            || input.RequestId.Any(character => !(char.IsAsciiLetterOrDigit(character) || character is '-' or '_' or '.' or ':'))) return false;
+            || input.RequestId.Any(character => !(char.IsAsciiLetterOrDigit(character) || character is '-' or '_' or '.' or ':'))
+            || (input.Action != "cue" && input.CueId is not null)) return false;
         return input.Action switch
         {
+            "cue" => input.ButtonId is null && input.Value is null
+                && Guid.TryParse(input.CueId, out var cueId) && cueId != Guid.Empty,
             "volume" => input.ButtonId is null && input.Value is >= 0 and <= 100,
             "seek" => input.ButtonId is null && input.Value is >= 0 and <= 1,
             "deck" => input.Value is null && !string.IsNullOrWhiteSpace(input.ButtonId) && input.ButtonId.Length <= 128,

@@ -163,7 +163,7 @@ public partial class MainWindow
         _output!.ShowCue(_session.Live); _isPaused = false;
         _preview.ShowCue(_session.Prepared);
         _previewPaused = false;
-        PreviewPauseButton.Content = "Pausar previa";
+        UpdatePlayButton(PreviewPauseButton, false, true);
         UpdateSessionLabels();
         SetStatus("En pantalla: " + _session.Live!.Title);
     }
@@ -191,9 +191,9 @@ public partial class MainWindow
     {
         if (_output is null || _session.Live?.Kind is not (CueKind.Video or CueKind.Audio)) return;
         if (_session.IsBlackout || _session.IsTextHidden) { SetStatus("Restaura la imagen antes de continuar el video."); return; }
-        _isPaused = _output.IsPlaying;
+        _isPaused = !_output.IsPaused;
         _output.SetPaused(_isPaused);
-        PauseButton.Content = _isPaused ? "Continuar" : "Pausar";
+        UpdatePlayButton(PauseButton, _isPaused, false);
     }
     private void RestartClick(object sender, RoutedEventArgs e) => RestartMedia();
     private void RestartMedia()
@@ -205,13 +205,15 @@ public partial class MainWindow
     private void VolumeChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (VolumeText is not null) VolumeText.Text = $"{(int)e.NewValue} %";
+        if (e.NewValue > 0) _audibleVolume = e.NewValue;
+        UpdateMuteButton();
         if (_output is not null) _output.Volume = (int)e.NewValue;
         if (_ready) SaveWorkspace();
     }
     private void LoopChanged(object sender, RoutedEventArgs e)
     { if (_output is not null) _output.Loop = LoopCheck.IsChecked == true; if (_ready) SaveWorkspace(); }
     private void PositionSeek(object sender, MouseButtonEventArgs e)
-    { if (_output is not null) _output.Seek(PositionSlider.Value); }
+    { SeekOutput(); _outputScrubbing = false; }
     private static string FormatTime(double seconds)
     {
         if (!double.IsFinite(seconds) || seconds < 0) seconds = 0;
@@ -223,18 +225,23 @@ public partial class MainWindow
         if (_session.Prepared?.Kind is CueKind.Video or CueKind.Audio)
         {
             var duration = _preview.Duration;
-            PreviewTimeText.Text = $"{FormatTime(_preview.Position)} / {FormatTime(duration)}";
+            if (!_previewScrubbing) PreviewTimeText.Text = FormatTime(_preview.Position);
+            PreviewDurationText.Text = FormatTime(duration);
             PreviewPositionSlider.IsEnabled = duration > 0;
-            if (!PreviewPositionSlider.IsMouseCaptureWithin)
+            if (!_previewScrubbing && !PreviewPositionSlider.IsMouseCaptureWithin)
                 PreviewPositionSlider.Value = duration > 0 ? Math.Clamp(_preview.Position / duration, 0, 1) : 0;
+            _previewPaused = _preview.IsPaused;
+            UpdatePlayButton(PreviewPauseButton, _previewPaused, true);
         }
         if (_output is not null)
         {
             var duration = _output.Duration; var position = _output.Position;
-            TimeText.Text = $"{FormatTime(position)} / {FormatTime(duration)}";
-            if (!PositionSlider.IsMouseCaptureWithin) PositionSlider.Value = duration > 0 ? Math.Clamp(position / duration, 0, 1) : 0;
+            if (!_outputScrubbing) TimeText.Text = FormatTime(position);
+            OutputDurationText.Text = FormatTime(duration);
+            PositionSlider.IsEnabled = duration > 0 && !_session.IsBlackout && !_session.IsTextHidden;
+            if (!_outputScrubbing && !PositionSlider.IsMouseCaptureWithin) PositionSlider.Value = duration > 0 ? Math.Clamp(position / duration, 0, 1) : 0;
             if (_session.Live?.Kind is CueKind.Video or CueKind.Audio)
-            { _isPaused = !_output.IsPlaying; PauseButton.Content = _isPaused ? "Continuar" : "Pausar"; }
+            { _isPaused = _output.IsPaused; UpdatePlayButton(PauseButton, _isPaused, false); }
         }
         if (++_displayTick < 10) return;
         _displayTick = 0;

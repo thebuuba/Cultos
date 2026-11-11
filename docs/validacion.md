@@ -4,6 +4,22 @@ Comprobación realizada el 11 de noviembre de 2026 en esta PC Windows. Entrega a
 
 ## Compilación y pruebas
 
+### Reproductores y desvanecimiento de audio — versión 0.13.0
+
+Se rediseñaron los transportes de previa y salida con controles circulares, barra de avance completa, tiempo transcurrido y duración separados, saltos de diez segundos y reinicio. La salida añade silencio con recuperación del último volumen y repetición. La barra conserva el punto elegido durante el arrastre y los clics prolongados, incluso cuando WPF marca el evento como atendido. La altura mínima de la previa pasó a 340 píxeles para conservar al menos 80 píxeles de imagen con el nuevo transporte.
+
+El motor conserva un solo reproductor de salida: baja el volumen durante 180 ms antes de sustituir contenido y lo sube durante 350 ms cuando el reproductor nativo confirma el inicio. La disolución visual sigue durando 400 ms. Cambiar de volumen modifica el destino del desvanecimiento; los cambios rápidos conservan la última petición. Pausa, Negro, Fondo y cierre cancelan las acciones pendientes. La previa mantiene la pista de audio desactivada. El estado de pausa refleja la intención de reproducción durante la carga y permite volver a reproducir después del final.
+
+La regresión inicial falló porque el contenido saliente se reemplazaba inmediatamente. Después del cambio, `scripts/build.ps1 -Smoke` terminó con código 0, sin errores ni advertencias: **60 núcleo + 60 mando + 73 escritorio + 46 reproductor = 239 comprobaciones**. Las pruebas muestrean el volumen del reproductor nativo durante la bajada y subida, comprueban cambios de volumen, sustituciones rápidas, interrupción y reanudación, previa silenciosa y cierre con transición pendiente. También verifican arrastre, clic atendido en la barra, pausa conservada, controles independientes, restauración de volumen y ajuste de paneles. `mobile-smoke.cjs` continúa pasando. Evidencia: `.tools/player-full-final.log`.
+
+Se publicó y abrió la distribución autónoma 0.13.0. Se conservó el orden actualizado del usuario (cinco elementos y 617 contenidos en biblioteca). En la consola abierta se observaron los controles nuevos con un video real del orden: previa reproduciéndose, salida pausada y tiempos independientes, sin recortes ni superposición de controles. No se realizó una evaluación auditiva con las pantallas de la iglesia; las comprobaciones del desvanecimiento se hicieron sobre el volumen real del reproductor nativo.
+
+### Orden del culto desde el teléfono — versión 0.12.0
+
+El mando incorpora el orden real, números, títulos y tipos, con marcas de preparado/en vivo y estado Local/HDMI/Negro/Fondo. Un toque envía el identificador del elemento; la PC lo busca nuevamente en el orden antes de proyectar. El servidor rechaza identificadores eliminados o ajenos al orden y conserva autenticación, control de origen y deduplicación. El mando espera la confirmación de la consola y no reenvía automáticamente una acción perdida. Se mantienen los accesos personalizados a la biblioteca.
+
+Las pruebas verifican HTTP autenticado → dispatcher de WPF → reproducción MKV local, estado, pausa y siguiente. La conexión prioriza direcciones con puerta de enlace y permite actualizar la red; no ofrece QR de bucle local ni dirección automática sin red. Una regresión adicional comprueba que actualizar la red durante activación/desactivación no duplica operaciones y que el QR se genera y se elimina correctamente. Las comprobaciones de un teléfono físico por Wi-Fi y de HDMI físico siguen pendientes; no se modificó el firewall ni el router.
+
 ### Panel de salida compacto — versión 0.11.1
 
 Se reprodujo el recorte de la captura: una distribución guardada con cuatro columnas heredaba mínimos de 390/390/360/360 y situaba el video fuera del área visible de la consola. La regresión falló con límites 1186,135,337,190 en una ventana de 1280×900. Ahora se calculan los mínimos de cada contenedor según sus paneles actuales, también al restaurar o reagrupar. En pantalla admite 220 píxeles de ancho; por debajo de 320 reorganiza título, selección de HDMI, navegación y reproducción. El video conserva 16:9 y los controles secundarios tienen desplazamiento vertical si falta altura. Negro, Fondo y el video quedan fuera del área desplazable.

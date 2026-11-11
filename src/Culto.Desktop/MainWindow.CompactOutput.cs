@@ -29,14 +29,7 @@ public partial class MainWindow
         foreach (FrameworkElement button in ScreenNavigationPanel.Children)
             button.Margin = new Thickness(0, 0, 5, compact ? 4 : 0);
 
-        for (var i = 0; i < OutputTransportGrid.ColumnDefinitions.Count; i++)
-            OutputTransportGrid.ColumnDefinitions[i].Width = compact || i == 2 ? new GridLength(1, GridUnitType.Star) : GridLength.Auto;
-        Place(PauseButton, 0, 0, compact ? 2 : 1);
-        Place(RestartOutputButton, 0, compact ? 2 : 1, compact ? 2 : 1);
-        Place(TimeText, compact ? 1 : 0, compact ? 0 : 3, compact ? 4 : 1);
-        TimeText.HorizontalAlignment = HorizontalAlignment.Right;
-        TimeText.Margin = compact ? new Thickness(0, 4, 0, 0) : new Thickness(0);
-        Place(PositionSlider, compact ? 2 : 0, compact ? 0 : 2, compact ? 4 : 1);
-        PositionSlider.Margin = compact ? new Thickness(0, 2, 0, 4) : new Thickness(10, 0, 10, 0);
+        // The player keeps a full-width timeline and centered round controls at
+        // every width. Only the surrounding output actions need to wrap.
     }
 }

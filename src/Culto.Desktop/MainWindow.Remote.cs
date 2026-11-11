@@ -10,7 +10,10 @@ public partial class MainWindow
     private RemoteSnapshot GetRemoteState() => Dispatcher.CheckAccess() ? BuildRemoteState() : Dispatcher.Invoke(BuildRemoteState);
     private RemoteSnapshot BuildRemoteState() => new(
         PlanNameBox.Text, _session.Prepared?.Title ?? "Nada preparado", _output is null ? "Salida cerrada" : (_outputWindow is null ? "Local · " : "") + (_session.Live?.Title ?? "Fondo"),
-        _session.IsBlackout, _isPaused, (int)VolumeSlider.Value, _output?.Position ?? 0, _output?.Duration ?? 0, _workspace.Deck.ToArray());
+        _session.IsBlackout, _output?.IsPaused ?? _isPaused, (int)VolumeSlider.Value, _output?.Position ?? 0, _output?.Duration ?? 0, _workspace.Deck.ToArray(),
+        _plan.Select(cue => new RemoteCue(cue.Id.ToString(), cue.Title, cue.Kind.ToString())).ToArray(),
+        _output is null ? null : _session.Live?.Id.ToString(), _session.Prepared?.Id.ToString(),
+        _output is not null, _output is not null && _session.IsTextHidden, _outputWindow is not null);
 
     private async Task<CommandResult> HandleRemote(RemoteCommand command)
         => await Dispatcher.InvokeAsync(() => ExecuteRemote(command));
@@ -21,6 +24,16 @@ public partial class MainWindow
         try
         {
             var action = command.Action;
+            if (action == "cue")
+            {
+                var cue = Guid.TryParse(command.CueId, out var cueId) ? _plan.FirstOrDefault(c => c.Id == cueId) : null;
+                if (cue is null) return new(false, "Este elemento ya no pertenece al orden del culto.");
+                if (!CheckMedia(cue)) return new(false, "No se encuentra el archivo en la computadora.");
+                PrepareCue(cue); ProjectPrepared();
+                var projected = _output is not null && _session.Live?.Id == cue.Id;
+                return new(projected, !projected ? "No se pudo iniciar la salida."
+                    : _outputWindow is null ? "Contenido enviado a la salida local." : "Contenido enviado a pantalla.");
+            }
             if (action == "deck")
             {
                 var button = _workspace.Deck.FirstOrDefault(b => b.Id == command.ButtonId);

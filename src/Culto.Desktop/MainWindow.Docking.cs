@@ -97,7 +97,9 @@ public partial class MainWindow
         {
             if (pane.Children.Count == 0) continue;
             var width = pane.Children.Max(p => p.ContentId switch { "sources" => 390d, "preview" => 280d, "output" => 220d, _ => 240d });
-            var height = pane.Children.Max(p => p.ContentId switch { "sources" => 400d, "preview" => 300d, "output" => 280d, "sequence" => 150d, _ => 160d });
+            // The preview's timeline, time labels and transport need separate rows;
+            // retain at least 80px for the picture after controls and dock chrome.
+            var height = pane.Children.Max(p => p.ContentId switch { "sources" => 400d, "preview" => 340d, "output" => 280d, "sequence" => 150d, _ => 160d });
             if (pane.DockMinWidth != width) pane.DockMinWidth = width;
             if (pane.DockMinHeight != height) pane.DockMinHeight = height;
         }

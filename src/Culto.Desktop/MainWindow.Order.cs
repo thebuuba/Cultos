@@ -94,10 +94,10 @@ public partial class MainWindow
     {
         if (!_ready || _session.Prepared?.Kind is not (CueKind.Video or CueKind.Audio)) return;
         _preview.Restart(); _previewPaused = false;
-        PreviewPauseButton.Content = "Pausar previa";
+        UpdatePlayButton(PreviewPauseButton, false, true);
     }
 
-    private void PreviewPositionSeek(object sender, MouseButtonEventArgs e) => SeekPreview();
+    private void PreviewPositionSeek(object sender, MouseButtonEventArgs e) { SeekPreview(); _previewScrubbing = false; }
     private void PreviewPositionKeyUp(object sender, KeyEventArgs e)
     {
         if (e.Key is Key.Left or Key.Right or Key.Up or Key.Down or Key.Home or Key.End or Key.PageUp or Key.PageDown) SeekPreview();

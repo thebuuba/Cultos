@@ -38,7 +38,9 @@ El orden muestra la posición de cada momento y una marca **EN VIVO** en el elem
 
 Desde 0.10, los himnos y videos enviados desde el orden, la secuencia o la biblioteca entran con una **disolución de 400 ms**. También se aplica al botón Proyectar. La última imagen de la salida se conserva mientras carga el nuevo video y se desvanece cuando llega su primer fotograma; el nuevo video continúa reproduciéndose durante la mezcla. Negro y Fondo la interrumpen inmediatamente. Es una transición visual; no mezcla dos pistas de audio.
 
-Los videos se reproducen dentro de la vista previa en un **minirreproductor silencioso**, con pausa/continuación, reinicio, duración y barra de avance. Estos controles sólo afectan a la vista previa; los controles de **En pantalla** actúan sobre la salida de la iglesia.
+Desde 0.13, el audio de salida baja suavemente durante **180 ms** antes de cambiar de contenido y el nuevo video/audio entra durante **350 ms**. Se usa un solo reproductor de salida, sin superponer pistas. Negro, Fondo y Pausar interrumpen la transición inmediatamente. La vista previa permanece silenciosa.
+
+Ambos reproductores tienen una barra de avance a todo el ancho, tiempo transcurrido y duración, botón central de reproducción/pausa, saltos de **10 segundos** y reinicio. La salida añade silencio/restauración del volumen anterior, volumen y repetición. Los controles de la vista previa sólo afectan a esa vista; los de **En pantalla** actúan sobre la salida. Arrastrar la barra mantiene la posición elegida hasta soltarla y conserva la pausa; también puede usarse con el teclado.
 
 **Ctrl+1** abre Himnario y medios; **Ctrl+2**, Biblia; **Ctrl+3**, Texto. **Ctrl+F** enfoca y selecciona el buscador de la sección activa; en Texto selecciona el mensaje para editarlo.
 
@@ -82,7 +84,11 @@ El monitor «En pantalla» muestra el reproductor local; con HDMI activado refle
 1. Conecta PC y teléfono a la misma red local.
 2. Abre **Configuración → Mando móvil → Activar mando**.
 3. Selecciona la dirección IP de la PC que corresponde a esa red y escanea el QR con el teléfono.
-4. En **Organizar botones** selecciona un acceso a la izquierda y edita su nombre, acción y color a la derecha. Para vincular un himno, elige **Proyectar un contenido** y escribe el comienzo de su número o título en el selector de contenido. Pulsa **Guardar botón** para aplicar los cambios.
+4. En el teléfono aparece el **orden del culto** con los mismos títulos y posiciones que en la PC. Toca un elemento para enviarlo a **En pantalla** y reproducirlo; funciona también en salida local sin HDMI. La marca del elemento activo se actualiza desde la consola, junto con el estado Local/HDMI, Negro o Fondo.
+5. Desde el teléfono puedes usar **Anterior, Siguiente, Negro, Fondo, Pausar/Continuar, Reiniciar, posición y volumen**, además de proyectar lo preparado en la PC. Los cambios del orden realizados en la PC aparecen automáticamente en el teléfono. Si se pierde conexión, las acciones no se reenvían solas.
+6. En **Organizar botones** selecciona un acceso a la izquierda y edita su nombre, acción y color a la derecha. Para vincular un himno, elige **Proyectar un contenido** y escribe el comienzo de su número o título en el selector de contenido. Pulsa **Guardar botón** para aplicar los cambios.
+
+Si cambias de Wi-Fi, pulsa **Actualizar red** y escanea el QR actualizado. El selector prioriza conexiones con puerta de enlace y excluye direcciones locales que no sirven para conectar el teléfono.
 
 El mando utiliza el puerto TCP **18765**. No necesita internet y sólo permite acciones propias de la consola. La vinculación cambia al desactivar y activar el mando. No compartas el enlace fuera del equipo que dirige el culto. Usa una red local de confianza; esta versión usa HTTP dentro de esa red.
 

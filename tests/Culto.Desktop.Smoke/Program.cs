@@ -106,7 +106,7 @@ internal static partial class Program
                 window.Show();
                 app.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
                 {
-                    try { if (args.Contains("--local-output")) RunLocalOutputTests(window); else if (args.Contains("--compact-output")) RunCompactOutputTests(window); else RunWindowTests(window, directory); }
+                    try { if (args.Contains("--local-output")) RunLocalOutputTests(window); else if (args.Contains("--compact-output")) RunCompactOutputTests(window); else if (args.Contains("--player")) RunPlayerControlsTests(window); else if (args.Contains("--remote-order")) { RunRemoteOrderTests(window); RunRemoteDialogTests(window); } else RunWindowTests(window, directory); }
                     finally
                     {
                         if (!Field<bool>(window, "_closing"))
@@ -327,6 +327,9 @@ internal static partial class Program
         RunUsabilityTests(window, directory);
         RunOrderInteractionTests(window);
         RunBibleNavigationTests(window, directory);
+        RunRemoteOrderTests(window);
+        RunRemoteDialogTests(window);
+        RunPlayerControlsTests(window);
 
         Test("Failed save prevents closing", () =>
         {
@@ -484,16 +487,14 @@ internal static partial class Program
         {
             var live = session.Live!.Id;
             var pause = (Button)window.FindName("PreviewPauseButton");
-            ((TextBox)window.FindName("TextTitleBox")).Text = "Previa sintética uno";
-            ((TextBox)window.FindName("TextBodyBox")).Text = "Texto sintético de previa uno";
-            Call(window, "PrepareTextClick", window, new RoutedEventArgs());
+            var fixture = Path.Combine(AppContext.BaseDirectory, "fixtures", "test.mkv");
+            Call(window, "PrepareCue", new Cue { Title = "Previa sintética uno", Kind = CueKind.Video, FilePath = fixture }, null);
             pause.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Check(pause.Content?.ToString() == "Continuar previa", "Pausing preview did not offer Continue");
-            ((TextBox)window.FindName("TextTitleBox")).Text = "Previa sintética dos";
-            Call(window, "PrepareTextClick", window, new RoutedEventArgs());
-            Check(pause.Content?.ToString() == "Pausar previa", "New prepared cue retained the previous preview pause label");
+            Check(System.Windows.Automation.AutomationProperties.GetName(pause) == "Reproducir vista previa", "Pausing preview did not offer Play");
+            Call(window, "PrepareCue", new Cue { Title = "Previa sintética dos", Kind = CueKind.Video, FilePath = fixture }, null);
+            Check(System.Windows.Automation.AutomationProperties.GetName(pause) == "Pausar vista previa", "New prepared cue retained the previous preview pause label");
             pause.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Check(pause.Content?.ToString() == "Continuar previa", "First pause on a new cue used stale pause state");
+            Check(System.Windows.Automation.AutomationProperties.GetName(pause) == "Reproducir vista previa", "First pause on a new cue used stale pause state");
             pause.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Check(session.Live!.Id == live, "Preview controls changed live output");
         });
