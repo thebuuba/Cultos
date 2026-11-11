@@ -74,6 +74,7 @@ internal static partial class Program
             Call(window, "ToggleBlackout"); Check(session.IsBlackout && monitor.IsConnected, "Blackout detached monitor");
             Call(window, "ToggleBlackout");
             Call(window, "CloseOutput"); Check(!monitor.IsConnected, "Closed output left a stale thumbnail");
+            Call(window, "OpenOutput", Culto.Desktop.Services.DisplayService.GetDisplays().First(), true);
             Call(window, "ProjectPrepared"); Until(() => monitor.IsConnected, "Reopened output did not reconnect");
         });
         Test("All five panels can float regroup and restore without replacing controls or session", () =>

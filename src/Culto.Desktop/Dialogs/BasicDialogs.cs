@@ -98,25 +98,17 @@ public sealed class CueEditDialog : Window
 public sealed class DisplayDialog : Window
 {
     private readonly ComboBox _screens;
-    private readonly CheckBox _test;
     public DisplayInfo? SelectedDisplay => _screens.SelectedItem as DisplayInfo;
-    public bool TestWindow => _test.IsChecked == true || SelectedDisplay?.IsPrimary == true;
     public bool CloseOutput { get; private set; }
     public DisplayDialog(IReadOnlyList<DisplayInfo> displays, string? selectedDevice, bool capture = false)
     {
         var panel = DialogUi.Panel(this, capture ? "Capturar pantalla" : "Pantalla de la iglesia",
             capture ? "La consola se minimizará durante 1,5 segundos. Se guardará una imagen de la pantalla elegida para que puedas revisarla antes de proyectar."
-                : "Elige la salida HDMI que alimenta las tres pantallas. Usa Extender en Windows para conservar los controles en tu monitor.");
+                : displays.Count == 0 ? "Sin pantalla externa disponible" : "Salida HDMI");
         _screens = new ComboBox { ItemsSource = displays, DisplayMemberPath = "Label", Margin = new Thickness(0, 0, 0, 12) };
         _screens.SelectedItem = displays.FirstOrDefault(d => d.DeviceName == selectedDevice) ?? displays.FirstOrDefault(d => !d.IsPrimary) ?? displays.FirstOrDefault();
         DialogUi.Label(panel, "Pantalla de salida", _screens);
         panel.Children.Add(_screens);
-        _test = new CheckBox { Content = "Abrir como ventana de ensayo", IsChecked = displays.Count < 2 };
-        if (!capture)
-        {
-            panel.Children.Add(_test);
-            panel.Children.Add(new TextBlock { Text = "En el monitor principal siempre se abrirá una ventana de ensayo.", TextWrapping = TextWrapping.Wrap, Style = (Style)FindResource("MutedText"), Margin = new Thickness(0, 8, 0, 0) });
-        }
         var actions = DialogUi.Actions(panel);
         if (!capture)
         {

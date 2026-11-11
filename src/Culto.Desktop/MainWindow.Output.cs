@@ -51,11 +51,14 @@ public partial class MainWindow
         try
         {
             var displays = DisplayService.GetDisplays();
-            var display = displays.FirstOrDefault(d => d.DeviceName == _workspace.DisplayDevice)
-                ?? displays.FirstOrDefault(d => !d.IsPrimary)
-                ?? displays.FirstOrDefault();
-            if (display is null) { SetStatus("No se encontró una pantalla disponible.", true); return false; }
-            OpenOutput(display, test: display.IsPrimary);
+            var display = DisplayService.SelectOutput(displays, _workspace.DisplayDevice, DisplayService.GetWindowDevice(this));
+            if (display is null)
+            {
+                OutputStatusText.Text = "Sin pantalla externa";
+                SetStatus("No hay una pantalla externa disponible. Conecta el HDMI y selecciona Extender en Windows.", true);
+                return false;
+            }
+            OpenOutput(display, test: false);
             return true;
         }
         catch (Exception ex) { SetStatus("No se pudo abrir la proyección: " + ex.Message, true); return false; }
@@ -82,9 +85,9 @@ public partial class MainWindow
         DisplayService.PlaceWindow(window, display, fullscreen: !test);
         window.Show();
         LiveMonitor.SetSource(window);
-        // A retained blackout/background must reach the new renderer before a restore can reveal media.
-        _output.ShowCue(_session.IsBlackout || _session.IsTextHidden ? _session.Live : null,
-            _session.IsBlackout, _session.IsTextHidden);
+        // Restore the last output, never the independently prepared cue. Retain suppression and pause.
+        _output.ShowCue(_session.Live, blackout: true);
+        _output.ShowCue(_session.Live, _session.IsBlackout, _session.IsTextHidden);
         _workspace.DisplayDevice = display.DeviceName;
         SaveWorkspace();
         OutputStatusText.Text = test ? "Ventana de ensayo en este monitor" : $"Salida HDMI · {display.Width} × {display.Height}";
@@ -102,12 +105,21 @@ public partial class MainWindow
     }
     private void DisplayClick(object sender, RoutedEventArgs e)
     {
-        var dialog = new DisplayDialog(DisplayService.GetDisplays(), _workspace.DisplayDevice) { Owner = this };
+        var operatorDevice = DisplayService.GetWindowDevice(this);
+        var dialog = new DisplayDialog(DisplayService.GetDisplays().Where(d => d.DeviceName != operatorDevice).ToArray(), _workspace.DisplayDevice) { Owner = this };
         if (dialog.ShowDialog() != true) return;
         if (dialog.CloseOutput) { CloseOutput(); SetStatus("Salida de proyección cerrada."); return; }
         if (dialog.SelectedDisplay is null) return;
-        OpenOutput(dialog.SelectedDisplay, dialog.TestWindow);
+        var display = DisplayService.GetDisplays().FirstOrDefault(d => d.DeviceName == dialog.SelectedDisplay.DeviceName
+            && d.DeviceName != DisplayService.GetWindowDevice(this));
+        if (display is null) { SetStatus("La pantalla seleccionada ya no está disponible.", true); return; }
+        OpenOutput(display, test: false);
         SetStatus("Salida abierta.");
+    }
+    private void ToggleOutputClick(object sender, RoutedEventArgs e)
+    {
+        if (_outputWindow is not null) { CloseOutput(); SetStatus("Salida desactivada."); }
+        else if (EnsureOutput()) SetStatus("Salida activada.");
     }
     private void NextClick(object sender, RoutedEventArgs e) => MoveLive(1);
     private void PreviousClick(object sender, RoutedEventArgs e) => MoveLive(-1);

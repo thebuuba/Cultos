@@ -63,7 +63,11 @@ Las tres pantallas que reciben el mismo HDMI muestran una sola salida. Configura
 
 Los controles de reproducción aparecen cuando la salida tiene un video o audio. **Pausar previa** aparece solo al preparar contenido multimedia. El estado **NEGRO** o **FONDO** sigue visible aunque prepares otro contenido.
 
-Si sólo hay un monitor, se abre una **ventana de ensayo**. El monitor principal nunca se ocupa automáticamente a pantalla completa. Si se desconecta la salida, se detiene y debe elegirse de nuevo.
+Desde la versión 0.9, **En pantalla → Pantalla…** permite elegir la salida externa, y **Activar salida / Desactivar salida** la controla desde el mismo panel. La proyección ocupa la pantalla externa completa, sin bordes ni entrada propia en la barra de tareas. El monitor que contiene la consola queda excluido, aunque no sea el principal de Windows.
+
+Si sólo hay un monitor independiente, no se abre ninguna ventana de ensayo ni cambia el contenido en vivo. Conecta el HDMI y selecciona **Extender** en Windows. Las tres pantallas conectadas al mismo HDMI reciben la misma imagen. Si se desconecta la salida, se detiene y debe activarse de nuevo.
+
+Desactivar salida cierra la proyección; **Negro** mantiene la salida ocupada en negro y pausa la reproducción. Activar recupera el último contenido enviado, conservando negro/fondo y dejando los videos pausados hasta **Continuar**. **Proyectar** o un doble clic envían el preparado y reproducen los videos.
 
 El monitor «En pantalla» refleja la ventana real de salida, además de mostrar su estado y controles. Esa ventana debe permanecer abierta y sin minimizar para que Windows mantenga su imagen actualizada.
 

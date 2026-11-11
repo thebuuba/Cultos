@@ -112,7 +112,9 @@ public partial class MainWindow : Window
     private void UpdateSessionLabels()
     {
         PreparedTitleText.Text = _session.Prepared?.Title ?? "Sin contenido";
-        var live = _session.Live;
+        var live = _outputWindow is null ? null : _session.Live;
+        ToggleOutputButton.Content = _outputWindow is null ? "Activar salida" : "Desactivar salida";
+        if (_outputWindow is null) OutputStatusText.Text = "Salida desactivada";
         LiveTitleText.Text = live?.Title ?? "Sin contenido";
         LiveReferenceText.Text = live is null ? "" : string.Join(" · ", new[] { live.Reference, live.Version }.Where(s => !string.IsNullOrWhiteSpace(s)));
         LiveBodyText.Text = _outputWindow is null ? "La salida está cerrada." : _session.IsBlackout ? "Pantalla en negro" : _session.IsTextHidden ? "Fondo sin contenido" : live?.Kind switch

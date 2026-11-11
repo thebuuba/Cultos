@@ -4,6 +4,16 @@ Comprobación realizada el 11 de noviembre de 2026 en esta PC Windows. Entrega a
 
 ## Compilación y pruebas
 
+### Control de salida externa — versión 0.9.0
+
+Se eliminó la apertura automática de ensayo en el monitor de la consola. La selección excluye el monitor donde está la ventana de control, respeta una salida externa guardada y admite que la pantalla principal de Windows sea la de la iglesia. En pantalla incorpora Pantalla… y Activar/Desactivar salida. La salida externa es completa, sin bordes ni entrada propia en la barra de tareas, y no solicita el foco al abrirse. Al cerrar, el monitor DWM se desconecta y desaparece el título en vivo. Al activar se recupera el último contenido enviado, sin proyectar el preparado; los videos quedan pausados.
+
+La prueba de regresión falló antes del cambio porque Proyectar abría una ventana en el único monitor. Después, `scripts/build.ps1 -Smoke` terminó con código 0, sin errores ni advertencias: **60 núcleo + 39 mando + 57 escritorio + 24 reproductor = 180 comprobaciones**. Se verificaron selección con monitores sintéticos (incluida consola secundaria), salida guardada desconectada, activación sin HDMI, cierre desde el botón, conservación de la sesión y desconexión del monitor real. Los ensayos nativos que necesitan una salida en esta PC la abren explícitamente mediante el arnés de pruebas; esa opción ya no está en el diálogo del usuario.
+
+Windows detecta solamente DISPLAY1, principal, 1920×1080. La proyección física HDMI en modo extendido sigue pendiente; los escenarios de selección con varias pantallas son pruebas sintéticas.
+
+Se publicó y abrió 0.9.0 conservando la distribución personalizada de paneles. En la interfaz se pulsaron Proyectar y Activar salida: permaneció una sola consola, con «Sin salida» y el aviso de pantalla externa ausente. El selector mostró «Sin pantalla externa disponible» y Abrir salida deshabilitado, sin opción de ensayo. Se cerró el diálogo y quedó la consola maximizada con Bienvenidos preparado, los cuatro elementos del orden y los 616 contenidos.
+
 ### Ajuste continuo de paneles — versión 0.8.1
 
 Los separadores actualizan las dimensiones de los paneles durante cada movimiento del ratón, en horizontal y vertical. El contenido WPF y los monitores nativos reciben sus dimensiones reales en el mismo ajuste. Se conservan los tamaños mínimos, el guardado de proporciones y la cancelación del arrastre. La extensión gestiona los eventos del separador antes de los manejadores de AvalonDock que normalmente muestran una guía hasta soltar el ratón; no modifica la dependencia.

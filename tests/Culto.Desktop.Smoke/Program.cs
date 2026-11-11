@@ -310,6 +310,18 @@ internal static partial class Program
             Call(window, "CloseOutput");
         });
 
+        Test("Projecting without an external screen does not open a rehearsal window", () =>
+        {
+            if (DisplayService.GetDisplays().Count != 1) return;
+            Call(window, "CloseOutput");
+            var live = session.Live;
+            Call(window, "PrepareCue", new Cue { Title = "Solo previa", Body = "Sin HDMI" }, null);
+            Call(window, "ProjectPrepared");
+            Check(Field<ProjectionWindow?>(window, "_outputWindow") is null, "Project opened an unwanted window on the operator screen");
+            Check(ReferenceEquals(live, session.Live), "Failed output activation changed live content");
+        });
+        Call(window, "OpenOutput", DisplayService.GetDisplays().First(), true);
+        RunOutputControlTests(window);
         RunThemeTests(window);
         RunDockingTests(window, directory);
         RunUsabilityTests(window, directory);

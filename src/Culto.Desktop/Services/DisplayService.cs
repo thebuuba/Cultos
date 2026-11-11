@@ -13,6 +13,13 @@ public sealed record DisplayInfo(string DeviceName, string Label, int Left, int 
 
 public static class DisplayService
 {
+    public static string GetWindowDevice(Window window) =>
+        Forms.Screen.FromHandle(new WindowInteropHelper(window).Handle).DeviceName;
+
+    public static DisplayInfo? SelectOutput(IReadOnlyList<DisplayInfo> displays, string? savedDevice, string operatorDevice) =>
+        displays.FirstOrDefault(d => d.DeviceName != operatorDevice && d.DeviceName == savedDevice)
+        ?? displays.FirstOrDefault(d => d.DeviceName != operatorDevice);
+
     public static IReadOnlyList<DisplayInfo> GetDisplays() => Forms.Screen.AllScreens.Select((screen, index) =>
         new DisplayInfo(screen.DeviceName, $"Pantalla {index + 1} · {screen.Bounds.Width} × {screen.Bounds.Height}{(screen.Primary ? " · principal" : "")}",
             screen.Bounds.Left, screen.Bounds.Top, screen.Bounds.Width, screen.Bounds.Height, screen.Primary)).ToArray();

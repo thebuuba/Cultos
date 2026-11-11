@@ -163,6 +163,7 @@ internal static partial class Program
             workspace.Library = oldLibrary;
             plan.Clear(); foreach (var cue in oldPlan) plan.Add(cue); Call(window, "UpdatePlanCount");
             search.Text = oldQuery; filter.SelectedIndex = oldFilter; Call(window, "RefreshLibrary"); tabs.SelectedIndex = oldTab;
+            if (originalOutput is not null) Call(window, "OpenOutput", DisplayService.GetDisplays().First(), true);
             if (oldLive is not null) { Call(window, "PrepareCue", oldLive, oldLiveReading); Call(window, "ProjectPrepared"); }
             if (oldPrepared is not null) Call(window, "PrepareCue", oldPrepared, oldPreparedReading);
             if (originalOutput is null) Call(window, "CloseOutput");
