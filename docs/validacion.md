@@ -4,6 +4,14 @@ Comprobación realizada el 11 de noviembre de 2026 en esta PC Windows. Entrega a
 
 ## Compilación y pruebas
 
+### Consola audiovisual — versión 0.6
+
+La segunda referencia visual del usuario reemplaza la dirección carbón/lima: gris oscuro con matiz violeta, acciones moradas y estados en verde menta. El orden queda a la izquierda, la vista previa y los controles de salida en el centro y las fuentes a la derecha. Se conservan las cápsulas redondeadas, la tipografía incluida, las animaciones breves y los menús superiores. El indicador superior se enlaza al estado real de la salida y distingue SIN SALIDA, ENSAYO, ACTIVA, NEGRO y FONDO.
+
+Se adaptó el ensayo de distribución para comprobar la nueva posición central de la vista previa y el ajuste de los paneles laterales. Antes del cambio falló; después pasó, incluidos el encogimiento a 1280×680/720, los controles multimedia, los clics y la accesibilidad de los contenidos de las tres pestañas. `scripts/build.ps1 -Smoke` terminó con código 0: **60 núcleo + 39 mando + 44 escritorio + 24 reproductor = 167 comprobaciones**. Compilación sin errores ni advertencias y publicación Windows x64 completada.
+
+Se observó el ejecutable publicado con la nueva distribución, los botones y las selecciones en violeta y el estado SIN SALIDA. La búsqueda de Juan 3:16 funciona en el panel derecho con el título y el texto legibles. El programa queda abierto, con salida cerrada. No se añadieron elementos al orden ni a la biblioteca durante esta revisión.
+
 ### Diseño de referencia — versión 0.5
 
 Se estudió el video local facilitado por el usuario, correspondiente al pin `141300507053011816`, a lo largo de sus 46 segundos. La consola adopta superficies carbón con matiz verdoso, acento lima, pequeños iconos pastel y radios de 10–18 px. La navegación permanece arriba, sin barra lateral de navegación. El orden conserva su panel de trabajo y el botón Agregar al pie.

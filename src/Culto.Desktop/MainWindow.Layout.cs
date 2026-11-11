@@ -14,8 +14,8 @@ public partial class MainWindow
         if (!OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22000)) return;
         var handle = new WindowInteropHelper(this).Handle;
         var enabled = 1;
-        var caption = 0x2C2927;
-        var text = 0xF4F6F5;
+        var caption = 0x302829;
+        var text = 0xF7F0F2;
         // Native caption buttons remain managed by Windows.
         DwmSetWindowAttribute(handle, 20, ref enabled, sizeof(int));
         DwmSetWindowAttribute(handle, 35, ref caption, sizeof(int));

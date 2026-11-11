@@ -512,7 +512,7 @@ internal static partial class Program
                 }
                 var orderColumn = ColumnFor(plan); var contentColumn = ColumnFor(tabs); var outputColumn = ColumnFor(preview);
                 var splitters = Descendants(columns).OfType<GridSplitter>().OrderBy(splitter => BoundsWithin(splitter, client).Left).ToArray();
-                var beforeOrder = orderColumn.ActualWidth; var beforeOutput = outputColumn.ActualWidth;
+                var beforeOrder = orderColumn.ActualWidth; var beforeContent = contentColumn.ActualWidth;
                 void ResizeColumn(GridSplitter splitter, Key direction)
                 {
                     splitter.Focus();
@@ -524,7 +524,7 @@ internal static partial class Program
                 Check(splitters.Length == 2, "Column resizing is not available for both side panels");
                 ResizeColumn(splitters[0], Key.Right);
                 ResizeColumn(splitters[1], Key.Left);
-                Check(orderColumn.ActualWidth > beforeOrder + 5 && outputColumn.ActualWidth > beforeOutput + 5,
+                Check(orderColumn.ActualWidth > beforeOrder + 5 && contentColumn.ActualWidth > beforeContent + 5,
                     "Keyboard column adjustment did not enlarge both side panels before the shrink test");
                 foreach (var compactHeight in new[] { 720, 680 })
                 {
@@ -534,9 +534,9 @@ internal static partial class Program
                     CheckWithin(orderColumn, client, viewport, $"Order column at height {compactHeight}");
                     CheckWithin(contentColumn, client, viewport, $"Content column at height {compactHeight}");
                     CheckWithin(outputColumn, client, viewport, $"Preview/live column at height {compactHeight}");
-                    Check(BoundsWithin(orderColumn, client).Right <= BoundsWithin(contentColumn, client).Left + 1.5
-                        && BoundsWithin(contentColumn, client).Right <= BoundsWithin(outputColumn, client).Left + 1.5,
-                        "Main console columns overlap after shrinking adjusted side panels");
+                    Check(BoundsWithin(orderColumn, client).Right <= BoundsWithin(outputColumn, client).Left + 1.5
+                        && BoundsWithin(outputColumn, client).Right <= BoundsWithin(contentColumn, client).Left + 1.5,
+                        "Order, central preview and source columns overlap or are out of order after resizing");
                     foreach (var name in new[] { "ProjectButton", "BlackoutButton", "FileMenuButton", "LibraryMenuButton", "SettingsMenuButton", "AddOrderButton" })
                     {
                         var button = (Button)window.FindName(name);

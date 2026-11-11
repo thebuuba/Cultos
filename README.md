@@ -8,7 +8,7 @@ Ejecuta **Abrir Culto Studio.cmd** en esta carpeta, o abre `artifacts/CultoStudi
 
 Una instalación nueva ofrece una plantilla sencilla con bienvenida, oración y despedida. La distribución del programa no incluye videos del himnario ni el texto completo de una traducción bíblica.
 
-La versión 0.5 incorpora el diseño carbón/lima de la referencia, tipografía Poppins incluida y transiciones breves que respetan la preferencia de animaciones de Windows. Archivo, Biblioteca y Configuración permanecen arriba; el orden, los contenidos y la vista previa comparten el área de trabajo.
+La versión 0.6 adopta la nueva referencia de consola audiovisual: fondo gris con acentos violeta, orden a la izquierda, vista previa amplia en el centro y biblioteca/Biblia/texto a la derecha. Archivo, Biblioteca y Configuración permanecen arriba, junto al estado real de la salida. Conserva los botones redondos, la tipografía Poppins incluida y las transiciones breves que respetan la preferencia de animaciones de Windows.
 
 En esta PC ya se incorporaron a la biblioteca los **613 videos MKV** encontrados en `Documentos\Himnario Adventista 2022 VIDEOS\Data\Himnario Videos`. La instalación original se identifica como Himnario Adventista 2023. Los videos se conservan allí y la biblioteca guarda sus ubicaciones; no forman parte de la distribución del programa.
 
