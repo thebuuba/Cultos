@@ -16,9 +16,12 @@ public partial class MainWindow
         if (!_ready) return;
         var query = LibrarySearch.Text.Trim();
         var filter = LibraryFilter.SelectedIndex;
-        var items = _workspace.Library.Where(cue => string.IsNullOrWhiteSpace(query)
-            || cue.Title.Contains(query, StringComparison.CurrentCultureIgnoreCase)
-            || (int.TryParse(query, out var number) && cue.HymnNumber == number));
+        var numericQuery = query.Length > 0 && query.All(char.IsAsciiDigit);
+        var exactHymnSearch = numericQuery && filter is 0 or 1;
+        var validNumber = int.TryParse(query, out var number);
+        var items = _workspace.Library.Where(cue => query.Length == 0
+            || (numericQuery && validNumber && cue.HymnNumber == number)
+            || (!exactHymnSearch && cue.Title.Contains(query, StringComparison.CurrentCultureIgnoreCase)));
         items = filter switch
         {
             1 => items.Where(c => c.HymnNumber.HasValue), 2 => items.Where(c => c.Kind == CueKind.Video),
@@ -38,6 +41,22 @@ public partial class MainWindow
                 : $"Todavía no hay contenido en {category}.\n\nImporta archivos o elige otra categoría.";
     }
     private void LibrarySearchChanged(object sender, TextChangedEventArgs e) => RefreshLibrary();
+    private void LibrarySearchKeyDown(object sender, KeyEventArgs e)
+    {
+        if (!_ready || e.Key != Key.Enter) return;
+        e.Handled = true;
+        var query = LibrarySearch.Text.Trim();
+        var cue = _libraryView.FirstOrDefault(item => item.Title.Equals(query, StringComparison.CurrentCultureIgnoreCase))
+            ?? _libraryView.FirstOrDefault();
+        if (cue is null) { SetStatus("No hay resultados. Prueba otro número, título o categoría."); return; }
+        var alreadySelected = ReferenceEquals(LibraryList.SelectedItem, cue);
+        LibraryList.SelectedItem = cue;
+        if (alreadySelected) PrepareCue(cue);
+        LibraryList.ScrollIntoView(cue);
+        LibraryList.UpdateLayout();
+        LibraryList.Focus();
+        if (LibraryList.ItemContainerGenerator.ContainerFromItem(cue) is ListBoxItem row) row.Focus();
+    }
     private void LibraryFilterChanged(object sender, SelectionChangedEventArgs e) => RefreshLibrary();
     private void ClearLibrarySearchClick(object sender, RoutedEventArgs e)
     {

@@ -42,6 +42,8 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        InitializeUsabilityShortcuts();
+        _plan.CollectionChanged += (_, _) => UpdateUsabilityState();
         Loaded += (_, _) => InitializeWorkspace();
         Closing += OnWindowClosing;
         InputBindings.Add(new KeyBinding(new ActionCommand(ProjectPrepared), Key.F5, ModifierKeys.None));
@@ -100,6 +102,7 @@ public partial class MainWindow : Window
         _previewPaused = false;
         PreviewPauseButton.Content = "Pausar previa";
         PreparedTitleText.Text = cue.Title;
+        UpdateUsabilityState();
         SetStatus($"Preparado: {cue.Title}. Pulsa Proyectar o F5 para enviarlo.");
     }
 
@@ -116,10 +119,15 @@ public partial class MainWindow : Window
             CueKind.Image => "IMAGEN EN SALIDA\n" + live.Title,
             _ => live?.Body ?? "Salida preparada"
         };
-        OutputModeText.Text = _outputWindow is null ? "SIN SALIDA" : _outputIsTest ? "ENSAYO" : "ACTIVA";
+        OutputModeText.Text = _outputWindow is null ? "SIN SALIDA"
+            : _session.IsBlackout ? "NEGRO"
+            : _session.IsTextHidden ? "FONDO"
+            : _outputIsTest ? "ENSAYO" : "ACTIVA";
+        OutputModeText.Foreground = (Brush)FindResource(_outputWindow is not null && (_session.IsBlackout || _session.IsTextHidden) ? "AmberBrush" : "MutedBrush");
         BlackoutButton.Content = _session.IsBlackout ? "Restaurar" : "Negro";
         BlackoutButton.Background = (Brush)FindResource(_session.IsBlackout ? "AmberBrush" : "RaisedBrush");
         BlackoutButton.Foreground = _session.IsBlackout ? Brushes.Black : (Brush)FindResource("TextBrush");
+        UpdateUsabilityState();
     }
 
     private void SetStatus(string message, bool error = false)
@@ -153,6 +161,7 @@ public partial class MainWindow : Window
     {
         PlanCountText.Text = _plan.Count.ToString();
         PlanEmptyText.Visibility = _plan.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        UpdateUsabilityState();
     }
     private void PlanNameChanged(object sender, RoutedEventArgs e) => SaveWorkspace();
     private void PlanSelectionChanged(object sender, SelectionChangedEventArgs e)

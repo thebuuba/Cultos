@@ -111,6 +111,17 @@ public sealed class BibleCatalog
         return result;
     }
 
+    public IReadOnlyList<BibleVerse> FindChapter(string query)
+    {
+        var match = Regex.Match(query?.Trim() ?? "", @"^(?<book>.+?)\s*(?<chapter>\d+)$", RegexOptions.CultureInvariant);
+        if (!match.Success || !TryBook(match.Groups["book"].Value, out var book)
+            || !int.TryParse(match.Groups["chapter"].Value, out var chapter) || chapter <= 0)
+            throw new ArgumentException("El capítulo bíblico es inválido. Use, por ejemplo, Juan 3.", nameof(query));
+        var result = verses.Where(verse => verse.Book == Books[book] && verse.Chapter == chapter).ToArray();
+        if (result.Length == 0) throw new ArgumentException("El capítulo no está disponible en la Biblia importada.", nameof(query));
+        return result;
+    }
+
     public IReadOnlyList<BibleVerse> Search(string query, int limit = 100)
     {
         if (limit <= 0) throw new ArgumentOutOfRangeException(nameof(limit), "El límite de búsqueda debe ser mayor que cero.");

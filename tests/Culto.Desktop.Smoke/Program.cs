@@ -12,7 +12,7 @@ using Culto.Desktop;
 using Culto.Desktop.Projection;
 using Culto.Desktop.Services;
 
-internal static class Program
+internal static partial class Program
 {
     private static readonly BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
     private static int failures;
@@ -310,6 +310,9 @@ internal static class Program
             Call(window, "CloseOutput");
         });
 
+        RunUsabilityTests(window, directory);
+        RunBibleNavigationTests(window, directory);
+
         Test("Failed save prevents closing", () =>
         {
             var path = Path.Combine(directory, "workspace.json");
@@ -544,7 +547,7 @@ internal static class Program
                     var outputStatus = (TextBlock)window.FindName("OutputStatusText");
                     var liveCard = Ancestors(liveBody).OfType<Border>().First(border => border.IsAncestorOf(outputStatus));
                     var liveViewport = BoundsWithin(liveCard, client);
-                    foreach (var name in new[] { "LiveBodyText", "LiveReferenceText", "LiveTitleText", "OutputStatusText", "OutputModeText" })
+                    foreach (var name in new[] { "LiveBodyText", "LiveReferenceText", "LiveTitleText", "OutputModeText", "NextLiveText" })
                         CheckWithin((FrameworkElement)window.FindName(name), client, liveViewport, $"{name} at height {compactHeight}");
                     Check(liveBody.ActualHeight >= liveBody.FontSize, "Compact layout hides every line of the live reading excerpt");
                     foreach (var tab in tabs.Items.Cast<TabItem>())
@@ -555,9 +558,17 @@ internal static class Program
                         var pageViewport = BoundsWithin(page, client);
                         CheckWithin(page, client, BoundsWithin(contentColumn, client), $"{tab.Header} page");
                         foreach (var control in Descendants(page).OfType<FrameworkElement>()
-                            .Where(element => element.IsVisible && (element is Button or TextBox or ListBox)))
+                            .Where(element => element.IsVisible && (element is Button or TextBox or ListBox or ComboBox)))
                             CheckWithin(control, client, pageViewport, $"{tab.Header}: {control.Name} {control.GetType().Name} at height {compactHeight}");
                     }
+                    var video = MediaLibrary.FromFile(Path.Combine(AppContext.BaseDirectory, "fixtures", "test.mkv"));
+                    Call(window, "PrepareCue", video, null); Call(window, "ProjectPrepared");
+                    window.UpdateLayout(); PumpFor(25);
+                    foreach (var name in new[] { "ProjectButton", "BlackoutButton", "PreviewHost", "MediaPlaybackPanel", "PauseButton", "VolumeSlider", "LoopCheck", "PositionSlider" })
+                        CheckWithin((FrameworkElement)window.FindName(name), client, BoundsWithin(outputColumn, client), $"Media layout: {name} at height {compactHeight}");
+                    Check(((FrameworkElement)window.FindName("PreviewHost")).ActualHeight >= 80, "Media controls squeeze the preview below its minimum");
+                    Call(window, "PrepareCue", new Cue { Kind = CueKind.Bible, Title = "Lectura sintética", Body = "Texto sintético que conserva una vista previa legible.", Reference = "Lectura 1:1", Version = "Prueba" }, null);
+                    Call(window, "ProjectPrepared");
                 }
             }
             finally

@@ -8,15 +8,33 @@ Se ejecutó `scripts/build.ps1 -Smoke -Publish`: salida 0, compilación Release 
 
 | Componente | Resultado |
 |---|---|
-| Núcleo: sesión, Biblia, multimedia y recuperación de archivos | 44 pruebas correctas |
+| Núcleo: sesión, Biblia, multimedia y recuperación de archivos | 60 pruebas correctas |
 | Servidor del mando: HTTP, autenticación, validación y deduplicación | 39 pruebas correctas |
-| Integración nativa WPF: orden, Biblia, salida, mando, recuperación y diseño | 23 comprobaciones correctas |
+| Integración nativa WPF: orden, Biblia, salida, mando, recuperación y diseño | 36 comprobaciones correctas |
 | Reproductor nativo: texto, imagen, MKV, audio, negro y pausa | 24 comprobaciones correctas |
 | Cliente móvil: `node tests/Culto.Remote.Tests/mobile-smoke.cjs` | PASS |
 
-Los dos procesos de ensayo nativo terminaron con código 0. Total en la versión 0.2: 130 pruebas/comprobaciones, más el ensayo JavaScript de la primera entrega (su código no cambió). El ensayo JavaScript usa un DOM mínimo: no sustituye una comprobación visual en navegador o teléfono.
+Los dos procesos de ensayo nativo terminaron con código 0. Total en la versión 0.3: 159 pruebas/comprobaciones, más el ensayo JavaScript de la primera entrega (su código no cambió). El ensayo JavaScript usa un DOM mínimo: no sustituye una comprobación visual en navegador o teléfono.
 
-Después se ajustó únicamente el desplazamiento vertical del panel de conexión del mando, se volvió a publicar y se comprobó visualmente que las instrucciones completas son accesibles.
+En la versión anterior se ajustó el desplazamiento vertical del panel de conexión del mando y se comprobó visualmente que las instrucciones completas son accesibles.
+
+## Comodidad de uso — versión 0.3
+
+La cabecera reúne las acciones del culto en un menú. La importación y edición se agrupan en «Administrar»; las notas se abren bajo demanda. Los controles de salida se sitúan junto a la vista previa y muestran reproducción sólo para video/audio. El orden marca el elemento «EN VIVO», mientras que el panel de salida indica qué sigue y mantiene visibles los estados Negro/Fondo.
+
+La búsqueda numérica de himnos es exacta en Todo/Himnos. Enter prepara el resultado visible, Ctrl+F enfoca la búsqueda y Ctrl+1/2/3 cambia de sección. Las otras categorías conservan búsqueda por título y reconocimiento de números de himno.
+
+La Biblia permite elegir libro, capítulo y versículo o escribir un capítulo completo, incluido un alias con ordinal como «2. Tes 2». Las acciones «Versículo» y «Pasaje (N)» distinguen añadir sólo el seleccionado de añadir todos los versos del rango/capítulo. Buscar y navegar conserva la salida que ya está en vivo.
+
+Se añadieron 16 pruebas del núcleo y 13 comprobaciones de escritorio: coincidencia exacta sin perder las búsquedas por categoría; Enter y foco; atajos e inicialización; controles contextuales y Negro/Fondo; marca y siguiente después de preparar/reordenar; selectores sobre capítulos dispersos y largos; conservación de consultas; separación de un verso y 176 versos; y consultas inválidas. La geometría existente ahora comprueba también los selectores y los controles multimedia a 1280×720 y 1280×680.
+
+La revisión detectó y permitió corregir un indicador Fondo que quedaba oculto con video, la clasificación de referencias con ordinal y una regresión de búsqueda numérica en la categoría Videos. El último ensayo completo pasó con código 0, sin advertencias ni errores.
+
+En una instancia aislada con copia de los datos reales se comprobaron visualmente «Juan 3» (36 versículos), el selector hasta Juan 3:36 y la búsqueda `12` con un único himno preparado. Se revisó el menú Administrar y se corrigió el fondo claro heredado del menú nativo.
+
+La primera preparación del MKV 012 en ese ensayo mostró temporalmente «No responde» y luego se recuperó y reprodujo el video en la vista previa silenciosa. No se estableció la causa de esa demora inicial; las comprobaciones automatizadas con MKV local corto sí terminaron correctamente. La mejora de organización no debe interpretarse como solución verificada de esa demora.
+
+Se ejecutó después `scripts/build.ps1 -Smoke -Publish` con las 159 comprobaciones correctas y código 0. Se abrió el ejecutable publicado 0.3, se comprobó el menú oscuro con foco de teclado y se dejó Juan 3:16 preparado en Biblia, sin salida ni mando activos. Se conservaron los cuatro elementos que el usuario tenía en el orden, 616 contenidos de biblioteca y seis botones del mando. Los 31.102 versículos permanecen sin cambios (SHA-256 idéntico). Antes de actualizar se guardó un respaldo de los dos archivos de datos en `%LOCALAPPDATA%\CultoStudio\Respaldos\antes-v03-20261111-124832`.
 
 ## Mejora de diseño y organización — versión 0.2
 

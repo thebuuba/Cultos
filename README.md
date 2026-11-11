@@ -12,42 +12,48 @@ En esta PC ya se incorporaron a la biblioteca los **613 videos MKV** encontrados
 
 ## Preparar un culto
 
-1. Escribe el nombre del culto arriba. Puedes guardar una copia o abrir otro orden con los botones de la cabecera.
-2. En **Biblioteca**, importa los archivos o la carpeta del himnario. Se admiten MKV, MP4, MOV, WEBM, AVI, WMV, MP3, WAV, FLAC, OGG, JPG, JPEG, PNG y BMP. La compatibilidad final depende del contenido interno del archivo; prueba los videos que usarás antes del culto.
-3. Los números al inicio del nombre se reconocen como números de himno. **Editar** permite corregir título y número. Los archivos permanecen en su carpeta original: conserva la ubicación y conecta cualquier disco externo antes de comenzar.
+1. Escribe el nombre del culto arriba. El menú **Culto** reúne Nuevo, Abrir y Guardar una copia.
+2. En **Himnario y medios → Administrar**, importa los archivos o la carpeta del himnario. Se admiten MKV, MP4, MOV, WEBM, AVI, WMV, MP3, WAV, FLAC, OGG, JPG, JPEG, PNG y BMP. La compatibilidad final depende del contenido interno del archivo; prueba los videos que usarás antes del culto.
+3. Los números al inicio del nombre se reconocen como números de himno. **Administrar → Editar el contenido seleccionado** permite corregir título y número. Los archivos permanecen en su carpeta original: conserva la ubicación y conecta cualquier disco externo antes de comenzar.
 4. Selecciona un elemento y pulsa **Añadir al orden**. Reordena con Subir/Bajar o arrastrando. Las notas son privadas y no se proyectan.
 5. En **Texto**, prepara anuncios, bienvenidas o letras. Puedes guardarlos en la biblioteca y el orden.
 
-Las categorías **Todo, Himnos, Videos, Imágenes, Audio y Textos** filtran la biblioteca. El contador indica los resultados y el total guardado. **Limpiar** borra la búsqueda, conserva la categoría y devuelve el cursor al buscador.
+Las categorías **Todo, Himnos, Videos, Imágenes, Audio y Textos** filtran la biblioteca. En Todo o Himnos, escribir solo un número busca ese himno exacto: `12` o `012` encuentra el 12. En las demás categorías se busca por el título. **Enter** prepara el primer resultado visible; **F5** lo proyecta. Buscar por sí solo conserva la salida. **Limpiar** borra la búsqueda y conserva la categoría.
 
-El orden muestra la posición de cada momento; esos números son independientes del número del himno. Puedes ajustar el ancho de los paneles arrastrando los separadores. Los títulos largos se muestran completos al colocar el puntero encima. Las notas permanecen junto al orden.
+El orden muestra la posición de cada momento y una marca **EN VIVO** en el elemento que está en salida. El menú **⋯** permite subir, bajar o quitar el seleccionado; también puedes arrastrarlo. **Notas del elemento** abre las notas privadas. Puedes ajustar los paneles arrastrando los separadores y leer títulos largos al colocar el puntero encima.
+
+**Ctrl+1** abre Himnario y medios; **Ctrl+2**, Biblia; **Ctrl+3**, Texto. **Ctrl+F** enfoca y selecciona el buscador de la sección activa; en Texto selecciona el mensaje para editarlo.
 
 ## Biblia
 
 En esta PC ya está cargada **Reina-Valera 1960 completa**, con **66 libros, 1.189 capítulos y 31.102 versículos**, disponible sin internet. Se importó desde el archivo local `Documentos\Easy Worshipp\Programa EasyWorship\Biblias\RV1960.ewb`, que se conserva en su ubicación original.
 
-En la pestaña **Biblia**, escribe una cita (`Juan 3:16`, `1 Juan 2:1-3`) o una frase. Seleccionar prepara el versículo; Proyectar lo envía a la salida. La búsqueda no interrumpe la lectura que ya está en pantalla. Las lecturas también se pueden añadir al orden.
+En **Biblia**, elige **Libro, Capítulo y Versículo**, o escribe un capítulo (`Juan 3`), una cita (`Juan 3:16`, `1 Juan 2:1-3`) o una frase. Seleccionar prepara el versículo; Proyectar lo envía a la salida. La búsqueda no interrumpe la lectura que ya está en pantalla.
+
+**+ Versículo al orden** añade solamente el seleccionado. **Pasaje (N)** añade todos los versículos del capítulo o rango mostrado y aparece cuando hay varios; las búsquedas por frase permiten añadir el resultado seleccionado.
 
 El texto se guarda con los datos locales, fuera de Git y de la distribución ejecutable. La copia importada identifica la versión y registra la atribución y procedencia. Consulta el [informe de importación y procedencia](docs/importacion-biblia-local.md) para conocer la conversión y las comprobaciones realizadas.
 
-Para incorporar otra Biblia o instalarla en otra PC, **Importar Biblia** acepta JSON o Zefania XML. Consulta [el formato de importación](docs/formato-biblia.md).
+Para incorporar otra Biblia, abre **Biblia → Administrar → Importar Biblia** y elige JSON o Zefania XML. Consulta [el formato de importación](docs/formato-biblia.md).
 
 ## Proyectar a las tres pantallas
 
 Las tres pantallas que reciben el mismo HDMI muestran una sola salida. Configura Windows con **Extender** para conservar la consola en el monitor del operador. En **Pantalla**, selecciona la salida HDMI y abre la proyección. El programa abre primero un fondo vacío.
 
 - **Preparado** es una vista previa silenciosa. Buscar y seleccionar no cambian lo que está en pantalla.
-- **Proyectar / F5**, debajo de la vista previa, envía el contenido preparado. La barra inferior agrupa la navegación, pantalla negra y reproducción de la salida.
+- **Proyectar a pantalla / F5**, debajo de la vista previa, envía el contenido preparado. A la derecha quedan juntos el estado de salida, la orientación **Siguiente**, la navegación y los controles de pantalla.
 - **Siguiente / F6** y **Anterior / F7** avanzan desde el elemento en vivo, aunque hayas preparado otro contenido.
 - **Negro / F8** oculta la salida y pausa el audio/video. Restaurar la imagen mantiene el video pausado hasta pulsar Continuar.
 - **Fondo** oculta el contenido y pausa la reproducción. Proyectar vuelve a mostrar el preparado.
 - Volumen, posición, Reiniciar y Repetir actúan sobre la reproducción de salida, no sobre la vista previa.
 
+Los controles de reproducción aparecen cuando la salida tiene un video o audio. **Pausar previa** aparece solo al preparar contenido multimedia. El estado **NEGRO** o **FONDO** sigue visible aunque prepares otro contenido.
+
 Si sólo hay un monitor, se abre una **ventana de ensayo**. El monitor principal nunca se ocupa automáticamente a pantalla completa. Si se desconecta la salida, se detiene y debe elegirse de nuevo.
 
 El panel «En pantalla» muestra el estado, título y texto actual. Para video e imagen es un resumen del contenido, no un segundo monitor de video sincronizado. La salida externa sí reproduce el archivo.
 
-**Captura** toma una imagen estática de la pantalla elegida: la consola se minimiza durante 1,5 segundos y luego permite revisar la imagen. Esta versión no incluye captura continua de ventanas.
+**Himnario y medios → Administrar → Capturar una pantalla** toma una imagen estática: la consola se minimiza durante 1,5 segundos y luego permite revisar la imagen. Esta versión no incluye captura continua de ventanas.
 
 ## Control desde el teléfono
 
