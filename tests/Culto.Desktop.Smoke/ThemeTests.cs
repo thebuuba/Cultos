@@ -9,6 +9,55 @@ internal static partial class Program
 {
     private static void RunThemeTests(MainWindow window)
     {
+        Test("Image thumbnail loading releases files and cannot overwrite a recycled text cue", () =>
+        {
+            var directory = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "CultoThumb-" + Guid.NewGuid().ToString("N"));
+            System.IO.Directory.CreateDirectory(directory);
+            var path = System.IO.Path.Combine(directory, "image.png");
+            var invalid = System.IO.Path.Combine(directory, "invalid.png");
+            try
+            {
+                var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+                encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(System.Windows.Media.Imaging.BitmapSource.Create(
+                    1, 1, 96, 96, PixelFormats.Bgra32, null, new byte[] { 10, 20, 30, 255 }, 4)));
+                using (var stream = System.IO.File.Create(path)) encoder.Save(stream);
+                var thumbnail = new CueThumbnail { Cue = new Cue { Kind = CueKind.Image, FilePath = path } };
+                Until(() => Field<ImageSource?>(thumbnail, "_image") is not null, "Image thumbnail did not load");
+                using (System.IO.File.Open(path, System.IO.FileMode.Open, System.IO.FileAccess.ReadWrite, System.IO.FileShare.None)) { }
+                thumbnail.Cue = new Cue { Kind = CueKind.Image, FilePath = path };
+                thumbnail.Cue = new Cue { Body = "A text cue now owns this recycled tile" };
+                PumpFor(150);
+                Check(Field<ImageSource?>(thumbnail, "_image") is null, "Stale image replaced the text thumbnail");
+                System.IO.File.WriteAllText(invalid, "Invalid image data");
+                Wait((Task)Call(thumbnail, "LoadImage", invalid, Field<int>(thumbnail, "_generation"))!);
+                Check(Field<ImageSource?>(thumbnail, "_image") is null, "Invalid image did not keep its fallback");
+            }
+            finally
+            {
+                System.IO.File.Delete(path); System.IO.File.Delete(invalid); System.IO.Directory.Delete(directory);
+            }
+        });
+        Test("Central preview keeps a 16 by 9 viewport at desktop and compact sizes", () =>
+        {
+            var width = window.Width; var height = window.Height;
+            try
+            {
+                foreach (var size in new[] { new Size(1480, 900), new Size(1280, 680) })
+                {
+                    window.Width = size.Width; window.Height = size.Height; window.UpdateLayout();
+                    var viewport = window.FindName("PreviewViewport") as FrameworkElement;
+                    Check(viewport is not null, "Widescreen preview frame is missing");
+                    Check(viewport!.ActualHeight >= 80 && Math.Abs(viewport.ActualWidth / viewport.ActualHeight - 16d / 9) < .04,
+                        "Preview frame is distorted or unusably small");
+                    var sequence = (FrameworkElement)window.FindName("SequenceList");
+                    var stageBounds = BoundsWithin(viewport, window);
+                    var sequenceBounds = BoundsWithin(sequence, window);
+                    Check(sequence.IsVisible && sequence.ActualHeight >= 90 && sequenceBounds.Top >= stageBounds.Bottom,
+                        "Sequence is hidden or overlaps the preview");
+                }
+            }
+            finally { window.Width = width; window.Height = height; window.UpdateLayout(); }
+        });
         Test("Console font is bundled and resolves all four weights offline", () =>
         {
             foreach (var weight in new[] { FontWeights.Normal, FontWeights.Medium, FontWeights.SemiBold, FontWeights.Bold })

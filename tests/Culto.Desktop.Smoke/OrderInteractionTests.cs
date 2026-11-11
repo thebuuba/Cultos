@@ -64,6 +64,32 @@ internal static partial class Program
                 }
                 Check(ReferenceEquals(live, session.Live), "Add menu changed live output");
             });
+            Test("Sequence thumbnails follow order and preserve single and double click behavior", () =>
+            {
+                var strip = window.FindName("SequenceList") as ListBox;
+                Check(strip is not null, "Sequence strip is missing");
+                Check(strip!.Items.Cast<Cue>().SequenceEqual(plan), "Sequence is not bound to the actual order");
+                var live = session.Live;
+                strip.SelectedItem = a;
+                window.UpdateLayout();
+                Check(ReferenceEquals(list.SelectedItem, a) && session.Prepared?.Id == a.Id, "Thumbnail selection did not prepare its cue");
+                Check(ReferenceEquals(live, session.Live), "Single thumbnail selection projected");
+                Call(window, "PrepareCue", b, null);
+                strip.ScrollIntoView(a); strip.UpdateLayout();
+                var row = (ListBoxItem)strip.ItemContainerGenerator.ContainerFromItem(a);
+                strip.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+                    { RoutedEvent = UIElement.PreviewMouseLeftButtonUpEvent, Source = row });
+                Check(session.Prepared?.Id == a.Id, "Revisiting an already selected thumbnail failed");
+                strip.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+                    { RoutedEvent = Control.MouseDoubleClickEvent, Source = row });
+                Check(session.Live?.Id == a.Id, "Thumbnail double click did not project its cue");
+                live = session.Live;
+                strip.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+                    { RoutedEvent = Control.MouseDoubleClickEvent });
+                Check(ReferenceEquals(live, session.Live), "Empty sequence space projected");
+                plan.Move(0, 1); window.UpdateLayout();
+                Check(strip.Items.Cast<Cue>().SequenceEqual(plan), "Sequence order became stale after reordering");
+            });
             Test("Video double click starts output while mini player pause seek and restart stay independent", () =>
             {
                 list.SelectedItem = video;

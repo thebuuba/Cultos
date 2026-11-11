@@ -60,7 +60,7 @@
     <DataTemplate x:Key="OrderItemTemplate">
       <Grid ToolTip="{Binding Title}">
         <Grid.ColumnDefinitions><ColumnDefinition Width="34"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-        <Border Width="26" Height="28" CornerRadius="8" Background="{StaticResource CanvasBrush}" VerticalAlignment="Top">
+        <Border Width="26" Height="28" Background="Transparent" VerticalAlignment="Top">
           <TextBlock Text="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(local:OrderListBox.AbsoluteIndex), Converter={StaticResource OrderNumberConverter}}"
                      FontSize="12" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
         </Border>
@@ -100,13 +100,61 @@
         </DataTrigger>
       </DataTemplate.Triggers>
     </DataTemplate>
+
+    <Style x:Key="SequenceItem" TargetType="ListBoxItem">
+      <Setter Property="Padding" Value="4"/><Setter Property="Margin" Value="0,0,7,0"/>
+      <Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+      <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem">
+        <Border x:Name="Tile" Background="Transparent" BorderBrush="Transparent" BorderThickness="1" CornerRadius="7" Padding="{TemplateBinding Padding}">
+          <ContentPresenter/>
+        </Border>
+        <ControlTemplate.Triggers>
+          <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Tile" Property="Background" Value="{StaticResource RaisedBrush}"/></Trigger>
+          <Trigger Property="IsSelected" Value="True"><Setter TargetName="Tile" Property="BorderBrush" Value="{StaticResource AccentBrush}"/><Setter TargetName="Tile" Property="Background" Value="{StaticResource SelectedBrush}"/></Trigger>
+          <Trigger Property="local:OrderListBox.IsLive" Value="True"><Setter TargetName="Tile" Property="BorderBrush" Value="{StaticResource LiveBrush}"/></Trigger>
+          <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Tile" Property="BorderBrush" Value="{StaticResource AmberBrush}"/></Trigger>
+        </ControlTemplate.Triggers>
+      </ControlTemplate></Setter.Value></Setter>
+    </Style>
+    <DataTemplate x:Key="SequenceTemplate">
+      <StackPanel Width="124" ToolTip="{Binding Title}">
+        <Grid Height="70">
+          <local:CueThumbnail Cue="{Binding}"/>
+          <Border Background="#CC24222D" CornerRadius="3" Padding="4,1" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="3">
+            <TextBlock Text="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(local:OrderListBox.AbsoluteIndex), Converter={StaticResource OrderNumberConverter}}" Foreground="{StaticResource MutedBrush}" FontSize="9"/>
+          </Border>
+          <Ellipse Width="6" Height="6" Fill="{StaticResource LiveBrush}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6"
+                   Visibility="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(local:OrderListBox.IsLive), Converter={StaticResource BoolToVisibility}}"/>
+        </Grid>
+        <TextBlock Text="{Binding Title}" FontSize="10" Margin="2,3,2,0" TextTrimming="CharacterEllipsis" Foreground="{StaticResource TextBrush}"/>
+      </StackPanel>
+    </DataTemplate>
+    <Style x:Key="OrderRow" TargetType="ListBoxItem">
+      <Setter Property="Padding" Value="10,8"/><Setter Property="Margin" Value="0,2"/>
+      <Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+      <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+      <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem">
+        <Border x:Name="Row" Background="Transparent" CornerRadius="6" BorderThickness="1" BorderBrush="Transparent">
+          <Grid>
+            <Border x:Name="Stripe" Width="3" HorizontalAlignment="Left" Background="Transparent" CornerRadius="2" Margin="0,6"/>
+            <ContentPresenter Margin="{TemplateBinding Padding}"/>
+          </Grid>
+        </Border>
+        <ControlTemplate.Triggers>
+          <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Row" Property="Background" Value="{StaticResource RaisedBrush}"/></Trigger>
+          <Trigger Property="IsSelected" Value="True"><Setter TargetName="Row" Property="Background" Value="{StaticResource SelectedBrush}"/><Setter TargetName="Stripe" Property="Background" Value="{StaticResource AccentBrush}"/></Trigger>
+          <Trigger Property="local:OrderListBox.IsLive" Value="True"><Setter TargetName="Stripe" Property="Background" Value="{StaticResource LiveBrush}"/></Trigger>
+          <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Row" Property="BorderBrush" Value="{StaticResource AmberBrush}"/></Trigger>
+        </ControlTemplate.Triggers>
+      </ControlTemplate></Setter.Value></Setter>
+    </Style>
   </Window.Resources>
 
-  <Grid Margin="14,8,14,10">
+  <Grid Margin="10,0,10,8">
     <Grid.RowDefinitions>
-      <RowDefinition Height="Auto"/><RowDefinition Height="12"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/>
     </Grid.RowDefinitions>
-    <Border Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0" CornerRadius="14" Padding="8,6">
+    <Border Background="#302D38" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,7" Margin="-10,0,-10,0">
     <Grid>
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
       <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -167,7 +215,7 @@
         <ColumnDefinition Width="0.68*" MinWidth="390" MaxWidth="600"/>
       </Grid.ColumnDefinitions>
 
-      <Border Style="{StaticResource Card}" Padding="12">
+      <Border Background="#2B2933" CornerRadius="8" Padding="10">
         <Grid>
           <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
           <Grid Margin="0,0,0,12">
@@ -184,7 +232,7 @@
             </Button>
           </Grid>
           <Grid Grid.Row="1">
-            <local:OrderListBox x:Name="PlanList" ItemTemplate="{StaticResource OrderItemTemplate}" Style="{StaticResource {x:Type ListBox}}"
+            <local:OrderListBox x:Name="PlanList" ItemContainerStyle="{StaticResource OrderRow}" ItemTemplate="{StaticResource OrderItemTemplate}" Style="{StaticResource {x:Type ListBox}}"
                      SelectionChanged="PlanSelectionChanged" AllowDrop="True" PreviewMouseLeftButtonDown="PlanMouseDown" PreviewMouseLeftButtonUp="PlanMouseUp" MouseDoubleClick="PlanDoubleClick" MouseMove="PlanMouseMove" Drop="PlanDrop" AutomationProperties.Name="Orden de culto"/>
             <TextBlock x:Name="PlanEmptyText" Text="Orden vacío" Style="{StaticResource MutedText}" Margin="12,24" TextAlignment="Center" IsHitTestVisible="False" Visibility="Collapsed"/>
           </Grid>
@@ -212,77 +260,84 @@
       </Border>
       <GridSplitter Grid.Column="1" Style="{StaticResource PaneSplitter}" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" ShowsPreview="True" AutomationProperties.Name="Ancho del orden de culto"/>
 
-      <Grid Grid.Column="2">
-        <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="10"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-        <Border Style="{StaticResource Card}" Padding="14" BorderBrush="#67577F">
+      <Grid Grid.Column="2" Margin="2,0">
+        <Grid.RowDefinitions><RowDefinition/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <Border Background="#25232C" CornerRadius="8" Padding="12">
           <Grid>
-            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-            <Grid Margin="0,0,0,10">
-              <TextBlock Text="Vista previa" Foreground="{StaticResource AccentBrush}" FontSize="16" FontWeight="SemiBold"/>
-              <TextBlock Text="SIN SONIDO" FontSize="10" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+            <Grid>
+              <TextBlock Text="Vista previa" Foreground="{StaticResource TextBrush}" FontSize="12" FontWeight="SemiBold"/>
+              <TextBlock Text="16:9 · SIN SONIDO" Foreground="{StaticResource MutedBrush}" FontSize="9" HorizontalAlignment="Right" VerticalAlignment="Center"/>
             </Grid>
-            <Border Grid.Row="1" Background="#050505" CornerRadius="8" ClipToBounds="True"><ContentControl x:Name="PreviewHost" MinHeight="80"/></Border>
-            <Grid Grid.Row="2" Margin="0,8,0,8">
+            <local:AspectRatioBox Grid.Row="1" Margin="0,10,0,12">
+              <Border x:Name="PreviewViewport" BorderBrush="#51495F" BorderThickness="1" Background="#101722">
+                <ContentControl x:Name="PreviewHost" MinHeight="80"/>
+              </Border>
+            </local:AspectRatioBox>
+            <Grid Grid.Row="2">
               <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-              <TextBlock x:Name="PreparedTitleText" Text="Sin contenido" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" Margin="0,0,6,0"/>
+              <TextBlock x:Name="PreparedTitleText" Text="Sin contenido" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,10,0" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+              <Button x:Name="ProjectButton" Grid.Column="1" Style="{StaticResource PrimaryButton}" Click="ProjectClick" MinHeight="34" Padding="14,7" AutomationProperties.Name="Proyectar contenido preparado">
+                <StackPanel Orientation="Horizontal"><TextBlock Text="Proyectar a pantalla" FontSize="12"/><TextBlock Text="F5" FontSize="10" Margin="14,0,0,0" VerticalAlignment="Center" Opacity="0.75"/></StackPanel>
+              </Button>
             </Grid>
-            <Grid Grid.Row="3" x:Name="PreviewPlaybackPanel" Visibility="Collapsed" Margin="0,0,0,8">
-              <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-              <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                <Button x:Name="PreviewPauseButton" Content="Pausar previa" Click="PreviewPauseClick" Padding="7,5" MinHeight="30" FontSize="11"/>
-                <Button x:Name="PreviewRestartButton" Grid.Column="1" Content="Reiniciar" Click="PreviewRestartClick" Margin="6,0,0,0" Padding="7,5" MinHeight="30" FontSize="11" AutomationProperties.Name="Reiniciar vista previa"/>
-                <TextBlock x:Name="PreviewTimeText" Grid.Column="2" Text="00:00 / 00:00" Foreground="{StaticResource MutedBrush}" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="6,0,0,0"/>
-              </Grid>
-              <Slider x:Name="PreviewPositionSlider" Grid.Row="1" Minimum="0" Maximum="1" Value="0" IsMoveToPointEnabled="True" Margin="0,7,0,0" PreviewMouseLeftButtonUp="PreviewPositionSeek" PreviewKeyUp="PreviewPositionKeyUp" AutomationProperties.Name="Avance de la vista previa"/>
+            <Grid Grid.Row="3" x:Name="PreviewPlaybackPanel" Visibility="Collapsed" Margin="0,7,0,0">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+              <Button x:Name="PreviewPauseButton" Content="Pausar previa" Click="PreviewPauseClick" Padding="8,5" MinHeight="28" FontSize="10"/>
+              <Button x:Name="PreviewRestartButton" Grid.Column="1" Content="Reiniciar" Click="PreviewRestartClick" Margin="5,0,0,0" Padding="8,5" MinHeight="28" FontSize="10" AutomationProperties.Name="Reiniciar vista previa"/>
+              <Slider x:Name="PreviewPositionSlider" Grid.Column="2" Minimum="0" Maximum="1" Value="0" IsMoveToPointEnabled="True" Margin="10,0" PreviewMouseLeftButtonUp="PreviewPositionSeek" PreviewKeyUp="PreviewPositionKeyUp" AutomationProperties.Name="Avance de la vista previa"/>
+              <TextBlock x:Name="PreviewTimeText" Grid.Column="3" Text="00:00 / 00:00" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center"/>
             </Grid>
-            <Button x:Name="ProjectButton" Grid.Row="4" Style="{StaticResource PrimaryButton}" Click="ProjectClick" MinHeight="44" HorizontalContentAlignment="Stretch" AutomationProperties.Name="Proyectar contenido preparado">
-              <Grid>
-                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                <TextBlock Text="Proyectar a pantalla" FontSize="15" FontWeight="SemiBold"/>
-                <TextBlock Grid.Column="1" Text="F5" FontSize="12" VerticalAlignment="Center" Margin="8,0,0,0"/>
-              </Grid>
-            </Button>
           </Grid>
         </Border>
-
-        <Border Grid.Row="2" Style="{StaticResource Card}" Padding="10" BorderBrush="{StaticResource PanelBorderBrush}">
+        <Border Grid.Row="1" Background="#2B2833" CornerRadius="8" Padding="5,5,3,2" Margin="0,7" Height="114">
+          <local:OrderListBox x:Name="SequenceList" ItemsSource="{Binding ItemsSource, ElementName=PlanList}"
+              SelectedItem="{Binding SelectedItem, ElementName=PlanList, Mode=TwoWay}"
+              LiveCueId="{Binding LiveCueId, ElementName=PlanList}"
+              Style="{StaticResource {x:Type ListBox}}" ItemTemplate="{StaticResource SequenceTemplate}" ItemContainerStyle="{StaticResource SequenceItem}"
+              ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled"
+              PreviewMouseLeftButtonUp="SequenceMouseUp" MouseDoubleClick="SequenceDoubleClick" AutomationProperties.Name="Secuencia visual del culto">
+            <ListBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ListBox.ItemsPanel>
+          </local:OrderListBox>
+        </Border>
+        <Border Grid.Row="2" Background="#302D38" BorderBrush="#48414F" BorderThickness="1,0,0,0" CornerRadius="6" Padding="10,8">
           <Grid>
-            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <Grid>
-              <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-              <TextBlock Text="En pantalla" Foreground="{StaticResource LiveBrush}" FontSize="16" FontWeight="SemiBold"/>
-              <TextBlock Grid.Column="1" x:Name="OutputModeText" Text="SIN SALIDA" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center" ToolTip="{Binding Text, ElementName=OutputStatusText}"/>
+              <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+              <Border Background="#273E38" CornerRadius="9" Padding="7,3" Margin="0,0,9,0"><TextBlock Text="En pantalla" Foreground="{StaticResource LiveBrush}" FontSize="10" FontWeight="SemiBold"/></Border>
+              <TextBlock Grid.Column="1" x:Name="LiveTitleText" Text="Sin contenido" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+              <TextBlock Grid.Column="2" x:Name="OutputModeText" Text="SIN SALIDA" Foreground="{StaticResource MutedBrush}" FontSize="9" VerticalAlignment="Center" Margin="8,0,0,0" ToolTip="{Binding Text, ElementName=OutputStatusText}"/>
             </Grid>
-            <StackPanel Grid.Row="1" Margin="0,8,0,0">
-              <TextBlock x:Name="LiveTitleText" Text="Sin contenido" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
-              <TextBlock x:Name="LiveBodyText" Text="La salida está cerrada." Foreground="{StaticResource MutedBrush}" FontSize="13" TextWrapping="Wrap" MaxHeight="34" TextTrimming="CharacterEllipsis" Margin="0,4,0,0">
+            <StackPanel Grid.Row="1" Margin="0,5,0,0">
+              <TextBlock x:Name="LiveBodyText" Text="La salida está cerrada." Foreground="{StaticResource MutedBrush}" FontSize="12" TextWrapping="Wrap" MaxHeight="18" TextTrimming="CharacterEllipsis">
                 <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><DataTrigger Binding="{Binding Visibility, ElementName=MediaPlaybackPanel}" Value="Visible"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
               </TextBlock>
-              <TextBlock x:Name="LiveReferenceText" Foreground="{StaticResource MutedBrush}" FontSize="11" TextTrimming="CharacterEllipsis" Margin="0,4,0,0"/>
+              <TextBlock x:Name="LiveReferenceText" Foreground="{StaticResource MutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis"/>
               <TextBlock x:Name="OutputStatusText" Text="Una salida HDMI · tres pantallas iguales" Visibility="Collapsed"/>
             </StackPanel>
-            <TextBlock Grid.Row="2" x:Name="NextLiveText" Text="Sin contenido en salida" Style="{StaticResource MutedText}" FontSize="12" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Margin="0,8,0,6" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+            <TextBlock Grid.Row="2" x:Name="NextLiveText" Text="Sin contenido en salida" Foreground="{StaticResource MutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis" Margin="0,4,0,6" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
             <Grid Grid.Row="3" x:Name="ScreenNavigationPanel">
               <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
-              <Button Content="Anterior" Click="PreviousClick" Margin="0,0,4,0" MinHeight="36" Padding="3,6" FontSize="12"/>
-              <Button Grid.Column="1" Content="Siguiente" Click="NextClick" Margin="0,0,4,0" MinHeight="36" Padding="3,6" FontSize="12"/>
-              <Button Grid.Column="2" x:Name="BlackoutButton" Content="Negro" Click="BlackoutClick" Margin="0,0,4,0" MinHeight="36" Padding="3,6" FontSize="12"/>
-              <Button Grid.Column="3" Content="Fondo" Click="BackgroundClick" MinHeight="36" Padding="3,6" FontSize="12"/>
+              <Button Content="Anterior" Click="PreviousClick" Margin="0,0,5,0" MinHeight="30" Padding="4,5" FontSize="11"/>
+              <Button Grid.Column="1" Content="Siguiente" Click="NextClick" Margin="0,0,5,0" MinHeight="30" Padding="4,5" FontSize="11"/>
+              <Button Grid.Column="2" x:Name="BlackoutButton" Content="Negro" Click="BlackoutClick" Margin="0,0,5,0" MinHeight="30" Padding="4,5" FontSize="11"/>
+              <Button Grid.Column="3" Content="Fondo" Click="BackgroundClick" MinHeight="30" Padding="4,5" FontSize="11"/>
             </Grid>
-            <Grid Grid.Row="4" x:Name="MediaPlaybackPanel" Visibility="Collapsed" Margin="0,8,0,0">
-              <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+            <Grid Grid.Row="4" x:Name="MediaPlaybackPanel" Visibility="Collapsed" Margin="0,6,0,0">
+              <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
               <Grid>
-                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                <Button x:Name="PauseButton" Content="Pausar" Click="PauseClick" Padding="10,5" MinHeight="30" FontSize="12"/>
-                <Button Grid.Column="1" Content="Reiniciar" Click="RestartClick" Padding="10,5" MinHeight="30" FontSize="12" Margin="6,0,0,0"/>
-                <TextBlock Grid.Column="2" x:Name="TimeText" Text="00:00 / 00:00" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="8,0,0,0"/>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <Button x:Name="PauseButton" Content="Pausar" Click="PauseClick" Padding="9,5" MinHeight="28" FontSize="10"/>
+                <Button Grid.Column="1" Content="Reiniciar" Click="RestartClick" Padding="9,5" MinHeight="28" FontSize="10" Margin="5,0,0,0"/>
+                <Slider Grid.Column="2" x:Name="PositionSlider" Minimum="0" Maximum="1" Value="0" Margin="10,0" PreviewMouseLeftButtonUp="PositionSeek" AutomationProperties.Name="Posición del video"/>
+                <TextBlock Grid.Column="3" x:Name="TimeText" Text="00:00 / 00:00" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
               </Grid>
-              <Slider Grid.Row="1" x:Name="PositionSlider" Minimum="0" Maximum="1" Value="0" Margin="0,8,0,8" PreviewMouseLeftButtonUp="PositionSeek" AutomationProperties.Name="Posición del video"/>
-              <Grid Grid.Row="2">
+              <Grid Grid.Row="1" Margin="0,3,0,0">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                <TextBlock x:Name="VolumeText" Text="80 %" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" FontSize="11" MinWidth="34"/>
-                <Slider Grid.Column="1" x:Name="VolumeSlider" Minimum="0" Maximum="100" Value="80" ValueChanged="VolumeChanged" Margin="6,0,10,0" AutomationProperties.Name="Volumen de la proyección"/>
-                <CheckBox Grid.Column="2" x:Name="LoopCheck" Content="Repetir" Checked="LoopChanged" Unchecked="LoopChanged" FontSize="11" MinHeight="24"/>
+                <TextBlock x:Name="VolumeText" Text="80 %" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" FontSize="10" MinWidth="34"/>
+                <Slider Grid.Column="1" x:Name="VolumeSlider" Minimum="0" Maximum="100" Value="80" ValueChanged="VolumeChanged" Margin="6,0,12,0" AutomationProperties.Name="Volumen de la proyección"/>
+                <CheckBox Grid.Column="2" x:Name="LoopCheck" Content="Repetir" Checked="LoopChanged" Unchecked="LoopChanged" FontSize="10" MinHeight="24"/>
               </Grid>
             </Grid>
           </Grid>
@@ -290,7 +345,7 @@
       </Grid>
       <GridSplitter Grid.Column="3" Style="{StaticResource PaneSplitter}" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" ShowsPreview="True" AutomationProperties.Name="Ancho de biblioteca y Biblia"/>
 
-      <Border Grid.Column="4" Style="{StaticResource Card}" Padding="14,12,14,14">
+      <Border Grid.Column="4" Background="#302D39" CornerRadius="8" Padding="12">
         <TabControl x:Name="ContentTabs" SelectionChanged="ContentTabChanged">
           <TabItem Header="Himnario y medios">
             <Grid>

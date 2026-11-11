@@ -4,6 +4,16 @@ Comprobación realizada el 11 de noviembre de 2026 en esta PC Windows. Entrega a
 
 ## Compilación y pruebas
 
+### Composición de la consola — versión 0.7
+
+Se rehízo la estructura con una barra superior integrada, filas compactas en el orden, una vista previa central 16:9 y controles de reproducción y salida agrupados. El marco ajusta las dimensiones reales del reproductor nativo, sin transformaciones visuales sobre su ventana. El botón de proyectar queda junto al título del contenido.
+
+La tira inferior muestra el orden real y sincroniza su selección: un clic prepara y doble clic proyecta. Texto y Biblia muestran el contenido reducido; las imágenes se decodifican de forma asíncrona, liberando el archivo y descartando cargas de elementos reciclados. Video y audio usan portadas con título, sin reproductores adicionales.
+
+`scripts/build.ps1 -Smoke` terminó con código 0: 60 núcleo, 39 mando, 46 escritorio y 24 reproductor. Después de añadir la comprobación de imágenes, el ensayo final de escritorio pasó sus 47 pruebas: **170 comprobaciones en total**. Una ejecución intermedia falló en el foco de Ctrl+1/2/3; la repetición sin cambios pasó. No se determinó la causa de ese fallo transitorio. Las pruebas nuevas cubren formato 16:9 a 1480×900 y 1280×680, clics y reordenación en la tira, carga de imágenes y archivos inválidos. Compilación y publicación Windows x64 sin errores ni advertencias.
+
+En el ejecutable publicado se comprobó la nueva composición, la selección de Juan 3:16 desde su miniatura y la reproducción del MKV 012 dentro del marco. Se dejó pausado a 00:23, con la búsqueda vacía, los 616 contenidos visibles y la salida cerrada. Permanecen los cuatro elementos del orden y el SHA-256 de la Biblia local. Esta revisión no resuelve la demora intermitente observada al iniciar algunos MKV ni sustituye la prueba pendiente con las pantallas físicas.
+
 ### Consola audiovisual — versión 0.6
 
 La segunda referencia visual del usuario reemplaza la dirección carbón/lima: gris oscuro con matiz violeta, acciones moradas y estados en verde menta. El orden queda a la izquierda, la vista previa y los controles de salida en el centro y las fuentes a la derecha. Se conservan las cápsulas redondeadas, la tipografía incluida, las animaciones breves y los menús superiores. El indicador superior se enlaza al estado real de la salida y distingue SIN SALIDA, ENSAYO, ACTIVA, NEGRO y FONDO.
