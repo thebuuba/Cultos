@@ -16,6 +16,52 @@ internal static partial class Program
         var session = Field<PresentationSession>(window, "_session");
         var initial = (string)Call(window, "SerializeDockLayout")!;
         LayoutAnchorable Panel(string id) => manager.Layout.Descendents().OfType<LayoutAnchorable>().Single(p => p.ContentId == id);
+        Test("Dock separators resize content before release and cancellation restores the initial sizes", () =>
+        {
+            var preview = (FrameworkElement)window.FindName("PreviewPanel");
+            var live = session.Live; var prepared = session.Prepared;
+            var splitter = Descendants(manager).OfType<AvalonDock.Controls.LayoutGridResizerControl>()
+                .First(s => s.Parent is Grid grid && grid.ColumnDefinitions.Count == 3 && grid.IsAncestorOf(preview) && !grid.IsAncestorOf((FrameworkElement)window.FindName("SourcesPanel")));
+            var before = preview.ActualWidth;
+            try
+            {
+                splitter.RaiseEvent(new System.Windows.Controls.Primitives.DragStartedEventArgs(0, 0) { RoutedEvent = System.Windows.Controls.Primitives.Thumb.DragStartedEvent });
+                splitter.RaiseEvent(new System.Windows.Controls.Primitives.DragDeltaEventArgs(35, 0) { RoutedEvent = System.Windows.Controls.Primitives.Thumb.DragDeltaEvent });
+                window.UpdateLayout();
+                Check(preview.ActualWidth > before + 20, "Panel waits until mouse release to resize");
+                Check(ReferenceEquals(live, session.Live) && ReferenceEquals(prepared, session.Prepared), "Resizing changed prepared/live content");
+            }
+            finally
+            {
+                splitter.RaiseEvent(new System.Windows.Controls.Primitives.DragCompletedEventArgs(35, 0, true) { RoutedEvent = System.Windows.Controls.Primitives.Thumb.DragCompletedEvent });
+                window.UpdateLayout();
+            }
+            Check(Math.Abs(preview.ActualWidth - before) < 2, "Cancelled resize did not restore sizes");
+        });
+        Test("Vertical live resizing follows successive moves respects limits and persists on release", () =>
+        {
+            var preview = (FrameworkElement)window.FindName("PreviewPanel");
+            var splitter = Descendants(manager).OfType<AvalonDock.Controls.LayoutGridResizerControl>()
+                .First(s => s.Parent is Grid grid && grid.RowDefinitions.Count == 3 && grid.IsAncestorOf(preview));
+            var before = preview.ActualHeight;
+            try
+            {
+                splitter.RaiseEvent(new System.Windows.Controls.Primitives.DragStartedEventArgs(0, 0) { RoutedEvent = System.Windows.Controls.Primitives.Thumb.DragStartedEvent });
+                splitter.RaiseEvent(new System.Windows.Controls.Primitives.DragDeltaEventArgs(0, 35) { RoutedEvent = System.Windows.Controls.Primitives.Thumb.DragDeltaEvent });
+                window.UpdateLayout(); var expanded = preview.ActualHeight;
+                Check(expanded > before + 20, "Vertical layout waits for release");
+                splitter.RaiseEvent(new System.Windows.Controls.Primitives.DragDeltaEventArgs(0, -15) { RoutedEvent = System.Windows.Controls.Primitives.Thumb.DragDeltaEvent });
+                window.UpdateLayout(); Check(preview.ActualHeight < expanded - 8, "Second mouse movement was not applied");
+                splitter.RaiseEvent(new System.Windows.Controls.Primitives.DragDeltaEventArgs(0, -10000) { RoutedEvent = System.Windows.Controls.Primitives.Thumb.DragDeltaEvent });
+                window.UpdateLayout(); Check(((FrameworkElement)window.FindName("PreviewViewport")).ActualHeight >= 80, "Live resize bypassed minimum monitor height");
+                splitter.RaiseEvent(new System.Windows.Controls.Primitives.DragCompletedEventArgs(0, -10000, false) { RoutedEvent = System.Windows.Controls.Primitives.Thumb.DragCompletedEvent });
+                window.UpdateLayout(); var committed = preview.ActualHeight;
+                var saved = (string)Call(window, "SerializeDockLayout")!;
+                Call(window, "RestoreDockLayout", initial); Call(window, "RestoreDockLayout", saved); window.UpdateLayout();
+                Check(Math.Abs(preview.ActualHeight - committed) < 2, "Final resize was not persisted");
+            }
+            finally { Call(window, "RestoreDockLayout", initial); }
+        });
         Test("Output monitor follows the real output window and disconnects on close", () =>
         {
             Call(window, "PrepareCue", new Cue { Title = "Salida", Body = "Salida real" }, null);

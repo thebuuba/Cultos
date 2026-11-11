@@ -221,7 +221,7 @@
     </Grid>
     </Border>
 
-    <ad:DockingManager x:Name="WorkspaceDock" Grid.Row="2" BorderThickness="0" Background="{StaticResource CanvasBrush}" AllowMixedOrientation="True">
+    <ad:DockingManager x:Name="WorkspaceDock" local:LiveDockResize.IsEnabled="True" Grid.Row="2" BorderThickness="0" Background="{StaticResource CanvasBrush}" AllowMixedOrientation="True">
       <ad:DockingManager.Theme><themes:ArcDarkTheme/></ad:DockingManager.Theme>
       <ad:LayoutRoot>
         <ad:LayoutPanel Orientation="Horizontal">

@@ -14,6 +14,8 @@ Vista previa, En pantalla, Orden del culto, Secuencia y Biblioteca/Biblia son pa
 
 La distribución inicial sitúa los monitores arriba, el orden y la secuencia debajo, y las fuentes a la derecha. Conserva el gris con acentos violeta, los botones redondos, Poppins y las transiciones breves que respetan la preferencia de animaciones de Windows.
 
+Desde 0.8.1, el tamaño de los paneles y sus monitores se actualiza continuamente al arrastrar los separadores horizontales o verticales. El ajuste respeta sus tamaños mínimos y se conserva en la distribución guardada.
+
 La secuencia inferior sigue el orden del culto: un clic prepara y doble clic proyecta. Los textos y versículos muestran su contenido en miniatura; las imágenes se cargan como vistas reducidas. Videos y audio usan portadas con título, sin abrir reproductores adicionales.
 
 En esta PC ya se incorporaron a la biblioteca los **613 videos MKV** encontrados en `Documentos\Himnario Adventista 2022 VIDEOS\Data\Himnario Videos`. La instalación original se identifica como Himnario Adventista 2023. Los videos se conservan allí y la biblioteca guarda sus ubicaciones; no forman parte de la distribución del programa.

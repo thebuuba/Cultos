@@ -90,8 +90,22 @@ internal static class Program
         CaptureService.CaptureDisplay(DisplayService.GetDisplays().First(d => d.IsPrimary), Path.Combine(Folder, "video.png"));
         using (var capture = new System.Drawing.Bitmap(Path.Combine(Folder, "video.png")))
             Check(capture.Width == display.Width && capture.Height == display.Height, "Capture dimensions match physical selected display");
-        output.Loop = true; output.Restart(); await Task.Delay(3400);
-        Check(output.IsPlaying && output.Position < 1.5, "Media loops after end"); output.Loop = false;
+        // Native playback startup varies with machine load. Observe a real end
+        // and a second Playing event rather than assuming both occur at 3.4 s.
+        var outputPlayer = Descendants(output).OfType<VideoView>().Single().MediaPlayer!;
+        int ended = 0, started = 0;
+        EventHandler<EventArgs> onEnd = (_, _) => System.Threading.Interlocked.Increment(ref ended);
+        EventHandler<EventArgs> onPlay = (_, _) => System.Threading.Interlocked.Increment(ref started);
+        outputPlayer.EndReached += onEnd; outputPlayer.Playing += onPlay;
+        try
+        {
+            output.Loop = true; output.Restart();
+            var deadline = DateTime.UtcNow.AddSeconds(10);
+            while (DateTime.UtcNow < deadline && !(System.Threading.Volatile.Read(ref ended) > 0 && System.Threading.Volatile.Read(ref started) >= 2 && output.IsPlaying))
+                await Task.Delay(50);
+            Check(ended > 0 && started >= 2 && output.IsPlaying, $"Media loops after end (ends={ended}, starts={started}, state={outputPlayer.State}, position={output.Position:0.00})");
+        }
+        finally { output.Loop = false; outputPlayer.EndReached -= onEnd; outputPlayer.Playing -= onPlay; }
         var audio = new Cue { Kind = CueKind.Audio, FilePath = Path.Combine(Folder, "audio.wav"), Title = "Audio sintético" };
         output.ShowCue(audio, blackout: true); output.ShowCue(audio); await Task.Delay(150);
         Check(!output.IsPlaying, "Initially blacked-out media stays paused on restore");

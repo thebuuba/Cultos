@@ -4,6 +4,14 @@ Comprobación realizada el 11 de noviembre de 2026 en esta PC Windows. Entrega a
 
 ## Compilación y pruebas
 
+### Ajuste continuo de paneles — versión 0.8.1
+
+Los separadores actualizan las dimensiones de los paneles durante cada movimiento del ratón, en horizontal y vertical. El contenido WPF y los monitores nativos reciben sus dimensiones reales en el mismo ajuste. Se conservan los tamaños mínimos, el guardado de proporciones y la cancelación del arrastre. La extensión gestiona los eventos del separador antes de los manejadores de AvalonDock que normalmente muestran una guía hasta soltar el ratón; no modifica la dependencia.
+
+Se añadieron dos pruebas: cambio visible antes de soltar, conservación de la sesión y cancelación; y movimientos verticales sucesivos, límite mínimo y persistencia del tamaño confirmado. Pasaron **60 pruebas del núcleo, 39 del mando y 54 de escritorio**, con compilación sin advertencias ni errores. El ensayo del reproductor falló dos veces en la comprobación de bucle basada en una espera fija de 3,4 segundos. Se sustituyó esa comprobación por la observación del fin real del video y un segundo evento Playing, con límite de 10 segundos. Sin cambios en el reproductor, pasó sus **24 comprobaciones**, observando un final y dos inicios: **177 verificaciones correctas entre las ejecuciones finales**.
+
+Se publicó 0.8.1 y se recuperó la distribución personalizada del usuario (biblioteca, orden, previa y salida en columnas, secuencia debajo). Se comprobó con el ratón el aumento de ancho de la previa mediante su separador. La aplicación quedó abierta y maximizada, con los cuatro elementos del orden y 616 contenidos, sin salida activa.
+
 ### Dos monitores y paneles acoplables — versión 0.8
 
 Vista previa y En pantalla son monitores independientes, a izquierda y derecha. En pantalla muestra una miniatura DWM de la ventana real de proyección, incluidos sus hijos nativos de video; no crea otro reproductor ni otra pista de audio. Al separar el monitor en una ventana, se vuelve a enlazar al HWND superior correcto, incluso cuando AvalonDock aloja el contenido en un HWND intermedio. Se libera la miniatura al cerrar la salida, ocultar su pestaña o descargar el control.
