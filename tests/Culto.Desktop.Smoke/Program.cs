@@ -535,12 +535,14 @@ internal static partial class Program
                     Check(BoundsWithin(orderColumn, client).Right <= BoundsWithin(contentColumn, client).Left + 1.5
                         && BoundsWithin(contentColumn, client).Right <= BoundsWithin(outputColumn, client).Left + 1.5,
                         "Main console columns overlap after shrinking adjusted side panels");
-                    foreach (var name in new[] { "ProjectButton", "BlackoutButton" })
+                    foreach (var name in new[] { "ProjectButton", "BlackoutButton", "FileMenuButton", "LibraryMenuButton", "SettingsMenuButton" })
                     {
                         var button = (Button)window.FindName(name);
                         CheckWithin(button, client, viewport, name);
                         var bounds = BoundsWithin(button, client);
                         var hit = client.InputHitTest(new Point(bounds.Left + bounds.Width / 2, bounds.Top + bounds.Height / 2)) as DependencyObject;
+                        // Access-key labels can hit a text Run instead of its containing visual.
+                        while (hit is FrameworkContentElement content) hit = content.Parent;
                         Check(hit is not null && (ReferenceEquals(hit, button) || button.IsAncestorOf(hit)), name + " is obscured by another control");
                     }
                     var liveBody = (TextBlock)window.FindName("LiveBodyText");

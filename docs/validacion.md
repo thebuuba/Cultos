@@ -20,6 +20,16 @@ En la versión anterior se ajustó el desplazamiento vertical del panel de conex
 
 ## Comodidad de uso — versión 0.3
 
+### Apariencia de escritorio — versión 0.3.1
+
+La consola utiliza negro y gris neutro, bordes discretos y controles menos redondeados. Archivo, Biblioteca y Configuración reúnen las acciones en una barra superior; Configuración abre pantallas y mando móvil, mientras Biblioteca contiene las importaciones, captura y edición. La barra de título principal adopta el fondo oscuro en Windows 11 mediante los atributos nativos de DWM. La vista previa conserva el fondo propio del contenido.
+
+Se repitió `scripts/build.ps1 -Smoke -Publish` con salida 0, sin errores ni advertencias: 60 pruebas del núcleo, 39 del mando, 36 de escritorio y 24 del reproductor. La comprobación de geometría incluye los tres botones superiores a 1280×720 y 1280×680. Se corrigió el ensayo para reconocer los fragmentos de texto de las etiquetas con teclas de acceso al comprobar los clics.
+
+En el ejecutable publicado se verificaron visualmente los tres menús, sus accesos Alt+A/B/C, la apertura y cancelación del diálogo de pantallas y la sección Biblia. Se conservaron los 4 elementos del orden, 616 contenidos de biblioteca y 6 botones del mando. El SHA-256 de la Biblia local no cambió. La aplicación quedó abierta; el reinicio cerró la ventana de ensayo y desactivó el mando de la sesión anterior.
+
+### Organización y navegación incorporadas en 0.3
+
 La cabecera reúne las acciones del culto en un menú. La importación y edición se agrupan en «Administrar»; las notas se abren bajo demanda. Los controles de salida se sitúan junto a la vista previa y muestran reproducción sólo para video/audio. El orden marca el elemento «EN VIVO», mientras que el panel de salida indica qué sigue y mantiene visibles los estados Negro/Fondo.
 
 La búsqueda numérica de himnos es exacta en Todo/Himnos. Enter prepara el resultado visible, Ctrl+F enfoca la búsqueda y Ctrl+1/2/3 cambia de sección. Las otras categorías conservan búsqueda por título y reconocimiento de números de himno.

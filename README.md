@@ -12,9 +12,9 @@ En esta PC ya se incorporaron a la biblioteca los **613 videos MKV** encontrados
 
 ## Preparar un culto
 
-1. Escribe el nombre del culto arriba. El menú **Culto** reúne Nuevo, Abrir y Guardar una copia.
-2. En **Himnario y medios → Administrar**, importa los archivos o la carpeta del himnario. Se admiten MKV, MP4, MOV, WEBM, AVI, WMV, MP3, WAV, FLAC, OGG, JPG, JPEG, PNG y BMP. La compatibilidad final depende del contenido interno del archivo; prueba los videos que usarás antes del culto.
-3. Los números al inicio del nombre se reconocen como números de himno. **Administrar → Editar el contenido seleccionado** permite corregir título y número. Los archivos permanecen en su carpeta original: conserva la ubicación y conecta cualquier disco externo antes de comenzar.
+1. Escribe el nombre del culto arriba. El menú **Archivo** reúne Nuevo, Abrir y Guardar una copia.
+2. En **Biblioteca**, importa los archivos o la carpeta del himnario. Se admiten MKV, MP4, MOV, WEBM, AVI, WMV, MP3, WAV, FLAC, OGG, JPG, JPEG, PNG y BMP. La compatibilidad final depende del contenido interno del archivo; prueba los videos que usarás antes del culto.
+3. Los números al inicio del nombre se reconocen como números de himno. **Biblioteca → Editar el contenido seleccionado** permite corregir título y número. Los archivos permanecen en su carpeta original: conserva la ubicación y conecta cualquier disco externo antes de comenzar.
 4. Selecciona un elemento y pulsa **Añadir al orden**. Reordena con Subir/Bajar o arrastrando. Las notas son privadas y no se proyectan.
 5. En **Texto**, prepara anuncios, bienvenidas o letras. Puedes guardarlos en la biblioteca y el orden.
 
@@ -34,11 +34,11 @@ En **Biblia**, elige **Libro, Capítulo y Versículo**, o escribe un capítulo (
 
 El texto se guarda con los datos locales, fuera de Git y de la distribución ejecutable. La copia importada identifica la versión y registra la atribución y procedencia. Consulta el [informe de importación y procedencia](docs/importacion-biblia-local.md) para conocer la conversión y las comprobaciones realizadas.
 
-Para incorporar otra Biblia, abre **Biblia → Administrar → Importar Biblia** y elige JSON o Zefania XML. Consulta [el formato de importación](docs/formato-biblia.md).
+Para incorporar otra Biblia, abre **Biblioteca → Importar Biblia** y elige JSON o Zefania XML. Consulta [el formato de importación](docs/formato-biblia.md).
 
 ## Proyectar a las tres pantallas
 
-Las tres pantallas que reciben el mismo HDMI muestran una sola salida. Configura Windows con **Extender** para conservar la consola en el monitor del operador. En **Pantalla**, selecciona la salida HDMI y abre la proyección. El programa abre primero un fondo vacío.
+Las tres pantallas que reciben el mismo HDMI muestran una sola salida. Configura Windows con **Extender** para conservar la consola en el monitor del operador. En **Configuración → Pantallas y salida**, selecciona la salida HDMI y abre la proyección. El programa abre primero un fondo vacío.
 
 - **Preparado** es una vista previa silenciosa. Buscar y seleccionar no cambian lo que está en pantalla.
 - **Proyectar a pantalla / F5**, debajo de la vista previa, envía el contenido preparado. A la derecha quedan juntos el estado de salida, la orientación **Siguiente**, la navegación y los controles de pantalla.
@@ -53,12 +53,12 @@ Si sólo hay un monitor, se abre una **ventana de ensayo**. El monitor principal
 
 El panel «En pantalla» muestra el estado, título y texto actual. Para video e imagen es un resumen del contenido, no un segundo monitor de video sincronizado. La salida externa sí reproduce el archivo.
 
-**Himnario y medios → Administrar → Capturar una pantalla** toma una imagen estática: la consola se minimiza durante 1,5 segundos y luego permite revisar la imagen. Esta versión no incluye captura continua de ventanas.
+**Biblioteca → Capturar una pantalla** toma una imagen estática: la consola se minimiza durante 1,5 segundos y luego permite revisar la imagen. Esta versión no incluye captura continua de ventanas.
 
 ## Control desde el teléfono
 
 1. Conecta PC y teléfono a la misma red local.
-2. Abre **Mando móvil → Activar mando**.
+2. Abre **Configuración → Mando móvil → Activar mando**.
 3. Selecciona la dirección IP de la PC que corresponde a esa red y escanea el QR con el teléfono.
 4. En **Organizar botones** selecciona un acceso a la izquierda y edita su nombre, acción y color a la derecha. Para vincular un himno, elige **Proyectar un contenido** y escribe el comienzo de su número o título en el selector de contenido. Pulsa **Guardar botón** para aplicar los cambios.
 

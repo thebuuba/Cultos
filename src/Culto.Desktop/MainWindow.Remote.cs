@@ -78,7 +78,7 @@ public partial class MainWindow
             try
             {
                 await host.StartAsync(18765, GetRemoteState, HandleRemote);
-                _remote = host; RemoteButton.Content = "Mando activo";
+                _remote = host; RemoteButton.Header = "Mando móvil activo…";
                 SetStatus("Mando local activado. Vincula el teléfono con el código QR.");
                 return host;
             }
@@ -88,7 +88,7 @@ public partial class MainWindow
         {
             if (_remote is null) return;
             var host = _remote; _remote = null;
-            await host.DisposeAsync(); RemoteButton.Content = "Mando móvil";
+            await host.DisposeAsync(); RemoteButton.Header = "Mando móvil…";
             SetStatus("Mando desactivado. La proyección continúa.");
         };
         dialog.DeckChanged = buttons => { _workspace.Deck = buttons; SaveWorkspace(); };
