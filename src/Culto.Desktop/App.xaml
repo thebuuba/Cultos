@@ -7,18 +7,18 @@
     <Application.Resources>
         <FontFamily x:Key="ConsoleFont">/CultoStudio;component/Assets/Fonts/#Poppins</FontFamily>
         <!-- Shared surfaces and states for the operator console and dialogs. -->
-        <SolidColorBrush x:Key="CanvasBrush" Color="#191E20" />
-        <SolidColorBrush x:Key="PanelBrush" Color="#242A2C" />
-        <SolidColorBrush x:Key="RaisedBrush" Color="#2D3537" />
-        <SolidColorBrush x:Key="BorderBrush" Color="#414A4C" />
-        <SolidColorBrush x:Key="PanelBorderBrush" Color="#2B3234" />
+        <SolidColorBrush x:Key="CanvasBrush" Color="#27292C" />
+        <SolidColorBrush x:Key="PanelBrush" Color="#303337" />
+        <SolidColorBrush x:Key="RaisedBrush" Color="#3A3E42" />
+        <SolidColorBrush x:Key="BorderBrush" Color="#4C5156" />
+        <SolidColorBrush x:Key="PanelBorderBrush" Color="#393D41" />
         <SolidColorBrush x:Key="TextBrush" Color="#F5F6F4" />
         <SolidColorBrush x:Key="MutedBrush" Color="#AAB6B8" />
         <SolidColorBrush x:Key="AccentBrush" Color="#EDF58C" />
         <SolidColorBrush x:Key="AmberBrush" Color="#EFC6AD" />
-        <SolidColorBrush x:Key="HoverBrush" Color="#333D3F" />
-        <SolidColorBrush x:Key="SelectedBrush" Color="#35413D" />
-        <SolidColorBrush x:Key="InputBrush" Color="#1D2325" />
+        <SolidColorBrush x:Key="HoverBrush" Color="#41464B" />
+        <SolidColorBrush x:Key="SelectedBrush" Color="#3D4942" />
+        <SolidColorBrush x:Key="InputBrush" Color="#272B2F" />
 
         <SolidColorBrush x:Key="LiveBrush" Color="#B5E4CC" />
         <local:CueKindConverter x:Key="CueKindConverter" />
