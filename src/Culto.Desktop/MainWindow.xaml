@@ -36,7 +36,7 @@
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="ListBoxItem">
-            <Border x:Name="Chip" Padding="{TemplateBinding Padding}" CornerRadius="16" BorderThickness="1"
+            <Border x:Name="Chip" Padding="{TemplateBinding Padding}" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={StaticResource PillRadiusConverter}}" BorderThickness="1"
                     BorderBrush="Transparent" Background="Transparent">
               <ContentPresenter/>
             </Border>

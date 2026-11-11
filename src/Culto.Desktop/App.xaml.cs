@@ -34,6 +34,14 @@ public partial class App : Application
     }
 }
 
+public sealed class PillRadiusConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+        new CornerRadius(value is double height && double.IsFinite(height) ? Math.Max(0, height / 2) : 0);
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
+}
+
 public sealed class CueKindConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture) => value is CueKind kind ? kind switch

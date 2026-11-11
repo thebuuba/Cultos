@@ -22,6 +22,7 @@
 
         <SolidColorBrush x:Key="LiveBrush" Color="#B5E4CC" />
         <local:CueKindConverter x:Key="CueKindConverter" />
+        <local:PillRadiusConverter x:Key="PillRadiusConverter" />
 
         <Style TargetType="Window">
             <Setter Property="Background" Value="{StaticResource CanvasBrush}" />
@@ -68,17 +69,17 @@
                             <Border Background="{TemplateBinding Background}"
                                     BorderBrush="{TemplateBinding BorderBrush}"
                                     BorderThickness="{TemplateBinding BorderThickness}"
-                                    CornerRadius="10" />
+                                    CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={StaticResource PillRadiusConverter}}" />
                             <Border x:Name="ButtonHighlight" Background="{StaticResource TextBrush}"
-                                    CornerRadius="10" Opacity="0" IsHitTestVisible="False" />
-                            <Border x:Name="ButtonPressed" Background="#000000" CornerRadius="10" Opacity="0" IsHitTestVisible="False" />
+                                    CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={StaticResource PillRadiusConverter}}" Opacity="0" IsHitTestVisible="False" />
+                            <Border x:Name="ButtonPressed" Background="#000000" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={StaticResource PillRadiusConverter}}" Opacity="0" IsHitTestVisible="False" />
                             <ContentPresenter Margin="{TemplateBinding Padding}"
                                               HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                               VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
                                               TextElement.Foreground="{TemplateBinding Foreground}"
                                               RecognizesAccessKey="True" />
                             <Border x:Name="ButtonFocus" BorderBrush="{StaticResource AmberBrush}"
-                                    BorderThickness="2" CornerRadius="10" Margin="-3"
+                                    BorderThickness="2" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={StaticResource PillRadiusConverter}}" Margin="-3"
                                     Opacity="0" IsHitTestVisible="False" />
                         </Grid>
                         <ControlTemplate.Triggers>
@@ -383,7 +384,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
                         <Border x:Name="TabPill" Background="Transparent" BorderBrush="Transparent"
-                                BorderThickness="1" CornerRadius="10" Padding="{TemplateBinding Padding}">
+                                BorderThickness="1" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={StaticResource PillRadiusConverter}}" Padding="{TemplateBinding Padding}">
                             <ContentPresenter x:Name="TabLabel" ContentSource="Header" RecognizesAccessKey="True"
                                               TextElement.Foreground="{StaticResource MutedBrush}" />
                         </Border>
