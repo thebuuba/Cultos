@@ -192,6 +192,14 @@ public partial class MainWindow
     }
     private void TimerTick(object? sender, EventArgs e)
     {
+        if (_session.Prepared?.Kind is CueKind.Video or CueKind.Audio)
+        {
+            var duration = _preview.Duration;
+            PreviewTimeText.Text = $"{FormatTime(_preview.Position)} / {FormatTime(duration)}";
+            PreviewPositionSlider.IsEnabled = duration > 0;
+            if (!PreviewPositionSlider.IsMouseCaptureWithin)
+                PreviewPositionSlider.Value = duration > 0 ? Math.Clamp(_preview.Position / duration, 0, 1) : 0;
+        }
         if (_output is not null)
         {
             var duration = _output.Duration; var position = _output.Position;

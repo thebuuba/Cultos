@@ -43,6 +43,7 @@ public partial class MainWindow
         if (FindName("MediaPlaybackPanel") is FrameworkElement mediaPanel)
             mediaPanel.Visibility = liveMedia ? Visibility.Visible : Visibility.Collapsed;
         PreviewPauseButton.Visibility = _session.Prepared?.Kind is CueKind.Video or CueKind.Audio ? Visibility.Visible : Visibility.Collapsed;
+        PreviewPlaybackPanel.Visibility = PreviewPauseButton.Visibility;
         if (FindName("ScreenNavigationPanel") is FrameworkElement navigation)
             navigation.Visibility = Visibility.Visible;
         PlanList.LiveCueId = _outputWindow is not null ? _session.Live?.Id : null;

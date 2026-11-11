@@ -311,6 +311,7 @@ internal static partial class Program
         });
 
         RunUsabilityTests(window, directory);
+        RunOrderInteractionTests(window);
         RunBibleNavigationTests(window, directory);
 
         Test("Failed save prevents closing", () =>
@@ -535,7 +536,7 @@ internal static partial class Program
                     Check(BoundsWithin(orderColumn, client).Right <= BoundsWithin(contentColumn, client).Left + 1.5
                         && BoundsWithin(contentColumn, client).Right <= BoundsWithin(outputColumn, client).Left + 1.5,
                         "Main console columns overlap after shrinking adjusted side panels");
-                    foreach (var name in new[] { "ProjectButton", "BlackoutButton", "FileMenuButton", "LibraryMenuButton", "SettingsMenuButton" })
+                    foreach (var name in new[] { "ProjectButton", "BlackoutButton", "FileMenuButton", "LibraryMenuButton", "SettingsMenuButton", "AddOrderButton" })
                     {
                         var button = (Button)window.FindName(name);
                         CheckWithin(button, client, viewport, name);
@@ -566,7 +567,7 @@ internal static partial class Program
                     var video = MediaLibrary.FromFile(Path.Combine(AppContext.BaseDirectory, "fixtures", "test.mkv"));
                     Call(window, "PrepareCue", video, null); Call(window, "ProjectPrepared");
                     window.UpdateLayout(); PumpFor(25);
-                    foreach (var name in new[] { "ProjectButton", "BlackoutButton", "PreviewHost", "MediaPlaybackPanel", "PauseButton", "VolumeSlider", "LoopCheck", "PositionSlider" })
+                    foreach (var name in new[] { "ProjectButton", "BlackoutButton", "PreviewHost", "PreviewPlaybackPanel", "PreviewPauseButton", "PreviewPositionSlider", "PreviewRestartButton", "MediaPlaybackPanel", "PauseButton", "VolumeSlider", "LoopCheck", "PositionSlider" })
                         CheckWithin((FrameworkElement)window.FindName(name), client, BoundsWithin(outputColumn, client), $"Media layout: {name} at height {compactHeight}");
                     Check(((FrameworkElement)window.FindName("PreviewHost")).ActualHeight >= 80, "Media controls squeeze the preview below its minimum");
                     Call(window, "PrepareCue", new Cue { Kind = CueKind.Bible, Title = "Lectura sintética", Body = "Texto sintético que conserva una vista previa legible.", Reference = "Lectura 1:1", Version = "Prueba" }, null);

@@ -101,9 +101,11 @@ public partial class MainWindow : Window
         _preview.ShowCue(cue);
         _previewPaused = false;
         PreviewPauseButton.Content = "Pausar previa";
+        PreviewTimeText.Text = "00:00 / 00:00";
+        PreviewPositionSlider.Value = 0;
         PreparedTitleText.Text = cue.Title;
         UpdateUsabilityState();
-        SetStatus($"Preparado: {cue.Title}. Pulsa Proyectar o F5 para enviarlo.");
+        SetStatus($"Vista previa: {cue.Title}. Doble clic en el orden o F5 para proyectar.");
     }
 
     private void UpdateSessionLabels()

@@ -4,6 +4,18 @@ Comprobación realizada el 11 de noviembre de 2026 en esta PC Windows. Entrega a
 
 ## Compilación y pruebas
 
+### Orden del culto y minirreproductor — versión 0.4
+
+El orden incluye **+ Agregar** al pie: biblioteca/himnario, Biblia y texto abren la sección correspondiente; archivos permite seleccionar multimedia y añadirla directamente. Un clic prepara, incluido volver a una fila ya seleccionada después de consultar otra fuente; doble clic proyecta la fila pulsada e inicia video/audio. El espacio vacío no proyecta. El arrastre comienza sólo desde una fila y se distingue del clic.
+
+La vista previa conserva reproducción silenciosa con pausa, reinicio, tiempo/duración y barra de avance independiente de la salida. Los controles aparecen sólo para video/audio. Se mantuvo la selección de salida configurada y la ventana de ensayo cuando sólo está disponible el monitor principal.
+
+Se ejecutó `scripts/build.ps1 -Smoke` con código 0: **60 núcleo + 39 mando + 40 escritorio + 24 reproductor = 163 comprobaciones**. Cuatro pruebas nuevas cubren los clics, el menú y la independencia de reproducción. Las comprobaciones de tamaño incluyen Agregar y los controles del minirreproductor a 1280×680 y 1280×720. Compilación sin advertencias ni errores.
+
+La prueba manual usó una copia de datos en `.tools/order-qa-v04`: abrir +, buscar el himno 12, reproducir su MKV en la vista previa, añadirlo al orden y proyectarlo con doble clic. Un clic en «Momento de oración» cambió la vista previa mientras el himno siguió en salida. En esta prueba el MKV inició sin el bloqueo prolongado observado anteriormente; no se modificó el motor de reproducción ni se considera resuelto aquel problema intermitente. La copia de prueba se cerró sin sustituir los datos del usuario.
+
+### Comprobaciones anteriores
+
 Se ejecutó `scripts/build.ps1 -Smoke -Publish`: salida 0, compilación Release sin errores ni advertencias, publicación con runtime .NET y LibVLC incluidos.
 
 | Componente | Resultado |

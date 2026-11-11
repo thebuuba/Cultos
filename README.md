@@ -15,12 +15,16 @@ En esta PC ya se incorporaron a la biblioteca los **613 videos MKV** encontrados
 1. Escribe el nombre del culto arriba. El menú **Archivo** reúne Nuevo, Abrir y Guardar una copia.
 2. En **Biblioteca**, importa los archivos o la carpeta del himnario. Se admiten MKV, MP4, MOV, WEBM, AVI, WMV, MP3, WAV, FLAC, OGG, JPG, JPEG, PNG y BMP. La compatibilidad final depende del contenido interno del archivo; prueba los videos que usarás antes del culto.
 3. Los números al inicio del nombre se reconocen como números de himno. **Biblioteca → Editar el contenido seleccionado** permite corregir título y número. Los archivos permanecen en su carpeta original: conserva la ubicación y conecta cualquier disco externo antes de comenzar.
-4. Selecciona un elemento y pulsa **Añadir al orden**. Reordena con Subir/Bajar o arrastrando. Las notas son privadas y no se proyectan.
+4. Usa **+ Agregar**, debajo del orden, para elegir himnos/biblioteca, Biblia, texto o archivos. Las tres primeras opciones abren su sección para buscar y pulsar **Añadir al orden**; la opción de archivos permite seleccionar varios y los incorpora directamente al orden y a la biblioteca. Reordena con Subir/Bajar o arrastrando. Las notas son privadas y no se proyectan.
 5. En **Texto**, prepara anuncios, bienvenidas o letras. Puedes guardarlos en la biblioteca y el orden.
 
 Las categorías **Todo, Himnos, Videos, Imágenes, Audio y Textos** filtran la biblioteca. En Todo o Himnos, escribir solo un número busca ese himno exacto: `12` o `012` encuentra el 12. En las demás categorías se busca por el título. **Enter** prepara el primer resultado visible; **F5** lo proyecta. Buscar por sí solo conserva la salida. **Limpiar** borra la búsqueda y conserva la categoría.
 
 El orden muestra la posición de cada momento y una marca **EN VIVO** en el elemento que está en salida. El menú **⋯** permite subir, bajar o quitar el seleccionado; también puedes arrastrarlo. **Notas del elemento** abre las notas privadas. Puedes ajustar los paneles arrastrando los separadores y leer títulos largos al colocar el puntero encima.
+
+**Un clic en el orden** prepara la vista previa. **Doble clic sobre un elemento** lo envía a la pantalla de la iglesia e inicia su reproducción si es video/audio. El doble clic en espacio vacío no proyecta y arrastrar sólo reordena. Si la salida está cerrada, se abre la pantalla configurada; si sólo está disponible el monitor del operador, se usa una ventana de ensayo.
+
+Los videos se reproducen dentro de la vista previa en un **minirreproductor silencioso**, con pausa/continuación, reinicio, duración y barra de avance. Estos controles sólo afectan a la vista previa; los controles de **En pantalla** actúan sobre la salida de la iglesia.
 
 **Ctrl+1** abre Himnario y medios; **Ctrl+2**, Biblia; **Ctrl+3**, Texto. **Ctrl+F** enfoca y selecciona el buscador de la sección activa; en Texto selecciona el mensaje para editarlo.
 

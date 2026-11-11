@@ -151,20 +151,27 @@ public partial class MainWindow
         CommitNotes(); _plan.Remove(cue); UpdatePlanCount(); SaveWorkspace();
         SetStatus("Elemento retirado del orden. La proyección actual se conserva.");
     }
-    private void PlanMouseDown(object sender, MouseButtonEventArgs e) => _dragStart = e.GetPosition(PlanList);
+    private void PlanMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        _dragStart = e.GetPosition(PlanList);
+        _orderDragCue = OrderCueAt(e.OriginalSource);
+        _orderDragPerformed = false;
+    }
     private void PlanMouseMove(object sender, MouseEventArgs e)
     {
-        if (e.LeftButton != MouseButtonState.Pressed || PlanList.SelectedItem is not Cue cue) return;
+        if (e.LeftButton != MouseButtonState.Pressed || _orderDragCue is not Cue cue || _orderDragPerformed) return;
         var delta = e.GetPosition(PlanList) - _dragStart;
         if (Math.Abs(delta.Y) >= SystemParameters.MinimumVerticalDragDistance)
+        {
+            _orderDragPerformed = true;
             DragDrop.DoDragDrop(PlanList, new DataObject(typeof(Cue), cue), DragDropEffects.Move);
+            _orderDragCue = null;
+        }
     }
     private void PlanDrop(object sender, DragEventArgs e)
     {
         if (e.Data.GetData(typeof(Cue)) is not Cue source) return;
-        var element = e.OriginalSource as DependencyObject;
-        while (element is not null && element is not ListBoxItem) element = VisualTreeHelper.GetParent(element);
-        if (element is not ListBoxItem { DataContext: Cue target }) return;
+        if (OrderCueAt(e.OriginalSource) is not Cue target) return;
         var from = _plan.IndexOf(source); var to = _plan.IndexOf(target);
         if (from >= 0 && to >= 0 && from != to) { _plan.Move(from, to); SaveWorkspace(); }
     }
