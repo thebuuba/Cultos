@@ -112,23 +112,23 @@ public partial class MainWindow : Window
     private void UpdateSessionLabels()
     {
         PreparedTitleText.Text = _session.Prepared?.Title ?? "Sin contenido";
-        var live = _outputWindow is null ? null : _session.Live;
-        ToggleOutputButton.Content = _outputWindow is null ? "Activar salida" : "Desactivar salida";
-        if (_outputWindow is null) OutputStatusText.Text = "Salida desactivada";
+        var live = _output is null ? null : _session.Live;
+        ToggleOutputButton.Content = _outputWindow is null ? "Activar HDMI" : "Desactivar HDMI";
+        if (_outputWindow is null) OutputStatusText.Text = _output is null ? "Salida desactivada" : "Reproducción local · HDMI desactivado";
         LiveTitleText.Text = live?.Title ?? "Sin contenido";
         LiveReferenceText.Text = live is null ? "" : string.Join(" · ", new[] { live.Reference, live.Version }.Where(s => !string.IsNullOrWhiteSpace(s)));
-        LiveBodyText.Text = _outputWindow is null ? "La salida está cerrada." : _session.IsBlackout ? "Pantalla en negro" : _session.IsTextHidden ? "Fondo sin contenido" : live?.Kind switch
+        LiveBodyText.Text = _output is null ? "La salida está cerrada." : _session.IsBlackout ? "Pantalla en negro" : _session.IsTextHidden ? "Fondo sin contenido" : live?.Kind switch
         {
             CueKind.Video => "VIDEO EN SALIDA\n" + live.Title,
             CueKind.Audio => "AUDIO EN SALIDA\n" + live.Title,
             CueKind.Image => "IMAGEN EN SALIDA\n" + live.Title,
             _ => live?.Body ?? "Salida preparada"
         };
-        OutputModeText.Text = _outputWindow is null ? "SIN SALIDA"
+        OutputModeText.Text = _output is null ? "SIN SALIDA"
             : _session.IsBlackout ? "NEGRO"
             : _session.IsTextHidden ? "FONDO"
-            : _outputIsTest ? "ENSAYO" : "ACTIVA";
-        OutputModeText.Foreground = (Brush)FindResource(_outputWindow is not null && (_session.IsBlackout || _session.IsTextHidden) ? "AmberBrush" : "MutedBrush");
+            : _outputWindow is null ? "LOCAL" : _outputIsTest ? "ENSAYO" : "ACTIVA";
+        OutputModeText.Foreground = (Brush)FindResource(_output is not null && (_session.IsBlackout || _session.IsTextHidden) ? "AmberBrush" : "MutedBrush");
         BlackoutButton.Content = _session.IsBlackout ? "Restaurar" : "Negro";
         BlackoutButton.Background = (Brush)FindResource(_session.IsBlackout ? "AmberBrush" : "RaisedBrush");
         BlackoutButton.Foreground = _session.IsBlackout ? Brushes.Black : (Brush)FindResource("TextBrush");

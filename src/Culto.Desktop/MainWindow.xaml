@@ -285,7 +285,7 @@
               <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
               <TextBlock x:Name="NextLiveText" Text="Sin contenido en salida" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
               <Button Grid.Column="1" Content="Pantalla…" Click="DisplayClick" FontSize="10" MinHeight="28" Padding="8,4" Margin="5,0"/>
-              <Button Grid.Column="2" x:Name="ToggleOutputButton" Content="Activar salida" Click="ToggleOutputClick" FontSize="10" MinHeight="28" Padding="8,4"/>
+              <Button Grid.Column="2" x:Name="ToggleOutputButton" Content="Activar HDMI" Click="ToggleOutputClick" FontSize="10" MinHeight="28" Padding="8,4"/>
             </Grid>
             <Grid Grid.Row="4" x:Name="ScreenNavigationPanel">
               <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>

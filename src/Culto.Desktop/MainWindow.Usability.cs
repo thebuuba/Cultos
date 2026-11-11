@@ -40,14 +40,14 @@ public partial class MainWindow
     private void UpdateUsabilityState()
     {
         if (!_ready) return;
-        var liveMedia = _outputWindow is not null && _session.Live?.Kind is CueKind.Video or CueKind.Audio;
+        var liveMedia = _output is not null && _session.Live?.Kind is CueKind.Video or CueKind.Audio;
         if (FindName("MediaPlaybackPanel") is FrameworkElement mediaPanel)
             mediaPanel.Visibility = liveMedia ? Visibility.Visible : Visibility.Collapsed;
         PreviewPauseButton.Visibility = _session.Prepared?.Kind is CueKind.Video or CueKind.Audio ? Visibility.Visible : Visibility.Collapsed;
         PreviewPlaybackPanel.Visibility = PreviewPauseButton.Visibility;
         if (FindName("ScreenNavigationPanel") is FrameworkElement navigation)
             navigation.Visibility = Visibility.Visible;
-        PlanList.LiveCueId = _outputWindow is not null ? _session.Live?.Id : null;
+        PlanList.LiveCueId = _output is not null ? _session.Live?.Id : null;
         if (FindName("NextLiveText") is TextBlock next)
             next.Text = NextLiveHint();
     }
@@ -55,7 +55,7 @@ public partial class MainWindow
     private string NextLiveHint()
     {
         var live = _session.Live;
-        if (_outputWindow is null || live is null) return "Sin contenido en salida";
+        if (_output is null || live is null) return "Sin contenido en salida";
         var orderIndex = _plan.ToList().FindIndex(cue => cue.Id == live.Id);
         if (orderIndex >= 0)
             return orderIndex + 1 < _plan.Count ? "Siguiente: " + _plan[orderIndex + 1].Title : "Fin del orden";

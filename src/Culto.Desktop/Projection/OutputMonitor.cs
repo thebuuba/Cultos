@@ -11,6 +11,7 @@ namespace Culto.Desktop.Projection;
 public sealed class OutputMonitor : FrameworkElement, IDisposable
 {
     private Window? _source;
+    private VisualBrush? _localImage;
     private IntPtr _thumbnail, _destination;
     private ThumbnailProperties _last;
     public bool IsConnected => _thumbnail != IntPtr.Zero;
@@ -27,6 +28,12 @@ public sealed class OutputMonitor : FrameworkElement, IDisposable
     {
         if (ReferenceEquals(_source, source)) return;
         Release(); _source = source; Refresh(); InvalidateVisual();
+    }
+
+    public void SetLocalSource(ProjectionSurface? surface)
+    {
+        _localImage = surface is null ? null : new VisualBrush(surface) { Stretch = Stretch.Uniform };
+        InvalidateVisual();
     }
 
     public void Refresh()
@@ -73,6 +80,11 @@ public sealed class OutputMonitor : FrameworkElement, IDisposable
     {
         drawing.DrawRectangle(new SolidColorBrush(Color.FromRgb(16, 23, 34)), null, new Rect(RenderSize));
         if (_source is not null) return;
+        if (_localImage is not null)
+        {
+            drawing.DrawRectangle(_localImage, null, new Rect(RenderSize));
+            return;
+        }
         var text = new FormattedText("Sin salida", System.Globalization.CultureInfo.CurrentUICulture,
             FlowDirection.LeftToRight, new Typeface("Segoe UI"), 14, Brushes.Gray, VisualTreeHelper.GetDpi(this).PixelsPerDip);
         drawing.DrawText(text, new Point(Math.Max(0, (ActualWidth - text.Width) / 2), Math.Max(0, (ActualHeight - text.Height) / 2)));
@@ -83,7 +95,7 @@ public sealed class OutputMonitor : FrameworkElement, IDisposable
         if (_thumbnail != IntPtr.Zero) DwmUnregisterThumbnail(_thumbnail);
         _thumbnail = _destination = IntPtr.Zero; _last = default;
     }
-    public void Dispose() { _source = null; Release(); }
+    public void Dispose() { _source = null; _localImage = null; Release(); }
 
     [StructLayout(LayoutKind.Sequential)] private struct NativeRect { public int Left, Top, Right, Bottom; }
     [StructLayout(LayoutKind.Sequential)] private struct NativePoint { public int X, Y; }

@@ -9,7 +9,7 @@ public partial class MainWindow
 {
     private RemoteSnapshot GetRemoteState() => Dispatcher.CheckAccess() ? BuildRemoteState() : Dispatcher.Invoke(BuildRemoteState);
     private RemoteSnapshot BuildRemoteState() => new(
-        PlanNameBox.Text, _session.Prepared?.Title ?? "Nada preparado", _outputWindow is null ? "Salida cerrada" : _session.Live?.Title ?? "Fondo",
+        PlanNameBox.Text, _session.Prepared?.Title ?? "Nada preparado", _output is null ? "Salida cerrada" : (_outputWindow is null ? "Local · " : "") + (_session.Live?.Title ?? "Fondo"),
         _session.IsBlackout, _isPaused, (int)VolumeSlider.Value, _output?.Position ?? 0, _output?.Duration ?? 0, _workspace.Deck.ToArray());
 
     private async Task<CommandResult> HandleRemote(RemoteCommand command)
@@ -32,10 +32,10 @@ public partial class MainWindow
                     if (cue is null) return new(false, "El contenido de este botón no está disponible.");
                     if (!CheckMedia(cue)) return new(false, "No se encuentra el archivo en la computadora.");
                     PrepareCue(cue); ProjectPrepared();
-                    return new(_outputWindow is not null && _session.Live?.Id == cue.Id, "Contenido enviado.");
+                    return new(_output is not null && _session.Live?.Id == cue.Id, "Contenido enviado.");
                 }
             }
-            if (action is not ("project" or "volume") && _outputWindow is null)
+            if (action is not ("project" or "volume") && _output is null)
                 return new(false, "La salida de proyección está cerrada.");
             if (action is "pause" or "restart" or "seek")
             {
@@ -50,7 +50,7 @@ public partial class MainWindow
                     if (_session.Prepared is null) return new(false, "No hay contenido preparado.");
                     if (!CheckMedia(_session.Prepared)) return new(false, "No se encuentra el archivo en la computadora.");
                     ProjectPrepared();
-                    return new(_outputWindow is not null, _outputWindow is null ? "Abre una pantalla de salida en la PC." : "Preparado en pantalla.");
+                    return new(_output is not null, _output is null ? "No se pudo iniciar la salida." : _outputWindow is null ? "Preparado en salida local." : "Preparado en pantalla.");
                 case "next":
                 case "previous":
                     var before = _session.Live?.Id; MoveLive(action == "next" ? 1 : -1);

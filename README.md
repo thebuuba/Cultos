@@ -8,7 +8,7 @@ Ejecuta **Abrir Culto Studio.cmd** en esta carpeta, o abre `artifacts/CultoStudi
 
 Una instalación nueva ofrece una plantilla sencilla con bienvenida, oración y despedida. La distribución del programa no incluye videos del himnario ni el texto completo de una traducción bíblica.
 
-La versión 0.8 tiene dos monitores: **Vista previa a la izquierda y En pantalla a la derecha**. En pantalla refleja la ventana real de proyección, incluidos el video, la pausa, el negro y el fondo, sin otro reproductor ni audio duplicado. Cuando la salida está cerrada muestra «Sin salida».
+La consola tiene dos monitores: **Vista previa a la izquierda y En pantalla a la derecha**. En pantalla reproduce el contenido enviado incluso sin HDMI, incluidos el video, la disolución, la pausa, el negro y el fondo. Al activar HDMI, la pantalla externa usa el mismo reproductor, sin audio duplicado. Antes del primer envío muestra «Sin salida».
 
 Vista previa, En pantalla, Orden del culto, Secuencia y Biblioteca/Biblia son paneles independientes. Arrastra sus cabeceras para moverlos, acoplarlos a los bordes, agruparlos en pestañas o separarlos en ventanas; arrastra los separadores para cambiar su tamaño. El menú superior **Espacio de trabajo** permite activar cada panel, guardar la distribución o restablecerla. La distribución también se guarda al cerrar y se recupera al abrir, en `paneles.xml`, aparte de los datos del culto. Los monitores y contenidos conservan su estado al moverlos.
 
@@ -32,9 +32,9 @@ Las categorías **Todo, Himnos, Videos, Imágenes, Audio y Textos** filtran la b
 
 El orden muestra la posición de cada momento y una marca **EN VIVO** en el elemento que está en salida. El menú **⋯** permite subir, bajar o quitar el seleccionado; también puedes arrastrarlo. **Notas del elemento** abre las notas privadas. Puedes ajustar los paneles arrastrando los separadores y leer títulos largos al colocar el puntero encima.
 
-**Un clic en el orden** prepara la vista previa. **Doble clic sobre un elemento** lo envía a la pantalla de la iglesia e inicia su reproducción si es video/audio. El doble clic en espacio vacío no proyecta y arrastrar sólo reordena. Si la salida está cerrada, se abre la pantalla externa configurada; si sólo está disponible el monitor del operador, se avisa sin abrir una ventana de ensayo.
+**Un clic en el orden** prepara la vista previa. **Doble clic sobre un elemento** lo envía a **En pantalla** e inicia su reproducción si es video/audio, incluso sin HDMI. El doble clic en espacio vacío no proyecta y arrastrar sólo reordena. La salida local aparece dentro de la consola, sin otra ventana. Si el HDMI está activado, muestra el mismo contenido en las pantallas de la iglesia.
 
-Desde 0.10, los himnos y videos enviados desde el orden, la secuencia o la biblioteca entran con una **disolución de 400 ms**. También se aplica al botón Proyectar. La última imagen de la salida se conserva mientras carga el nuevo video y se desvanece cuando llega su primer fotograma; el nuevo video continúa reproduciéndose durante la mezcla. El monitor En pantalla refleja la misma transición. Negro, Fondo y desactivar salida la interrumpen inmediatamente. Es una transición visual; no mezcla dos pistas de audio.
+Desde 0.10, los himnos y videos enviados desde el orden, la secuencia o la biblioteca entran con una **disolución de 400 ms**. También se aplica al botón Proyectar. La última imagen de la salida se conserva mientras carga el nuevo video y se desvanece cuando llega su primer fotograma; el nuevo video continúa reproduciéndose durante la mezcla. Negro y Fondo la interrumpen inmediatamente. Es una transición visual; no mezcla dos pistas de audio.
 
 Los videos se reproducen dentro de la vista previa en un **minirreproductor silencioso**, con pausa/continuación, reinicio, duración y barra de avance. Estos controles sólo afectan a la vista previa; los controles de **En pantalla** actúan sobre la salida de la iglesia.
 
@@ -54,7 +54,7 @@ Para incorporar otra Biblia, abre **Biblioteca → Importar Biblia** y elige JSO
 
 ## Proyectar a las tres pantallas
 
-Las tres pantallas que reciben el mismo HDMI muestran una sola salida. Configura Windows con **Extender** para conservar la consola en el monitor del operador. En **Configuración → Pantallas y salida**, selecciona la salida HDMI y abre la proyección. El programa abre primero un fondo vacío.
+Las tres pantallas que reciben el mismo HDMI muestran una sola salida. Configura Windows con **Extender** para conservar la consola en el monitor del operador. En **En pantalla → Pantalla…**, selecciona la pantalla externa; también puedes pulsar **Activar HDMI**. Se muestra el contenido local actual, conservando su posición y estado. Si todavía no enviaste contenido, se muestra un fondo vacío.
 
 - **Preparado** es una vista previa silenciosa. Buscar y seleccionar no cambian lo que está en pantalla.
 - **Proyectar a pantalla / F5**, debajo de la vista previa, envía el contenido preparado. A la derecha quedan juntos el estado de salida, la orientación **Siguiente**, la navegación y los controles de pantalla.
@@ -65,13 +65,13 @@ Las tres pantallas que reciben el mismo HDMI muestran una sola salida. Configura
 
 Los controles de reproducción aparecen cuando la salida tiene un video o audio. **Pausar previa** aparece solo al preparar contenido multimedia. El estado **NEGRO** o **FONDO** sigue visible aunque prepares otro contenido.
 
-Desde la versión 0.9, **En pantalla → Pantalla…** permite elegir la salida externa, y **Activar salida / Desactivar salida** la controla desde el mismo panel. La proyección ocupa la pantalla externa completa, sin bordes ni entrada propia en la barra de tareas. El monitor que contiene la consola queda excluido, aunque no sea el principal de Windows.
+Desde 0.11, **Activar HDMI / Desactivar HDMI** controla únicamente la salida externa. La proyección ocupa la pantalla externa completa, sin bordes ni entrada propia en la barra de tareas. El monitor que contiene la consola queda excluido, aunque no sea el principal de Windows.
 
-Si sólo hay un monitor independiente, no se abre ninguna ventana de ensayo ni cambia el contenido en vivo. Conecta el HDMI y selecciona **Extender** en Windows. Las tres pantallas conectadas al mismo HDMI reciben la misma imagen. Si se desconecta la salida, se detiene y debe activarse de nuevo.
+Sin HDMI, el estado **LOCAL** identifica la reproducción dentro del programa. El contenido, la disolución, los controles y el mando siguen funcionando. Para mostrarlo fuera, conecta el HDMI en modo Extender y actívalo. Las tres pantallas conectadas al mismo HDMI reciben la misma imagen.
 
-Desactivar salida cierra la proyección; **Negro** mantiene la salida ocupada en negro y pausa la reproducción. Activar recupera el último contenido enviado, conservando negro/fondo y dejando los videos pausados hasta **Continuar**. **Proyectar** o un doble clic envían el preparado y reproducen los videos.
+Desactivar o desconectar el HDMI conserva la reproducción local. Activarlo usa el mismo reproductor, sin reiniciar el video ni duplicar audio. **Negro** oculta el contenido y pausa la reproducción tanto local como externa; **Continuar** reanuda tras restaurar la imagen. **Proyectar** o un doble clic envían el preparado y reproducen los videos.
 
-El monitor «En pantalla» refleja la ventana real de salida, además de mostrar su estado y controles. Esa ventana debe permanecer abierta y sin minimizar para que Windows mantenga su imagen actualizada.
+El monitor «En pantalla» muestra el reproductor local; con HDMI activado refleja la ventana externa real mediante DWM. Esa ventana debe permanecer sin minimizar para que Windows mantenga el reflejo actualizado.
 
 **Biblioteca → Capturar una pantalla** toma una imagen estática: la consola se minimiza durante 1,5 segundos y luego permite revisar la imagen. Esta versión no incluye captura continua de ventanas.
 

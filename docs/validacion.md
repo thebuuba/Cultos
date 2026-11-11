@@ -4,6 +4,16 @@ Comprobación realizada el 11 de noviembre de 2026 en esta PC Windows. Entrega a
 
 ## Compilación y pruebas
 
+### Reproducción local sin HDMI — versión 0.11.0
+
+El envío al panel En pantalla ya no depende de que Windows detecte un monitor externo. Doble clic o Proyectar crean un único reproductor de salida dentro del programa, con disolución, pausa, posición, negro, fondo y control remoto. El indicador LOCAL distingue esta reproducción de HDMI. La vista previa permanece independiente y silenciosa.
+
+Activar HDMI coloca ese mismo reproductor en la ventana externa; no lo reconstruye ni reinicia el video. Desactivar HDMI, cerrar esa ventana o desconectar el cable lo devuelve al monitor local, conservando la reproducción. Sin ventana externa, el monitor dibuja el visual WPF vivo; con ventana externa mantiene su reflejo DWM. No se abre ninguna ventana de ensayo automáticamente. La conexión física debe activarse expresamente desde el panel o el selector de pantalla.
+
+La prueba dirigida falló antes del cambio con «Missing HDMI blocked sending the hymn to En pantalla» y pasó después. `scripts/build.ps1 -Smoke` terminó con código 0, sin advertencias ni errores: **60 núcleo + 39 mando + 60 escritorio + 32 reproductor = 191 comprobaciones**. Las nuevas pruebas comprueban reproducción sin HWND de salida, píxeles del video dentro del monitor local, fin de disolución, independencia de la previa, pausa/restauración, y la misma instancia/posición/reproducción al abrir y cerrar una ventana externa explícita de ensayo. Esa última prueba verifica la transferencia entre ventanas, no un HDMI físico.
+
+Se publicó y abrió 0.11.0. En la aplicación normal se buscó 12 y se hizo doble clic sobre «012 Todos juntos reunidos». Se observó el video reproduciéndose dentro de En pantalla, con estado LOCAL y duración 01:21, al mismo tiempo que la previa silenciosa. La salida se pausó a 00:09 y la previa siguió hasta pausarla a 00:13; ambos quedaron visibles, con sus botones Continuar independientes. No apareció una ventana de proyección aparte. Se conservaron los cuatro elementos del orden, 616 contenidos y distribución de paneles.
+
 ### Disolución de himnos y videos — versión 0.10.0
 
 Al proyectar un video desde el orden, la secuencia o la biblioteca se conserva una imagen del contenido saliente hasta recibir el primer fotograma nuevo; después esa imagen se desvanece durante 400 ms. El video entrante se reproduce durante la mezcla. El botón Proyectar usa la misma transición. Se añadió doble clic a las filas de biblioteca, ignorando su espacio vacío. Negro, Fondo, un nuevo contenido y el cierre cancelan la transición; una animación anterior no puede borrar la nueva. La transición es visual: no mantiene dos videos ni mezcla dos pistas de audio.
@@ -178,4 +188,4 @@ El corpus permanece en los datos locales, fuera de Git y de la distribución eje
 - Probar el mando en el teléfono físico y su red Wi-Fi. No se cambiaron firewall ni router.
 - Ensayar el orden y cada archivo que se utilizará antes del culto.
 
-Esta versión ofrece capturas estáticas; no incorpora captura continua de otras aplicaciones, transmisión, grabación ni PowerPoint. Desde 0.8, el monitor «En pantalla» sí refleja el video y contenido de la salida del programa mediante DWM. La ventana de salida debe permanecer abierta y sin minimizar para reflejar su contenido actual.
+Esta versión ofrece capturas estáticas; no incorpora captura continua de otras aplicaciones, transmisión, grabación ni PowerPoint. Desde 0.11, En pantalla reproduce también sin ventana externa. Cuando se activa HDMI, el reflejo DWM requiere que esa ventana permanezca sin minimizar.

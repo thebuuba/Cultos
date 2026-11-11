@@ -82,7 +82,7 @@ internal static partial class Program
     }
 
     [STAThread]
-    private static int Main()
+    private static int Main(string[] args)
     {
         var directory = Path.Combine(Path.GetTempPath(), "CultoDesktopSmoke-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
@@ -106,7 +106,7 @@ internal static partial class Program
                 window.Show();
                 app.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
                 {
-                    try { RunWindowTests(window, directory); }
+                    try { if (args.Contains("--local-output")) RunLocalOutputTests(window); else RunWindowTests(window, directory); }
                     finally
                     {
                         if (!Field<bool>(window, "_closing"))
@@ -310,16 +310,15 @@ internal static partial class Program
             Call(window, "CloseOutput");
         });
 
-        Test("Projecting without an external screen does not open a rehearsal window", () =>
+        Test("Projecting locally does not open a rehearsal window", () =>
         {
-            if (DisplayService.GetDisplays().Count != 1) return;
             Call(window, "CloseOutput");
-            var live = session.Live;
-            Call(window, "PrepareCue", new Cue { Title = "Solo previa", Body = "Sin HDMI" }, null);
+            Call(window, "PrepareCue", new Cue { Title = "Salida local", Body = "Sin HDMI" }, null);
             Call(window, "ProjectPrepared");
             Check(Field<ProjectionWindow?>(window, "_outputWindow") is null, "Project opened an unwanted window on the operator screen");
-            Check(ReferenceEquals(live, session.Live), "Failed output activation changed live content");
+            Check(session.Live?.Title == "Salida local", "Missing HDMI blocked the local output");
         });
+        RunLocalOutputTests(window);
         Call(window, "OpenOutput", DisplayService.GetDisplays().First(), true);
         RunOutputControlTests(window);
         RunThemeTests(window);

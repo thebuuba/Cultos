@@ -9,6 +9,26 @@ internal static partial class Program
 {
     private static void RunOutputControlTests(MainWindow window)
     {
+        Test("External attach and close keep the same playing local video", () =>
+        {
+            Call(window, "CloseOutput");
+            var video = new Cue { Title = "Traspaso local", Kind = CueKind.Video, FilePath = System.IO.Path.Combine(AppContext.BaseDirectory, "fixtures", "test.mkv") };
+            Call(window, "PrepareCue", video, null); Call(window, "ProjectPrepared");
+            var renderer = Field<ProjectionSurface>(window, "_output"); renderer.Loop = true;
+            Until(() => renderer.IsPlaying && !renderer.IsTransitioning, "Local video did not begin");
+            var prepared = Field<PresentationSession>(window, "_session").Prepared;
+            var before = renderer.Position;
+            Call(window, "OpenOutput", DisplayService.GetDisplays().First(), true);
+            var external = Field<ProjectionWindow>(window, "_outputWindow");
+            Check(ReferenceEquals(renderer, external.Content) && renderer.IsPlaying && renderer.Position >= before - .1, "Opening HDMI restarted/replaced local playback");
+            Until(() => ((OutputMonitor)window.FindName("LiveMonitor")).IsConnected, "HDMI monitor did not connect");
+            external.Close(); window.UpdateLayout();
+            Check(Field<ProjectionWindow?>(window, "_outputWindow") is null && ReferenceEquals(renderer, Field<ProjectionSurface>(window, "_output")) && renderer.IsPlaying,
+                "Closing external output stopped the local video");
+            Check(ReferenceEquals(prepared, Field<PresentationSession>(window, "_session").Prepared), "External handoff changed the preview");
+            Call(window, "ToggleBlackout");
+            Call(window, "OpenOutput", DisplayService.GetDisplays().First(), true);
+        });
         Test("Output selection excludes the console even with a stale saved device or a secondary console", () =>
         {
             var main = new DisplayInfo("main", "Principal", 0, 0, 1920, 1080, true);
@@ -26,11 +46,13 @@ internal static partial class Program
             var live = session.Live;
             var prepared = session.Prepared;
             var button = (Button)window.FindName("ToggleOutputButton");
-            Check(button.Content.ToString() == "Desactivar salida", "Active output has no stop control");
+            var renderer = Field<ProjectionSurface>(window, "_output");
+            Check(button.Content.ToString() == "Desactivar HDMI", "Active output has no stop control");
             button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Check(Field<ProjectionWindow?>(window, "_outputWindow") is null && !((OutputMonitor)window.FindName("LiveMonitor")).IsConnected, "Stop left output active");
             Check(ReferenceEquals(live, session.Live) && ReferenceEquals(prepared, session.Prepared), "Stop changed the session");
-            Check(button.Content.ToString() == "Activar salida" && ((TextBlock)window.FindName("LiveTitleText")).Text == "Sin contenido", "Closed output displays a stale live title");
+            Check(button.Content.ToString() == "Activar HDMI" && ((TextBlock)window.FindName("LiveTitleText")).Text == (live?.Title ?? "Sin contenido"), "Disabling HDMI cleared local output");
+            Check(ReferenceEquals(renderer, Field<ProjectionSurface>(window, "_output")), "Disabling HDMI replaced the player");
             if (DisplayService.GetDisplays().Count == 1)
             {
                 button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -39,6 +61,7 @@ internal static partial class Program
             Call(window, "OpenOutput", DisplayService.GetDisplays().First(), true);
             var output = Field<ProjectionWindow>(window, "_outputWindow");
             Check(!output.ShowInTaskbar && !output.ShowActivated, "Projection competes with the operator window");
+            Check(ReferenceEquals(renderer, output.Content), "HDMI did not use the local renderer");
             Check(ReferenceEquals(live, session.Live) && ReferenceEquals(prepared, session.Prepared), "Reopening projected the preview");
             Check(((TextBlock)window.FindName("LiveTitleText")).Text == (live?.Title ?? "Sin contenido"), "Reopened output title disagrees with restored content");
         });
