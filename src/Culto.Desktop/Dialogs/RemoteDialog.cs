@@ -1,9 +1,12 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Culto.Core;
@@ -19,37 +22,74 @@ public sealed class RemoteDialog : Window
     public Action<List<DeckButton>>? DeckChanged { get; set; }
     private RemoteHost? _host;
     private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap };
-    private readonly TextBox _url = new() { IsReadOnly = true, TextWrapping = TextWrapping.Wrap };
-    private readonly Image _qr = new() { Width = 190, Height = 190, Margin = new Thickness(14), Stretch = Stretch.Uniform };
+    private readonly TextBlock _stateLabel = new() { FontSize = 11, FontWeight = FontWeights.Bold };
+    private readonly TextBox _url = new() { IsReadOnly = true, TextWrapping = TextWrapping.Wrap, FontSize = 12, MinHeight = 50, MaxHeight = 90 };
+    private readonly Image _qr = new() { Width = 176, Height = 176, Margin = new Thickness(12), Stretch = Stretch.Uniform };
+    private readonly TextBlock _qrEmpty = new() { Text = "El QR aparecerá aquí\nal activar el mando.", TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap, Width = 160, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+    private readonly Border _qrFrame = new() { Width = 200, Height = 200, CornerRadius = new CornerRadius(8) };
     private readonly ComboBox _addresses = new();
-    private readonly Button _start = new() { Content = "Activar mando local" };
-    private readonly Button _stop = new() { Content = "Desactivar mando", Margin = new Thickness(8, 0, 0, 0) };
+    private readonly Button _start = new() { Content = "Activar mando", Margin = new Thickness(0, 0, 8, 8) };
+    private readonly Button _stop = new() { Content = "Desactivar", Margin = new Thickness(0, 0, 0, 8) };
+    private readonly Button _copy = new() { Content = "Copiar enlace", MinHeight = 36 };
     private readonly ObservableCollection<DeckButton> _buttons;
-    private readonly ListBox _list = new() { DisplayMemberPath = "Label", Height = 170 };
+    private readonly ListBox _list = new() { Height = 340 };
+    private readonly TextBlock _deckCount = new() { FontSize = 12 };
+    private readonly TextBlock _editorHeading = new() { FontSize = 18, FontWeight = FontWeights.SemiBold };
+    private readonly Button _remove = new() { Content = "Quitar" };
     private readonly TextBox _label = new();
     private readonly ComboBox _action = new(), _cue = new(), _color = new();
     private readonly string[] _actionValues = ["project", "next", "previous", "blackout", "background", "pause", "restart", "cue"];
+    private static readonly string[] ActionLabels = ["Proyectar preparado", "Siguiente", "Anterior", "Pantalla negra / restaurar", "Mostrar fondo", "Pausar / continuar", "Reiniciar video", "Proyectar un contenido"];
     private readonly string[] _colors = ["#43D9BE", "#A7C7FF", "#FFCF75", "#FF9DAD"];
 
     public RemoteDialog(RemoteHost? host, IReadOnlyList<DeckButton> buttons, IReadOnlyList<Cue> cues)
     {
         Style = (Style)Application.Current.FindResource(typeof(Window));
         _host = host; _buttons = new(buttons);
-        Title = "Mando del teléfono — Culto Studio"; Width = 650; Height = 740;
-        MinHeight = 600; MinWidth = 580; WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        Title = "Mando del teléfono — Culto Studio";
+        Width = Math.Min(840, SystemParameters.WorkArea.Width - 48);
+        Height = Math.Min(700, SystemParameters.WorkArea.Height - 48);
+        MinHeight = 500; MinWidth = 640;
+        MaxHeight = Math.Max(500, SystemParameters.WorkArea.Height - 32);
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
         var root = new DockPanel { Margin = new Thickness(24) };
-        var heading = new StackPanel();
-        heading.Children.Add(new TextBlock { Text = "Tu consola, en el teléfono", FontSize = 25, FontWeight = FontWeights.SemiBold });
-        heading.Children.Add(new TextBlock { Text = "Botones para acompañar el culto desde la misma red Wi-Fi.", Style = (Style)FindResource("MutedText"), Margin = new Thickness(0, 8, 0, 18) });
+        var heading = new StackPanel { Margin = new Thickness(0, 0, 0, 16) };
+        heading.Children.Add(new TextBlock { Text = "El culto, a un toque", FontSize = 25, FontWeight = FontWeights.SemiBold });
+        heading.Children.Add(Muted("Vincula tu teléfono y organiza sus accesos desde aquí.", new Thickness(0, 5, 0, 0)));
         DockPanel.SetDock(heading, Dock.Top); root.Children.Add(heading);
-        var tabs = new TabControl(); root.Children.Add(tabs); Content = root;
-        var connection = new StackPanel();
-        tabs.Items.Add(new TabItem { Header = "Conectar teléfono", Content = new ScrollViewer { Content = connection, VerticalScrollBarVisibility = ScrollBarVisibility.Auto } });
-        var controls = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 4, 0, 16) };
-        _start.Style = (Style)FindResource("PrimaryButton"); controls.Children.Add(_start); controls.Children.Add(_stop); connection.Children.Add(controls);
-        _start.Click += async (_, _) => await Start(); _stop.Click += async (_, _) => await Stop();
-        connection.Children.Add(_status);
-        DialogUi.Label(connection, "Dirección de la computadora en la red");
+        var footer = new DockPanel { Margin = new Thickness(0, 16, 0, 0) };
+        var close = new Button { Content = "Listo", IsCancel = true, MinWidth = 90, HorizontalAlignment = HorizontalAlignment.Right };
+        close.Click += (_, _) => Close(); DockPanel.SetDock(close, Dock.Right); footer.Children.Add(close);
+        var footerHint = Muted("Cerrar esta ventana mantiene el estado del mando.", new Thickness(0, 0, 16, 0));
+        footerHint.VerticalAlignment = VerticalAlignment.Center; footer.Children.Add(footerHint);
+        DockPanel.SetDock(footer, Dock.Bottom); root.Children.Add(footer);
+        var tabs = new TabControl();
+        tabs.Items.Add(new TabItem { Header = "Conectar teléfono", Content = Scroll(BuildConnection()) });
+        tabs.Items.Add(new TabItem { Header = "Organizar botones", Content = Scroll(BuildDeck(cues)) });
+        root.Children.Add(tabs); Content = root;
+        _start.Click += async (_, _) => await Start();
+        _stop.Click += async (_, _) => await Stop();
+        _copy.Click += (_, _) => { if (_host is not null && _url.Text.Length > 0) Clipboard.SetText(_url.Text); };
+        if (_buttons.Count > 0) _list.SelectedIndex = 0; else SelectButton();
+        RefreshConnection();
+    }
+
+    private UIElement BuildConnection()
+    {
+        var connection = new StackPanel { Margin = new Thickness(0, 4, 8, 0) };
+        var state = new StackPanel();
+        state.Children.Add(_stateLabel); _status.Margin = new Thickness(0, 4, 0, 0); state.Children.Add(_status);
+        var stateCard = DialogUi.Card(state); stateCard.Padding = new Thickness(14, 10, 14, 10); stateCard.Margin = new Thickness(0, 0, 0, 14); connection.Children.Add(stateCard);
+        AutomationProperties.SetLiveSetting(_status, AutomationLiveSetting.Polite);
+        var columns = new Grid();
+        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var steps = new StackPanel();
+        steps.Children.Add(Section("1  Activa el mando"));
+        steps.Children.Add(Muted("La PC y el teléfono deben estar en la misma red Wi-Fi.", new Thickness(0, 6, 0, 12)));
+        var controls = new WrapPanel(); _start.Style = (Style)FindResource("PrimaryButton"); controls.Children.Add(_start); controls.Children.Add(_stop); steps.Children.Add(controls);
+        steps.Children.Add(Section("2  Revisa la dirección de red", new Thickness(0, 12, 0, 0)));
+        DialogUi.Label(steps, "Dirección de esta computadora", _addresses);
         var addresses = NetworkInterface.GetAllNetworkInterfaces()
             .Where(n => n.OperationalStatus == OperationalStatus.Up && n.NetworkInterfaceType != NetworkInterfaceType.Loopback)
             .SelectMany(n => n.GetIPProperties().UnicastAddresses)
@@ -57,46 +97,114 @@ public sealed class RemoteDialog : Window
             .Select(a => a.Address.ToString()).Distinct().ToList();
         if (addresses.Count == 0) addresses.Add("127.0.0.1");
         _addresses.ItemsSource = addresses; _addresses.SelectedIndex = 0;
-        _addresses.SelectionChanged += (_, _) => RefreshConnection(); connection.Children.Add(_addresses);
-        var qrPanel = new Border { Background = Brushes.White, CornerRadius = new CornerRadius(8), HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 18, 0, 12), Child = _qr };
-        connection.Children.Add(qrPanel); connection.Children.Add(_url);
-        connection.Children.Add(DialogUi.Button("Copiar enlace de vinculación", () => { if (_host is not null && _url.Text.Length > 0) Clipboard.SetText(_url.Text); }));
-        connection.Children.Add(new TextBlock { Text = "Escanea el QR con la cámara del teléfono. Mantén abierta la aplicación en la PC. Al desactivar el mando, el enlace anterior deja de funcionar. Usa el mando en una red local de confianza.", Style = (Style)FindResource("MutedText"), Margin = new Thickness(0, 14, 0, 0) });
-
-        var deck = new StackPanel(); tabs.Items.Add(new TabItem { Header = "Personalizar botones", Content = new ScrollViewer { Content = deck, VerticalScrollBarVisibility = ScrollBarVisibility.Auto } });
-        deck.Children.Add(new TextBlock { Text = "Elige un botón para editarlo o añade un acceso directo a un himno, imagen o texto.", Style = (Style)FindResource("MutedText"), Margin = new Thickness(0, 4, 0, 12) });
-        _list.ItemsSource = _buttons; _list.SelectionChanged += (_, _) => SelectButton(); deck.Children.Add(_list);
-        DialogUi.Label(deck, "Nombre del botón"); deck.Children.Add(_label);
-        DialogUi.Label(deck, "Acción");
-        _action.ItemsSource = new[] { "Proyectar preparado", "Siguiente", "Anterior", "Pantalla negra / restaurar", "Mostrar fondo", "Pausar / continuar", "Reiniciar video", "Proyectar un contenido" };
-        _action.SelectedIndex = 0; _action.SelectionChanged += (_, _) => _cue.IsEnabled = _action.SelectedIndex == 7; deck.Children.Add(_action);
-        DialogUi.Label(deck, "Contenido del acceso directo"); _cue.ItemsSource = cues; _cue.DisplayMemberPath = "Title"; _cue.IsEnabled = false; deck.Children.Add(_cue);
-        DialogUi.Label(deck, "Color"); _color.ItemsSource = new[] { "Turquesa", "Azul", "Ámbar", "Rosa" }; _color.SelectedIndex = 0; deck.Children.Add(_color);
-        var row = new WrapPanel();
-        row.Children.Add(DialogUi.Button("Guardar botón", SaveButton, true));
-        var add = DialogUi.Button("Nuevo", () => { _list.SelectedItem = null; _label.Text = ""; _action.SelectedIndex = 0; _color.SelectedIndex = 0; }); add.Margin = new Thickness(8, 12, 0, 0); row.Children.Add(add);
-        var remove = DialogUi.Button("Quitar", () => { if (_list.SelectedItem is DeckButton button) { _buttons.Remove(button); DeckChanged?.Invoke(_buttons.ToList()); } }); remove.Margin = new Thickness(8, 12, 0, 0); row.Children.Add(remove); deck.Children.Add(row);
-        if (_buttons.Count > 0) _list.SelectedIndex = 0;
-        RefreshConnection();
+        _addresses.SelectionChanged += (_, _) => RefreshConnection(); steps.Children.Add(_addresses);
+        steps.Children.Add(Muted("Si hay varias, elige la conexión que comparte la red del teléfono.", new Thickness(0, 7, 0, 0)));
+        var stepsCard = DialogUi.Card(steps); stepsCard.Margin = new Thickness(0, 0, 14, 0); columns.Children.Add(stepsCard);
+        var qrContent = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center };
+        qrContent.Children.Add(Section("3  Escanea el QR"));
+        qrContent.Children.Add(Muted("Usa la cámara del teléfono.", new Thickness(0, 5, 0, 12)));
+        var qrLayers = new Grid(); qrLayers.Children.Add(_qr); qrLayers.Children.Add(_qrEmpty); _qrFrame.Child = qrLayers; qrContent.Children.Add(_qrFrame);
+        AutomationProperties.SetName(_qr, "Código QR para vincular el teléfono");
+        var qrCard = DialogUi.Card(qrContent); Grid.SetColumn(qrCard, 1); columns.Children.Add(qrCard);
+        connection.Children.Add(columns);
+        var link = new StackPanel();
+        DialogUi.Label(link, "Enlace de vinculación", _url); link.Children.Add(_url);
+        var copyRow = new DockPanel { Margin = new Thickness(0, 8, 0, 0) };
+        DockPanel.SetDock(_copy, Dock.Right); copyRow.Children.Add(_copy);
+        copyRow.Children.Add(Muted("También puedes copiarlo y abrirlo en el navegador del teléfono.", new Thickness(0, 0, 12, 0)));
+        link.Children.Add(copyRow);
+        var linkCard = DialogUi.Card(link); linkCard.Padding = new Thickness(14, 4, 14, 12); linkCard.Margin = new Thickness(0, 14, 0, 0); connection.Children.Add(linkCard);
+        connection.Children.Add(Muted("Mantén Culto Studio abierto. Al desactivar el mando, el enlace deja de funcionar. Usa una red local de confianza.", new Thickness(0, 12, 0, 0)));
+        return connection;
     }
+
+    private UIElement BuildDeck(IReadOnlyList<Cue> cues)
+    {
+        var columns = new Grid { Margin = new Thickness(0, 4, 8, 0) };
+        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(230) });
+        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        var preview = new StackPanel();
+        preview.Children.Add(Section("Botones del teléfono")); _deckCount.Margin = new Thickness(0, 5, 0, 12); _deckCount.Foreground = (Brush)FindResource("MutedBrush"); preview.Children.Add(_deckCount);
+        _list.ItemsSource = _buttons; _list.ItemTemplate = DeckTemplate(); _list.SelectionChanged += (_, _) => SelectButton();
+        AutomationProperties.SetName(_list, "Botones del mando: selecciona uno para editar");
+        preview.Children.Add(_list);
+        preview.Children.Add(Muted("Selecciona un acceso para editarlo. El color también se verá en el teléfono.", new Thickness(0, 12, 0, 0)));
+        var previewCard = DialogUi.Card(preview); previewCard.Margin = new Thickness(0, 0, 14, 0); previewCard.Padding = new Thickness(14); columns.Children.Add(previewCard);
+        var editor = new StackPanel();
+        editor.Children.Add(_editorHeading); editor.Children.Add(Muted("Los cambios se guardan al pulsar Guardar botón.", new Thickness(0, 5, 0, 8)));
+        DialogUi.Label(editor, "Nombre del botón", _label); editor.Children.Add(_label);
+        DialogUi.Label(editor, "Acción", _action); _action.ItemsSource = ActionLabels; _action.SelectedIndex = 0;
+        _action.SelectionChanged += (_, _) => _cue.IsEnabled = _action.SelectedIndex == 7; editor.Children.Add(_action);
+        DialogUi.Label(editor, "Contenido del acceso directo", _cue);
+        _cue.ItemsSource = cues; _cue.DisplayMemberPath = "Title"; _cue.IsEnabled = false;
+        _cue.IsTextSearchEnabled = true; _cue.IsTextSearchCaseSensitive = false; TextSearch.SetTextPath(_cue, "Title"); _cue.MaxDropDownHeight = 280;
+        _cue.SetValue(VirtualizingPanel.IsVirtualizingProperty, true); _cue.SetValue(VirtualizingPanel.VirtualizationModeProperty, VirtualizationMode.Recycling);
+        _cue.ItemsPanel = new ItemsPanelTemplate(new FrameworkElementFactory(typeof(VirtualizingStackPanel)));
+        editor.Children.Add(_cue);
+        editor.Children.Add(Muted("Escribe el número o el comienzo del título para encontrarlo.", new Thickness(0, 5, 0, 0)));
+        DialogUi.Label(editor, "Color del acceso", _color); _color.ItemsSource = new[] { "Turquesa", "Azul", "Ámbar", "Rosa" }; _color.SelectedIndex = 0; editor.Children.Add(_color);
+        var actions = new WrapPanel { Margin = new Thickness(0, 18, 0, 0) };
+        var save = DialogUi.Button("Guardar botón", SaveButton, true); save.Margin = new Thickness(0, 0, 8, 8); actions.Children.Add(save);
+        var add = DialogUi.Button("Nuevo", () => { _list.SelectedItem = null; _label.Text = ""; _action.SelectedIndex = 0; _color.SelectedIndex = 0; _cue.SelectedItem = null; SelectButton(); }); add.Margin = new Thickness(0, 0, 8, 8); actions.Children.Add(add);
+        _remove.Margin = new Thickness(0, 0, 0, 8);
+        _remove.Click += (_, _) => { if (_list.SelectedItem is DeckButton button) { _buttons.Remove(button); DeckChanged?.Invoke(_buttons.ToList()); UpdateDeckCount(); } };
+        actions.Children.Add(_remove); editor.Children.Add(actions);
+        var editorCard = DialogUi.Card(editor); Grid.SetColumn(editorCard, 1); columns.Children.Add(editorCard);
+        UpdateDeckCount(); return columns;
+    }
+
+    private TextBlock Muted(string text, Thickness margin) => new() { Text = text, Style = (Style)FindResource("MutedText"), Margin = margin };
+    private static TextBlock Section(string text, Thickness? margin = null) => new() { Text = text, FontSize = 15, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap, Margin = margin ?? new Thickness(0) };
+    private static ScrollViewer Scroll(UIElement content) => new() { Content = content, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+    private void UpdateDeckCount() => _deckCount.Text = $"{_buttons.Count} de 32 accesos disponibles";
+    private static DataTemplate DeckTemplate()
+    {
+        var row = new FrameworkElementFactory(typeof(DockPanel));
+        row.SetValue(FrameworkElement.MinHeightProperty, 46.0);
+        var stripe = new FrameworkElementFactory(typeof(Border));
+        stripe.SetValue(FrameworkElement.WidthProperty, 4.0); stripe.SetValue(FrameworkElement.MarginProperty, new Thickness(0, 0, 10, 0));
+        stripe.SetValue(Border.CornerRadiusProperty, new CornerRadius(2)); stripe.SetBinding(Border.BackgroundProperty, new Binding("Color"));
+        stripe.SetValue(DockPanel.DockProperty, Dock.Left); row.AppendChild(stripe);
+        var labels = new FrameworkElementFactory(typeof(StackPanel)); labels.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
+        var label = new FrameworkElementFactory(typeof(TextBlock)); label.SetBinding(TextBlock.TextProperty, new Binding("Label")); label.SetValue(TextBlock.FontWeightProperty, FontWeights.SemiBold); label.SetValue(TextBlock.TextWrappingProperty, TextWrapping.Wrap); labels.AppendChild(label);
+        var action = new FrameworkElementFactory(typeof(TextBlock)); action.SetBinding(TextBlock.TextProperty, new Binding("Action") { Converter = new ActionLabelConverter() }); action.SetValue(TextBlock.FontSizeProperty, 11.0); action.SetValue(TextBlock.ForegroundProperty, Application.Current.FindResource("MutedBrush")); action.SetValue(FrameworkElement.MarginProperty, new Thickness(0, 3, 0, 0)); action.SetValue(TextBlock.TextWrappingProperty, TextWrapping.Wrap); labels.AppendChild(action);
+        row.AppendChild(labels); return new DataTemplate { VisualTree = row };
+    }
+    private sealed class ActionLabelConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture) => (value as string) switch
+        {
+            "project" => "Proyectar preparado", "next" => "Siguiente", "previous" => "Anterior", "blackout" => "Pantalla negra / restaurar",
+            "background" => "Mostrar fondo", "pause" => "Pausar / continuar", "restart" => "Reiniciar video", "cue" => "Contenido del culto", _ => "Acción del culto"
+        };
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
+    }
+
     private async Task Start()
     {
         if (StartRequested is null) return;
-        _start.IsEnabled = false; _status.Text = "Activando mando…";
+        _start.IsEnabled = false; _status.Text = "Activando mando…"; _stateLabel.Text = "ACTIVANDO";
         try { _host = await StartRequested(); RefreshConnection(); }
-        catch (Exception ex) { _status.Text = "No se pudo activar el mando: " + ex.Message; _start.IsEnabled = true; }
+        catch (Exception ex) { _status.Text = "No se pudo activar el mando: " + ex.Message; _stateLabel.Text = "NO SE PUDO ACTIVAR"; _stateLabel.Foreground = (Brush)FindResource("AmberBrush"); _start.IsEnabled = true; }
     }
     private async Task Stop()
     {
-        _stop.IsEnabled = false;
+        _stop.IsEnabled = false; _copy.IsEnabled = false; _stateLabel.Text = "DESACTIVANDO";
         try { if (StopRequested is not null) await StopRequested(); _host = null; RefreshConnection(); }
-        catch (Exception ex) { _status.Text = "No se pudo cerrar el mando: " + ex.Message; _stop.IsEnabled = true; }
+        catch (Exception ex) { _status.Text = "No se pudo cerrar el mando: " + ex.Message; _stateLabel.Text = "REVISA LA CONEXIÓN"; _stateLabel.Foreground = (Brush)FindResource("AmberBrush"); _stop.IsEnabled = true; _copy.IsEnabled = _host is not null; }
     }
     private void RefreshConnection()
     {
-        _start.IsEnabled = _host is null; _stop.IsEnabled = _host is not null;
-        _status.Text = _host is null ? "Mando desactivado. Actívalo cuando quieras vincular un teléfono." : "Mando activo. Escanea el QR para controlar el culto.";
-        if (_host is null) { _url.Text = "Activa el mando para generar el enlace."; _qr.Source = null; return; }
+        var active = _host is not null;
+        _start.IsEnabled = !active; _stop.IsEnabled = active; _copy.IsEnabled = active; _addresses.IsEnabled = active;
+        _stateLabel.Text = active ? "MANDO ACTIVO" : "MANDO DESACTIVADO";
+        _stateLabel.Foreground = (Brush)FindResource(active ? "AccentBrush" : "MutedBrush");
+        _status.Text = active ? "Listo para vincular. Escanea el QR desde tu teléfono." : "Actívalo cuando quieras conectar el teléfono.";
+        _qrFrame.Background = active ? Brushes.White : (Brush)FindResource("RaisedBrush");
+        _qrFrame.BorderBrush = (Brush)FindResource("BorderBrush"); _qrFrame.BorderThickness = active ? new Thickness(0) : new Thickness(1);
+        _qr.Visibility = active ? Visibility.Visible : Visibility.Collapsed; _qrEmpty.Visibility = active ? Visibility.Collapsed : Visibility.Visible;
+        _qrEmpty.Foreground = (Brush)FindResource("MutedBrush");
+        if (_host is null) { _url.Text = "Activa el mando para generar el enlace de vinculación."; _qr.Source = null; return; }
         var address = _addresses.SelectedItem as string ?? "127.0.0.1";
         _url.Text = $"http://{address}:{_host.Port}/#token={_host.Token}";
         using var data = QRCodeGenerator.GenerateQrCode(_url.Text, QRCodeGenerator.ECCLevel.M);
@@ -107,6 +215,8 @@ public sealed class RemoteDialog : Window
     }
     private void SelectButton()
     {
+        _remove.IsEnabled = _list.SelectedItem is DeckButton;
+        _editorHeading.Text = _list.SelectedItem is DeckButton ? "Editar botón" : "Nuevo botón";
         if (_list.SelectedItem is not DeckButton button) return;
         _label.Text = button.Label; _action.SelectedIndex = Array.IndexOf(_actionValues, button.Action);
         _color.SelectedIndex = Math.Max(0, Array.IndexOf(_colors, button.Color));
@@ -120,6 +230,6 @@ public sealed class RemoteDialog : Window
         if (old is null && _buttons.Count >= 32) { MessageBox.Show(this, "Puedes guardar hasta 32 botones."); return; }
         var button = new DeckButton(old?.Id ?? Guid.NewGuid().ToString("N"), _label.Text.Trim(), _colors[Math.Max(0, _color.SelectedIndex)], _actionValues[_action.SelectedIndex], (_cue.SelectedItem as Cue)?.Id.ToString());
         if (old is not null) _buttons[_buttons.IndexOf(old)] = button; else _buttons.Add(button);
-        _list.SelectedItem = button; DeckChanged?.Invoke(_buttons.ToList());
+        _list.SelectedItem = button; DeckChanged?.Invoke(_buttons.ToList()); UpdateDeckCount();
     }
 }

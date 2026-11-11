@@ -133,7 +133,10 @@ public partial class MainWindow
         }
         else { SetStatus("Este contenido no pertenece al orden. Prepara el siguiente y pulsa Proyectar."); return; }
         _output!.ShowCue(_session.Live); _isPaused = false;
-        _preview.ShowCue(_session.Prepared); UpdateSessionLabels();
+        _preview.ShowCue(_session.Prepared);
+        _previewPaused = false;
+        PreviewPauseButton.Content = "Pausar previa";
+        UpdateSessionLabels();
         SetStatus("En pantalla: " + _session.Live!.Title);
     }
     private void BlackoutClick(object sender, RoutedEventArgs e) => ToggleBlackout();

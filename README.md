@@ -18,6 +18,10 @@ En esta PC ya se incorporaron a la biblioteca los **613 videos MKV** encontrados
 4. Selecciona un elemento y pulsa **Añadir al orden**. Reordena con Subir/Bajar o arrastrando. Las notas son privadas y no se proyectan.
 5. En **Texto**, prepara anuncios, bienvenidas o letras. Puedes guardarlos en la biblioteca y el orden.
 
+Las categorías **Todo, Himnos, Videos, Imágenes, Audio y Textos** filtran la biblioteca. El contador indica los resultados y el total guardado. **Limpiar** borra la búsqueda, conserva la categoría y devuelve el cursor al buscador.
+
+El orden muestra la posición de cada momento; esos números son independientes del número del himno. Puedes ajustar el ancho de los paneles arrastrando los separadores. Los títulos largos se muestran completos al colocar el puntero encima. Las notas permanecen junto al orden.
+
 ## Biblia
 
 La versión preferida es **Reina-Valera 1960**. El módulo está preparado para importar una fuente autorizada y consultarla sin internet; **el texto completo RVR1960 no viene incluido**.
@@ -31,7 +35,7 @@ El nombre de la versión importada se muestra realmente; el programa no renombra
 Las tres pantallas que reciben el mismo HDMI muestran una sola salida. Configura Windows con **Extender** para conservar la consola en el monitor del operador. En **Pantalla**, selecciona la salida HDMI y abre la proyección. El programa abre primero un fondo vacío.
 
 - **Preparado** es una vista previa silenciosa. Buscar y seleccionar no cambian lo que está en pantalla.
-- **Proyectar / F5** envía el contenido preparado.
+- **Proyectar / F5**, debajo de la vista previa, envía el contenido preparado. La barra inferior agrupa la navegación, pantalla negra y reproducción de la salida.
 - **Siguiente / F6** y **Anterior / F7** avanzan desde el elemento en vivo, aunque hayas preparado otro contenido.
 - **Negro / F8** oculta la salida y pausa el audio/video. Restaurar la imagen mantiene el video pausado hasta pulsar Continuar.
 - **Fondo** oculta el contenido y pausa la reproducción. Proyectar vuelve a mostrar el preparado.
@@ -46,9 +50,9 @@ El panel «En pantalla» muestra el estado, título y texto actual. Para video e
 ## Control desde el teléfono
 
 1. Conecta PC y teléfono a la misma red local.
-2. Abre **Mando móvil → Activar mando local**.
+2. Abre **Mando móvil → Activar mando**.
 3. Selecciona la dirección IP de la PC que corresponde a esa red y escanea el QR con el teléfono.
-4. En **Personalizar botones** crea accesos a acciones o contenidos concretos. Puedes cambiar nombre y color.
+4. En **Organizar botones** selecciona un acceso a la izquierda y edita su nombre, acción y color a la derecha. Para vincular un himno, elige **Proyectar un contenido** y escribe el comienzo de su número o título en el selector de contenido. Pulsa **Guardar botón** para aplicar los cambios.
 
 El mando utiliza el puerto TCP **18765**. No necesita internet y sólo permite acciones propias de la consola. La vinculación cambia al desactivar y activar el mando. No compartas el enlace fuera del equipo que dirige el culto. Usa una red local de confianza; esta versión usa HTTP dentro de esa red.
 

@@ -98,6 +98,7 @@ public partial class MainWindow : Window
         _session.Prepare(cue);
         _preview.ShowCue(cue);
         _previewPaused = false;
+        PreviewPauseButton.Content = "Pausar previa";
         PreparedTitleText.Text = cue.Title;
         SetStatus($"Preparado: {cue.Title}. Pulsa Proyectar o F5 para enviarlo.");
     }
@@ -148,7 +149,11 @@ public partial class MainWindow : Window
         }
     }
 
-    private void UpdatePlanCount() => PlanCountText.Text = _plan.Count.ToString();
+    private void UpdatePlanCount()
+    {
+        PlanCountText.Text = _plan.Count.ToString();
+        PlanEmptyText.Visibility = _plan.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
     private void PlanNameChanged(object sender, RoutedEventArgs e) => SaveWorkspace();
     private void PlanSelectionChanged(object sender, SelectionChangedEventArgs e)
     {

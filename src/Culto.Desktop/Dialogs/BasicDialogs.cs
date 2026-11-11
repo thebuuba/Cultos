@@ -1,5 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Automation;
+using System.Windows.Media;
 using Culto.Core;
 using Culto.Desktop.Services;
 
@@ -11,13 +13,33 @@ public static class DialogUi
     {
         window.Style = (Style)Application.Current.FindResource(typeof(Window));
         window.Title = title; window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        window.SizeToContent = SizeToContent.Height; window.Width = 500; window.ResizeMode = ResizeMode.NoResize;
+        window.SizeToContent = SizeToContent.Height; window.Width = 520; window.MinWidth = 420;
+        window.MaxHeight = Math.Max(360, SystemParameters.WorkArea.Height - 48);
+        window.MaxWidth = Math.Max(420, SystemParameters.WorkArea.Width - 48);
+        window.ResizeMode = ResizeMode.CanResize;
         var panel = new StackPanel { Margin = new Thickness(24) };
-        panel.Children.Add(new TextBlock { Text = title, FontSize = 23, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 10) });
-        panel.Children.Add(new TextBlock { Text = description, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 18), Style = (Style)window.FindResource("MutedText") });
-        window.Content = panel; return panel;
+        panel.Children.Add(new TextBlock { Text = title, FontSize = 23, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
+        panel.Children.Add(new TextBlock { Text = description, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 16), Style = (Style)window.FindResource("MutedText") });
+        window.Content = new ScrollViewer { Content = panel, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+        return panel;
     }
-    public static void Label(Panel panel, string text) => panel.Children.Add(new TextBlock { Text = text, Margin = new Thickness(0, 12, 0, 5) });
+    public static void Label(Panel panel, string text, Control? target = null)
+    {
+        var label = new TextBlock { Text = text, FontSize = 12, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 5) };
+        panel.Children.Add(label);
+        if (target is not null) { AutomationProperties.SetName(target, text); AutomationProperties.SetLabeledBy(target, label); }
+    }
+    public static WrapPanel Actions(Panel panel)
+    {
+        var row = new WrapPanel { HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 18, 0, 0) };
+        panel.Children.Add(row); return row;
+    }
+    public static Border Card(UIElement child) => new()
+    {
+        Background = (Brush)Application.Current.FindResource("PanelBrush"),
+        BorderBrush = (Brush)Application.Current.FindResource("BorderBrush"), BorderThickness = new Thickness(1),
+        CornerRadius = new CornerRadius(10), Padding = new Thickness(18), Child = child
+    };
     public static Button Button(string text, Action action, bool primary = false)
     {
         var button = new Button { Content = text, Margin = new Thickness(0, 12, 0, 0), MinHeight = 40 };
@@ -34,9 +56,11 @@ public sealed class PromptDialog : Window
     {
         var panel = DialogUi.Panel(this, title, label);
         _text = new TextBox { Text = value };
+        AutomationProperties.SetName(_text, label);
         panel.Children.Add(_text);
-        panel.Children.Add(DialogUi.Button("Aceptar", () => { if (Value.Length > 0) DialogResult = true; }, true));
-        var cancel = DialogUi.Button("Cancelar", () => DialogResult = false); cancel.IsCancel = true; panel.Children.Add(cancel);
+        var actions = DialogUi.Actions(panel);
+        var cancel = DialogUi.Button("Cancelar", () => DialogResult = false); cancel.IsCancel = true; cancel.Margin = new Thickness(0, 0, 8, 0); actions.Children.Add(cancel);
+        var accept = DialogUi.Button("Aceptar", () => { if (Value.Length > 0) DialogResult = true; }, true); accept.IsDefault = true; accept.Margin = new Thickness(0); actions.Children.Add(accept);
         Loaded += (_, _) => { _text.Focus(); _text.SelectAll(); };
     }
     public static string? Ask(Window owner, string title, string label, string value)
@@ -52,17 +76,22 @@ public sealed class CueEditDialog : Window
     public CueEditDialog(Cue cue)
     {
         var panel = DialogUi.Panel(this, "Editar contenido", "Los cambios de biblioteca no alteran elementos ya añadidos al orden.");
-        DialogUi.Label(panel, "Título"); _title = new TextBox { Text = cue.Title }; panel.Children.Add(_title);
-        DialogUi.Label(panel, "Número de himno (opcional)"); _number = new TextBox { Text = cue.HymnNumber?.ToString() ?? "" }; panel.Children.Add(_number);
-        _body = new TextBox { Text = cue.Body, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, MinHeight = 100, MaxHeight = 200 };
-        if (cue.Kind == CueKind.Text) { DialogUi.Label(panel, "Texto"); panel.Children.Add(_body); }
-        var error = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) }; panel.Children.Add(error);
-        panel.Children.Add(DialogUi.Button("Guardar cambios", () =>
+        _title = new TextBox { Text = cue.Title }; _number = new TextBox { Text = cue.HymnNumber?.ToString() ?? "" };
+        var fields = new Grid(); fields.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(3, GridUnitType.Star) }); fields.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) });
+        var titleField = new StackPanel { Margin = new Thickness(0, 0, 12, 0) }; DialogUi.Label(titleField, "Título", _title); titleField.Children.Add(_title); fields.Children.Add(titleField);
+        var numberField = new StackPanel(); DialogUi.Label(numberField, "N.º de himno (opcional)", _number); numberField.Children.Add(_number); Grid.SetColumn(numberField, 1); fields.Children.Add(numberField); panel.Children.Add(fields);
+        _body = new TextBox { Text = cue.Body, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, MinHeight = 120, MaxHeight = 200, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalContentAlignment = VerticalAlignment.Top };
+        if (cue.Kind == CueKind.Text) { DialogUi.Label(panel, "Texto para proyectar", _body); panel.Children.Add(_body); }
+        var error = new TextBlock { TextWrapping = TextWrapping.Wrap, Foreground = (Brush)FindResource("AmberBrush"), Margin = new Thickness(0, 10, 0, 0), Visibility = Visibility.Collapsed }; panel.Children.Add(error);
+        var actions = DialogUi.Actions(panel);
+        var cancel = DialogUi.Button("Cancelar", () => DialogResult = false); cancel.IsCancel = true; cancel.Margin = new Thickness(0, 0, 8, 0); actions.Children.Add(cancel);
+        var save = DialogUi.Button("Guardar cambios", () =>
         {
-            if (CueTitle.Length == 0) { error.Text = "Escribe un título."; return; }
-            if (_number.Text.Trim().Length > 0 && HymnNumber is null) { error.Text = "El número debe ser un entero positivo."; return; }
+            if (CueTitle.Length == 0) { error.Visibility = Visibility.Visible; error.Text = "Escribe un título."; _title.Focus(); return; }
+            if (_number.Text.Trim().Length > 0 && HymnNumber is null) { error.Visibility = Visibility.Visible; error.Text = "El número debe ser un entero positivo."; _number.Focus(); return; }
             DialogResult = true;
-        }, true));
+        }, true); save.Margin = new Thickness(0); actions.Children.Add(save);
+        Loaded += (_, _) => { _title.Focus(); _title.SelectAll(); };
     }
 }
 
@@ -80,6 +109,7 @@ public sealed class DisplayDialog : Window
                 : "Elige la salida HDMI que alimenta las tres pantallas. Usa Extender en Windows para conservar los controles en tu monitor.");
         _screens = new ComboBox { ItemsSource = displays, DisplayMemberPath = "Label", Margin = new Thickness(0, 0, 0, 12) };
         _screens.SelectedItem = displays.FirstOrDefault(d => d.DeviceName == selectedDevice) ?? displays.FirstOrDefault(d => !d.IsPrimary) ?? displays.FirstOrDefault();
+        DialogUi.Label(panel, "Pantalla de salida", _screens);
         panel.Children.Add(_screens);
         _test = new CheckBox { Content = "Abrir como ventana de ensayo", IsChecked = displays.Count < 2 };
         if (!capture)
@@ -87,7 +117,12 @@ public sealed class DisplayDialog : Window
             panel.Children.Add(_test);
             panel.Children.Add(new TextBlock { Text = "En el monitor principal siempre se abrirá una ventana de ensayo.", TextWrapping = TextWrapping.Wrap, Style = (Style)FindResource("MutedText"), Margin = new Thickness(0, 8, 0, 0) });
         }
-        panel.Children.Add(DialogUi.Button(capture ? "Tomar captura" : "Abrir salida", () => { if (SelectedDisplay is not null) DialogResult = true; }, true));
-        if (!capture) panel.Children.Add(DialogUi.Button("Cerrar salida actual", () => { CloseOutput = true; DialogResult = true; }));
+        var actions = DialogUi.Actions(panel);
+        if (!capture)
+        {
+            var close = DialogUi.Button("Cerrar salida actual", () => { CloseOutput = true; DialogResult = true; }); close.Margin = new Thickness(0, 0, 8, 8); actions.Children.Add(close);
+        }
+        var cancel = DialogUi.Button("Cancelar", () => DialogResult = false); cancel.IsCancel = true; cancel.Margin = new Thickness(0, 0, 8, 8); actions.Children.Add(cancel);
+        var open = DialogUi.Button(capture ? "Tomar captura" : "Abrir salida", () => { if (SelectedDisplay is not null) DialogResult = true; }, true); open.IsDefault = true; open.IsEnabled = SelectedDisplay is not null; open.Margin = new Thickness(0, 0, 0, 8); actions.Children.Add(open);
     }
 }

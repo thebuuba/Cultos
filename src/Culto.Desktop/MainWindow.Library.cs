@@ -27,11 +27,23 @@ public partial class MainWindow
         };
         _libraryView.Clear();
         foreach (var cue in items.OrderBy(c => c.HymnNumber ?? int.MaxValue).ThenBy(c => c.Title)) _libraryView.Add(cue);
+        LibraryCountText.Text = $"{_libraryView.Count:N0} de {_workspace.Library.Count:N0} contenidos";
+        ClearSearchButton.IsEnabled = query.Length > 0;
         LibraryEmpty.Visibility = _libraryView.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        LibraryEmpty.Text = _workspace.Library.Count == 0 ? "Importa videos MKV, imágenes o pistas de audio para comenzar." : "No hay contenidos que coincidan con esta búsqueda.";
+        var category = (LibraryFilter.SelectedItem as ListBoxItem)?.Content?.ToString() ?? "Todo";
+        LibraryEmpty.Text = _workspace.Library.Count == 0
+            ? "Tu biblioteca empieza aquí.\n\nImporta videos MKV, imágenes o pistas de audio."
+            : query.Length > 0
+                ? $"Sin resultados para «{query}» en {category}.\n\nPrueba otro título, número o categoría."
+                : $"Todavía no hay contenido en {category}.\n\nImporta archivos o elige otra categoría.";
     }
     private void LibrarySearchChanged(object sender, TextChangedEventArgs e) => RefreshLibrary();
     private void LibraryFilterChanged(object sender, SelectionChangedEventArgs e) => RefreshLibrary();
+    private void ClearLibrarySearchClick(object sender, RoutedEventArgs e)
+    {
+        LibrarySearch.Clear();
+        LibrarySearch.Focus();
+    }
     private void LibrarySelectionChanged(object sender, SelectionChangedEventArgs e)
     { if (_ready && LibraryList.SelectedItem is Cue cue) PrepareCue(cue); }
 

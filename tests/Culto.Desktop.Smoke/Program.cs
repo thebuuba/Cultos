@@ -3,8 +3,10 @@ using System.IO;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Threading;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using Culto.Core;
 using Culto.Desktop;
 using Culto.Desktop.Projection;
@@ -43,6 +45,28 @@ internal static class Program
         yield return value;
         for (var i = 0; i < VisualTreeHelper.GetChildrenCount(value); i++)
             foreach (var child in Descendants(VisualTreeHelper.GetChild(value, i))) yield return child;
+    }
+    private static IEnumerable<DependencyObject> Ancestors(DependencyObject value)
+    {
+        for (var parent = VisualTreeHelper.GetParent(value); parent is not null; parent = VisualTreeHelper.GetParent(parent))
+            yield return parent;
+    }
+    private static Rect BoundsWithin(FrameworkElement element, Visual ancestor) =>
+        element.TransformToAncestor(ancestor).TransformBounds(new Rect(element.RenderSize));
+    private static void CheckWithin(FrameworkElement element, Visual ancestor, Rect viewport, string description)
+    {
+        Check(element.IsVisible && element.ActualWidth > 0 && element.ActualHeight > 0, description + " is not visible");
+        var bounds = BoundsWithin(element, ancestor);
+        var tolerantViewport = viewport; tolerantViewport.Inflate(1.5, 1.5);
+        Check(tolerantViewport.Contains(bounds), $"{description} overflows its viewport: {bounds} outside {viewport}");
+    }
+    private static void CheckOrderNumber(ListBox plan, int index, string expected)
+    {
+        plan.ScrollIntoView(plan.Items[index]); plan.UpdateLayout();
+        var row = plan.ItemContainerGenerator.ContainerFromIndex(index) as ListBoxItem;
+        Check(row is not null, "Order row was not rendered");
+        Check(Descendants(row!).OfType<TextBlock>().Any(text => text.IsVisible && text.ActualWidth > 0 && text.Text == expected),
+            $"Order row {index + 1} does not display number {expected}");
     }
     private static void AnswerCloseDialog(string buttonName)
     {
@@ -123,6 +147,8 @@ internal static class Program
             Call(window, "PrepareCue", new Cue { Title = "Sintético B" }, null);
             Check(session.Live!.Body == "Original sintético", "Preparing/edits changed live");
         });
+
+        RunDesignTests(window, directory, session);
 
         Test("Bible navigation keeps live reading after another reading is prepared", () =>
         {
@@ -313,6 +339,233 @@ internal static class Program
             Check(closePromptsObserved == before + 2 && Field<bool>(window, "_closing"), "Explicit user choice did not permit closing");
             PumpFor(100);
             Check(!window.IsVisible, "User could not close after export despite explicit consent");
+        });
+    }
+
+    private static void RunDesignTests(MainWindow window, string directory, PresentationSession session)
+    {
+        var tabs = (TabControl)window.FindName("ContentTabs");
+        var library = (ListBox)window.FindName("LibraryList");
+        var filter = (ListBox)window.FindName("LibraryFilter");
+        var search = (TextBox)window.FindName("LibrarySearch");
+        var count = (TextBlock)window.FindName("LibraryCountText");
+        var clear = (Button)window.FindName("ClearSearchButton");
+        var plan = (ListBox)window.FindName("PlanList");
+
+        Test("Library search and categories show counts while clear retains category and live", () =>
+        {
+            tabs.SelectedIndex = 0; filter.SelectedIndex = 0; search.Clear();
+            var previousCount = library.Items.Count;
+            var live = session.Live!; var liveBody = live.Body;
+            var fixture = Path.Combine(AppContext.BaseDirectory, "fixtures", "test.mkv");
+            var first = Path.Combine(directory, "042 Alabanza sintética.mkv");
+            var second = Path.Combine(directory, "043 Meditación sintética.mkv");
+            var image = Path.Combine(directory, "Imagen sintética.png");
+            File.Copy(fixture, first); File.Copy(fixture, second);
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(BitmapSource.Create(1, 1, 96, 96, PixelFormats.Bgra32, null, new byte[] { 40, 80, 100, 255 }, 4)));
+            using (var stream = File.Create(image)) encoder.Save(stream);
+            Wait((Task)Call(window, "ImportMediaAsync", (object)new[] { first, second, image })!);
+            ((TextBox)window.FindName("TextTitleBox")).Text = "Aviso sintético especial";
+            ((TextBox)window.FindName("TextBodyBox")).Text = "Contenido sintético del anuncio";
+            Call(window, "SaveTextClick", window, new RoutedEventArgs());
+            var total = previousCount + 4;
+            void CheckCount(int expected)
+            {
+                Check(library.Items.Count == expected, $"Expected {expected} library results, got {library.Items.Count}");
+                Check(count.Text == $"{expected} de {total} contenidos", "Library count disagrees with visible results and imported total");
+            }
+            CheckCount(total);
+            filter.SelectedIndex = 2; CheckCount(2);
+            // Leading zeros make this a hymn-number lookup rather than a title substring match.
+            search.Text = "00042"; CheckCount(1);
+            Check(((Cue)library.Items[0]).Title == "042 Alabanza sintética", "Hymn number search selected the wrong item");
+            search.Text = "zz-sin-resultados"; CheckCount(0);
+            Check(((TextBlock)window.FindName("LibraryEmpty")).IsVisible, "Empty filtered search has no visible guidance");
+            Check(clear.IsEnabled, "Cannot clear a nonempty search");
+            window.Activate(); clear.Focus();
+            clear.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Until(() => search.IsKeyboardFocusWithin, "Clear search did not return keyboard focus to the search field");
+            Check(search.Text.Length == 0 && filter.SelectedIndex == 2, "Clear search changed the selected category");
+            CheckCount(2);
+            Check(!clear.IsEnabled, "Clear search remains enabled with an empty query");
+            library.SelectedIndex = 0;
+            filter.SelectedIndex = 3; CheckCount(1);
+            Check(((Cue)library.Items[0]).Kind == CueKind.Image, "Images category contains a different media type");
+            filter.SelectedIndex = 5; search.Text = "aviso sintético"; CheckCount(1);
+            Check(((Cue)library.Items[0]).Title == "Aviso sintético especial", "Text title search missed the saved announcement");
+            search.Clear(); filter.SelectedIndex = 0; CheckCount(total);
+            Check(ReferenceEquals(live, session.Live) && session.Live.Body == liveBody, "Library browsing/import/search changed the live snapshot");
+        });
+
+        Test("Order numbers follow the visible rows after moving an item", () =>
+        {
+            var live = session.Live!.Id;
+            var moved = (Cue)plan.Items[2];
+            plan.SelectedIndex = 2;
+            Call(window, "MoveUpClick", window, new RoutedEventArgs());
+            window.UpdateLayout();
+            Check(((Cue)plan.Items[1]).Id == moved.Id, "Move up did not reorder the selected cue");
+            CheckOrderNumber(plan, 0, "01");
+            CheckOrderNumber(plan, 1, "02");
+            CheckOrderNumber(plan, 2, "03");
+            var renderedSecond = (ListBoxItem)plan.ItemContainerGenerator.ContainerFromIndex(1)!;
+            Check(((Cue)renderedSecond.DataContext).Id == moved.Id, "Visible second row does not represent the moved cue");
+            Check(session.Live!.Id == live, "Reordering the plan changed live output");
+        });
+
+        Test("Empty order guidance disappears when content is added again", () =>
+        {
+            var live = session.Live!.Id;
+            while (plan.Items.Count > 0)
+            {
+                plan.SelectedIndex = 0;
+                Call(window, "RemoveCueClick", window, new RoutedEventArgs());
+            }
+            window.UpdateLayout();
+            var empty = (TextBlock)window.FindName("PlanEmptyText");
+            Check(empty.IsVisible && ((TextBlock)window.FindName("PlanCountText")).Text == "0", "Empty plan does not show guidance and zero count");
+            filter.SelectedIndex = 5; search.Text = "aviso sintético";
+            library.SelectedIndex = 0;
+            Call(window, "AddLibraryToPlanClick", window, new RoutedEventArgs());
+            window.UpdateLayout();
+            Check(plan.Items.Count == 1 && empty.Visibility == Visibility.Collapsed, "Adding content did not restore the order list");
+            CheckOrderNumber(plan, 0, "01");
+            Check(session.Live!.Id == live, "Removing/adding prepared cues changed live output");
+            search.Clear(); filter.SelectedIndex = 0;
+        });
+
+        Test("Virtualized deep order rows keep correct numbers after moving and removing", () =>
+        {
+            var live = session.Live!.Id;
+            while (plan.Items.Count > 0)
+            {
+                plan.SelectedIndex = 0;
+                Call(window, "RemoveCueClick", window, new RoutedEventArgs());
+            }
+            for (var number = 1; number <= 80; number++)
+                Call(window, "AddToPlan", new Cue { Title = $"Momento sintético {number}", Body = "Texto sintético para probar el orden" });
+            CheckOrderNumber(plan, 0, "01");
+            CheckOrderNumber(plan, 70, "71");
+            CheckOrderNumber(plan, 79, "80");
+            Check(Descendants(plan).OfType<ListBoxItem>().Count() < 40, "Deep order created every row instead of virtualizing the list");
+            var moved = (Cue)plan.Items[70];
+            plan.SelectedIndex = 70;
+            Call(window, "MoveUpClick", window, new RoutedEventArgs());
+            Check(((Cue)plan.Items[69]).Id == moved.Id, "Deep selected cue did not move up");
+            CheckOrderNumber(plan, 69, "70");
+            plan.SelectedIndex = 0;
+            Call(window, "RemoveCueClick", window, new RoutedEventArgs());
+            Check(((Cue)plan.Items[68]).Id == moved.Id, "Removing an earlier cue misplaced the moved deep item");
+            CheckOrderNumber(plan, 68, "69");
+            CheckOrderNumber(plan, 78, "79");
+            Check(session.Live!.Id == live, "Deep scrolling/reorder/removal changed live output");
+        });
+
+        Test("Preparing another cue resets the visible preview pause control", () =>
+        {
+            var live = session.Live!.Id;
+            var pause = (Button)window.FindName("PreviewPauseButton");
+            ((TextBox)window.FindName("TextTitleBox")).Text = "Previa sintética uno";
+            ((TextBox)window.FindName("TextBodyBox")).Text = "Texto sintético de previa uno";
+            Call(window, "PrepareTextClick", window, new RoutedEventArgs());
+            pause.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Check(pause.Content?.ToString() == "Continuar previa", "Pausing preview did not offer Continue");
+            ((TextBox)window.FindName("TextTitleBox")).Text = "Previa sintética dos";
+            Call(window, "PrepareTextClick", window, new RoutedEventArgs());
+            Check(pause.Content?.ToString() == "Pausar previa", "New prepared cue retained the previous preview pause label");
+            pause.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Check(pause.Content?.ToString() == "Continuar previa", "First pause on a new cue used stale pause state");
+            pause.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Check(session.Live!.Id == live, "Preview controls changed live output");
+        });
+
+        Test("Compact console stays reachable after resizing columns with multiline live content", () =>
+        {
+            var width = window.Width; var height = window.Height; var selectedTab = tabs.SelectedIndex;
+            var previousLive = session.Live!;
+            var client = (FrameworkElement)window.Content;
+            var preview = (FrameworkElement)window.FindName("PreviewHost");
+            var columns = Ancestors(plan).OfType<Grid>().First(grid => grid.IsAncestorOf(tabs) && grid.IsAncestorOf(preview));
+            var originalColumns = columns.ColumnDefinitions.Select(column => column.Width).ToArray();
+            try
+            {
+                Call(window, "PrepareCue", new Cue
+                {
+                    Kind = CueKind.Bible, Title = "Lectura sintética de varias líneas",
+                    Body = string.Join("\n", Enumerable.Repeat("Pasaje sintético para comprobar que el resumen sigue visible al reducir la consola.", 8)),
+                    Reference = "Lectura sintética 1:1-8", Version = "Versión sintética de prueba de diseño"
+                }, null);
+                Call(window, "ProjectPrepared");
+                window.WindowState = WindowState.Normal; window.Width = Math.Max(width, 1600); window.Height = 900;
+                window.Activate(); window.UpdateLayout(); PumpFor(50);
+                FrameworkElement ColumnFor(FrameworkElement element)
+                {
+                    var child = element;
+                    while (!ReferenceEquals(VisualTreeHelper.GetParent(child), columns)) child = (FrameworkElement)VisualTreeHelper.GetParent(child);
+                    return child;
+                }
+                var orderColumn = ColumnFor(plan); var contentColumn = ColumnFor(tabs); var outputColumn = ColumnFor(preview);
+                var splitters = Descendants(columns).OfType<GridSplitter>().OrderBy(splitter => BoundsWithin(splitter, client).Left).ToArray();
+                var beforeOrder = orderColumn.ActualWidth; var beforeOutput = outputColumn.ActualWidth;
+                void ResizeColumn(GridSplitter splitter, Key direction)
+                {
+                    splitter.Focus();
+                    for (var step = 0; step < 40; step++)
+                        splitter.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(splitter)!, Environment.TickCount, direction)
+                        { RoutedEvent = Keyboard.KeyDownEvent });
+                    window.UpdateLayout();
+                }
+                Check(splitters.Length == 2, "Column resizing is not available for both side panels");
+                ResizeColumn(splitters[0], Key.Right);
+                ResizeColumn(splitters[1], Key.Left);
+                Check(orderColumn.ActualWidth > beforeOrder + 5 && outputColumn.ActualWidth > beforeOutput + 5,
+                    "Keyboard column adjustment did not enlarge both side panels before the shrink test");
+                foreach (var compactHeight in new[] { 720, 680 })
+                {
+                    window.Width = 1280; window.Height = compactHeight;
+                    window.UpdateLayout(); PumpFor(50);
+                    var viewport = new Rect(client.RenderSize);
+                    CheckWithin(orderColumn, client, viewport, $"Order column at height {compactHeight}");
+                    CheckWithin(contentColumn, client, viewport, $"Content column at height {compactHeight}");
+                    CheckWithin(outputColumn, client, viewport, $"Preview/live column at height {compactHeight}");
+                    Check(BoundsWithin(orderColumn, client).Right <= BoundsWithin(contentColumn, client).Left + 1.5
+                        && BoundsWithin(contentColumn, client).Right <= BoundsWithin(outputColumn, client).Left + 1.5,
+                        "Main console columns overlap after shrinking adjusted side panels");
+                    foreach (var name in new[] { "ProjectButton", "BlackoutButton" })
+                    {
+                        var button = (Button)window.FindName(name);
+                        CheckWithin(button, client, viewport, name);
+                        var bounds = BoundsWithin(button, client);
+                        var hit = client.InputHitTest(new Point(bounds.Left + bounds.Width / 2, bounds.Top + bounds.Height / 2)) as DependencyObject;
+                        Check(hit is not null && (ReferenceEquals(hit, button) || button.IsAncestorOf(hit)), name + " is obscured by another control");
+                    }
+                    var liveBody = (TextBlock)window.FindName("LiveBodyText");
+                    var outputStatus = (TextBlock)window.FindName("OutputStatusText");
+                    var liveCard = Ancestors(liveBody).OfType<Border>().First(border => border.IsAncestorOf(outputStatus));
+                    var liveViewport = BoundsWithin(liveCard, client);
+                    foreach (var name in new[] { "LiveBodyText", "LiveReferenceText", "LiveTitleText", "OutputStatusText", "OutputModeText" })
+                        CheckWithin((FrameworkElement)window.FindName(name), client, liveViewport, $"{name} at height {compactHeight}");
+                    Check(liveBody.ActualHeight >= liveBody.FontSize, "Compact layout hides every line of the live reading excerpt");
+                    foreach (var tab in tabs.Items.Cast<TabItem>())
+                    {
+                        tabs.SelectedItem = tab; window.UpdateLayout(); PumpFor(25);
+                        CheckWithin(tab, client, BoundsWithin(contentColumn, client), $"{tab.Header} tab header");
+                        var page = (FrameworkElement)tab.Content;
+                        var pageViewport = BoundsWithin(page, client);
+                        CheckWithin(page, client, BoundsWithin(contentColumn, client), $"{tab.Header} page");
+                        foreach (var control in Descendants(page).OfType<FrameworkElement>()
+                            .Where(element => element.IsVisible && (element is Button or TextBox or ListBox)))
+                            CheckWithin(control, client, pageViewport, $"{tab.Header}: {control.Name} {control.GetType().Name} at height {compactHeight}");
+                    }
+                }
+            }
+            finally
+            {
+                for (var index = 0; index < originalColumns.Length; index++) columns.ColumnDefinitions[index].Width = originalColumns[index];
+                window.Width = width; window.Height = height; tabs.SelectedIndex = selectedTab; window.UpdateLayout();
+                Call(window, "PrepareCue", previousLive, null); Call(window, "ProjectPrepared");
+            }
         });
     }
 }
