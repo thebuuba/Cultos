@@ -51,7 +51,8 @@ public partial class MainWindow
         if (_output is not null) return true;
         try
         {
-            _output = new ProjectionSurface { Volume = (int)VolumeSlider.Value, Loop = LoopCheck.IsChecked == true };
+            _output = new ProjectionSurface { Volume = (int)VolumeSlider.Value, Loop = LoopCheck.IsChecked == true,
+                BackgroundImagePath = _workspace.BackgroundImagePath };
             _output.PlaybackError += message => Dispatcher.BeginInvoke(() => { _isPaused = true; SetStatus(message, true); });
             _output.ShowCue(_session.Live, blackout: true);
             _output.ShowCue(_session.Live, _session.IsBlackout, _session.IsTextHidden);

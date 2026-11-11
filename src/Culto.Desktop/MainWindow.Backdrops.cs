@@ -1,0 +1,81 @@
+using System.Windows;
+using Culto.Core;
+using Culto.Desktop.Dialogs;
+
+namespace Culto.Desktop;
+
+public partial class MainWindow
+{
+    private void ChurchBackgroundClick(object sender, RoutedEventArgs e)
+    {
+        var paths = _workspace.BackgroundImages
+            .Concat(_workspace.BackgroundImagePath is { } selected ? new[] { selected } : Array.Empty<string>())
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        var dialog = new BackgroundGalleryDialog(paths, _workspace.BackgroundImagePath,
+            _output is not null && (_session.IsTextHidden || _session.IsBlackout)) { Owner = this };
+        var chosen = dialog.ShowDialog() == true;
+        _workspace.BackgroundImages = dialog.Images;
+        if (_workspace.BackgroundImagePath is { } previous && !dialog.Images.Contains(previous, StringComparer.OrdinalIgnoreCase))
+            _workspace.BackgroundImagePath = null;
+        SaveWorkspace();
+        if (!chosen) return;
+        if (dialog.RestoreContent)
+        {
+            _session.RestoreContent(); ApplyBackdropTransition(); return;
+        }
+        if (dialog.SelectedPath is { } path && !CheckMedia(new Cue { Kind = CueKind.Image, Title = "Fondo iglesia", FilePath = path })) return;
+        var alreadyShowing = _output is not null && _session.IsTextHidden && !_session.IsBlackout;
+        SetChurchBackground(dialog.SelectedPath);
+        if (!alreadyShowing)
+        {
+            if (!EnsureOutput()) return;
+            _session.ShowBackground(); ApplyBackdropTransition();
+        }
+    }
+    private void BlackBackgroundClick(object sender, RoutedEventArgs e) => ShowBlackBackdrop();
+
+    private void ShowBlackBackdrop()
+    {
+        if (!EnsureOutput()) return;
+        if (_session.IsBlackout) _session.RestoreContent();
+        else _session.ShowBlackout();
+        ApplyBackdropTransition();
+    }
+
+    private void ApplyBackdropTransition()
+    {
+        _output!.BackgroundImagePath = _workspace.BackgroundImagePath;
+        _output.TransitionToBackdrop(_session.Live, _session.IsBlackout, _session.IsTextHidden);
+        _isPaused = true;
+        UpdateSessionLabels();
+        SetStatus(_session.IsBlackout ? "Fondo negro" : _session.IsTextHidden ? "Fondo iglesia" : "Contenido restaurado; reproducción pausada.");
+    }
+
+    private void ChangeChurchBackgroundClick(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Fondo de la iglesia", CheckFileExists = true,
+            Filter = "Imágenes|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff"
+        };
+        if (dialog.ShowDialog(this) != true) return;
+        if (!CheckMedia(new Cue { Kind = CueKind.Image, Title = "Fondo iglesia", FilePath = dialog.FileName })) return;
+        SetChurchBackground(dialog.FileName);
+    }
+
+    private void ClearChurchBackgroundClick(object sender, RoutedEventArgs e) => SetChurchBackground(null);
+
+    private void SetChurchBackground(string? path)
+    {
+        _workspace.BackgroundImagePath = path;
+        if (path is not null && !_workspace.BackgroundImages.Contains(path, StringComparer.OrdinalIgnoreCase))
+            _workspace.BackgroundImages.Add(path);
+        SaveWorkspace();
+        if (_output is not null)
+        {
+            _output.BackgroundImagePath = path;
+            if (_session.IsTextHidden && !_session.IsBlackout) ApplyBackdropTransition();
+        }
+        SetStatus(path is null ? "Fondo sencillo seleccionado." : "Fondo de la iglesia guardado.");
+    }
+}

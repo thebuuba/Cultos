@@ -30,21 +30,29 @@ public sealed partial class ProjectionSurface
     public void TransitionTo(Cue cue)
         => Present(new Presentation(cue, false, false, true));
 
-    private void TransitionToCore(Cue cue)
+    public void TransitionToBackdrop(Cue? live, bool blackout, bool hideText)
+        => Present(new Presentation(live, blackout, hideText, true, PauseAfter: true));
+
+    private void TransitionToCore(Presentation presentation)
     {
         if (_disposed) return;
-        if (_preview || ActualWidth < 1 || ActualHeight < 1) { ShowCueCore(cue); return; }
+        if (_preview || ActualWidth < 1 || ActualHeight < 1)
+        {
+            ShowCueCore(presentation.Cue, presentation.Blackout, presentation.HideText, presentation.PauseAfter);
+            return;
+        }
         UpdateLayout();
         // Retain the composed outgoing frame, including any in-flight dissolve.
         // Only the new video decodes; there is never duplicate output audio.
         var previous = new RenderTargetBitmap((int)Math.Ceiling(ActualWidth), (int)Math.Ceiling(ActualHeight), 96, 96, PixelFormats.Pbgra32);
         previous.Render(_composition); previous.Freeze();
-        ShowCueCore(cue);
+        ShowCueCore(presentation.Cue, presentation.Blackout, presentation.HideText, presentation.PauseAfter);
         if (_cueFailed) return;
         _dissolve.Source = previous;
         _dissolve.Opacity = 1;
         _dissolve.Visibility = Visibility.Visible;
-        if (cue.Kind == CueKind.Video)
+        // Suppressed and paused video retains its decoded frame; it cannot deliver a new one.
+        if (presentation.Cue?.Kind == CueKind.Video && !_suppressed && !_pauseRequested)
         {
             _waitingForFrame = true;
             _frameTimeout.Start();

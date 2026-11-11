@@ -7,7 +7,7 @@ namespace Culto.Desktop.Projection;
 
 public sealed partial class ProjectionSurface
 {
-    private sealed record Presentation(Cue? Cue, bool Blackout, bool HideText, bool Dissolve);
+    private sealed record Presentation(Cue? Cue, bool Blackout, bool HideText, bool Dissolve, bool PauseAfter = false);
     private readonly DispatcherTimer _audioTimer = new() { Interval = TimeSpan.FromMilliseconds(15) };
     private readonly Stopwatch _audioClock = new();
     private Presentation? _pendingPresentation;
@@ -17,7 +17,8 @@ public sealed partial class ProjectionSurface
     private int _audioGeneration, _playbackGeneration;
 
     // This is playback intent, including loading and a queued media change.
-    public bool IsPaused => _disposed || _suppressed || _pauseRequested;
+    public bool IsPaused => _disposed || _suppressed || _pauseRequested
+        || _pendingPresentation is { Blackout: true } or { HideText: true } or { PauseAfter: true };
 
     private void InitializeAudioFade() => _audioTimer.Tick += (_, _) =>
     {
@@ -69,8 +70,10 @@ public sealed partial class ProjectionSurface
         CancelAudioFade();
         var cue = presentation.Cue;
         var key = cue?.Kind is CueKind.Video or CueKind.Audio ? $"{cue.Id}|{cue.Kind}|{cue.FilePath}" : null;
-        if (!_preview && !presentation.Blackout && !presentation.HideText && !_suppressed
-            && !_pauseRequested && key != _mediaKey && _player?.IsPlaying == true && _audioGain > 0)
+        var suppress = presentation.Blackout || presentation.HideText;
+        var fadeOutgoing = suppress ? presentation.Dissolve : key != _mediaKey || presentation.PauseAfter;
+        if (!_preview && !_suppressed && !_pauseRequested && fadeOutgoing
+            && _player?.IsPlaying == true && _audioGain > 0)
         {
             // Keep one decoder alive during the outgoing envelope; the newest request wins.
             _pendingPresentation = presentation;
@@ -87,9 +90,9 @@ public sealed partial class ProjectionSurface
 
     private void ApplyPresentation(Presentation presentation, bool paused = false)
     {
-        if (presentation.Dissolve && !paused && presentation.Cue is not null)
-            TransitionToCore(presentation.Cue);
-        else ShowCueCore(presentation.Cue, presentation.Blackout, presentation.HideText, paused);
+        if (presentation.Dissolve && !paused)
+            TransitionToCore(presentation);
+        else ShowCueCore(presentation.Cue, presentation.Blackout, presentation.HideText, paused || presentation.PauseAfter);
         // Re-selecting the playing cue can cancel an outgoing fade without restarting it.
         if (!_preview && !_suppressed && !_pauseRequested && !_awaitingAudioStart
             && _player?.IsPlaying == true && _audioGain < 1)

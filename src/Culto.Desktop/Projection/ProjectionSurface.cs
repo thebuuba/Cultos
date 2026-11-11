@@ -72,6 +72,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         }
     }
     public bool Loop { get; set; }
+    public string? BackgroundImagePath { get; set; }
     public double Position => _player is null || _disposed ? 0 : Math.Max(0, _player.Time / 1000d);
     public double Duration => _player is null || _disposed ? 0 : Math.Max(0, _player.Length / 1000d);
     public bool IsPlaying => !_disposed && _player?.IsPlaying == true;
@@ -104,8 +105,12 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
             _ended = false;
             _pauseRequested = paused || _suppressed;
         }
-        if (paused) _pauseRequested = true;
-        if (_suppressed) return;
+        if (paused) SetPaused(true);
+        if (_suppressed)
+        {
+            if (!_preview && hideText && !blackout) ShowBackgroundImage();
+            return;
+        }
 
         try
         {
@@ -121,13 +126,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
                     ShowText(string.IsNullOrWhiteSpace(cue.Body) ? cue.Title : cue.Body, cue.Reference, cue.Version);
                     break;
                 case CueKind.Image:
-                    RequireFile(cue.FilePath);
-                    using (var stream = File.Open(cue.FilePath!, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                    {
-                        var bitmap = new BitmapImage();
-                        bitmap.BeginInit(); bitmap.CacheOption = BitmapCacheOption.OnLoad; bitmap.StreamSource = stream; bitmap.EndInit(); bitmap.Freeze();
-                        _image.Source = bitmap;
-                    }
+                    _image.Source = ReadImage(cue.FilePath);
                     _image.Visibility = Visibility.Visible;
                     break;
                 case CueKind.Video:
@@ -159,6 +158,33 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
     private static void RequireFile(string? path)
     {
         if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) throw new FileNotFoundException("El archivo ya no está disponible.");
+    }
+
+    private static BitmapImage ReadImage(string? path)
+    {
+        RequireFile(path);
+        using var stream = File.Open(path!, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        var bitmap = new BitmapImage();
+        bitmap.BeginInit(); bitmap.CacheOption = BitmapCacheOption.OnLoad; bitmap.StreamSource = stream;
+        bitmap.EndInit(); bitmap.Freeze();
+        return bitmap;
+    }
+
+    private void ShowBackgroundImage()
+    {
+        _image.Source = null;
+        if (string.IsNullOrWhiteSpace(BackgroundImagePath)) return;
+        try
+        {
+            _image.Source = ReadImage(BackgroundImagePath);
+            _image.Visibility = Visibility.Visible;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException
+            or ArgumentException or NotSupportedException or FileFormatException)
+        {
+            // A removed or damaged optional backdrop leaves the neutral background and paused media.
+            _image.Visibility = Visibility.Collapsed;
+        }
     }
 
     private void ShowText(string body, string reference = "", string version = "")
@@ -278,7 +304,12 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
             if (pending is not null) ApplyPresentation(pending, paused: true);
             if (_waitingForFrame) CancelDissolve();
         }
-        else if (_pendingPresentation is not null) return;
+        else if (_pendingPresentation is { } queued)
+        {
+            if (!queued.Blackout && !queued.HideText)
+                _pendingPresentation = queued with { PauseAfter = false };
+            return;
+        }
         if (_player is null) return;
         if (!_pauseRequested && !_started) Start();
         else
@@ -297,7 +328,17 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
     public void Restart()
     {
         if (_disposed || _player is null || _media is null) return;
-        if (_pendingPresentation is not null) return; // The pending cue will start at its beginning.
+        if (_pendingPresentation is { } pending)
+        {
+            // A new cue already starts at its beginning. A backdrop restore needs an explicit restart.
+            if (pending.Blackout || pending.HideText) return;
+            var cue = pending.Cue;
+            var key = cue?.Kind is CueKind.Video or CueKind.Audio ? $"{cue.Id}|{cue.Kind}|{cue.FilePath}" : null;
+            if (!pending.PauseAfter && key != _mediaKey) return;
+            _pendingPresentation = null;
+            CancelAudioFade(silence: true);
+            ApplyPresentation(pending with { PauseAfter = false });
+        }
         _playbackGeneration++;
         CancelAudioFade(silence: true);
         _player.Stop();

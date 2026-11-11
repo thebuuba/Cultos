@@ -106,7 +106,7 @@ internal static partial class Program
                 window.Show();
                 app.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
                 {
-                    try { if (args.Contains("--local-output")) RunLocalOutputTests(window); else if (args.Contains("--compact-output")) RunCompactOutputTests(window); else if (args.Contains("--player")) RunPlayerControlsTests(window); else if (args.Contains("--remote-order")) { RunRemoteOrderTests(window); RunRemoteDialogTests(window); } else RunWindowTests(window, directory); }
+                    try { if (args.Contains("--local-output")) RunLocalOutputTests(window); else if (args.Contains("--compact-output")) RunCompactOutputTests(window); else if (args.Contains("--player")) RunPlayerControlsTests(window); else if (args.Contains("--backdrops")) RunBackdropControlsTests(window); else if (args.Contains("--remote-order")) { RunRemoteOrderTests(window); RunRemoteDialogTests(window); } else RunWindowTests(window, directory); }
                     finally
                     {
                         if (!Field<bool>(window, "_closing"))
@@ -330,6 +330,7 @@ internal static partial class Program
         RunRemoteOrderTests(window);
         RunRemoteDialogTests(window);
         RunPlayerControlsTests(window);
+        RunBackdropControlsTests(window);
 
         Test("Failed save prevents closing", () =>
         {

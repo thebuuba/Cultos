@@ -4,6 +4,16 @@ Comprobación realizada el 11 de noviembre de 2026 en esta PC Windows. Entrega a
 
 ## Compilación y pruebas
 
+### Fondos de salida y lista de imágenes — versión 0.14.0
+
+Debajo del reproductor de salida aparecen Fondo iglesia y Fondo negro, fijos fuera del desplazamiento de controles. Fondo iglesia abre una lista con miniaturas; elegir una imagen la envía con disolución. La lista permite agregar varios archivos, quitar referencias sin borrar archivos, elegir fondo sencillo y volver al contenido anterior. La lista y la última imagen elegida se guardan con el espacio de trabajo. Fondo negro activa negro y, al pulsarlo otra vez, devuelve el contenido anterior pausado.
+
+La salida baja el audio durante 180 ms y disuelve la imagen durante 400 ms. Conserva el mismo medio y su posición, sin reemplazar el elemento en vivo ni la vista previa. Restaurar durante una transición conserva la pausa; las órdenes explícitas de reproducir o reiniciar prevalecen sobre una restauración pendiente. F8 y los comandos inmediatos del mando conservan su corte instantáneo. Una imagen de fondo ausente o dañada deja el fondo sencillo con la reproducción pausada.
+
+`scripts/build.ps1 -Smoke` terminó con código 0: **60 núcleo + 60 mando + 76 escritorio + 65 reproductor = 261 comprobaciones**, sin errores ni advertencias. Los ensayos de fondos comprueban píxeles reales de negro/imagen/fallback, audio nativo, posición pausada, cambios rápidos, restauración y órdenes de transporte durante una transición. Las pruebas de escritorio pulsan los botones reales, eligen una miniatura en el diálogo y verifican el guardado y la retirada de una imagen sin borrar su archivo. Continúan pasando las pruebas de paneles estrechos, HDMI, Biblia y mando. `mobile-smoke.cjs` también pasó. Evidencia: `.tools/backdrops-final.log`.
+
+Se publicó y abrió 0.14.0 conservando los últimos datos del usuario: cuatro elementos en el orden y 619 contenidos. En la consola normal se proyectó Bienvenidos, se activó Fondo negro y se comprobó el monitor totalmente negro con su botón activo; una segunda pulsación restauró el contenido. Se abrió Fondo iglesia y se verificó la lista vacía con Agregar imágenes, Sin imagen y Cerrar. Quedó abierta para que el usuario agregue sus imágenes; no se incorporaron imágenes de prueba a sus datos.
+
 ### Reproductores y desvanecimiento de audio — versión 0.13.0
 
 Se rediseñaron los transportes de previa y salida con controles circulares, barra de avance completa, tiempo transcurrido y duración separados, saltos de diez segundos y reinicio. La salida añade silencio con recuperación del último volumen y repetición. La barra conserva el punto elegido durante el arrastre y los clics prolongados, incluso cuando WPF marca el evento como atendido. La altura mínima de la previa pasó a 340 píxeles para conservar al menos 80 píxeles de imagen con el nuevo transporte.

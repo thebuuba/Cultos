@@ -131,9 +131,14 @@ public partial class MainWindow : Window
             : _session.IsTextHidden ? "FONDO"
             : _outputWindow is null ? "LOCAL" : _outputIsTest ? "ENSAYO" : "ACTIVA";
         OutputModeText.Foreground = (Brush)FindResource(_output is not null && (_session.IsBlackout || _session.IsTextHidden) ? "AmberBrush" : "MutedBrush");
-        BlackoutButton.Content = _session.IsBlackout ? "Restaurar" : "Negro";
+        BlackoutButton.Content = "Fondo negro";
+        BlackoutButton.ToolTip = _session.IsBlackout ? "Restaurar contenido" : "Fondo negro";
         BlackoutButton.Background = (Brush)FindResource(_session.IsBlackout ? "AmberBrush" : "RaisedBrush");
         BlackoutButton.Foreground = _session.IsBlackout ? Brushes.Black : (Brush)FindResource("TextBrush");
+        var churchActive = _output is not null && _session.IsTextHidden && !_session.IsBlackout;
+        ChurchBackgroundButton.Background = (Brush)FindResource(churchActive ? "SelectedBrush" : "RaisedBrush");
+        ChurchBackgroundButton.Foreground = (Brush)FindResource(churchActive ? "AccentBrush" : "TextBrush");
+        ChurchBackgroundButton.ToolTip = "Elegir fondo de iglesia";
         UpdateUsabilityState();
     }
 

@@ -17,6 +17,8 @@ public sealed class WorkspaceData
         new("background", "Mostrar fondo", "#A7C7FF", "background")
     ];
     public string? DisplayDevice { get; set; }
+    public string? BackgroundImagePath { get; set; }
+    public List<string> BackgroundImages { get; set; } = [];
     public int Volume { get; set; } = 80;
     public bool Loop { get; set; }
 }
@@ -37,6 +39,7 @@ public sealed class WorkspaceStore
         if (data is not null)
         {
             data.Plan ??= new(); data.Plan.Items ??= []; data.Library ??= []; data.Deck ??= [];
+            data.BackgroundImages ??= [];
             data.Volume = Math.Clamp(data.Volume, 0, 100);
             return data;
         }

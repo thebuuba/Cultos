@@ -23,7 +23,7 @@ internal static partial class Program
         var app = new System.Windows.Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
         app.Startup += async (_, _) =>
         {
-            try { await Run(args.Contains("--audio-fades")); File.WriteAllLines(Path.Combine(Folder, "result.txt"), Results); app.Shutdown(0); }
+            try { await Run(args.Contains("--audio-fades"), args.Contains("--backdrops")); File.WriteAllLines(Path.Combine(Folder, "result.txt"), Results); app.Shutdown(0); }
             catch (Exception ex) { File.WriteAllText(Path.Combine(Folder, "result.txt"), ex.ToString()); app.Shutdown(1); }
         };
         app.Run();
@@ -39,7 +39,7 @@ internal static partial class Program
         for (int i = 0; i < VisualTreeHelper.GetChildrenCount(value); i++)
             foreach (var child in Descendants(VisualTreeHelper.GetChild(value, i))) yield return child;
     }
-    static async Task Run(bool audioOnly = false)
+    static async Task Run(bool audioOnly = false, bool backdropsOnly = false)
     {
         using var output = new ProjectionSurface();
         using var preview = new ProjectionSurface(true);
@@ -49,6 +49,12 @@ internal static partial class Program
         window.Show();
         var previewWindow = new Window { Content = preview, Width = 480, Height = 300, Left = 1000, Top = 20 };
         previewWindow.Show();
+        if (backdropsOnly)
+        {
+            await RunBackdropTransitionChecks(output, preview,
+                new Cue { Kind = CueKind.Video, FilePath = Path.Combine(Folder, "test.mkv") });
+            window.Close(); previewWindow.Close(); return;
+        }
         if (audioOnly)
         {
             await RunAudioFadeChecks(output, preview,
@@ -127,6 +133,7 @@ internal static partial class Program
         Check(errors.Count == 2, "Corrupt image reports recoverable error");
         await RunDissolveChecks(output, video);
         await RunAudioFadeChecks(output, preview, video, audio);
+        await RunBackdropTransitionChecks(output, preview, video);
         window.Close(); previewWindow.Close();
     }
     static async Task RunDissolveChecks(ProjectionSurface output, Cue video)

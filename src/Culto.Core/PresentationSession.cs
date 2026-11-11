@@ -41,6 +41,20 @@ public sealed class PresentationSession
         Changed?.Invoke();
     }
 
+    public void RestoreContent()
+    {
+        IsBlackout = false;
+        IsTextHidden = false;
+        Changed?.Invoke();
+    }
+
+    public void ShowBlackout()
+    {
+        IsBlackout = true;
+        IsTextHidden = false;
+        Changed?.Invoke();
+    }
+
     public bool Move(ServicePlan plan, int delta)
     {
         ArgumentNullException.ThrowIfNull(plan);

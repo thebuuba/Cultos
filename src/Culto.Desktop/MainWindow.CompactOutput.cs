@@ -12,7 +12,7 @@ public partial class MainWindow
         if (OutputTransportGrid is null) return;
         // Keep the picture visible even when only the controls need scrolling.
         var compact = LivePanel.ActualWidth < 320;
-        LiveScroll.MaxHeight = Math.Max(48, LivePanel.ActualHeight - (compact ? 230 : 180));
+        LiveScroll.MaxHeight = Math.Max(48, LivePanel.ActualHeight - (compact ? 260 : 240));
         if (_compactOutput == compact) return;
         _compactOutput = compact;
 
@@ -25,7 +25,7 @@ public partial class MainWindow
         NextLiveText.Margin = compact ? new Thickness(0, 0, 0, 5) : new Thickness(0);
         Grid.SetRow(ChooseOutputButton, compact ? 1 : 0);
         Grid.SetRow(ToggleOutputButton, compact ? 1 : 0);
-        ScreenNavigationPanel.Columns = compact ? 2 : 4;
+        ScreenNavigationPanel.Columns = 2;
         foreach (FrameworkElement button in ScreenNavigationPanel.Children)
             button.Margin = new Thickness(0, 0, 5, compact ? 4 : 0);
 

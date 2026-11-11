@@ -36,9 +36,9 @@ El orden muestra la posición de cada momento y una marca **EN VIVO** en el elem
 
 **Un clic en el orden** prepara la vista previa. **Doble clic sobre un elemento** lo envía a **En pantalla** e inicia su reproducción si es video/audio, incluso sin HDMI. El doble clic en espacio vacío no proyecta y arrastrar sólo reordena. La salida local aparece dentro de la consola, sin otra ventana. Si el HDMI está activado, muestra el mismo contenido en las pantallas de la iglesia.
 
-Desde 0.10, los himnos y videos enviados desde el orden, la secuencia o la biblioteca entran con una **disolución de 400 ms**. También se aplica al botón Proyectar. La última imagen de la salida se conserva mientras carga el nuevo video y se desvanece cuando llega su primer fotograma; el nuevo video continúa reproduciéndose durante la mezcla. Negro y Fondo la interrumpen inmediatamente. Es una transición visual; no mezcla dos pistas de audio.
+Desde 0.10, los himnos y videos enviados desde el orden, la secuencia o la biblioteca entran con una **disolución de 400 ms**. También se aplica al botón Proyectar. La última imagen de la salida se conserva mientras carga el nuevo video y se desvanece cuando llega su primer fotograma; el nuevo video continúa reproduciéndose durante la mezcla. F8 la interrumpe inmediatamente. Es una transición visual; no mezcla dos pistas de audio.
 
-Desde 0.13, el audio de salida baja suavemente durante **180 ms** antes de cambiar de contenido y el nuevo video/audio entra durante **350 ms**. Se usa un solo reproductor de salida, sin superponer pistas. Negro, Fondo y Pausar interrumpen la transición inmediatamente. La vista previa permanece silenciosa.
+Desde 0.13, el audio de salida baja suavemente durante **180 ms** antes de cambiar de contenido y el nuevo video/audio entra durante **350 ms**. Se usa un solo reproductor de salida, sin superponer pistas. F8, Pausar y los comandos inmediatos del mando interrumpen la transición. La vista previa permanece silenciosa.
 
 Ambos reproductores tienen una barra de avance a todo el ancho, tiempo transcurrido y duración, botón central de reproducción/pausa, saltos de **10 segundos** y reinicio. La salida añade silencio/restauración del volumen anterior, volumen y repetición. Los controles de la vista previa sólo afectan a esa vista; los de **En pantalla** actúan sobre la salida. Arrastrar la barra mantiene la posición elegida hasta soltarla y conserva la pausa; también puede usarse con el teclado.
 
@@ -63,8 +63,9 @@ Las tres pantallas que reciben el mismo HDMI muestran una sola salida. Configura
 - **Preparado** es una vista previa silenciosa. Buscar y seleccionar no cambian lo que está en pantalla.
 - **Proyectar a pantalla / F5**, debajo de la vista previa, envía el contenido preparado. A la derecha quedan juntos el estado de salida, la orientación **Siguiente**, la navegación y los controles de pantalla.
 - **Siguiente / F6** y **Anterior / F7** avanzan desde el elemento en vivo, aunque hayas preparado otro contenido.
-- **Negro / F8** oculta la salida y pausa el audio/video. Restaurar la imagen mantiene el video pausado hasta pulsar Continuar.
-- **Fondo** oculta el contenido y pausa la reproducción. Proyectar vuelve a mostrar el preparado.
+- **Fondo negro**, debajo del reproductor, desvanece el audio y lleva la imagen a negro con disolución. **F8** conserva el corte inmediato.
+- **Fondo iglesia**, junto a Fondo negro, abre una lista con miniaturas. Toca una imagen para enviarla con disolución. **Agregar imágenes** incorpora varias imágenes a la lista; **Sin imagen** usa un fondo sencillo. La lista se guarda en esta PC y también está disponible en **Configuración → Fondos de iglesia…**. Quitar una imagen de la lista no elimina el archivo.
+- Pulsar otra vez **Fondo negro**, o elegir **Volver al contenido** en la lista, restaura el contenido anterior conservando el video pausado en su posición. **Reproducir** continúa desde ahí; la vista previa permanece independiente.
 - Volumen, posición, Reiniciar y Repetir actúan sobre la reproducción de salida, no sobre la vista previa.
 
 Los controles de reproducción aparecen cuando la salida tiene un video o audio. **Pausar previa** aparece solo al preparar contenido multimedia. El estado **NEGRO** o **FONDO** sigue visible aunque prepares otro contenido.

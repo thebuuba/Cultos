@@ -240,6 +240,7 @@
         <Button x:Name="SettingsMenuButton" Content="_Configuración" Style="{StaticResource MenuBarButton}" Click="OpenActionsClick" AutomationProperties.Name="Configuración">
           <Button.ContextMenu><ContextMenu>
             <MenuItem Header="Pantallas y salida…" Click="DisplayClick"/>
+            <MenuItem Header="Fondos de iglesia…" Click="ChurchBackgroundClick"/>
             <MenuItem x:Name="RemoteButton" Header="Mando móvil…" Click="RemoteClick"/>
           </ContextMenu></Button.ContextMenu>
         </Button>
@@ -326,11 +327,11 @@
           </Grid>
         </Border>
 </ad:LayoutAnchorable>
-</ad:LayoutAnchorablePane><ad:LayoutAnchorablePane DockWidth="*" DockHeight="*" DockMinWidth="220" DockMinHeight="280">
+</ad:LayoutAnchorablePane><ad:LayoutAnchorablePane DockWidth="*" DockHeight="*" DockMinWidth="220" DockMinHeight="330">
 <ad:LayoutAnchorable Title="En pantalla" ContentId="output" CanClose="False" CanHide="False" CanAutoHide="False" CanDockAsTabbedDocument="False">
 <Border x:Name="LivePanel" Background="#302D38" BorderBrush="#48414F" BorderThickness="1,0,0,0" CornerRadius="6" Padding="10,8" SizeChanged="OutputPanelSizeChanged">
           <Grid>
-            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <Grid x:Name="LiveHeaderGrid">
               <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
               <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -343,11 +344,9 @@
                 <projection:OutputMonitor x:Name="LiveMonitor" MinHeight="80" AutomationProperties.Name="Monitor de la salida real"/>
               </Border>
             </local:AspectRatioBox>
-            <UniformGrid Grid.Row="2" x:Name="ScreenNavigationPanel" Columns="4">
+            <UniformGrid Grid.Row="2" x:Name="ScreenNavigationPanel" Columns="2">
               <Button Content="Anterior" Click="PreviousClick" Margin="0,0,5,0" MinHeight="30" Padding="4,5" FontSize="11"/>
               <Button Content="Siguiente" Click="NextClick" Margin="0,0,5,0" MinHeight="30" Padding="4,5" FontSize="11"/>
-              <Button x:Name="BlackoutButton" Content="Negro" Click="BlackoutClick" Margin="0,0,5,0" MinHeight="30" Padding="4,5" FontSize="11"/>
-              <Button Content="Fondo" Click="BackgroundClick" MinHeight="30" Padding="4,5" FontSize="11"/>
             </UniformGrid>
             <ScrollViewer Grid.Row="3" x:Name="LiveScroll" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" CanContentScroll="False" MaxHeight="200">
             <Grid>
@@ -393,6 +392,16 @@
             </Grid>
             </Grid>
             </ScrollViewer>
+            <UniformGrid Grid.Row="4" x:Name="OutputBackdropsPanel" Columns="2" Margin="0,8,0,0">
+              <Button x:Name="ChurchBackgroundButton" Content="Fondo iglesia" Click="ChurchBackgroundClick" Margin="0,0,5,0" MinHeight="42" Padding="4,7" FontSize="10" AutomationProperties.Name="Fondo iglesia">
+                <Button.ContextMenu><ContextMenu>
+                  <MenuItem Header="Elegir fondo…" Click="ChurchBackgroundClick"/>
+                  <MenuItem Header="Agregar imagen…" Click="ChangeChurchBackgroundClick"/>
+                  <MenuItem Header="Usar fondo sencillo" Click="ClearChurchBackgroundClick"/>
+                </ContextMenu></Button.ContextMenu>
+              </Button>
+              <Button x:Name="BlackoutButton" Content="Fondo negro" Click="BlackBackgroundClick" MinHeight="42" Padding="4,7" FontSize="10" AutomationProperties.Name="Fondo negro"/>
+            </UniformGrid>
           </Grid>
         </Border>
 </ad:LayoutAnchorable>
