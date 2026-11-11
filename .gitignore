@@ -1,0 +1,9 @@
+.tools/
+**/bin/
+**/obj/
+artifacts/
+.superpowers/
+*.user
+*.suo
+TestResults/
+
