@@ -4,6 +4,18 @@ Comprobación realizada el 11 de noviembre de 2026 en esta PC Windows. Entrega a
 
 ## Compilación y pruebas
 
+### Disolución de himnos y videos — versión 0.10.0
+
+Al proyectar un video desde el orden, la secuencia o la biblioteca se conserva una imagen del contenido saliente hasta recibir el primer fotograma nuevo; después esa imagen se desvanece durante 400 ms. El video entrante se reproduce durante la mezcla. El botón Proyectar usa la misma transición. Se añadió doble clic a las filas de biblioteca, ignorando su espacio vacío. Negro, Fondo, un nuevo contenido y el cierre cancelan la transición; una animación anterior no puede borrar la nueva. La transición es visual: no mantiene dos videos ni mezcla dos pistas de audio.
+
+La salida entrega los fotogramas decodificados por VLC a un WriteableBitmap de WPF; la previa conserva su VideoView nativo. Esto permite mezclar los píxeles dentro de la misma ventana que refleja DWM. El puente sincroniza el búfer nativo y su liberación, alinea planos/paso de fila a 32 bytes y limita a una entrega pendiente al hilo gráfico, descartando fotogramas atrasados. Conserva la relación de aspecto y limita la composición de salida a 1920×1080. Referencia técnica: [callbacks de video de LibVLCSharp](https://docs.videolan.me/libvlcsharp/api/LibVLCSharp.Shared.MediaPlayer.html).
+
+`scripts/build.ps1 -Smoke` terminó con código 0, sin advertencias ni errores: **60 núcleo + 39 mando + 58 escritorio + 32 reproductor = 189 comprobaciones**. La regresión del doble clic falló antes de implementar la disolución. Las nuevas pruebas verifican mezcla de píxeles rojo/azul en la salida, finalización, espera de imagen del MKV, cambios consecutivos y negro durante animación/carga. Las pruebas previas cubren reproducción, pausa, repetición, posición, DWM, paneles y salida sin HDMI. La nueva prueba de biblioteca necesitó activar su pestaña para generar la fila visible antes de simular el doble clic.
+
+En un arnés aislado, sin tocar el catálogo del usuario y con volumen cero, el archivo local «012 Todos juntos reunidos.mkv» completó la transición y presentó **450 fotogramas en 15 segundos**, imagen 1902×1080, reproducción activa y monitor DWM conectado, sin errores. El proceso consumió 5,05 segundos de CPU en ese intervalo en esta PC de 20 procesadores lógicos. No es una garantía de rendimiento para todos los videos o equipos. La prueba física HDMI sigue pendiente.
+
+Se publicó la distribución autónoma 0.10.0 y se abrió maximizada con la distribución personalizada conservada, cuatro elementos del orden, 616 contenidos y Bienvenidos en previa. La salida quedó cerrada. La comprobación visual de la consola confirma la apertura y conservación del espacio de trabajo; la mezcla se verificó mediante los píxeles del reproductor y las pruebas nativas descritas arriba.
+
 ### Control de salida externa — versión 0.9.0
 
 Se eliminó la apertura automática de ensayo en el monitor de la consola. La selección excluye el monitor donde está la ventana de control, respeta una salida externa guardada y admite que la pantalla principal de Windows sea la de la iglesia. En pantalla incorpora Pantalla… y Activar/Desactivar salida. La salida externa es completa, sin bordes ni entrada propia en la barra de tareas, y no solicita el foco al abrirse. Al cerrar, el monitor DWM se desconecta y desaparece el título en vivo. Al activar se recupera el último contenido enviado, sin proyectar el preparado; los videos quedan pausados.

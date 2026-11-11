@@ -11,6 +11,16 @@ namespace Culto.Desktop;
 
 public partial class MainWindow
 {
+    private void LibraryDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (!_ready || e.ChangedButton != MouseButton.Left) return;
+        var source = e.OriginalSource as DependencyObject;
+        while (source is FrameworkContentElement content) source = content.Parent;
+        if (source is null || ItemsControl.ContainerFromElement(LibraryList, source) is not ListBoxItem { DataContext: Cue cue }) return;
+        e.Handled = true;
+        if (_session.Prepared?.Id != cue.Id) PrepareCue(cue);
+        ProjectPrepared();
+    }
     private void RefreshLibrary()
     {
         if (!_ready) return;

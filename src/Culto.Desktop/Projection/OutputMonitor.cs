@@ -6,7 +6,7 @@ using System.Windows.Media;
 
 namespace Culto.Desktop.Projection;
 
-// The compositor mirrors the actual output HWND, including VLC's native child.
+// The compositor mirrors the actual output HWND, including video and dissolves.
 // There is no second decoder or audio player to drift from the congregation output.
 public sealed class OutputMonitor : FrameworkElement, IDisposable
 {

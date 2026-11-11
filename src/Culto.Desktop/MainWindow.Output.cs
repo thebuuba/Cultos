@@ -20,7 +20,8 @@ public partial class MainWindow
         if (!EnsureOutput()) return;
         _liveReading = _preparedReading;
         _session.GoLive();
-        _output!.ShowCue(_session.Live);
+        if (_session.Live?.Kind == CueKind.Video) _output!.TransitionTo(_session.Live);
+        else _output!.ShowCue(_session.Live);
         if (_session.Live?.Kind is CueKind.Video or CueKind.Audio) _output.SetPaused(false);
         _isPaused = false;
         UpdateSessionLabels();

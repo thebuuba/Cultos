@@ -32,7 +32,9 @@ Las categorías **Todo, Himnos, Videos, Imágenes, Audio y Textos** filtran la b
 
 El orden muestra la posición de cada momento y una marca **EN VIVO** en el elemento que está en salida. El menú **⋯** permite subir, bajar o quitar el seleccionado; también puedes arrastrarlo. **Notas del elemento** abre las notas privadas. Puedes ajustar los paneles arrastrando los separadores y leer títulos largos al colocar el puntero encima.
 
-**Un clic en el orden** prepara la vista previa. **Doble clic sobre un elemento** lo envía a la pantalla de la iglesia e inicia su reproducción si es video/audio. El doble clic en espacio vacío no proyecta y arrastrar sólo reordena. Si la salida está cerrada, se abre la pantalla configurada; si sólo está disponible el monitor del operador, se usa una ventana de ensayo.
+**Un clic en el orden** prepara la vista previa. **Doble clic sobre un elemento** lo envía a la pantalla de la iglesia e inicia su reproducción si es video/audio. El doble clic en espacio vacío no proyecta y arrastrar sólo reordena. Si la salida está cerrada, se abre la pantalla externa configurada; si sólo está disponible el monitor del operador, se avisa sin abrir una ventana de ensayo.
+
+Desde 0.10, los himnos y videos enviados desde el orden, la secuencia o la biblioteca entran con una **disolución de 400 ms**. También se aplica al botón Proyectar. La última imagen de la salida se conserva mientras carga el nuevo video y se desvanece cuando llega su primer fotograma; el nuevo video continúa reproduciéndose durante la mezcla. El monitor En pantalla refleja la misma transición. Negro, Fondo y desactivar salida la interrumpen inmediatamente. Es una transición visual; no mezcla dos pistas de audio.
 
 Los videos se reproducen dentro de la vista previa en un **minirreproductor silencioso**, con pausa/continuación, reinicio, duración y barra de avance. Estos controles sólo afectan a la vista previa; los controles de **En pantalla** actúan sobre la salida de la iglesia.
 

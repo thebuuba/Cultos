@@ -92,7 +92,8 @@ internal static class Program
             Check(capture.Width == display.Width && capture.Height == display.Height, "Capture dimensions match physical selected display");
         // Native playback startup varies with machine load. Observe a real end
         // and a second Playing event rather than assuming both occur at 3.4 s.
-        var outputPlayer = Descendants(output).OfType<VideoView>().Single().MediaPlayer!;
+        var outputPlayer = (LibVLCSharp.Shared.MediaPlayer)typeof(ProjectionSurface)
+            .GetField("_player", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(output)!;
         int ended = 0, started = 0;
         EventHandler<EventArgs> onEnd = (_, _) => System.Threading.Interlocked.Increment(ref ended);
         EventHandler<EventArgs> onPlay = (_, _) => System.Threading.Interlocked.Increment(ref started);
@@ -117,7 +118,52 @@ internal static class Program
         File.WriteAllText(Path.Combine(Folder, "corrupt.png"), "invalid image data");
         output.ShowCue(new Cue { Kind = CueKind.Image, FilePath = Path.Combine(Folder, "corrupt.png") });
         Check(errors.Count == 2, "Corrupt image reports recoverable error");
+        await RunDissolveChecks(output, video);
         window.Close(); previewWindow.Close();
+    }
+    static async Task RunDissolveChecks(ProjectionSurface output, Cue video)
+    {
+        Cue Solid(string name, byte red, byte blue)
+        {
+            var bitmap = System.Windows.Media.Imaging.BitmapSource.Create(1, 1, 96, 96, PixelFormats.Bgr32, null, new byte[] { blue, 0, red, 255 }, 4);
+            var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+            encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
+            var path = Path.Combine(Folder, name + ".png"); using var stream = File.Create(path); encoder.Save(stream);
+            return new Cue { Kind = CueKind.Image, FilePath = path, Title = name };
+        }
+        byte[] Center()
+        {
+            output.UpdateLayout();
+            var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap((int)output.ActualWidth, (int)output.ActualHeight, 96, 96, PixelFormats.Pbgra32);
+            bitmap.Render(output);
+            var pixels = new byte[4]; bitmap.CopyPixels(new Int32Rect(bitmap.PixelWidth / 2, bitmap.PixelHeight / 2, 1, 1), pixels, 4, 0);
+            return pixels;
+        }
+        var red = Solid("dissolve-red", 255, 0); var blue = Solid("dissolve-blue", 0, 255);
+        output.ShowCue(red); await Task.Delay(100);
+        output.TransitionTo(blue);
+        Check(output.IsTransitioning, "Dissolve retains the outgoing image immediately");
+        await Task.Delay(170);
+        var mixed = Center();
+        Check(mixed[0] > 20 && mixed[2] > 20, $"Dissolve blends real output pixels (blue={mixed[0]}, red={mixed[2]})");
+        await Task.Delay(500);
+        var final = Center();
+        Check(!output.IsTransitioning && final[0] > 240 && final[2] < 10, "Dissolve completes and releases the outgoing frame");
+        output.TransitionTo(red); await Task.Delay(80);
+        output.ShowCue(red, blackout: true); await Task.Delay(450);
+        var black = Center();
+        Check(!output.IsTransitioning && black[0] + black[1] + black[2] == 0, "Blackout cancels a dissolve immediately and cannot reveal old content");
+        output.ShowCue(red);
+        output.TransitionTo(video); output.SetPaused(false);
+        Check(output.IsTransitioning && Center()[2] > 240, "Video loading retains the previous output frame");
+        var timeout = DateTime.UtcNow.AddSeconds(10);
+        while (output.IsTransitioning && DateTime.UtcNow < timeout) await Task.Delay(50);
+        var rendered = Descendants(output).OfType<CompositedVideo>().Single();
+        Check(!output.IsTransitioning && rendered.Source is not null && output.IsPlaying, "Native MKV frames enter and finish the output dissolve");
+        output.TransitionTo(blue); await Task.Delay(60); output.TransitionTo(red); await Task.Delay(600);
+        Check(!output.IsTransitioning && Center()[2] > 240, "Rapid consecutive transitions finish on the newest cue");
+        output.TransitionTo(video); output.ShowCue(video, blackout: true); await Task.Delay(550);
+        Check(!output.IsTransitioning && !output.IsPlaying && Center().Take(3).All(x => x == 0), "Pending video frames cannot restore output after blackout");
     }
     [StructLayout(LayoutKind.Sequential)]
     struct NativeRect { public int Left; public int Top; public int Right; public int Bottom; }

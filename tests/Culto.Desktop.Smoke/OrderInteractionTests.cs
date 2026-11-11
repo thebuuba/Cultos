@@ -90,6 +90,30 @@ internal static partial class Program
                 plan.Move(0, 1); window.UpdateLayout();
                 Check(strip.Items.Cast<Cue>().SequenceEqual(plan), "Sequence order became stale after reordering");
             });
+            Test("Library double click projects its row and ignores empty space", () =>
+            {
+                var library = (ListBox)window.FindName("LibraryList");
+                var originalSource = library.ItemsSource;
+                try
+                {
+                    Call(window, "SelectContentSource", 0);
+                    library.ItemsSource = new[] { video };
+                    library.SelectedItem = video; library.ScrollIntoView(video); window.UpdateLayout();
+                    var row = (ListBoxItem)library.ItemContainerGenerator.ContainerFromIndex(0);
+                    Check(row is not null && row.IsVisible, "Library test row is not visible");
+                    library.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+                        { RoutedEvent = Control.MouseDoubleClickEvent, Source = row });
+                    Check(session.Live?.Id == video.Id && Field<ProjectionSurface>(window, "_output").IsTransitioning,
+                        "Library double click did not send its video with a dissolve");
+                    var live = session.Live;
+                    Call(window, "PrepareCue", a, null);
+                    library.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+                        { RoutedEvent = Control.MouseDoubleClickEvent });
+                    Check(ReferenceEquals(session.Live, live), "Empty library space projected the prepared cue");
+                    Call(window, "ProjectPrepared");
+                }
+                finally { library.ItemsSource = originalSource; }
+            });
             Test("Video double click starts output while mini player pause seek and restart stay independent", () =>
             {
                 list.SelectedItem = video;
@@ -97,6 +121,8 @@ internal static partial class Program
                 Until(() => preview.IsPlaying && preview.Duration > 0, "Video did not start in mini player");
                 DoubleClick(video);
                 var output = Field<ProjectionSurface>(window, "_output");
+                Check(output.GetType().GetProperty("IsTransitioning")?.GetValue(output) is true,
+                    "Double click cut directly to video without a dissolve");
                 Until(() => output.IsPlaying && output.Duration > 0, "Double click did not play output video");
                 var panel = window.FindName("PreviewPlaybackPanel") as FrameworkElement;
                 Check(panel?.Visibility == Visibility.Visible, "Mini player controls are missing");

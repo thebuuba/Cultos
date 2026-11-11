@@ -11,7 +11,7 @@ using MediaPlayer = LibVLCSharp.Shared.MediaPlayer;
 
 namespace Culto.Desktop.Projection;
 
-public sealed class ProjectionSurface : UserControl, IDisposable
+public sealed partial class ProjectionSurface : UserControl, IDisposable
 {
     private readonly bool _preview;
     private readonly Grid _root = new() { Background = BackgroundBrush, ClipToBounds = true };
@@ -22,6 +22,7 @@ public sealed class ProjectionSurface : UserControl, IDisposable
     private readonly StackPanel _words;
     private readonly Image _image = new() { Stretch = Stretch.Uniform };
     private readonly VideoView _video = new() { Visibility = Visibility.Collapsed };
+    private readonly CompositedVideo _compositedVideo = new() { Visibility = Visibility.Collapsed };
     private LibVLC? _vlc;
     private MediaPlayer? _player;
     private Media? _media;
@@ -49,8 +50,8 @@ public sealed class ProjectionSurface : UserControl, IDisposable
         _text = new Viewbox { Stretch = Stretch.Uniform, Child = canvas, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
         _root.Children.Add(_image);
         _root.Children.Add(_text);
-        _root.Children.Add(_video);
-        Content = _root;
+        _root.Children.Add(_preview ? _video : _compositedVideo);
+        InitializeDissolve();
         ShowCue(null);
     }
 
@@ -77,9 +78,11 @@ public sealed class ProjectionSurface : UserControl, IDisposable
     public void ShowCue(Cue? cue, bool blackout = false, bool hideText = false)
     {
         if (_disposed) return;
+        CancelDissolve();
+        _cueFailed = false;
         _suppressed = blackout || hideText;
         _root.Background = blackout ? Brushes.Black : BackgroundBrush;
-        _image.Visibility = _text.Visibility = _video.Visibility = Visibility.Collapsed;
+        _image.Visibility = _text.Visibility = _video.Visibility = _compositedVideo.Visibility = Visibility.Collapsed;
         if (_suppressed) SetPaused(true);
 
         bool mediaCue = cue?.Kind is CueKind.Video or CueKind.Audio;
@@ -87,6 +90,7 @@ public sealed class ProjectionSurface : UserControl, IDisposable
         if (key != _mediaKey)
         {
             _player?.Stop();
+            _compositedVideo.Clear();
             if (_player is not null) _player.Media = null;
             _media?.Dispose(); _media = null;
             _mediaKey = key;
@@ -122,7 +126,11 @@ public sealed class ProjectionSurface : UserControl, IDisposable
                 case CueKind.Audio:
                     RequireFile(cue.FilePath);
                     EnsurePlayer();
-                    if (cue.Kind == CueKind.Video) _video.Visibility = Visibility.Visible;
+                    if (cue.Kind == CueKind.Video)
+                    {
+                        if (_preview) _video.Visibility = Visibility.Visible;
+                        else _compositedVideo.Visibility = Visibility.Visible;
+                    }
                     else ShowText(cue.Title);
                     if (_media is null)
                     {
@@ -169,7 +177,8 @@ public sealed class ProjectionSurface : UserControl, IDisposable
         if (_player is not null) return;
         _vlc = new LibVLC("--no-video-title-show", "--quiet");
         _player = new MediaPlayer(_vlc) { Volume = Volume, Mute = _preview, EnableMouseInput = false, EnableKeyInput = false };
-        _video.MediaPlayer = _player;
+        if (_preview) _video.MediaPlayer = _player;
+        else _compositedVideo.Attach(_player);
         _player.EncounteredError += OnPlaybackError;
         _player.Playing += OnPlaying;
         _player.EndReached += OnEndReached;
@@ -196,8 +205,10 @@ public sealed class ProjectionSurface : UserControl, IDisposable
     private void ReportError(string message)
     {
         if (_disposed) return;
+        _cueFailed = true;
+        CancelDissolve();
         _player?.Stop();
-        _video.Visibility = _image.Visibility = Visibility.Collapsed;
+        _video.Visibility = _compositedVideo.Visibility = _image.Visibility = Visibility.Collapsed;
         if (!_suppressed) ShowText("No se pudo mostrar el contenido");
         PlaybackError?.Invoke(message);
     }
@@ -237,13 +248,14 @@ public sealed class ProjectionSurface : UserControl, IDisposable
     public void Dispose()
     {
         if (_disposed) return;
+        CancelDissolve();
         _disposed = true;
         if (_player is not null)
         {
             _player.EncounteredError -= OnPlaybackError; _player.Playing -= OnPlaying; _player.EndReached -= OnEndReached;
             _player.Stop(); _video.MediaPlayer = null; _player.Dispose();
         }
-        _video.Dispose(); _media?.Dispose(); _vlc?.Dispose();
+        _video.Dispose(); _compositedVideo.Dispose(); _media?.Dispose(); _vlc?.Dispose();
         _image.Source = null;
     }
 }
