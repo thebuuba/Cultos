@@ -23,8 +23,8 @@ internal static partial class Program
         var app = new System.Windows.Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
         app.Startup += async (_, _) =>
         {
-            try { await Run(args.Contains("--audio-fades"), args.Contains("--backdrops")); File.WriteAllLines(Path.Combine(Folder, "result.txt"), Results); app.Shutdown(0); }
-            catch (Exception ex) { File.WriteAllText(Path.Combine(Folder, "result.txt"), ex.ToString()); app.Shutdown(1); }
+            try { await Run(args.Contains("--audio-fades"), args.Contains("--backdrops"), args.Contains("--bible-styles"), args.Contains("--global-transitions"), args.Contains("--dissolves")); File.WriteAllLines(Path.Combine(Folder, "result.txt"), Results); app.Shutdown(0); }
+            catch (Exception ex) { File.WriteAllLines(Path.Combine(Folder, "result.txt"), Results.Append(ex.ToString())); app.Shutdown(1); }
         };
         app.Run();
     }
@@ -39,7 +39,7 @@ internal static partial class Program
         for (int i = 0; i < VisualTreeHelper.GetChildrenCount(value); i++)
             foreach (var child in Descendants(VisualTreeHelper.GetChild(value, i))) yield return child;
     }
-    static async Task Run(bool audioOnly = false, bool backdropsOnly = false)
+    static async Task Run(bool audioOnly = false, bool backdropsOnly = false, bool bibleStylesOnly = false, bool globalTransitionsOnly = false, bool dissolvesOnly = false)
     {
         using var output = new ProjectionSurface();
         using var preview = new ProjectionSurface(true);
@@ -49,6 +49,27 @@ internal static partial class Program
         window.Show();
         var previewWindow = new Window { Content = preview, Width = 480, Height = 300, Left = 1000, Top = 20 };
         previewWindow.Show();
+        // Projection normally avoids stealing focus. The smoke host must stay visible:
+        // WPF can throttle animation rendering when another desktop app occludes it.
+        window.Topmost = true;
+        window.Activate();
+        if (dissolvesOnly)
+        {
+            await RunDissolveChecks(output,
+                new Cue { Kind = CueKind.Video, FilePath = Path.Combine(Folder, "test.mkv") });
+            window.Close(); previewWindow.Close(); return;
+        }
+        if (globalTransitionsOnly)
+        {
+            await RunGlobalTransitionChecks(output, preview,
+                new Cue { Kind = CueKind.Video, FilePath = Path.Combine(Folder, "test.mkv") });
+            window.Close(); previewWindow.Close(); return;
+        }
+        if (bibleStylesOnly)
+        {
+            await RunBibleStyleChecks(output, preview);
+            window.Close(); previewWindow.Close(); return;
+        }
         if (backdropsOnly)
         {
             await RunBackdropTransitionChecks(output, preview,
@@ -134,6 +155,8 @@ internal static partial class Program
         await RunDissolveChecks(output, video);
         await RunAudioFadeChecks(output, preview, video, audio);
         await RunBackdropTransitionChecks(output, preview, video);
+        await RunBibleStyleChecks(output, preview);
+        await RunGlobalTransitionChecks(output, preview, video);
         window.Close(); previewWindow.Close();
     }
     static async Task RunDissolveChecks(ProjectionSurface output, Cue video)
@@ -155,13 +178,25 @@ internal static partial class Program
             return pixels;
         }
         var red = Solid("dissolve-red", 255, 0); var blue = Solid("dissolve-blue", 0, 255);
-        output.ShowCue(red); await Task.Delay(100);
+        output.ShowCue(red);
+        Check(Center()[2] > 240, "Dissolve starts from the rendered outgoing image");
         output.TransitionTo(blue);
         Check(output.IsTransitioning, "Dissolve retains the outgoing image immediately");
-        await Task.Delay(170);
+        // WPF starts its animation clock on a render tick, not when BeginAnimation
+        // returns. Observe an actual blended frame instead of assuming a wall-clock midpoint.
+        var overlay = (Image)typeof(ProjectionSurface).GetField("_dissolve", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(output)!;
+        var diagnostics = new List<string>();
+        var blendDeadline = DateTime.UtcNow.AddSeconds(2);
         var mixed = Center();
-        Check(mixed[0] > 20 && mixed[2] > 20, $"Dissolve blends real output pixels (blue={mixed[0]}, red={mixed[2]})");
-        await Task.Delay(500);
+        while (!(mixed[0] > 20 && mixed[2] > 20) && output.IsTransitioning && DateTime.UtcNow < blendDeadline)
+        {
+            diagnostics.Add($"{mixed[0]}/{mixed[2]},opacity={overlay.Opacity:0.000}");
+            await Task.Delay(15);
+            mixed = Center();
+        }
+        Check(mixed[0] > 20 && mixed[2] > 20, $"Dissolve blends real output pixels (blue={mixed[0]}, red={mixed[2]}; samples={string.Join("; ", diagnostics)})");
+        var finishDeadline = DateTime.UtcNow.AddSeconds(2);
+        while (output.IsTransitioning && DateTime.UtcNow < finishDeadline) await Task.Delay(15);
         var final = Center();
         Check(!output.IsTransitioning && final[0] > 240 && final[2] < 10, "Dissolve completes and releases the outgoing frame");
         output.TransitionTo(red); await Task.Delay(80);

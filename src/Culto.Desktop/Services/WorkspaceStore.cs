@@ -7,6 +7,10 @@ public sealed class WorkspaceData
 {
     public ServicePlan Plan { get; set; } = new();
     public List<Cue> Library { get; set; } = [];
+    public List<SavedSet> VideoCollections { get; set; } = [];
+    public List<SavedSet> SavedServices { get; set; } = [];
+    public bool PresenterEnabled { get; set; }
+    public bool PresenterUsesArrows { get; set; }
     public List<DeckButton> Deck { get; set; } =
     [
         new("project", "Proyectar preparado", "#43D9BE", "project"),
@@ -19,6 +23,8 @@ public sealed class WorkspaceData
     public string? DisplayDevice { get; set; }
     public string? BackgroundImagePath { get; set; }
     public List<string> BackgroundImages { get; set; } = [];
+    public BibleVisualStyle BibleStyle { get; set; } = new();
+    public TransitionOptions Transitions { get; set; } = new();
     public int Volume { get; set; } = 80;
     public bool Loop { get; set; }
 }
@@ -39,7 +45,11 @@ public sealed class WorkspaceStore
         if (data is not null)
         {
             data.Plan ??= new(); data.Plan.Items ??= []; data.Library ??= []; data.Deck ??= [];
+            data.VideoCollections = NormalizeSets(data.VideoCollections, videosOnly: true);
+            data.SavedServices = NormalizeSets(data.SavedServices);
             data.BackgroundImages ??= [];
+            data.BibleStyle = (data.BibleStyle ?? new()).Normalize();
+            data.Transitions = (data.Transitions ?? new()).Normalize();
             data.Volume = Math.Clamp(data.Volume, 0, 100);
             return data;
         }
@@ -67,6 +77,14 @@ public sealed class WorkspaceStore
             if (File.Exists(source)) File.Move(source, destination);
         }
     }
+    private static List<SavedSet> NormalizeSets(List<SavedSet>? sets, bool videosOnly = false) =>
+        (sets ?? []).Where(set => set is not null).Select(set =>
+        {
+            set.Name = string.IsNullOrWhiteSpace(set.Name) ? "Sin título" : set.Name.Trim();
+            set.Items = (set.Items ?? []).Where(cue => cue is not null && Enum.IsDefined(cue.Kind)
+                && (!videosOnly || cue.Kind == CueKind.Video)).ToList();
+            return set;
+        }).ToList();
     public void Save(WorkspaceData data) => JsonFileStore.Save(Path.Combine(DirectoryPath, "workspace.json"), data);
     public void Archive(ServicePlan plan)
     {

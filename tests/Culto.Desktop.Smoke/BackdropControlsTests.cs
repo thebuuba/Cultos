@@ -45,7 +45,19 @@ internal static partial class Program
                 FilePath = Path.Combine(AppContext.BaseDirectory, "fixtures", "test.mkv") }, null);
             Call(window, "ProjectPrepared");
             var output = Field<ProjectionSurface>(window, "_output");
-            Until(() => output.IsPlaying && output.Position > .2 && !output.IsTransitioning, "Backdrop fixture did not begin local playback");
+            var states = new List<string>();
+            try
+            {
+                Until(() =>
+                {
+                    var player = Field<LibVLCSharp.Shared.MediaPlayer?>(output, "_player");
+                    var overlay = Field<Image>(output, "_dissolve");
+                    var state = $"native={player?.State},position={output.Position:0.0},paused={output.IsPaused},transition={output.IsTransitioning},waitingFrame={Field<bool>(output, "_waitingForFrame")},opacity={overlay.Opacity:0.00},black={session.IsBlackout},hidden={session.IsTextHidden}";
+                    if (states.LastOrDefault() != state) states.Add(state);
+                    return output.IsPlaying && output.Position > .2 && !output.IsTransitioning;
+                }, "Backdrop fixture did not begin local playback");
+            }
+            catch (Exception error) { throw new InvalidOperationException(error.Message + ": " + string.Join("; ", states.TakeLast(25)), error); }
             return output;
         }
         try

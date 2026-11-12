@@ -224,6 +224,8 @@
           <Button.ContextMenu><ContextMenu>
             <MenuItem Header="Nuevo culto" Click="NewPlanClick"/>
             <MenuItem Header="Abrir culto…" Click="OpenPlanClick"/>
+            <MenuItem Header="Guardar culto…" Click="SaveServiceClick"/>
+            <MenuItem Header="Cultos guardados…" Click="SavedServicesClick"/>
             <MenuItem Header="Guardar una copia…" InputGestureText="Ctrl+S" Click="SavePlanClick"/>
           </ContextMenu></Button.ContextMenu>
         </Button>
@@ -232,6 +234,8 @@
             <MenuItem Header="Añadir archivos…" Click="ImportFilesClick"/>
             <MenuItem Header="Importar carpeta de himnos…" Click="ImportFolderClick"/>
             <MenuItem Header="Importar Biblia…" Click="ImportBibleClick"/>
+            <MenuItem Header="Colecciones de videos…" Click="VideoCollectionsClick"/>
+            <MenuItem Header="Añadir video a una colección…" Click="AddVideoToCollectionClick"/>
             <Separator/>
             <MenuItem Header="Capturar una pantalla…" Click="CaptureClick"/>
             <MenuItem Header="Editar el contenido seleccionado…" Click="EditLibraryClick"/>
@@ -240,6 +244,11 @@
         <Button x:Name="SettingsMenuButton" Content="_Configuración" Style="{StaticResource MenuBarButton}" Click="OpenActionsClick" AutomationProperties.Name="Configuración">
           <Button.ContextMenu><ContextMenu>
             <MenuItem Header="Pantallas y salida…" Click="DisplayClick"/>
+            <MenuItem Header="Transición del sistema…" Click="TransitionSettingsClick"/>
+            <MenuItem Header="Presentador USB">
+              <MenuItem x:Name="PresenterEnabledMenu" Header="Control en segundo plano" IsCheckable="True" Click="TogglePresenterClick" ToolTip="Captura Av Pág y Re Pág aunque otra aplicación esté activa."/>
+              <MenuItem x:Name="PresenterArrowsMenu" Header="Usar flechas izquierda y derecha" IsCheckable="True" Click="TogglePresenterArrowsClick" ToolTip="Estas teclas del teclado también controlarán la salida mientras esté activado."/>
+            </MenuItem>
             <MenuItem Header="Fondos de iglesia…" Click="ChurchBackgroundClick"/>
             <MenuItem x:Name="RemoteButton" Header="Mando móvil…" Click="RemoteClick"/>
           </ContextMenu></Button.ContextMenu>
@@ -365,6 +374,10 @@
               <Button Grid.Column="1" x:Name="ChooseOutputButton" Content="Pantalla…" Click="DisplayClick" FontSize="10" MinHeight="28" Padding="8,4" Margin="5,0"/>
               <Button Grid.Column="2" x:Name="ToggleOutputButton" Content="Activar HDMI" Click="ToggleOutputClick" FontSize="10" MinHeight="28" Padding="8,4"/>
             </Grid>
+            <UniformGrid Grid.Row="2" x:Name="PowerPointPlaybackPanel" Columns="2" Visibility="Collapsed" Margin="0,5,0,0">
+              <Button x:Name="PowerPointPauseButton" Content="Pausar" Click="PauseClick" Margin="0,0,5,0"/>
+              <Button Content="Reiniciar" Click="RestartClick"/>
+            </UniformGrid>
             <Grid Grid.Row="3" x:Name="MediaPlaybackPanel" Visibility="Collapsed" Margin="0,6,0,0">
               <Border Background="#24222B" CornerRadius="16" Padding="0,3,0,5">
                 <Grid>
@@ -423,6 +436,9 @@
                 <MenuItem Header="Bajar elemento" Click="MoveDownClick"/>
                 <Separator/>
                 <MenuItem Header="Quitar del orden" Click="RemoveCueClick"/>
+                <Separator/>
+                <MenuItem Header="Guardar culto…" Click="SaveServiceClick"/>
+                <MenuItem Header="Cultos guardados…" Click="SavedServicesClick"/>
               </ContextMenu></Button.ContextMenu>
             </Button>
           </Grid>
@@ -440,6 +456,8 @@
                   <MenuItem x:Name="AddOrderLibrary" Header="Himno o contenido de biblioteca…" Tag="0" Click="AddOrderSourceClick"/>
                   <MenuItem x:Name="AddOrderBible" Header="Pasaje de la Biblia…" Tag="1" Click="AddOrderSourceClick"/>
                   <MenuItem x:Name="AddOrderText" Header="Texto o anuncio…" Tag="2" Click="AddOrderSourceClick"/>
+                  <MenuItem Header="Colección de videos…" Click="VideoCollectionsClick"/>
+                  <MenuItem Header="Culto guardado…" Click="SavedServicesClick"/>
                   <Separator/>
                   <MenuItem Header="Videos, imágenes o audio desde archivos…" Click="AddOrderFilesClick"/>
                 </ContextMenu></Button.ContextMenu>
@@ -487,7 +505,7 @@
               </Grid>
               <ListBox x:Name="LibraryFilter" Grid.Row="1" SelectedIndex="0" SelectionChanged="LibraryFilterChanged" ItemContainerStyle="{StaticResource FilterChip}" Margin="0,10,0,2" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled" AutomationProperties.Name="Categoría de la biblioteca">
                 <ListBox.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ListBox.ItemsPanel>
-                <ListBoxItem Content="Todo"/><ListBoxItem Content="Himnos"/><ListBoxItem Content="Videos"/><ListBoxItem Content="Imágenes"/><ListBoxItem Content="Audio"/><ListBoxItem Content="Textos"/><ListBoxItem Content="Descargas"/>
+                <ListBoxItem Content="Todo"/><ListBoxItem Content="Himnos"/><ListBoxItem Content="Videos"/><ListBoxItem Content="Imágenes"/><ListBoxItem Content="Audio"/><ListBoxItem Content="Textos"/><ListBoxItem Content="Descargas"/><ListBoxItem Content="PowerPoint"/>
               </ListBox>
               <Grid Grid.Row="2" Margin="2,4,0,8">
                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -501,6 +519,7 @@
               <Grid Grid.Row="4" Margin="0,10,0,0">
                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <Button Content="+ Añadir al orden" Click="AddLibraryToPlanClick" Background="{StaticResource SelectedBrush}" BorderBrush="{StaticResource SelectedBrush}" MinHeight="40"/>
+                <Button Grid.Column="1" Content="Colecciones" Click="VideoCollectionsClick" Margin="6,0,0,0" Padding="10,6" MinHeight="40"/>
               </Grid>
             </Grid>
           </TabItem>
@@ -513,21 +532,27 @@
                   <TextBlock x:Name="BibleNameText" Text="Biblia" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
                   <TextBlock x:Name="BibleStatusText" Text="Sin Biblia cargada" Style="{StaticResource MutedText}" FontSize="11" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Margin="0,3,0,0"/>
                 </StackPanel>
+                <Button Grid.Column="1" Content="Estilo" Click="BibleStyleClick" AutomationProperties.Name="Editar estilo de la Biblia" Padding="10,5" VerticalAlignment="Center"/>
               </Grid>
-              <Grid Grid.Row="1" Margin="0,0,0,12">
-                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="80"/><ColumnDefinition Width="80"/></Grid.ColumnDefinitions>
-                <StackPanel Margin="0,0,8,0"><TextBlock Text="Libro" Style="{StaticResource MutedText}" Margin="0,0,0,4"/><ComboBox x:Name="BibleBookPicker" SelectionChanged="BibleBookChanged" MaxDropDownHeight="360" IsTextSearchEnabled="True" AutomationProperties.Name="Libro de la Biblia"/></StackPanel>
-                <StackPanel Grid.Column="1" Margin="0,0,8,0"><TextBlock Text="Capítulo" Style="{StaticResource MutedText}" Margin="0,0,0,4"/><ComboBox x:Name="BibleChapterPicker" SelectionChanged="BibleChapterChanged" MaxDropDownHeight="300" AutomationProperties.Name="Capítulo de la Biblia"/></StackPanel>
-                <StackPanel Grid.Column="2"><TextBlock Text="Versículo" Style="{StaticResource MutedText}" Margin="0,0,0,4"/><ComboBox x:Name="BibleVersePicker" SelectionChanged="BibleVerseChanged" MaxDropDownHeight="300" AutomationProperties.Name="Versículo de la Biblia"/></StackPanel>
+              <Grid Grid.Row="2" Margin="0,0,0,10">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="68"/><ColumnDefinition Width="68"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel Margin="0,0,6,0"><TextBlock Text="Libro" Style="{StaticResource MutedText}" Margin="0,0,0,4"/><ComboBox x:Name="BibleBookPicker" SelectionChanged="BibleBookChanged" MaxDropDownHeight="360" IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True" AutomationProperties.Name="Libro de la Biblia"/></StackPanel>
+                <StackPanel Grid.Column="1" Margin="0,0,6,0"><TextBlock Text="Cap." Style="{StaticResource MutedText}" Margin="0,0,0,4"/><ComboBox x:Name="BibleChapterPicker" SelectionChanged="BibleChapterChanged" MaxDropDownHeight="300" AutomationProperties.Name="Capítulo de la Biblia"/></StackPanel>
+                <StackPanel Grid.Column="2" Margin="0,0,6,0"><TextBlock Text="Vers." Style="{StaticResource MutedText}" Margin="0,0,0,4"/><ComboBox x:Name="BibleVersePicker" SelectionChanged="BibleVerseChanged" MaxDropDownHeight="300" AutomationProperties.Name="Versículo de la Biblia"/></StackPanel>
+                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Bottom">
+                  <Button x:Name="PreviousBibleChapterButton" Content="‹" Click="PreviousBibleChapterClick" IsEnabled="False" Padding="8,3" ToolTip="Capítulo anterior" AutomationProperties.Name="Capítulo anterior"/>
+                  <Button x:Name="NextBibleChapterButton" Content="›" Click="NextBibleChapterClick" IsEnabled="False" Padding="8,3" Margin="4,0,0,0" ToolTip="Capítulo siguiente" AutomationProperties.Name="Capítulo siguiente"/>
+                </StackPanel>
               </Grid>
-              <StackPanel Grid.Row="2" Margin="0,0,0,8">
-                <TextBlock Text="Cita o frase" Style="{StaticResource MutedText}" Margin="0,0,0,6"/>
-                <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                  <TextBox x:Name="BibleQuery" KeyDown="BibleQueryKeyDown" AutomationProperties.Name="Cita o palabras de la Biblia" FontSize="16" MinHeight="40"/>
-                  <Button Grid.Column="1" Content="Buscar" Click="SearchBibleClick" Margin="6,0,0,0"/>
+              <StackPanel Grid.Row="1" Margin="0,0,0,10">
+                <TextBlock Text="Buscar cita o frase" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                  <TextBox x:Name="BibleQuery" TextChanged="BibleQueryChanged" PreviewKeyDown="BibleQueryKeyDown" AutomationProperties.Name="Cita o palabras de la Biblia" FontSize="16" MinHeight="40" ToolTip="Juan 3:16 · Jn 3 16 · una frase"/>
+                  <Button Grid.Column="1" Content="×" Click="ClearBibleQueryClick" Margin="4,0,0,0" Padding="9,5" ToolTip="Limpiar búsqueda (Esc)" AutomationProperties.Name="Limpiar búsqueda de la Biblia"/>
+                  <Button Grid.Column="2" Content="Buscar" Click="SearchBibleClick" Margin="4,0,0,0" Padding="10,5"/>
                 </Grid>
               </StackPanel>
-              <TextBlock Grid.Row="3" x:Name="BibleResultText" Style="{StaticResource MutedText}" Margin="0,0,0,8"/>
+              <TextBlock Grid.Row="3" x:Name="BibleResultText" Style="{StaticResource MutedText}" Margin="0,0,0,8" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
               <ListBox Grid.Row="4" x:Name="BibleResults" SelectionChanged="BibleSelectionChanged" AutomationProperties.Name="Resultados de Biblia">
                 <ListBox.ItemTemplate><DataTemplate><StackPanel>
                   <TextBlock Text="{Binding Reference}" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold" Margin="0,0,0,5"/>

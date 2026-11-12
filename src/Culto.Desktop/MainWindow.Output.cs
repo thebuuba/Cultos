@@ -12,25 +12,27 @@ namespace Culto.Desktop;
 public partial class MainWindow
 {
     private void ProjectClick(object sender, RoutedEventArgs e) => ProjectPrepared();
-    private void ProjectPrepared()
+    private void ProjectPrepared() => ProjectPreparedCore(activate: true);
+    private void ProjectPreparedWithoutActivation() => ProjectPreparedCore(activate: false);
+    private void ProjectPreparedCore(bool activate)
     {
         var cue = _session.Prepared;
         if (cue is null) { SetStatus("Selecciona primero un contenido para preparar."); return; }
         if (!CheckMedia(cue)) return;
         if (!EnsureOutput()) return;
+        if (!PreparePowerPointOutput(cue)) return;
         _liveReading = _preparedReading;
         _session.GoLive();
-        if (_session.Live?.Kind == CueKind.Video) _output!.TransitionTo(_session.Live);
-        else _output!.ShowCue(_session.Live);
-        if (_session.Live?.Kind is CueKind.Video or CueKind.Audio) _output.SetPaused(false);
+        ShowLiveCue();
+        if (_session.Live?.Kind is CueKind.Video or CueKind.Audio) _output!.SetPaused(false);
         _isPaused = false;
         UpdateSessionLabels();
         SetStatus($"{(_outputWindow is null ? "Local" : "En pantalla")}: {cue.Title}");
-        Activate();
+        if (activate) Activate();
     }
     private bool CheckMedia(Cue cue)
     {
-        if (cue.Kind is not (CueKind.Image or CueKind.Video or CueKind.Audio)) return true;
+        if (cue.Kind is not (CueKind.Image or CueKind.Video or CueKind.Audio or CueKind.PowerPoint)) return true;
         try
         {
             if (string.IsNullOrWhiteSpace(cue.FilePath) || !File.Exists(cue.FilePath))
@@ -52,7 +54,7 @@ public partial class MainWindow
         try
         {
             _output = new ProjectionSurface { Volume = (int)VolumeSlider.Value, Loop = LoopCheck.IsChecked == true,
-                BackgroundImagePath = _workspace.BackgroundImagePath };
+                BackgroundImagePath = _workspace.BackgroundImagePath, BibleStyle = _workspace.BibleStyle.Normalize(), Transitions = _workspace.Transitions.Normalize() };
             _output.PlaybackError += message => Dispatcher.BeginInvoke(() => { _isPaused = true; SetStatus(message, true); });
             _output.ShowCue(_session.Live, blackout: true);
             _output.ShowCue(_session.Live, _session.IsBlackout, _session.IsTextHidden);
@@ -83,14 +85,15 @@ public partial class MainWindow
         {
             if (!ReferenceEquals(window, _outputWindow)) return;
             window.Content = null;
-            _outputWindow = null; _outputDisplay = null;
+            _outputWindow = null; _outputDisplay = null; _outputIsTest = false;
             LiveMonitor.SetSource(null);
-            AttachLocalOutput(); UpdateSessionLabels();
+            AttachLocalOutput(); RoutePowerPointOutput(); UpdateSessionLabels();
             SetStatus("HDMI desactivado · reproducción local.");
         };
         DisplayService.PlaceWindow(window, display, fullscreen: !test);
         window.Show();
         LiveMonitor.SetSource(window);
+        RoutePowerPointOutput();
         _workspace.DisplayDevice = display.DeviceName;
         SaveWorkspace();
         OutputStatusText.Text = test ? "Ventana de ensayo en este monitor" : $"Salida HDMI · {display.Width} × {display.Height}";
@@ -104,10 +107,12 @@ public partial class MainWindow
         LiveMonitor.SetSource(null);
         if (window is not null) { window.Content = null; window.Close(); }
         AttachLocalOutput();
+        RoutePowerPointOutput();
         if (_ready) UpdateSessionLabels();
     }
     private void CloseOutput()
     {
+        StopPowerPointOutput();
         CloseExternalOutput();
         LiveMonitor.SetLocalSource(null);
         _output?.SetPaused(true); _output?.Dispose(); _output = null;
@@ -135,8 +140,8 @@ public partial class MainWindow
         OpenOutput(display, test: false);
         SetStatus("HDMI activado.");
     }
-    private void NextClick(object sender, RoutedEventArgs e) => MoveLive(1);
-    private void PreviousClick(object sender, RoutedEventArgs e) => MoveLive(-1);
+    private void NextClick(object sender, RoutedEventArgs e) => AdvancePresentation(1);
+    private void PreviousClick(object sender, RoutedEventArgs e) => AdvancePresentation(-1);
     private void MoveLive(int delta)
     {
         if (_output is null || _session.Live is null) { SetStatus("Proyecta primero un elemento del culto."); return; }
@@ -147,6 +152,7 @@ public partial class MainWindow
             var nextIndex = index + delta;
             if (nextIndex < 0 || nextIndex >= _plan.Count) { SetStatus("Has llegado al límite del orden de culto."); return; }
             if (!CheckMedia(_plan[nextIndex])) return;
+            if (!PreparePowerPointOutput(_plan[nextIndex])) return;
             if (!_session.Move(_workspace.Plan, delta)) return;
             _preparedReading = null;
             _liveReading = null;
@@ -161,7 +167,8 @@ public partial class MainWindow
             _session.Prepare(_liveReading[readingIndex]); _session.GoLive();
         }
         else { SetStatus("Este contenido no pertenece al orden. Prepara el siguiente y pulsa Proyectar."); return; }
-        _output!.ShowCue(_session.Live); _isPaused = false;
+        ShowLiveCue(); _isPaused = false;
+        _preview.BibleStyle = _workspace.BibleStyle.Normalize();
         _preview.ShowCue(_session.Prepared);
         _previewPaused = false;
         UpdatePlayButton(PreviewPauseButton, false, true);
@@ -173,7 +180,7 @@ public partial class MainWindow
     {
         if (_output is null) { SetStatus("La salida ya está cerrada."); return; }
         _session.ToggleBlackout();
-        _output.ShowCue(_session.Live, _session.IsBlackout, _session.IsTextHidden);
+        ApplyBackdropTransition();
         _isPaused = true;
         UpdateSessionLabels();
         SetStatus(_session.IsBlackout ? "Salida en negro; reproducción pausada." : "Imagen restaurada; reproducción pausada.");
@@ -183,13 +190,20 @@ public partial class MainWindow
     {
         if (_output is null) return;
         _session.ShowBackground();
-        _output.ShowCue(_session.Live, _session.IsBlackout, _session.IsTextHidden);
+        ApplyBackdropTransition();
         _isPaused = true; UpdateSessionLabels();
         SetStatus("Fondo sin contenido.");
     }
     private void PauseClick(object sender, RoutedEventArgs e) => TogglePause();
     private void TogglePause()
     {
+        if (_session.Live?.Kind == CueKind.PowerPoint && _powerPoint is not null)
+        {
+            if (_session.IsBlackout || _session.IsTextHidden) return;
+            _isPaused = !_isPaused; _powerPoint.SetPaused(_isPaused);
+            PowerPointPauseButton.Content = _isPaused ? "Continuar" : "Pausar";
+            return;
+        }
         if (_output is null || _session.Live?.Kind is not (CueKind.Video or CueKind.Audio)) return;
         if (_session.IsBlackout || _session.IsTextHidden) { SetStatus("Restaura la imagen antes de continuar el video."); return; }
         _isPaused = !_output.IsPaused;
@@ -199,6 +213,12 @@ public partial class MainWindow
     private void RestartClick(object sender, RoutedEventArgs e) => RestartMedia();
     private void RestartMedia()
     {
+        if (_session.Live?.Kind == CueKind.PowerPoint && _powerPoint is not null)
+        {
+            if (_session.IsBlackout || _session.IsTextHidden) return;
+            _powerPoint.Restart(); _isPaused = false; UpdatePowerPointPosition();
+            PowerPointPauseButton.Content = "Pausar"; return;
+        }
         if (_output is null || _session.Live?.Kind is not (CueKind.Video or CueKind.Audio)) return;
         if (_session.IsBlackout || _session.IsTextHidden) { SetStatus("Restaura la imagen antes de reiniciar el video."); return; }
         _output.Restart(); _isPaused = false;
@@ -223,6 +243,11 @@ public partial class MainWindow
     }
     private void TimerTick(object? sender, EventArgs e)
     {
+        if (_powerPoint is not null && !_powerPoint.IsRunning)
+        {
+            StopPowerPointOutput();
+            SetStatus("La presentación de PowerPoint se cerró. Puedes enviarla otra vez desde el orden.", true);
+        }
         if (_session.Prepared?.Kind is CueKind.Video or CueKind.Audio)
         {
             var duration = _preview.Duration;

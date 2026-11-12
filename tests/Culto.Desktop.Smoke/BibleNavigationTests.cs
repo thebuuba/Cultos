@@ -60,6 +60,7 @@ internal static partial class Program
             Test("Book and chapter navigation use existing data and prepare without projection", () =>
             {
                 query.Text = "Consulta conservada";
+                book.SelectedItem = "Juan";
                 book.SelectedItem = "Génesis";
                 Check(chapter.Items.Cast<int>().SequenceEqual(new[] { 2 }), "Chapter picker assumed a chapter absent from imported data");
                 Check(verse.Items.Cast<int>().SequenceEqual(new[] { 5, 7 }), "Verse picker fabricated missing verses");
@@ -153,17 +154,15 @@ internal static partial class Program
                 }
             });
 
-            Test("Invalid chapter lookup keeps the last valid selection prepared", () =>
+            Test("Invalid chapter lookup preserves prepared content and clears stale actions", () =>
             {
                 var prepared = session.Prepared;
-                var selected = results.SelectedItem;
                 var addPassage = (Button)window.FindName("AddBiblePassageButton");
-                var passageLabel = addPassage.Content;
-                var passageVisibility = addPassage.Visibility;
                 Search("Juan 999");
                 Check(resultText.Text.Contains("capítulo", StringComparison.OrdinalIgnoreCase), "Missing chapter did not show a Spanish chapter error");
-                Check(ReferenceEquals(prepared, session.Prepared) && ReferenceEquals(selected, results.SelectedItem), "Invalid query discarded valid prepared content");
-                Check(Equals(passageLabel, addPassage.Content) && addPassage.Visibility == passageVisibility, "Invalid query changed the action for retained results");
+                Check(ReferenceEquals(prepared, session.Prepared), "Invalid query discarded valid prepared content");
+                Check(results.Items.Count == 0 && results.SelectedItem is null, "Invalid query retained stale search results");
+                Check(!addPassage.IsEnabled && !((Button)window.FindName("AddSelectedBibleButton")).IsEnabled, "Invalid query retained an enabled add action");
                 UnchangedLive();
             });
         }
@@ -172,6 +171,7 @@ internal static partial class Program
             if (previousCatalog is not null) Call(window, "InstallBibleCatalog", previousCatalog);
             if (previousPrepared is not null) Call(window, "PrepareCue", previousPrepared, previousPreparedReading);
             query.Text = previousQuery;
+            Field<System.Windows.Threading.DispatcherTimer?>(window, "_bibleSearchTimer")?.Stop();
             ((TabControl)window.FindName("ContentTabs")).SelectedIndex = previousTab;
         }
     }

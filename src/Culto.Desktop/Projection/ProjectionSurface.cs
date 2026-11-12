@@ -49,6 +49,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         canvas.Children.Add(_words);
         _text = new Viewbox { Stretch = Stretch.Uniform, Child = canvas, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
         _root.Children.Add(_image);
+        _root.Children.Add(_bibleDim);
         _root.Children.Add(_text);
         _root.Children.Add(_preview ? _video : _compositedVideo);
         InitializeAudioFade();
@@ -78,7 +79,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
     public bool IsPlaying => !_disposed && _player?.IsPlaying == true;
 
     public void ShowCue(Cue? cue, bool blackout = false, bool hideText = false)
-        => Present(new Presentation(cue, blackout, hideText, false));
+        => Present(CreatePresentation(cue, blackout, hideText, false));
 
     private void ShowCueCore(Cue? cue, bool blackout = false, bool hideText = false, bool paused = false)
     {
@@ -88,6 +89,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         _suppressed = blackout || hideText;
         _root.Background = blackout ? Brushes.Black : BackgroundBrush;
         _image.Visibility = _text.Visibility = _video.Visibility = _compositedVideo.Visibility = Visibility.Collapsed;
+        ResetVisualStyle();
         if (_suppressed) SetPaused(true);
 
         bool mediaCue = cue?.Kind is CueKind.Video or CueKind.Audio;
@@ -122,8 +124,12 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
             switch (cue.Kind)
             {
                 case CueKind.Text:
-                case CueKind.Bible:
+                case CueKind.PowerPoint:
                     ShowText(string.IsNullOrWhiteSpace(cue.Body) ? cue.Title : cue.Body, cue.Reference, cue.Version);
+                    break;
+                case CueKind.Bible:
+                    ApplyBibleStyle();
+                    ShowText(string.IsNullOrWhiteSpace(cue.Body) ? cue.Title : cue.Body, cue.Reference, cue.Version, _presentedBibleStyle.FontSize, bible: true);
                     break;
                 case CueKind.Image:
                     _image.Source = ReadImage(cue.FilePath);
@@ -187,23 +193,31 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         }
     }
 
-    private void ShowText(string body, string reference = "", string version = "")
+    private void ShowText(string body, string reference = "", string version = "", double maximumSize = 76, bool bible = false)
     {
         _text.Visibility = Visibility.Visible;
         _body.Text = body; _reference.Text = reference; _version.Text = version;
         _reference.Visibility = string.IsNullOrWhiteSpace(reference) ? Visibility.Collapsed : Visibility.Visible;
         _version.Visibility = string.IsNullOrWhiteSpace(version) ? Visibility.Collapsed : Visibility.Visible;
         // Fit wrapped text to a full-width 16:9 canvas, keeping room for citations.
-        double small = 1, large = 76;
+        void SetSizes(double size)
+        {
+            _body.FontSize = size;
+            _reference.FontSize = bible ? Math.Clamp(size * .56, 22, 48) : size * .56;
+            _version.FontSize = bible ? Math.Clamp(size * .39, 18, 32) : size * .39;
+            _words.InvalidateMeasure();
+            _words.Measure(new Size(1400, double.PositiveInfinity));
+        }
+        SetSizes(maximumSize);
+        if (_words.DesiredSize.Height <= 760) return;
+        double small = 1, large = maximumSize;
         for (int attempt = 0; attempt < 12; attempt++)
         {
             double size = (small + large) / 2;
-            _body.FontSize = size; _reference.FontSize = size * .56; _version.FontSize = size * .39;
-            _words.InvalidateMeasure();
-            _words.Measure(new Size(1400, double.PositiveInfinity));
+            SetSizes(size);
             if (_words.DesiredSize.Height > 760) large = size; else small = size;
         }
-        _body.FontSize = small; _reference.FontSize = small * .56; _version.FontSize = small * .39;
+        SetSizes(small);
     }
 
     private void EnsurePlayer()
@@ -216,6 +230,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         _player.EncounteredError += OnPlaybackError;
         _player.Playing += OnPlaying;
         _player.EndReached += OnEndReached;
+        _player.TimeChanged += OnAudioOutputChanged;
     }
 
     private void OnPlaybackError(object? sender, EventArgs args)
@@ -245,7 +260,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
             {
                 _awaitingAudioStart = false;
                 ApplyAudioVolume();
-                FadeAudio(1, 350);
+                FadeAudio(1, _presentedTransitions.AudioFadeInMilliseconds);
             }
             else ApplyAudioVolume();
         }));
@@ -320,7 +335,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
             {
                 _awaitingAudioStart = false;
                 ApplyAudioVolume();
-                FadeAudio(1, 350);
+                FadeAudio(1, _presentedTransitions.AudioFadeInMilliseconds);
             }
         }
     }
@@ -365,6 +380,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         if (_player is not null)
         {
             _player.EncounteredError -= OnPlaybackError; _player.Playing -= OnPlaying; _player.EndReached -= OnEndReached;
+            _player.TimeChanged -= OnAudioOutputChanged;
             _player.Stop(); _video.MediaPlayer = null; _player.Dispose();
         }
         _video.Dispose(); _compositedVideo.Dispose(); _media?.Dispose(); _vlc?.Dispose();

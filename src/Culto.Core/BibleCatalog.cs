@@ -32,6 +32,7 @@ public sealed class BibleCatalog
     ];
     private static readonly Dictionary<string, int> BookNumbers = CreateBookNumbers();
     private readonly List<BibleVerse> verses;
+    private readonly string[] normalizedTexts;
     public BibleDocument Document { get; }
 
     public BibleCatalog(BibleDocument document)
@@ -50,6 +51,7 @@ public sealed class BibleCatalog
             verses.Add(verse with { Book = Books[number] });
         }
         verses = verses.OrderBy(v => BookNumbers[BookKey(v.Book)]).ThenBy(v => v.Chapter).ThenBy(v => v.Verse).ToList();
+        normalizedTexts = verses.Select(verse => Normalize(verse.Text)).ToArray();
         Document = new BibleDocument { Name = document.Name ?? "", Attribution = document.Attribution ?? "", Verses = [.. verses] };
     }
 
@@ -98,7 +100,7 @@ public sealed class BibleCatalog
 
     public IReadOnlyList<BibleVerse> FindReference(string query)
     {
-        var match = Regex.Match(query?.Trim() ?? "", @"^(?<book>.+?)\s*(?<chapter>\d+)\s*:\s*(?<start>\d+)(?:\s*[-–—]\s*(?<end>\d+))?$", RegexOptions.CultureInvariant);
+        var match = Regex.Match(query?.Trim() ?? "", @"^(?<book>.+?)\s*(?<chapter>\d+)(?:\s*[:.,]\s*|\s+)(?<start>\d+)(?:\s*[-–—]\s*(?<end>\d+))?$", RegexOptions.CultureInvariant);
         if (!match.Success || !TryBook(match.Groups["book"].Value, out var book) ||
             !int.TryParse(match.Groups["chapter"].Value, out var chapter) || chapter <= 0 ||
             !int.TryParse(match.Groups["start"].Value, out var start) || start <= 0)
@@ -122,12 +124,32 @@ public sealed class BibleCatalog
         return result;
     }
 
+    public IReadOnlyList<BibleVerse> Lookup(string query, out bool referenceSearch)
+    {
+        query = query?.Trim() ?? "";
+        referenceSearch = true;
+        if (TryBook(query, out var book))
+        {
+            var first = verses.FirstOrDefault(verse => verse.Book == Books[book]);
+            if (first is null) throw InvalidReference();
+            return FindChapter($"{first.Book} {first.Chapter}");
+        }
+        if (Regex.IsMatch(query, @"\p{L}.*\d|[:–—]|\d\s*-"))
+        {
+            if (Regex.IsMatch(query, @"\d(?:\s*[:.,]\s*|\s+)\d|[:–—]|\d\s*-"))
+                return FindReference(query);
+            return FindChapter(query);
+        }
+        referenceSearch = false;
+        return Search(query);
+    }
+
     public IReadOnlyList<BibleVerse> Search(string query, int limit = 100)
     {
         if (limit <= 0) throw new ArgumentOutOfRangeException(nameof(limit), "El límite de búsqueda debe ser mayor que cero.");
         if (string.IsNullOrWhiteSpace(query)) return [];
         var normalized = Normalize(query.Trim());
-        return verses.Where(v => Normalize(v.Text).Contains(normalized, StringComparison.Ordinal)).Take(limit).ToArray();
+        return verses.Where((_, index) => normalizedTexts[index].Contains(normalized, StringComparison.Ordinal)).Take(limit).ToArray();
     }
 
     public Cue ToCue(BibleVerse verse)

@@ -33,11 +33,16 @@ internal static partial class Program
             Call(window, "PrepareCue", new Cue { Title = "Otra previa", Body = "Independiente" }, null);
             Check(ReferenceEquals(live, session.Live) && output.IsPlaying, "Preparing stopped local output");
             Call(window, "ToggleBlackout");
-            Until(() => !output.IsPlaying, "Local blackout did not pause video");
-            Check(!output.IsTransitioning && session.IsBlackout, "Local blackout did not cancel transition");
+            Until(() => !output.IsPlaying && !output.IsTransitioning, "Local blackout did not finish its audio and visual transitions");
+            Check(output.IsPaused && session.IsBlackout && ReferenceEquals(live, session.Live),
+                "Completed local blackout did not retain the paused live video");
             Call(window, "ToggleBlackout");
+            // Play can arrive before restoration finishes. The older paused restore
+            // must not override this newer explicit playback request on completion.
             Call(window, "TogglePause");
-            Until(() => output.IsPlaying, "Local Continue did not resume");
+            Until(() => output.IsPlaying && !output.IsTransitioning, "Local Continue did not survive backdrop restoration");
+            Check(!output.IsPaused && !session.IsBlackout && ReferenceEquals(live, session.Live),
+                "Backdrop restoration overrode the latest local playback request");
             Call(window, "CloseOutput");
         });
     }

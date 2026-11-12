@@ -44,8 +44,17 @@ internal static partial class Program
         async Task UntilBackdrop(Func<bool> condition, string failure)
         {
             var deadline = DateTime.UtcNow.AddSeconds(8);
-            while (!condition() && DateTime.UtcNow < deadline) await Task.Delay(15);
-            if (!condition()) throw new Exception("FAIL: " + failure);
+            var states = new List<string>();
+            while (!condition() && DateTime.UtcNow < deadline)
+            {
+                if (Field(output, "_player") is MediaPlayer player)
+                {
+                    var state = $"native={player.State},position={output.Position:0.0},volume={player.Volume},mute={player.Mute},gain={Field(output, "_audioGain")},awaiting={Field(output, "_awaitingAudioStart")},paused={output.IsPaused},suppressed={Field(output, "_suppressed")},transition={output.IsTransitioning}";
+                    if (states.LastOrDefault() != state) states.Add(state);
+                }
+                await Task.Delay(15);
+            }
+            if (!condition()) throw new Exception("FAIL: " + failure + ": " + string.Join("; ", states.TakeLast(25)));
         }
         var redPath = Solid("red", 255, 0, 0); var greenPath = Solid("church", 0, 255, 0);
         var red = new Cue { Title = "Contenido rojo", Kind = CueKind.Image, FilePath = redPath };

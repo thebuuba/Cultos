@@ -44,11 +44,24 @@ public partial class MainWindow
 
     private void ApplyBackdropTransition()
     {
+        string? presentationError = null;
+        if (_powerPoint?.IsRunning == true)
+        {
+            // Hide the native window before COM playback calls, which can be rejected
+            // while PowerPoint is busy. A rejected pause must never defeat blackout.
+            RoutePowerPointOutput();
+            try { _powerPoint.SetPaused(true); PowerPointPauseButton.Content = "Continuar"; }
+            catch (Exception error)
+            {
+                StopPowerPointOutput(); presentationError = "PowerPoint se cerró al detener la reproducción: " + error.Message;
+            }
+        }
         _output!.BackgroundImagePath = _workspace.BackgroundImagePath;
+        _output.Transitions = _workspace.Transitions.Normalize();
         _output.TransitionToBackdrop(_session.Live, _session.IsBlackout, _session.IsTextHidden);
         _isPaused = true;
         UpdateSessionLabels();
-        SetStatus(_session.IsBlackout ? "Fondo negro" : _session.IsTextHidden ? "Fondo iglesia" : "Contenido restaurado; reproducción pausada.");
+        SetStatus(presentationError ?? (_session.IsBlackout ? "Fondo negro" : _session.IsTextHidden ? "Fondo iglesia" : "Contenido restaurado; reproducción pausada."), presentationError is not null);
     }
 
     private void ChangeChurchBackgroundClick(object sender, RoutedEventArgs e)

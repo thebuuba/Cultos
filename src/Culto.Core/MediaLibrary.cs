@@ -9,6 +9,7 @@ public static class MediaLibrary
         ".mkv" or ".mp4" or ".mov" or ".webm" or ".avi" or ".wmv" => CueKind.Video,
         ".mp3" or ".wav" or ".flac" or ".ogg" => CueKind.Audio,
         ".jpg" or ".jpeg" or ".png" or ".bmp" => CueKind.Image,
+        ".pptx" or ".ppt" or ".ppsx" or ".pps" => CueKind.PowerPoint,
         _ => null
     };
 
@@ -23,7 +24,7 @@ public static class MediaLibrary
         return new Cue
         {
             Title = title, Kind = kind, FilePath = Path.GetFullPath(path),
-            HymnNumber = kind != CueKind.Image && number.Success && int.TryParse(number.Groups[1].Value, out var hymn) && hymn > 0 ? hymn : null
+            HymnNumber = kind is CueKind.Video or CueKind.Audio && number.Success && int.TryParse(number.Groups[1].Value, out var hymn) && hymn > 0 ? hymn : null
         };
     }
 }

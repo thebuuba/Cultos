@@ -1,6 +1,6 @@
 namespace Culto.Core;
 
-public enum CueKind { Text, Bible, Image, Video, Audio }
+public enum CueKind { Text, Bible, Image, Video, Audio, PowerPoint }
 
 public sealed class Cue
 {

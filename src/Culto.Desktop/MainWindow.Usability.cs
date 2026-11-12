@@ -41,6 +41,7 @@ public partial class MainWindow
     {
         if (!_ready) return;
         var liveMedia = _output is not null && _session.Live?.Kind is CueKind.Video or CueKind.Audio;
+        PowerPointPlaybackPanel.Visibility = _output is not null && _session.Live?.Kind == CueKind.PowerPoint ? Visibility.Visible : Visibility.Collapsed;
         if (FindName("MediaPlaybackPanel") is FrameworkElement mediaPanel)
             mediaPanel.Visibility = liveMedia ? Visibility.Visible : Visibility.Collapsed;
         PreviewPauseButton.Visibility = _session.Prepared?.Kind is CueKind.Video or CueKind.Audio ? Visibility.Visible : Visibility.Collapsed;

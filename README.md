@@ -1,6 +1,6 @@
 # Culto Studio
 
-Primera versión de una consola nativa para Windows destinada a preparar y proyectar cultos. Reúne el orden del culto, himnario en video, imágenes, textos, Biblia importable y mando desde el teléfono. No depende de OBS.
+Consola nativa para Windows destinada a preparar y proyectar cultos. Reúne el orden del culto, colecciones de videos, imágenes, textos, Biblia importable, presentaciones de PowerPoint y controles desde el teléfono o un presentador USB. No depende de OBS.
 
 ## Abrir el programa
 
@@ -24,15 +24,15 @@ En esta PC ya se incorporaron a la biblioteca los **613 videos MKV** encontrados
 
 ## Preparar un culto
 
-1. Escribe el nombre del culto arriba. El menú **Archivo** reúne Nuevo, Abrir y Guardar una copia.
-2. En **Biblioteca**, importa los archivos o la carpeta del himnario. Se admiten MKV, MP4, MOV, WEBM, AVI, WMV, MP3, WAV, FLAC, OGG, JPG, JPEG, PNG y BMP. La compatibilidad final depende del contenido interno del archivo; prueba los videos que usarás antes del culto.
+1. Escribe el nombre del culto arriba. El menú **Archivo** reúne Nuevo, Abrir, Guardar culto, Cultos guardados y Guardar una copia.
+2. En **Biblioteca**, importa los archivos o la carpeta del himnario. Se admiten MKV, MP4, MOV, WEBM, AVI, WMV, MP3, WAV, FLAC, OGG, JPG, JPEG, PNG, BMP y presentaciones PPT/PPTX/PPS/PPSX. PowerPoint requiere Microsoft PowerPoint instalado. La compatibilidad final depende del contenido interno del archivo; prueba los archivos que usarás antes del culto.
 3. Los números al inicio del nombre se reconocen como números de himno. **Biblioteca → Editar el contenido seleccionado** permite corregir título y número. Los archivos permanecen en su carpeta original: conserva la ubicación y conecta cualquier disco externo antes de comenzar.
-4. Usa **+ Agregar**, debajo del orden, para elegir himnos/biblioteca, Biblia, texto o archivos. Las tres primeras opciones abren su sección para buscar y pulsar **Añadir al orden**; la opción de archivos permite seleccionar varios y los incorpora directamente al orden y a la biblioteca. Reordena con Subir/Bajar o arrastrando. Las notas son privadas y no se proyectan.
+4. Usa **+ Agregar**, debajo del orden, para elegir himnos/biblioteca, Biblia, texto, archivos, una colección de videos o un culto guardado. Las tres primeras opciones abren su sección para buscar y pulsar **Añadir al orden**; la opción de archivos permite seleccionar varios y los incorpora directamente al orden y a la biblioteca. Reordena con Subir/Bajar o arrastrando. Las notas son privadas y no se proyectan.
 5. En **Texto**, prepara anuncios, bienvenidas o letras. Puedes guardarlos en la biblioteca y el orden.
 
-**Videos**, **Imágenes** y **Descargas** muestran los archivos multimedia de esas carpetas de Windows, incluidas las subcarpetas, y se actualizan cuando cambian los archivos. Se respetan las ubicaciones redirigidas, como Imágenes en OneDrive. Videos muestra videos; Imágenes muestra imágenes; Descargas reúne videos, imágenes y audio compatibles. El botón circular de actualizar vuelve a leer la carpeta. Estas vistas no importan archivos a la biblioteca ni los trasladan.
+**Videos**, **Imágenes** y **Descargas** muestran los archivos compatibles de esas carpetas de Windows, incluidas las subcarpetas, y se actualizan cuando cambian los archivos. Se respetan las ubicaciones redirigidas, como Imágenes en OneDrive. Videos muestra videos; Imágenes muestra imágenes; Descargas reúne videos, imágenes, audio y presentaciones compatibles. El botón circular de actualizar vuelve a leer la carpeta. Estas vistas no importan archivos a la biblioteca ni los trasladan.
 
-**Todo, Himnos, Audio y Textos** filtran la biblioteca guardada. En Todo o Himnos, escribir solo un número busca ese himno exacto: `12` o `012` encuentra el 12. En las demás categorías se busca por el título. **Enter** prepara el primer resultado visible; **F5** lo proyecta. Buscar por sí solo conserva la salida. **Limpiar** borra la búsqueda y conserva la categoría.
+**Todo, Himnos, Audio, Textos y PowerPoint** filtran la biblioteca guardada. En Todo o Himnos, escribir solo un número busca ese himno exacto: `12` o `012` encuentra el 12. En las demás categorías se busca por el título. **Enter** prepara el primer resultado visible; **F5** lo proyecta. Buscar por sí solo conserva la salida. **Limpiar** borra la búsqueda y conserva la categoría.
 
 Arrastra un himno, un versículo de la Biblia o un archivo multimedia al **Orden del culto**. La línea violeta marca la posición; soltar en el espacio vacío lo añade al final, incluso cuando el orden está vacío. Se guarda una copia independiente del elemento en el culto, conservando la referencia al archivo original. Un clic prepara la vista previa y un doble clic lo reproduce en la salida. También puedes proyectar un archivo directamente con doble clic desde su carpeta.
 
@@ -40,21 +40,31 @@ El orden muestra la posición de cada momento y una marca **EN VIVO** en el elem
 
 **Un clic en el orden** prepara la vista previa. **Doble clic sobre un elemento** lo envía a **En pantalla** e inicia su reproducción si es video/audio, incluso sin HDMI. El doble clic en espacio vacío no proyecta. Arrastrar dentro del orden reordena sus elementos. La salida local aparece dentro de la consola, sin otra ventana. Si el HDMI está activado, muestra el mismo contenido en las pantallas de la iglesia.
 
-Desde 0.10, los himnos y videos enviados desde el orden, la secuencia o la biblioteca entran con una **disolución de 400 ms**. También se aplica al botón Proyectar. La última imagen de la salida se conserva mientras carga el nuevo video y se desvanece cuando llega su primer fotograma; el nuevo video continúa reproduciéndose durante la mezcla. F8 la interrumpe inmediatamente. Es una transición visual; no mezcla dos pistas de audio.
+**Configuración → Transición del sistema…** permite guardar el efecto visual —Corte, Disolución, Desplazamiento o Zoom—, su duración y los fundidos de audio de entrada y salida. Los valores iniciales son **Disolución de 500 ms** y **1,5 segundos para cada fundido de audio**. Guardar cambia las transiciones de los próximos envíos; conserva el contenido que ya está en pantalla.
 
-Desde 0.13, el audio de salida baja suavemente durante **180 ms** antes de cambiar de contenido y el nuevo video/audio entra durante **350 ms**. Se usa un solo reproductor de salida, sin superponer pistas. F8, Pausar y los comandos inmediatos del mando interrumpen la transición. La vista previa permanece silenciosa.
+La configuración se aplica al proyectar desde el orden, la secuencia, la biblioteca o el botón Proyectar, y al pasar entre videos, audio, textos, imágenes, negro y fondo. Al cargar un video se conserva la imagen anterior hasta recibir su primer fotograma. El audio saliente baja antes de abrir el contenido nuevo; el entrante sube después de iniciar la reproducción. Se usa un solo reproductor de salida VLC, sin superponer pistas. **F8** también usa la transición configurada. La vista previa permanece silenciosa.
 
 Ambos reproductores tienen una barra de avance a todo el ancho, tiempo transcurrido y duración, botón central de reproducción/pausa, saltos de **10 segundos** y reinicio. La salida añade silencio/restauración del volumen anterior, volumen y repetición. Los controles de la vista previa sólo afectan a esa vista; los de **En pantalla** actúan sobre la salida. Arrastrar la barra mantiene la posición elegida hasta soltarla y conserva la pausa; también puede usarse con el teclado.
 
 **Ctrl+1** abre Himnario y medios; **Ctrl+2**, Biblia; **Ctrl+3**, Texto. **Ctrl+F** enfoca y selecciona el buscador de la sección activa; en Texto selecciona el mensaje para editarlo.
 
+## Colecciones y cultos guardados
+
+**Biblioteca → Colecciones de videos…**, o el botón **Colecciones** de la biblioteca, abre las sesiones de videos guardadas. **Nueva colección** crea una sesión con nombre; **Añadir videos…** incorpora archivos y **Subir**, **Bajar** y **Quitar** organizan su secuencia. Para incorporar un video ya seleccionado en la biblioteca, usa **Biblioteca → Añadir video a una colección…**, elige la colección y pulsa **Añadir seleccionado**. **Guardar** conserva los cambios y **Cancelar** descarta la edición.
+
+**Archivo → Guardar culto…** conserva una plantilla con el orden actual y sus notas. **Archivo → Cultos guardados…** permite renombrar, quitar o reorganizar esas plantillas. Ambas acciones también están en el menú **⋯** del orden. **+ Agregar** ofrece accesos a las colecciones y los cultos guardados.
+
+En ambos diálogos, **Añadir al orden** incorpora el contenido al final y **Reemplazar orden** carga su secuencia completa. Cada uso crea elementos independientes de la plantilla. Reemplazar archiva el orden anterior en `Historial` y conserva la salida que está en vivo. Las colecciones y plantillas guardan referencias a los archivos; no copian los videos.
+
 ## Biblia
 
 En esta PC ya está cargada **Reina-Valera 1960 completa**, con **66 libros, 1.189 capítulos y 31.102 versículos**, disponible sin internet. Se importó desde el archivo local `Documentos\Easy Worshipp\Programa EasyWorship\Biblias\RV1960.ewb`, que se conserva en su ubicación original.
 
-En **Biblia**, elige **Libro, Capítulo y Versículo**, o escribe un capítulo (`Juan 3`), una cita (`Juan 3:16`, `1 Juan 2:1-3`) o una frase. Seleccionar prepara el versículo; Proyectar lo envía a la salida. La búsqueda no interrumpe la lectura que ya está en pantalla.
+En **Biblia**, elige **Libro, Capítulo y Versículo**, o escribe un capítulo (`Juan 3`), una cita (`Juan 3:16`, `1 Juan 2:1-3`) o una frase. La búsqueda se actualiza al escribir y admite abreviaturas como `Jn3:16`, `Sal 23` y `1co13:4-7`, además de separadores como `Juan 3 16`. **Enter** ejecuta la búsqueda inmediatamente. Seleccionar prepara el versículo; Proyectar lo envía a la salida. La búsqueda no interrumpe la lectura que ya está en pantalla.
 
 **+ Versículo al orden** añade solamente el seleccionado. **Pasaje (N)** añade todos los versículos del capítulo o rango mostrado y aparece cuando hay varios; las búsquedas por frase permiten añadir el resultado seleccionado.
+
+El botón **Estilo** abre un editor con vista previa para elegir fuente, tamaño, colores de texto y fondo, imagen de fondo, negrita, cursiva, alineación y efectos de texto. **Guardar** conserva el estilo para los versículos y actualiza la vista preparada; la lectura en vivo adopta el cambio en el siguiente envío. **Cancelar** conserva el estilo anterior. La transición bíblica usa **Del sistema** de forma predeterminada; puede sustituirse por **Corte** o **Disolver** con duración propia.
 
 El texto se guarda con los datos locales, fuera de Git y de la distribución ejecutable. La copia importada identifica la versión y registra la atribución y procedencia. Consulta el [informe de importación y procedencia](docs/importacion-biblia-local.md) para conocer la conversión y las comprobaciones realizadas.
 
@@ -67,8 +77,8 @@ Las tres pantallas que reciben el mismo HDMI muestran una sola salida. Configura
 - **Preparado** es una vista previa silenciosa. Buscar y seleccionar no cambian lo que está en pantalla.
 - **Proyectar a pantalla / F5**, debajo de la vista previa, envía el contenido preparado. A la derecha quedan juntos el estado de salida, la orientación **Siguiente**, la navegación y los controles de pantalla.
 - **Siguiente / F6** y **Anterior / F7** avanzan desde el elemento en vivo, aunque hayas preparado otro contenido.
-- **Fondo negro**, debajo del reproductor, desvanece el audio y lleva la imagen a negro con disolución. **F8** conserva el corte inmediato.
-- **Fondo iglesia**, junto a Fondo negro, abre una lista con miniaturas. Toca una imagen para enviarla con disolución. **Agregar imágenes** incorpora varias imágenes a la lista; **Sin imagen** usa un fondo sencillo. La lista se guarda en esta PC y también está disponible en **Configuración → Fondos de iglesia…**. Quitar una imagen de la lista no elimina el archivo.
+- **Fondo negro**, debajo del reproductor, desvanece el audio y lleva la imagen a negro con la transición del sistema. **F8** usa ese mismo comportamiento.
+- **Fondo iglesia**, junto a Fondo negro, abre una lista con miniaturas. Toca una imagen para enviarla con la transición del sistema. **Agregar imágenes** incorpora varias imágenes a la lista; **Sin imagen** usa un fondo sencillo. La lista se guarda en esta PC y también está disponible en **Configuración → Fondos de iglesia…**. Quitar una imagen de la lista no elimina el archivo.
 - Pulsar otra vez **Fondo negro**, o elegir **Volver al contenido** en la lista, restaura el contenido anterior conservando el video pausado en su posición. **Reproducir** continúa desde ahí; la vista previa permanece independiente.
 - Volumen, posición, Reiniciar y Repetir actúan sobre la reproducción de salida, no sobre la vista previa.
 
@@ -82,7 +92,17 @@ Desactivar o desconectar el HDMI conserva la reproducción local. Activarlo usa 
 
 El monitor «En pantalla» muestra el reproductor local; con HDMI activado refleja la ventana externa real mediante DWM. Esa ventana debe permanecer sin minimizar para que Windows mantenga el reflejo actualizado.
 
-**Biblioteca → Capturar una pantalla** toma una imagen estática: la consola se minimiza durante 1,5 segundos y luego permite revisar la imagen. Esta versión no incluye captura continua de ventanas.
+**Biblioteca → Capturar una pantalla** toma una imagen estática: la consola se minimiza durante 1,5 segundos y luego permite revisar la imagen. No hay una fuente general para capturar ventanas de otras aplicaciones.
+
+## PowerPoint y presentador USB
+
+Los archivos de PowerPoint aparecen en la categoría **PowerPoint** y pueden añadirse al orden como cualquier contenido. La reproducción usa **Microsoft PowerPoint instalado en Windows**, que conserva sus animaciones, transiciones y videos incrustados. El programa abre una copia propia de solo lectura; cerrar esa salida no cierra las presentaciones del usuario. La vista preparada puede mostrar la miniatura incluida en el archivo. En modo local, **En pantalla** aloja la ventana nativa dentro del panel para conservar el dibujo de animaciones y video. Al activar HDMI, esa misma ventana pasa a la pantalla externa y el panel la refleja mediante DWM.
+
+**Siguiente** y **Anterior** recorren los pasos de animación y las diapositivas de la presentación activa. PowerPoint conserva sus controles de pausa y reinicio. Sus efectos y videos se reproducen con el motor de Office; los fundidos de audio configurados para VLC no controlan el audio interno de PowerPoint.
+
+En **Configuración → Presentador USB**, activa **Control en segundo plano** para avanzar la salida aunque estés trabajando en otra aplicación. De forma predeterminada se utilizan **Av Pág / Re Pág**; **Usar flechas izquierda y derecha** cambia a esas dos teclas. Mientras el control está activo, las teclas elegidas quedan reservadas globalmente para Culto Studio, incluidas las del teclado normal. Desactivarlo devuelve las teclas a la aplicación que tenga el foco. La selección se guarda en esta PC.
+
+Un presentador que envíe esas teclas puede recorrer el orden o los pasos de PowerPoint. Si otra aplicación ya tiene reservadas las teclas, la consola muestra el error de activación. No se requiere que la consola tenga el foco para recibirlas.
 
 ## Control desde el teléfono
 
@@ -103,9 +123,9 @@ Si el teléfono pierde conexión, la proyección continúa y los controles de la
 
 ## Guardado y copias
 
-Los datos se guardan en `%LOCALAPPDATA%\CultoStudio`, fuera de la carpeta del programa. El orden, biblioteca, botones y preferencias se guardan automáticamente. Los archivos JSON mantienen una copia `.bak` para recuperación. Al crear o abrir un culto, el anterior se archiva en la carpeta `Historial`.
+Los datos se guardan en `%LOCALAPPDATA%\CultoStudio`, fuera de la carpeta del programa. El orden, biblioteca, botones y preferencias se guardan automáticamente. Las colecciones, plantillas de cultos, estilo bíblico, transiciones y opciones del presentador se conservan en el mismo espacio de trabajo. Los archivos JSON mantienen una copia `.bak` para recuperación. Al crear, abrir o reemplazar un culto, el anterior se archiva en la carpeta `Historial`.
 
-**Guardar** exporta una copia del orden; no copia los videos. Para trasladarlo a otra computadora debes conservar también los archivos multimedia y ajustar/importar sus ubicaciones. Si un archivo falta, la aplicación avisa antes de cambiar la proyección.
+**Archivo → Guardar una copia… / Ctrl+S** exporta una copia del orden; no copia los videos. **Guardar culto…** conserva una plantilla dentro del programa. Para trasladar el contenido a otra computadora debes conservar también los archivos multimedia y ajustar/importar sus ubicaciones. Si un archivo falta, la aplicación avisa antes de cambiar la proyección.
 
 Si falla el guardado local al cerrar, la opción predeterminada mantiene abierta la consola. Puedes exportar el orden a otra ubicación y después elegir expresamente cerrar sin guardar localmente; esa exportación no respalda cambios de biblioteca, botones o configuración.
 
@@ -131,6 +151,8 @@ Resultados y límites de la comprobación: [validación de esta entrega](docs/va
 
 ## Alcance de esta versión
 
-No incluye transmisión, grabación, mezcla de cámaras, captura continua, importación directa de bases de EasyWorship, reproducción de PowerPoint ni salidas independientes para escenario. La Biblia RVR1960 y los videos del himnario ya incorporados en esta PC se guardan por separado del programa. Es una primera versión funcional para ensayar y ajustar al equipo real.
+No incluye transmisión, grabación, mezcla de cámaras, captura general continua de ventanas, importación directa de bases de EasyWorship ni salidas independientes para escenario. Los complementos de OBS, incluido Move, no se cargan directamente: Desplazamiento y Zoom son efectos propios de la aplicación. La Biblia RVR1960 y los videos del himnario ya incorporados en esta PC se guardan por separado del programa.
+
+La Yamaha MG12XU puede usarse como interfaz de audio USB mediante la salida de sonido de Windows. Sus controles analógicos no funcionan como mando remoto de Culto Studio; no hay integración de esos controles para avanzar contenidos o mover controles de la consola.
 
 Código organizado en `src/Culto.Core`, `src/Culto.Desktop` y `src/Culto.Remote`. Diseño y plan en `docs/superpowers`. Dependencias: [WPF/.NET](https://dotnet.microsoft.com/), [LibVLCSharp/VideoLAN](https://docs.videolan.me/libvlcsharp/), [QRCoder](https://github.com/codebude/QRCoder). Véase [componentes de terceros](THIRD-PARTY-NOTICES.md).

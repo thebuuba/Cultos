@@ -39,7 +39,7 @@ public partial class MainWindow
         {
             1 => items.Where(c => c.HymnNumber.HasValue), 2 => items.Where(c => c.Kind == CueKind.Video),
             3 => items.Where(c => c.Kind == CueKind.Image), 4 => items.Where(c => c.Kind == CueKind.Audio),
-            5 => items.Where(c => c.Kind == CueKind.Text), _ => items
+            5 => items.Where(c => c.Kind == CueKind.Text), 7 => items.Where(c => c.Kind == CueKind.PowerPoint), _ => items
         };
         var selectedId = (LibraryList.SelectedItem as Cue)?.Id;
         _refreshingLibrary = true;
@@ -98,8 +98,8 @@ public partial class MainWindow
 
     private async void ImportFilesClick(object sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFileDialog { Title = "Importar imágenes, videos o audio", Multiselect = true,
-            Filter = "Contenido multimedia|*.mkv;*.mp4;*.mov;*.webm;*.avi;*.wmv;*.mp3;*.wav;*.flac;*.ogg;*.jpg;*.jpeg;*.png;*.bmp|Todos los archivos|*.*" };
+        var dialog = new OpenFileDialog { Title = "Importar contenido", Multiselect = true,
+            Filter = "Contenido multimedia y PowerPoint|*.mkv;*.mp4;*.mov;*.webm;*.avi;*.wmv;*.mp3;*.wav;*.flac;*.ogg;*.jpg;*.jpeg;*.png;*.bmp;*.pptx;*.ppt;*.ppsx;*.pps|PowerPoint|*.pptx;*.ppt;*.ppsx;*.pps|Todos los archivos|*.*" };
         if (dialog.ShowDialog(this) == true) await ImportMediaAsync(dialog.FileNames);
     }
     private async void ImportFolderClick(object sender, RoutedEventArgs e)

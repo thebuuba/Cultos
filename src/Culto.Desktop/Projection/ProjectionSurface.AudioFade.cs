@@ -7,7 +7,12 @@ namespace Culto.Desktop.Projection;
 
 public sealed partial class ProjectionSurface
 {
-    private sealed record Presentation(Cue? Cue, bool Blackout, bool HideText, bool Dissolve, bool PauseAfter = false);
+    private sealed record Presentation(Cue? Cue, bool Blackout, bool HideText, bool Dissolve, bool PauseAfter = false)
+    {
+        public BibleVisualStyle BibleStyle { get; init; } = new();
+        public TransitionOptions Transitions { get; init; } = new();
+        public bool AnimateAudio { get; init; }
+    }
     private readonly DispatcherTimer _audioTimer = new() { Interval = TimeSpan.FromMilliseconds(15) };
     private readonly Stopwatch _audioClock = new();
     private Presentation? _pendingPresentation;
@@ -37,8 +42,20 @@ public sealed partial class ProjectionSurface
     {
         if (_player is null || _disposed) return;
         var silent = _preview || _suppressed || _pauseRequested || _awaitingAudioStart;
-        _player.Volume = silent ? 0 : (int)Math.Round(_volume * _audioGain);
-        _player.Mute = silent;
+        var volume = silent ? 0 : (int)Math.Round(_volume * _audioGain);
+        if (_player.Volume != volume) _player.Volume = volume;
+        if (_player.Mute != silent) _player.Mute = silent;
+    }
+
+    private void OnAudioOutputChanged(object? sender, EventArgs args)
+    {
+        var generation = System.Threading.Volatile.Read(ref _playbackGeneration);
+        Dispatcher.BeginInvoke(new Action(() =>
+        {
+            // VLC can create its audio output after Playing. A zero-duration fade
+            // has already finished then; apply the current gain when native audio arrives.
+            if (!_disposed && generation == _playbackGeneration) ApplyAudioVolume();
+        }));
     }
 
     private void CancelAudioFade(bool silence = false)
@@ -59,6 +76,10 @@ public sealed partial class ProjectionSurface
         _audioTo = target;
         _audioMilliseconds = milliseconds;
         _audioCompleted = completed;
+        if (milliseconds <= 0)
+        {
+            _audioGain = target; _audioCompleted = null; ApplyAudioVolume(); completed?.Invoke(); return;
+        }
         _audioClock.Restart();
         _audioTimer.Start();
     }
@@ -71,13 +92,13 @@ public sealed partial class ProjectionSurface
         var cue = presentation.Cue;
         var key = cue?.Kind is CueKind.Video or CueKind.Audio ? $"{cue.Id}|{cue.Kind}|{cue.FilePath}" : null;
         var suppress = presentation.Blackout || presentation.HideText;
-        var fadeOutgoing = suppress ? presentation.Dissolve : key != _mediaKey || presentation.PauseAfter;
+        var fadeOutgoing = suppress ? presentation.AnimateAudio : key != _mediaKey || presentation.PauseAfter;
         if (!_preview && !_suppressed && !_pauseRequested && fadeOutgoing
             && _player?.IsPlaying == true && _audioGain > 0)
         {
             // Keep one decoder alive during the outgoing envelope; the newest request wins.
             _pendingPresentation = presentation;
-            FadeAudio(0, 180, () =>
+            FadeAudio(0, presentation.Transitions.AudioFadeOutMilliseconds, () =>
             {
                 var pending = _pendingPresentation;
                 _pendingPresentation = null;
@@ -90,13 +111,15 @@ public sealed partial class ProjectionSurface
 
     private void ApplyPresentation(Presentation presentation, bool paused = false)
     {
+        _presentedBibleStyle = presentation.BibleStyle;
+        _presentedTransitions = presentation.Transitions;
         if (presentation.Dissolve && !paused)
             TransitionToCore(presentation);
         else ShowCueCore(presentation.Cue, presentation.Blackout, presentation.HideText, paused || presentation.PauseAfter);
         // Re-selecting the playing cue can cancel an outgoing fade without restarting it.
         if (!_preview && !_suppressed && !_pauseRequested && !_awaitingAudioStart
             && _player?.IsPlaying == true && _audioGain < 1)
-            FadeAudio(1, 350);
+            FadeAudio(1, _presentedTransitions.AudioFadeInMilliseconds);
     }
 
     private void BeginAudioPlayback()

@@ -4,6 +4,26 @@ Comprobación realizada el 11 de noviembre de 2026 en esta PC Windows. Entrega a
 
 ## Compilación y pruebas
 
+### Biblia, transiciones, cultos guardados y PowerPoint — versión 0.16.0
+
+El editor bíblico permite elegir imagen o color de fondo, oscurecimiento, fuente, tamaño, color, negrita/cursiva, alineación y sombra/brillo. Su vista previa usa el mismo renderizador y cancelar no modifica la salida. Guardar mantiene el contenido en vivo hasta el siguiente envío. La búsqueda admite abreviaturas, citas separadas por espacios, capítulos y frases, con actualización automática y navegación por teclado.
+
+La configuración global conserva Corte, Disolución, Desplazamiento o Zoom y duraciones independientes para imagen y audio. Los valores iniciales de la aplicación son 500 ms visuales y 1.500 ms de salida/entrada de audio. Los cambios de video a texto, Biblia, imagen o fondo pasan por el mismo fundido del reproductor; F8 también lo utiliza. La Biblia sigue la transición global salvo una elección explícita propia.
+
+Colecciones conserva grupos de videos y Cultos guardados conserva órdenes completos. Añadir y reemplazar crean identificadores independientes; reemplazar archiva el orden anterior y conserva la salida actual. Las pruebas usan carpetas temporales y verifican persistencia, cancelación y recuperación ante fallo de guardado.
+
+PowerPoint usa Microsoft PowerPoint instalado y abre una copia sin título y de solo lectura. La prueba nativa crea un PPTX temporal con dos diapositivas, una animación por clic y un video MP4 incrustado. Además de comprobar los índices y tiempos internos de Office, compara píxeles reales del monitor local para detectar animaciones o videos congelados. También verifica la navegación sin cambiar el foco, la pausa del video y el negro, y conserva tanto el hash del PPTX original como la cantidad de presentaciones preexistentes. Las transiciones y medios incrustados siguen el motor de PowerPoint; no se convierten en imágenes. El fundido de audio de VLC no modifica el audio interno de PowerPoint.
+
+El presentador registra Av Pág/Re Pág o flechas izquierda/derecha como teclas globales opcionales. Las pruebas comprueban despacho, conflictos, cambio de asignación y liberación al desactivar/cerrar. No identifican un dispositivo USB particular: esas teclas del teclado también quedan reservadas. El presentador físico y el HDMI real aún requieren ensayo en el equipo de la iglesia.
+
+La revisión final compiló sin advertencias ni errores y aprobó **84 pruebas del núcleo, 60 del mando y 113 comprobaciones de escritorio** (`.tools/release016-final.log`). La suite adicional de PowerPoint aprobó **10 comprobaciones** (`.tools/powerpoint-final-chrome.log`): avance y retroceso visibles de la animación, video en movimiento, controles sin tomar el foco, negro, pausa y preservación de documentos. El panel oculta únicamente el dock de la presentación propia y ajusta el área de contenido usando sus medidas reales; la prueba verifica que no quede una barra de Office en la imagen.
+
+El reproductor aprobó **127 comprobaciones** en `.tools/renderer-release-final-result.txt`. En la ejecución conjunta anterior hubo un timeout al reiniciar el video después de restaurar desde negro; no se reprodujo en el ensayo focalizado ni al repetir únicamente el reproductor completo. Se añadió diagnóstico del estado nativo de VLC sin cambiar el producto, los tiempos límite ni las aserciones. Las suites aprobadas suman **394 comprobaciones**, incluyendo las 10 de PowerPoint.
+
+Se publicó la distribución autónoma **0.16.0** con `scripts/build.ps1 -Publish`, código 0 (`.tools/publish016-final.log`). Antes de que el usuario detuviera el control de la PC, la revisión manual de esa distribución, usando `.tools/qa-016`, mostró el rectángulo animado y el video incrustado dentro de En pantalla, sin barra inferior, y abrió el editor bíblico con su vista previa. La sesión de ensayo quedó abierta al detenerse la revisión; no se cerró ni se sustituyó por la sesión habitual después de la indicación del usuario. Al volver a abrir normalmente el iniciador se usan los datos habituales, no los del ensayo.
+
+Durante esa revisión apareció una pequeña barra flotante de Office «Presentación / Reanudar presentación» después de pausar. Su pertenencia a la copia propia o a la presentación del usuario que también estaba abierta no se pudo confirmar; queda pendiente de identificar, sin modificar barras globales de PowerPoint. La revisión manual de los otros diálogos quedó incompleta. Los hashes de `workspace.json` y `biblia.json` habituales permanecieron iguales durante las pruebas.
+
 ### Arrastre al orden y carpetas de Windows — versión 0.15.0
 
 La biblioteca y los resultados bíblicos permiten arrastrar contenido al orden. Las fuentes se copian con identificadores independientes; arrastrar dentro del orden mueve el elemento existente. La inserción usa la mitad superior/inferior de cada fila y admite orden vacío o espacio final, con línea violeta y desplazamiento en los bordes. El guardado conserva texto bíblico, referencia, versión, número de himno y ruta multimedia. Un clic prepara; doble clic proyecta el elemento añadido.
@@ -236,4 +256,4 @@ El corpus permanece en los datos locales, fuera de Git y de la distribución eje
 - Probar el mando en el teléfono físico y su red Wi-Fi. No se cambiaron firewall ni router.
 - Ensayar el orden y cada archivo que se utilizará antes del culto.
 
-Esta versión ofrece capturas estáticas; no incorpora captura continua de otras aplicaciones, transmisión, grabación ni PowerPoint. Desde 0.11, En pantalla reproduce también sin ventana externa. Cuando se activa HDMI, el reflejo DWM requiere que esa ventana permanezca sin minimizar.
+Esta versión ofrece capturas estáticas; no incorpora captura continua de otras aplicaciones, transmisión, grabación ni mezcla de cámaras. PowerPoint nativo está disponible desde 0.16 y requiere Microsoft PowerPoint instalado. Desde 0.11, En pantalla reproduce también sin ventana externa. Cuando se activa HDMI, el reflejo DWM requiere que esa ventana permanezca sin minimizar.

@@ -10,7 +10,7 @@ public partial class MainWindow
     private RemoteSnapshot GetRemoteState() => Dispatcher.CheckAccess() ? BuildRemoteState() : Dispatcher.Invoke(BuildRemoteState);
     private RemoteSnapshot BuildRemoteState() => new(
         PlanNameBox.Text, _session.Prepared?.Title ?? "Nada preparado", _output is null ? "Salida cerrada" : (_outputWindow is null ? "Local · " : "") + (_session.Live?.Title ?? "Fondo"),
-        _session.IsBlackout, _output?.IsPaused ?? _isPaused, (int)VolumeSlider.Value, _output?.Position ?? 0, _output?.Duration ?? 0, _workspace.Deck.ToArray(),
+        _session.IsBlackout, _session.Live?.Kind == CueKind.PowerPoint ? _isPaused : _output?.IsPaused ?? _isPaused, (int)VolumeSlider.Value, _output?.Position ?? 0, _output?.Duration ?? 0, _workspace.Deck.ToArray(),
         _plan.Select(cue => new RemoteCue(cue.Id.ToString(), cue.Title, cue.Kind.ToString())).ToArray(),
         _output is null ? null : _session.Live?.Id.ToString(), _session.Prepared?.Id.ToString(),
         _output is not null, _output is not null && _session.IsTextHidden, _outputWindow is not null);
@@ -52,7 +52,9 @@ public partial class MainWindow
                 return new(false, "La salida de proyección está cerrada.");
             if (action is "pause" or "restart" or "seek")
             {
-                if (_session.Live?.Kind is not (CueKind.Video or CueKind.Audio))
+                if (_session.Live?.Kind == CueKind.PowerPoint && action == "seek")
+                    return new(false, "Usa Anterior y Siguiente para recorrer PowerPoint.");
+                if (_session.Live?.Kind is not (CueKind.Video or CueKind.Audio or CueKind.PowerPoint))
                     return new(false, "No hay un video o audio en pantalla.");
                 if (_session.IsBlackout || _session.IsTextHidden)
                     return new(false, "Restaura la imagen antes de controlar la reproducción.");
@@ -66,7 +68,14 @@ public partial class MainWindow
                     return new(_output is not null, _output is null ? "No se pudo iniciar la salida." : _outputWindow is null ? "Preparado en salida local." : "Preparado en pantalla.");
                 case "next":
                 case "previous":
-                    var before = _session.Live?.Id; MoveLive(action == "next" ? 1 : -1);
+                    if (_session.Live?.Kind == CueKind.PowerPoint && _powerPoint is not null)
+                    {
+                        if (_session.IsBlackout || _session.IsTextHidden) return new(false, "Restaura el contenido.");
+                        var advanced = _powerPoint.Advance(action == "next" ? 1 : -1);
+                        UpdatePowerPointPosition();
+                        return new(advanced, advanced ? "Presentación actualizada." : "Fin de la presentación.");
+                    }
+                    var before = _session.Live?.Id; AdvancePresentation(action == "next" ? 1 : -1);
                     return new(before != _session.Live?.Id, before != _session.Live?.Id ? "Contenido actualizado." : "No hay otro elemento en esa dirección.");
                 case "blackout": ToggleBlackout(); break;
                 case "background": ShowBackground(); break;

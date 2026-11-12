@@ -49,8 +49,8 @@ public partial class MainWindow : Window
         Loaded += (_, _) => InitializeWorkspace();
         Closing += OnWindowClosing;
         InputBindings.Add(new KeyBinding(new ActionCommand(ProjectPrepared), Key.F5, ModifierKeys.None));
-        InputBindings.Add(new KeyBinding(new ActionCommand(() => MoveLive(1)), Key.F6, ModifierKeys.None));
-        InputBindings.Add(new KeyBinding(new ActionCommand(() => MoveLive(-1)), Key.F7, ModifierKeys.None));
+        InputBindings.Add(new KeyBinding(new ActionCommand(() => AdvancePresentation(1)), Key.F6, ModifierKeys.None));
+        InputBindings.Add(new KeyBinding(new ActionCommand(() => AdvancePresentation(-1)), Key.F7, ModifierKeys.None));
         InputBindings.Add(new KeyBinding(new ActionCommand(ToggleBlackout), Key.F8, ModifierKeys.None));
         InputBindings.Add(new KeyBinding(new ActionCommand(() => SavePlanClick(this, new RoutedEventArgs())), Key.S, ModifierKeys.Control));
     }
@@ -88,6 +88,7 @@ public partial class MainWindow : Window
         InitializeDocking();
         _session.Changed += UpdateSessionLabels;
         _ready = true;
+        SetupPresenterHotkeys();
         RefreshLibrary();
         LoadSavedBible();
         UpdatePlanCount();
@@ -101,7 +102,8 @@ public partial class MainWindow : Window
     {
         _preparedReading = reading;
         _session.Prepare(cue);
-        _preview.ShowCue(cue);
+        _preview.BibleStyle = _workspace.BibleStyle.Normalize();
+        _preview.ShowCue(cue.Kind == CueKind.PowerPoint ? PowerPointPreview(cue) : cue);
         _previewPaused = false;
         UpdatePlayButton(PreviewPauseButton, false, true);
         PreviewTimeText.Text = "00:00";
@@ -213,6 +215,8 @@ public partial class MainWindow : Window
         }
         SaveDockLayout();
         _closing = true; _timer.Stop();
+        DisposePresenterHotkeys();
+        _bibleSearchTimer?.Stop();
         DisposeLibraryFolders();
         try { if (_remote is not null) await _remote.DisposeAsync(); }
         catch (Exception) { /* Closing must still release the native media players. */ }

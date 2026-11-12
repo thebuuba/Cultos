@@ -1,7 +1,7 @@
-using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Threading;
 using Microsoft.Win32;
 using Culto.Core;
 
@@ -20,6 +20,7 @@ public partial class MainWindow
     private Dictionary<(string Book, int Chapter, int Verse), Cue> _bibleCuesByReference = [];
     private bool _referenceSearch;
     private bool _updatingBiblePickers;
+    private DispatcherTimer? _bibleSearchTimer;
     private void LoadSavedBible()
     {
         try
@@ -31,6 +32,7 @@ public partial class MainWindow
     }
     private void InstallBibleCatalog(BibleCatalog catalog)
     {
+        _bibleSearchTimer?.Stop();
         var reading = catalog.Document.Verses.Select(catalog.ToCue).ToArray();
         var cuesByReference = catalog.Document.Verses.Select((verse, index) => (verse, index))
             .ToDictionary(item => (item.verse.Book, item.verse.Chapter, item.verse.Verse), item => reading[item.index]);
@@ -55,6 +57,9 @@ public partial class MainWindow
             BibleVersePicker.IsEnabled = false;
         }
         finally { _updatingBiblePickers = false; }
+        var firstVerse = catalog.Document.Verses[0];
+        SetBibleResults(catalog.FindChapter($"{firstVerse.Book} {firstVerse.Chapter}"), referenceSearch: true, selectFirst: false);
+        SynchronizeBiblePickers(firstVerse);
         UpdateBibleStatus();
     }
     private void UpdateBibleStatus()
@@ -87,8 +92,38 @@ public partial class MainWindow
         JsonFileStore.Save(_store.BiblePath, catalog.Document);
         InstallBibleCatalog(catalog);
     }
+    private void BibleQueryChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_bible is null) return;
+        _bibleSearchTimer ??= new DispatcherTimer(TimeSpan.FromMilliseconds(250), DispatcherPriority.Background,
+            (_, _) => SearchBible(), Dispatcher);
+        _bibleSearchTimer.Stop();
+        ClearBibleResults(BibleQuery.Text.Trim().Length == 0 ? "Escribe una cita o palabras del texto." : "Buscando…");
+        if (!string.IsNullOrWhiteSpace(BibleQuery.Text)) _bibleSearchTimer.Start();
+    }
     private void BibleQueryKeyDown(object sender, KeyEventArgs e)
-    { if (e.Key == Key.Enter) { SearchBible(); e.Handled = true; } }
+    {
+        if (e.Key == Key.Enter) { SearchBible(); e.Handled = true; }
+        else if (e.Key == Key.Escape) { ClearBibleQueryClick(sender, e); e.Handled = true; }
+        else if (e.Key == Key.Down)
+        {
+            if (_bibleSearchTimer?.IsEnabled == true) SearchBible();
+            if (BibleResults.Items.Count > 0)
+            {
+                BibleResults.Focus();
+                BibleResults.UpdateLayout();
+                (BibleResults.ItemContainerGenerator.ContainerFromItem(BibleResults.SelectedItem) as ListBoxItem)?.Focus();
+            }
+            e.Handled = true;
+        }
+    }
+    private void ClearBibleQueryClick(object sender, RoutedEventArgs e)
+    {
+        _bibleSearchTimer?.Stop();
+        BibleQuery.Clear();
+        ClearBibleResults("Escribe una cita o palabras del texto.");
+        BibleQuery.Focus();
+    }
     private void SearchBibleClick(object sender, RoutedEventArgs e) => SearchBible();
     private void BibleBookChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -110,7 +145,15 @@ public partial class MainWindow
     private void ShowBibleChapter(string book, int chapter, int? selectedVerse = null)
     {
         if (_bible is null) return;
+        _bibleSearchTimer?.Stop();
         SetBibleResults(_bible.FindChapter($"{book} {chapter}"), referenceSearch: true, selectedVerse);
+    }
+    private void PreviousBibleChapterClick(object sender, RoutedEventArgs e) => MoveBibleChapter(-1);
+    private void NextBibleChapterClick(object sender, RoutedEventArgs e) => MoveBibleChapter(1);
+    private void MoveBibleChapter(int direction)
+    {
+        var index = BibleChapterPicker.SelectedIndex + direction;
+        if (index >= 0 && index < BibleChapterPicker.Items.Count) BibleChapterPicker.SelectedIndex = index;
     }
     private void SynchronizeBiblePickers(BibleVerse verse)
     {
@@ -129,8 +172,11 @@ public partial class MainWindow
             BibleVersePicker.IsEnabled = true;
         }
         finally { _updatingBiblePickers = false; }
+        PreviousBibleChapterButton.IsEnabled = BibleChapterPicker.SelectedIndex > 0;
+        NextBibleChapterButton.IsEnabled = BibleChapterPicker.SelectedIndex >= 0
+            && BibleChapterPicker.SelectedIndex < BibleChapterPicker.Items.Count - 1;
     }
-    private void SetBibleResults(IReadOnlyList<BibleVerse> verses, bool referenceSearch, int? selectedVerse = null)
+    private void SetBibleResults(IReadOnlyList<BibleVerse> verses, bool referenceSearch, int? selectedVerse = null, bool selectFirst = true)
     {
         var results = verses.Select(verse => new BibleResult(verse, _bibleCuesByReference[(verse.Book, verse.Chapter, verse.Verse)])).ToList();
         _referenceSearch = referenceSearch;
@@ -142,7 +188,7 @@ public partial class MainWindow
             1 => $"1 versículo · {_bible!.Document.Name}",
             _ => $"{results.Count:N0} versículos · {_bible!.Document.Name}"
         };
-        if (results.Count > 0)
+        if (results.Count > 0 && selectFirst)
             BibleResults.SelectedItem = selectedVerse.HasValue
                 ? results.FirstOrDefault(result => result.Verse.Verse == selectedVerse.Value) ?? results[0]
                 : results[0];
@@ -151,24 +197,31 @@ public partial class MainWindow
     private void UpdateBibleAddActions()
     {
         AddSelectedBibleButton.IsEnabled = BibleResults.SelectedItem is BibleResult;
+        AddBiblePassageButton.IsEnabled = BibleResults.SelectedItem is BibleResult && _referenceSearch && _bibleResults.Count > 1;
         AddBiblePassageButton.Visibility = _referenceSearch && _bibleResults.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
         AddBiblePassageButton.Content = $"Pasaje ({_bibleResults.Count:N0})";
         AddBiblePassageButton.ToolTip = $"Añadir al orden los {_bibleResults.Count:N0} versículos mostrados, en el mismo orden.";
     }
     private void SearchBible()
     {
+        _bibleSearchTimer?.Stop();
         if (_bible is null) { SetStatus("Importa primero una Biblia desde un archivo JSON o Zefania XML.", true); return; }
         var query = BibleQuery.Text.Trim();
-        if (query.Length == 0) { SetStatus("Elige un libro o escribe un capítulo (Juan 3), una cita o palabras del texto."); return; }
+        if (query.Length == 0) { ClearBibleResults("Escribe una cita o palabras del texto."); return; }
         try
         {
-            var verseReference = Regex.IsMatch(query, @"\d\s*[:.,]\s*\d|\d\s*:");
-            var chapterReference = !verseReference && Regex.IsMatch(query, @"^(?=.*\p{L})[\p{L}\p{N}.\sªº]+\d$");
-            var verses = verseReference ? _bible.FindReference(query)
-                : chapterReference ? _bible.FindChapter(query) : _bible.Search(query);
-            SetBibleResults(verses, verseReference || chapterReference);
+            var verses = _bible.Lookup(query, out var referenceSearch);
+            SetBibleResults(verses, referenceSearch);
         }
-        catch (Exception ex) { BibleResultText.Text = ex.Message; SetStatus(ex.Message, true); }
+        catch (ArgumentException ex) { ClearBibleResults(ex.Message.Split('\n')[0]); }
+    }
+    private void ClearBibleResults(string message)
+    {
+        _referenceSearch = false;
+        _bibleResults = [];
+        BibleResults.ItemsSource = _bibleResults;
+        BibleResultText.Text = message;
+        UpdateBibleAddActions();
     }
     private void BibleSelectionChanged(object sender, SelectionChangedEventArgs e)
     {

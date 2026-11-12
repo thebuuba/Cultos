@@ -47,7 +47,7 @@ public sealed class CueKindConverter : IValueConverter
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture) => value is CueKind kind ? kind switch
     {
         CueKind.Bible => "BIBLIA", CueKind.Video => "VIDEO / HIMNO", CueKind.Image => "IMAGEN",
-        CueKind.Audio => "AUDIO", _ => "TEXTO"
+        CueKind.Audio => "AUDIO", CueKind.PowerPoint => "POWERPOINT", _ => "TEXTO"
     } : "CONTENIDO";
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
 }

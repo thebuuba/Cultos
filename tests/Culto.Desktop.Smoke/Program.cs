@@ -100,18 +100,20 @@ internal static partial class Program
             var app = new App();
             app.InitializeComponent();
             app.ShutdownMode = ShutdownMode.OnExplicitShutdown;
-            var window = new MainWindow();
+            // Rendering/animation checks need a visible compositor surface even
+            // when the user's normal console or Office is also open.
+            var window = new MainWindow { Topmost = true };
             app.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
             {
                 window.Show();
                 app.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
                 {
-                    try { if (args.Contains("--content-sources")) { RunLocalMediaFolderServiceTests(); RunFolderSourcesTests(window); RunContentDragDropTests(window); } else if (args.Contains("--local-output")) RunLocalOutputTests(window); else if (args.Contains("--compact-output")) RunCompactOutputTests(window); else if (args.Contains("--player")) RunPlayerControlsTests(window); else if (args.Contains("--backdrops")) RunBackdropControlsTests(window); else if (args.Contains("--remote-order")) { RunRemoteOrderTests(window); RunRemoteDialogTests(window); } else RunWindowTests(window, directory); }
+                    try { if (args.Contains("--transition-settings")) RunTransitionSettingsTests(window); else if (args.Contains("--powerpoint")) RunPowerPointTests(window, directory); else if (args.Contains("--presenter")) RunPresenterHotkeysTests(window); else if (args.Contains("--saved-sets")) RunSavedSetsTests(window); else if (args.Contains("--bible-tools")) { RunBibleSearchTests(window, directory); RunBibleStyleIntegrationTests(window); RunBibleEditorTests(window); } else if (args.Contains("--content-sources")) { RunLocalMediaFolderServiceTests(); RunFolderSourcesTests(window); RunContentDragDropTests(window); } else if (args.Contains("--local-output")) RunLocalOutputTests(window); else if (args.Contains("--compact-output")) RunCompactOutputTests(window); else if (args.Contains("--player")) RunPlayerControlsTests(window); else if (args.Contains("--backdrops")) RunBackdropControlsTests(window); else if (args.Contains("--remote-order")) { RunRemoteOrderTests(window); RunRemoteDialogTests(window); } else RunWindowTests(window, directory); }
                     finally
                     {
                         if (!Field<bool>(window, "_closing"))
                         {
-                            Call(window, "DisposeLibraryFolders");
+                            Call(window, "DisposePresenterHotkeys"); Call(window, "DisposeLibraryFolders");
                             Call(window, "CloseOutput");
                             Field<IDisposable>(window, "_preview").Dispose();
                             Field<DispatcherTimer>(window, "_timer").Stop();
@@ -328,6 +330,10 @@ internal static partial class Program
         RunUsabilityTests(window, directory);
         RunOrderInteractionTests(window);
         RunBibleNavigationTests(window, directory);
+        RunBibleSearchTests(window, directory);
+        RunBibleStyleIntegrationTests(window);
+        RunBibleEditorTests(window);
+        RunSavedSetsTests(window); RunPresenterHotkeysTests(window); RunTransitionSettingsTests(window);
         RunRemoteOrderTests(window);
         RunRemoteDialogTests(window);
         RunPlayerControlsTests(window);

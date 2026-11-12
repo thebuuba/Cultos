@@ -93,6 +93,8 @@ internal static partial class Program
                 tabs.SelectedIndex = 1;
                 Press(bible, Row(bible, result));
                 Check(ReferenceEquals(Field<Cue?>(window, "_contentDragCue"), verse), "Bible drag did not unwrap its result");
+                bible.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+                    { RoutedEvent = UIElement.PreviewMouseLeftButtonUpEvent });
                 ResetPlan(other);
                 Check(Drop(Data(bible, verse), 0) == DragDropEffects.Copy, "Bible drag did not copy");
                 var copy = plan[0];
@@ -104,8 +106,11 @@ internal static partial class Program
             Test("Repeated copies insert at the beginning middle and tail with distinct identities", () =>
             {
                 ResetPlan(other);
-                var data = Data(library, hymn);
-                Drop(data, 0); Drop(data, 1); Drop(data, plan.Count);
+                // Each copy is a separate gesture. A completed/released OLE drag's
+                // token may be cleared by normal input and cannot represent the next drag.
+                Check(Drop(Data(library, hymn), 0) == DragDropEffects.Copy, "Beginning copy was rejected");
+                Check(Drop(Data(library, hymn), 1) == DragDropEffects.Copy, "Middle copy was rejected");
+                Check(Drop(Data(library, hymn), plan.Count) == DragDropEffects.Copy, "Tail copy was rejected");
                 Check(plan.Count == 4 && ReferenceEquals(plan[2], other), "Copy insertion ignored the requested slot");
                 Check(plan.Select(cue => cue.Id).Distinct().Count() == 4, "Repeated drops reused IDs");
             });
