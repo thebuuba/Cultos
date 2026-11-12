@@ -59,5 +59,33 @@ internal static partial class Program
             }
             finally { window.Width = width; Call(window, "RestoreDockLayout", initial); }
         });
+        Test("Small floating output keeps its picture and backdrop actions inside the panel", () =>
+        {
+            var initial = (string)Call(window, "SerializeDockLayout")!;
+            try
+            {
+                var manager = (DockingManager)window.FindName("WorkspaceDock");
+                var output = manager.Layout.Descendents().OfType<LayoutAnchorable>().Single(p => p.ContentId == "output");
+                var panel = (FrameworkElement)window.FindName("LivePanel");
+                output.Float(); window.UpdateLayout(); PumpFor(80);
+                var floating = manager.FloatingWindows.Single(host => host.Model.Descendents().Contains(output));
+                floating.Width = 240; floating.Height = 260;
+                floating.UpdateLayout(); PumpFor(80);
+                var client = (FrameworkElement)PresentationSource.FromVisual(panel).RootVisual;
+                Console.WriteLine($"COMPACT Floating host {floating.ActualWidth}x{floating.ActualHeight}; output panel {panel.ActualWidth}x{panel.ActualHeight}");
+                CheckWithin(panel, client, new Rect(client.RenderSize), "Small floating output panel");
+                foreach (var name in new[] { "OutputViewport", "ChurchBackgroundButton", "BlackoutButton" })
+                    CheckWithin((FrameworkElement)window.FindName(name), panel, new Rect(panel.RenderSize), name);
+                Check(((FrameworkElement)window.FindName("OutputViewport")).ActualHeight >= 80, "Small floating output picture is too small");
+                var scroll = (ScrollViewer)window.FindName("LiveScroll");
+                foreach (var control in Descendants(scroll).OfType<FrameworkElement>()
+                    .Where(control => control.IsVisible && control is Button or Slider or CheckBox))
+                {
+                    control.BringIntoView(); floating.UpdateLayout(); PumpFor(20);
+                    CheckWithin(control, scroll, new Rect(scroll.RenderSize), "Small output control " + control.Name);
+                }
+            }
+            finally { Call(window, "RestoreDockLayout", initial); }
+        });
     }
 }

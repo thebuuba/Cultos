@@ -12,15 +12,17 @@ public partial class MainWindow
         if (OutputTransportGrid is null) return;
         // Keep the picture visible even when only the controls need scrolling.
         var compact = LivePanel.ActualWidth < 320;
-        LiveScroll.MaxHeight = Math.Max(48, LivePanel.ActualHeight - (compact ? 260 : 240));
+        LiveScroll.MaxHeight = Math.Max(44, LivePanel.ActualHeight - 240);
         if (_compactOutput == compact) return;
         _compactOutput = compact;
 
         static void Place(UIElement element, int row, int column, int span = 1)
         { Grid.SetRow(element, row); Grid.SetColumn(element, column); Grid.SetColumnSpan(element, span); }
 
-        Place(LiveTitleText, compact ? 1 : 0, compact ? 0 : 1, compact ? 3 : 1);
-        LiveTitleText.Margin = compact ? new Thickness(0, 5, 0, 0) : new Thickness(0);
+        // Trim the title on one line instead of taking height from the picture
+        // when the panel is both narrow and short. Its tooltip keeps the full title.
+        Place(LiveTitleText, 0, 1);
+        LiveTitleText.Margin = new Thickness(0);
         Place(NextLiveText, 0, 0, compact ? 3 : 1);
         NextLiveText.Margin = compact ? new Thickness(0, 0, 0, 5) : new Thickness(0);
         Grid.SetRow(ChooseOutputButton, compact ? 1 : 0);

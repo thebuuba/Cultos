@@ -95,9 +95,9 @@ public sealed class WindowCaptureCanvas : FrameworkElement
 
     protected override void OnRender(DrawingContext drawing)
     {
-        drawing.DrawRectangle(new SolidColorBrush(Color.FromRgb(35, 33, 42)), null, new Rect(RenderSize));
+        drawing.DrawRectangle((Brush)FindResource("CanvasBrush"), null, new Rect(RenderSize));
         var canvas = CanvasBounds;
-        drawing.DrawRectangle(Brushes.Black, new Pen(IsKeyboardFocused ? Brushes.MediumPurple : Brushes.DimGray, 1), canvas);
+        drawing.DrawRectangle(Brushes.Black, new Pen(IsKeyboardFocused ? (Brush)FindResource("AmberBrush") : (Brush)FindResource("BorderBrush"), 1), canvas);
         if (!HasSource || _frame is null) return;
         var scale = canvas.Width / CaptureGeometry.CanvasWidth;
         var box = CaptureGeometry.Bounds(_options, _sourceWidth, _sourceHeight);

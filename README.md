@@ -4,7 +4,9 @@ Consola nativa para Windows destinada a preparar y proyectar cultos. Reúne el o
 
 ## Abrir el programa
 
-Ejecuta **Abrir Culto Studio.cmd** en esta carpeta, o abre `artifacts/CultoStudio-0.28.3/CultoStudio.exe`. La distribución publicada incluye .NET y el reproductor nativo; conserva todos los archivos de esa carpeta junto al ejecutable. Windows x64.
+Ejecuta **Abrir Culto Studio.cmd** en esta carpeta, o abre `artifacts/CultoStudio-0.29.0/CultoStudio.exe`. La distribución publicada incluye .NET y el reproductor nativo; conserva todos los archivos de esa carpeta junto al ejecutable. Windows x64.
+
+En **0.29.0** la consola adopta fondos carbón, acentos verdes, Lexend incluida y paneles y controles redondeados. Conserva los seis paneles movibles y sus distribuciones guardadas. Al reducir la ventana, los controles secundarios de salida se desplazan dentro de su panel y permanecen visibles la imagen, Logo y Fondo negro. El diseño de la consola no cambia el estilo que hayas elegido para los textos proyectados. La distribución 0.28.3 se conserva por separado.
 
 En 0.28.3, al proyectar una captura se prepara el motor de archivos en segundo plano para adelantar su primera carga antes de cambiar de YouTube a un video de la PC. Durante esa preparación la captura sigue funcionando. Repetir la orden del mismo archivo mientras carga conserva el reproductor pendiente y su avance de carga. Una selección distinta sigue sustituyendo la solicitud anterior.
 
@@ -46,7 +48,7 @@ Vista previa, En pantalla, Orden del culto, Secuencia, Medios y Biblioteca/Bibli
 
 En pantalla admite un ancho mínimo de 220 píxeles. Al estrecharlo, el título, los botones y la barra de reproducción se reorganizan en filas, manteniendo el video en 16:9. Si falta altura, se desplazan los controles secundarios; el video, Negro y Fondo permanecen visibles. Las distribuciones guardadas recuperan mínimos adecuados para cada panel, evitando que el de salida quede recortado a la derecha.
 
-La distribución inicial sitúa los monitores arriba, el orden y Medios/Secuencia debajo, y las fuentes a la derecha. Conserva el gris con acentos violeta, los botones redondos, Poppins y las transiciones breves que respetan la preferencia de animaciones de Windows.
+La distribución inicial sitúa los monitores arriba, el orden y Medios/Secuencia debajo, y las fuentes a la derecha. Usa gris carbón, acentos verdes, botones redondos, Lexend y transiciones breves que respetan la preferencia de animaciones de Windows.
 
 Desde 0.8.1, el tamaño de los paneles y sus monitores se actualiza continuamente al arrastrar los separadores horizontales o verticales. El ajuste respeta sus tamaños mínimos y se conserva en la distribución guardada.
 

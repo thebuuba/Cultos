@@ -120,7 +120,7 @@ internal static partial class Program
                 window.Show();
                 app.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
                 {
-                    try { if (args.Contains("--browser-capture-compat")) RunBrowserCaptureCompatibilityTests(window); else if (args.Contains("--content-drag")) RunContentDragDropTests(window); else if (args.Contains("--youtube-controls")) RunYouTubeControlsTests(window); else if (args.Contains("--cold-play")) RunColdPlaybackTests(window); else if (args.Contains("--order")) RunOrderInteractionTests(window); else if (args.Contains("--output-player")) RunOutputPlayerWindowTests(window); else if (args.Contains("--window-capture-picker")) RunWindowCapturePickerTests(window); else if (args.Contains("--transition-settings")) RunTransitionSettingsTests(window); else if (args.Contains("--powerpoint")) RunPowerPointTests(window, directory); else if (args.Contains("--presenter")) RunPresenterHotkeysTests(window); else if (args.Contains("--saved-sets")) RunSavedSetsTests(window); else if (args.Contains("--bible-tools")) { RunBibleSearchTests(window, directory); RunBibleSelectionTests(window); RunBibleStyleIntegrationTests(window); RunBibleEditorTests(window); } else if (args.Contains("--content-sources")) { RunLocalMediaFolderServiceTests(); RunFolderSourcesTests(window); RunContentDragDropTests(window); } else if (args.Contains("--local-output")) RunLocalOutputTests(window); else if (args.Contains("--compact-output")) RunCompactOutputTests(window); else if (args.Contains("--player")) RunPlayerControlsTests(window); else if (args.Contains("--backdrops")) RunBackdropControlsTests(window); else if (args.Contains("--remote-order")) { RunRemoteOrderTests(window); RunRemoteDialogTests(window); } else RunWindowTests(window, directory); }
+                    try { if (args.Contains("--visual-theme")) RunVisualThemeTests(window); else if (args.Contains("--browser-capture-compat")) RunBrowserCaptureCompatibilityTests(window); else if (args.Contains("--content-drag")) RunContentDragDropTests(window); else if (args.Contains("--youtube-controls")) RunYouTubeControlsTests(window); else if (args.Contains("--cold-play")) RunColdPlaybackTests(window); else if (args.Contains("--order")) RunOrderInteractionTests(window); else if (args.Contains("--output-player")) RunOutputPlayerWindowTests(window); else if (args.Contains("--window-capture-picker")) RunWindowCapturePickerTests(window); else if (args.Contains("--transition-settings")) RunTransitionSettingsTests(window); else if (args.Contains("--powerpoint")) RunPowerPointTests(window, directory); else if (args.Contains("--presenter")) RunPresenterHotkeysTests(window); else if (args.Contains("--saved-sets")) RunSavedSetsTests(window); else if (args.Contains("--bible-tools")) { RunBibleSearchTests(window, directory); RunBibleSelectionTests(window); RunBibleStyleIntegrationTests(window); RunBibleEditorTests(window); } else if (args.Contains("--content-sources")) { RunLocalMediaFolderServiceTests(); RunFolderSourcesTests(window); RunContentDragDropTests(window); } else if (args.Contains("--local-output")) RunLocalOutputTests(window); else if (args.Contains("--compact-output")) RunCompactOutputTests(window); else if (args.Contains("--player")) RunPlayerControlsTests(window); else if (args.Contains("--backdrops")) RunBackdropControlsTests(window); else if (args.Contains("--remote-order")) { RunRemoteOrderTests(window); RunRemoteDialogTests(window); } else RunWindowTests(window, directory); }
                     finally
                     {
                         if (!Field<bool>(window, "_closing"))
@@ -575,7 +575,16 @@ internal static partial class Program
                     var liveCard = Ancestors(liveBody).OfType<Border>().First(border => border.IsAncestorOf(outputStatus));
                     var liveViewport = BoundsWithin(liveCard, client);
                     foreach (var name in new[] { "LiveBodyText", "LiveReferenceText", "LiveTitleText", "OutputModeText", "NextLiveText" })
-                        CheckWithin((FrameworkElement)window.FindName(name), client, liveViewport, $"{name} at height {compactHeight}");
+                    {
+                        var element = (FrameworkElement)window.FindName(name);
+                        var scroll = (ScrollViewer)window.FindName("LiveScroll");
+                        if (scroll.IsAncestorOf(element))
+                        {
+                            element.BringIntoView(); window.UpdateLayout();
+                            CheckWithin(element, client, BoundsWithin(scroll, client), $"Scrollable {name} at height {compactHeight}");
+                        }
+                        else CheckWithin(element, client, liveViewport, $"{name} at height {compactHeight}");
+                    }
                     Check(liveBody.ActualHeight >= liveBody.FontSize, "Compact layout hides every line of the live reading excerpt");
                     foreach (var tab in tabs.Items.Cast<TabItem>())
                     {

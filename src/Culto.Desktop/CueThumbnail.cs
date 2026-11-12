@@ -14,7 +14,7 @@ public sealed class CueThumbnail : FrameworkElement
     private static readonly System.Threading.SemaphoreSlim ImageWork = new(2);
     private static readonly Typeface Face = new("Segoe UI");
     private static readonly Brush Back = new SolidColorBrush(Color.FromRgb(16, 23, 34));
-    private static readonly Brush Violet = new SolidColorBrush(Color.FromRgb(187, 167, 255));
+    private static readonly Brush Accent = new SolidColorBrush(Color.FromRgb(36, 178, 126));
     private static readonly Geometry Play = Geometry.Parse("M 57,20 L 76,31 L 57,42 Z");
     private ImageSource? _image;
     private int _generation;
@@ -69,7 +69,7 @@ public sealed class CueThumbnail : FrameworkElement
         else if (Cue is { } cue)
         {
             var media = cue.Kind is CueKind.Video or CueKind.Audio;
-            if (media) drawing.DrawGeometry(null, new Pen(Violet, 1.5), Play);
+            if (media) drawing.DrawGeometry(null, new Pen(Accent, 1.5), Play);
             var message = media || string.IsNullOrWhiteSpace(cue.Body) ? cue.Title : cue.Body;
             var words = new FormattedText(message, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, Face,
                 media ? 8 : 9, Brushes.White, VisualTreeHelper.GetDpi(this).PixelsPerDip)

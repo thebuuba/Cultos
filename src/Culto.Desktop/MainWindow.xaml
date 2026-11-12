@@ -24,7 +24,7 @@
       <Setter Property="Width" Value="40"/><Setter Property="Height" Value="40"/>
       <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
       <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
-      <Setter Property="Foreground" Value="#262130"/><Setter Property="FontSize" Value="17"/>
+      <Setter Property="Foreground" Value="{StaticResource OnActionBrush}"/><Setter Property="FontSize" Value="17"/>
     </Style>
     <Style x:Key="PlayerTime" TargetType="TextBlock">
       <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
@@ -49,7 +49,7 @@
         <ControlTemplate.Triggers>
           <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="LoopSurface" Property="Background" Value="{StaticResource HoverBrush}"/></Trigger>
           <Trigger Property="IsChecked" Value="True">
-            <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource AccentTextBrush}"/>
             <Setter TargetName="LoopSurface" Property="Background" Value="{StaticResource SelectedBrush}"/>
             <Setter TargetName="LoopEnabled" Property="Visibility" Value="Visible"/>
           </Trigger>
@@ -105,9 +105,9 @@
             </Border>
             <ControlTemplate.Triggers>
               <Trigger Property="IsSelected" Value="True">
-                <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
-                <Setter TargetName="Chip" Property="Background" Value="{StaticResource SelectedBrush}"/>
-                <Setter TargetName="Chip" Property="BorderBrush" Value="#8E78BD"/>
+                <Setter Property="Foreground" Value="{StaticResource OnActionBrush}"/>
+                <Setter TargetName="Chip" Property="Background" Value="{StaticResource ActionBrush}"/>
+                <Setter TargetName="Chip" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
               </Trigger>
               <Trigger Property="IsMouseOver" Value="True">
                 <Setter TargetName="Chip" Property="BorderBrush" Value="{StaticResource MutedBrush}"/>
@@ -124,23 +124,29 @@
       <Grid ToolTip="{Binding Title}">
         <Grid.ColumnDefinitions><ColumnDefinition Width="34"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
         <Border Width="26" Height="28" Background="Transparent" VerticalAlignment="Top">
-          <TextBlock Text="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(local:OrderListBox.AbsoluteIndex), Converter={StaticResource OrderNumberConverter}}"
+          <TextBlock x:Name="OrderNumber" Text="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(local:OrderListBox.AbsoluteIndex), Converter={StaticResource OrderNumberConverter}}"
                      FontSize="12" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
         </Border>
         <StackPanel Grid.Column="1">
           <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
           <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
-            <TextBlock Text="{Binding Kind, Converter={StaticResource CueKindConverter}}" FontSize="10" Foreground="{StaticResource MutedBrush}"/>
-            <TextBlock Text="EN VIVO" FontSize="10" FontWeight="Bold" Foreground="{StaticResource LiveBrush}" Margin="10,0,0,0"
+            <TextBlock x:Name="OrderKind" Text="{Binding Kind, Converter={StaticResource CueKindConverter}}" FontSize="10" Foreground="{StaticResource MutedBrush}"/>
+            <TextBlock Text="EN VIVO" FontSize="10" FontWeight="Bold" Foreground="{StaticResource OnActionBrush}" Margin="10,0,0,0"
                        Visibility="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(local:OrderListBox.IsLive), Converter={StaticResource BoolToVisibility}}"/>
           </StackPanel>
         </StackPanel>
       </Grid>
+      <DataTemplate.Triggers>
+        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(local:OrderListBox.IsLive)}" Value="True">
+          <Setter TargetName="OrderNumber" Property="Foreground" Value="{StaticResource OnActionBrush}"/>
+          <Setter TargetName="OrderKind" Property="Foreground" Value="{StaticResource OnActionBrush}"/>
+        </DataTrigger>
+      </DataTemplate.Triggers>
     </DataTemplate>
     <DataTemplate x:Key="LibraryItemTemplate">
       <Grid ToolTip="{Binding Title}" MinHeight="30">
         <Grid.ColumnDefinitions><ColumnDefinition Width="36"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-        <Border x:Name="KindBadge" Width="28" Height="28" CornerRadius="8" Background="#483B58" VerticalAlignment="Center">
+        <Border x:Name="KindBadge" Width="28" Height="28" CornerRadius="8" Background="{StaticResource RaisedBrush}" VerticalAlignment="Center">
           <Path x:Name="KindIcon" Data="M 4,3 L 16,3 L 16,17 L 4,17 Z M 7,7 L 13,7 M 7,10 L 13,10 M 7,13 L 11,13"
                 Stroke="{StaticResource AccentBrush}" StrokeThickness="1.4" Width="15" Height="17" Stretch="Uniform"/>
         </Border>
@@ -151,14 +157,14 @@
       <DataTemplate.Triggers>
         <DataTrigger Binding="{Binding Kind}" Value="Video">
           <Setter TargetName="KindIcon" Property="Data" Value="M 5,3 L 17,10 L 5,17 Z"/>
-          <Setter TargetName="KindBadge" Property="Background" Value="#443B57"/>
+          <Setter TargetName="KindBadge" Property="Background" Value="{StaticResource RaisedBrush}"/>
         </DataTrigger>
         <DataTrigger Binding="{Binding Kind}" Value="Audio">
-          <Setter TargetName="KindBadge" Property="Background" Value="#4C3B53"/>
+          <Setter TargetName="KindBadge" Property="Background" Value="{StaticResource RaisedBrush}"/>
           <Setter TargetName="KindIcon" Property="Data" Value="M 8,14 L 8,4 L 17,2 L 17,12 M 8,14 C 8,18 1,18 1,15 C 1,12 8,12 8,14 M 17,12 C 17,16 10,16 10,13 C 10,10 17,10 17,12"/>
         </DataTrigger>
         <DataTrigger Binding="{Binding Kind}" Value="Image">
-          <Setter TargetName="KindBadge" Property="Background" Value="#344D49"/>
+          <Setter TargetName="KindBadge" Property="Background" Value="{StaticResource LiveSurfaceBrush}"/>
           <Setter TargetName="KindIcon" Property="Data" Value="M 2,3 L 18,3 L 18,17 L 2,17 Z M 2,14 L 8,8 L 13,13 L 16,10 L 18,12"/>
         </DataTrigger>
       </DataTemplate.Triggers>
@@ -183,7 +189,7 @@
       <StackPanel Width="124" ToolTip="{Binding Title}">
         <Grid Height="70">
           <local:CueThumbnail Cue="{Binding}"/>
-          <Border Background="#CC24222D" CornerRadius="3" Padding="4,1" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="3">
+          <Border Background="#CC1F2023" CornerRadius="3" Padding="4,1" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="3">
             <TextBlock Text="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(local:OrderListBox.AbsoluteIndex), Converter={StaticResource OrderNumberConverter}}" Foreground="{StaticResource MutedBrush}" FontSize="9"/>
           </Border>
           <Ellipse Width="6" Height="6" Fill="{StaticResource LiveBrush}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6"
@@ -215,7 +221,7 @@
     <DataTemplate x:Key="MediaRowTemplate">
       <Grid ToolTip="{Binding FilePath}" MinHeight="34">
         <Grid.ColumnDefinitions><ColumnDefinition Width="32"/><ColumnDefinition/><ColumnDefinition Width="62"/></Grid.ColumnDefinitions>
-        <TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center" FontSize="17"/>
+        <TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource AccentTextBrush}" VerticalAlignment="Center" FontSize="17"/>
         <StackPanel Grid.Column="1" Margin="0,0,10,0">
           <TextBlock Text="{Binding FilePath, Converter={StaticResource MediaPathConverter}, ConverterParameter=FileName}" FontSize="12" TextTrimming="CharacterEllipsis"/>
           <TextBlock Text="{Binding Kind, Converter={StaticResource CueKindConverter}}" FontSize="10" Foreground="{StaticResource MutedBrush}" Margin="0,2,0,0"/>
@@ -228,7 +234,7 @@
       <Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
       <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
       <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem">
-        <Border x:Name="Row" Background="Transparent" CornerRadius="6" BorderThickness="1" BorderBrush="Transparent">
+        <Border x:Name="Row" Background="Transparent" CornerRadius="{StaticResource ItemRadius}" BorderThickness="1" BorderBrush="Transparent">
           <Grid>
             <Border x:Name="Stripe" Width="3" HorizontalAlignment="Left" Background="Transparent" CornerRadius="2" Margin="0,6"/>
             <ContentPresenter Margin="{TemplateBinding Padding}"/>
@@ -237,7 +243,11 @@
         <ControlTemplate.Triggers>
           <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Row" Property="Background" Value="{StaticResource RaisedBrush}"/></Trigger>
           <Trigger Property="IsSelected" Value="True"><Setter TargetName="Row" Property="Background" Value="{StaticResource SelectedBrush}"/><Setter TargetName="Stripe" Property="Background" Value="{StaticResource AccentBrush}"/></Trigger>
-          <Trigger Property="local:OrderListBox.IsLive" Value="True"><Setter TargetName="Stripe" Property="Background" Value="{StaticResource LiveBrush}"/></Trigger>
+          <Trigger Property="local:OrderListBox.IsLive" Value="True">
+            <Setter TargetName="Row" Property="Background" Value="{StaticResource LiveBrush}"/>
+            <Setter TargetName="Stripe" Property="Background" Value="{StaticResource OnActionBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource OnActionBrush}"/>
+          </Trigger>
           <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Row" Property="BorderBrush" Value="{StaticResource AmberBrush}"/></Trigger>
         </ControlTemplate.Triggers>
       </ControlTemplate></Setter.Value></Setter>
@@ -248,7 +258,7 @@
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/>
     </Grid.RowDefinitions>
-    <Border Background="#302D38" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,7" Margin="-10,0,-10,0">
+    <Border Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,7" Margin="-10,0,-10,0">
     <Grid>
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
       <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -304,7 +314,7 @@
         <TextBlock Text="Culto actual" Foreground="{StaticResource MutedBrush}" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0"/>
         <TextBox x:Name="PlanNameBox" Text="Culto del sábado" Width="240" FontSize="13" Padding="10,5" MinHeight="32"
                  LostFocus="PlanNameChanged" AutomationProperties.Name="Nombre del culto"/>
-        <Border Background="{StaticResource InputBrush}" BorderBrush="#786798" BorderThickness="1" CornerRadius="15" Padding="12,5" Margin="14,0,0,0" VerticalAlignment="Center">
+        <Border Background="{StaticResource InputBrush}" BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="1" CornerRadius="15" Padding="12,5" Margin="14,0,0,0" VerticalAlignment="Center">
           <StackPanel Orientation="Horizontal">
             <Ellipse x:Name="OutputIndicator" Width="7" Height="7" Margin="0,0,7,0" VerticalAlignment="Center">
               <Ellipse.Style><Style TargetType="Ellipse">
@@ -330,9 +340,9 @@
         <ad:LayoutPanel Orientation="Horizontal">
           <ad:LayoutPanel Orientation="Vertical" DockWidth="2.4*">
             <ad:LayoutPanel Orientation="Horizontal" DockHeight="1.5*">
-<ad:LayoutAnchorablePane DockWidth="*" DockHeight="*" DockMinWidth="280" DockMinHeight="340">
+<ad:LayoutAnchorablePane DockWidth="*" DockHeight="*" DockMinWidth="280" DockMinHeight="260">
 <ad:LayoutAnchorable Title="Vista previa" ContentId="preview" CanClose="False" CanHide="False" CanAutoHide="False" CanDockAsTabbedDocument="False">
-<Border x:Name="PreviewPanel" Background="#25232C" CornerRadius="8" Padding="12">
+<Border x:Name="PreviewPanel" Background="{StaticResource PanelBrush}" CornerRadius="{StaticResource PanelRadius}" Padding="14">
           <Grid>
             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <Grid>
@@ -343,7 +353,7 @@
               </StackPanel>
             </Grid>
             <local:AspectRatioBox Grid.Row="1" Margin="0,10,0,12" VerticalAlignment="Top">
-              <Border x:Name="PreviewViewport" BorderBrush="#51495F" BorderThickness="1" Background="#101722">
+              <Border x:Name="PreviewViewport" BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="1" Background="#000000">
                 <Grid MinHeight="80">
                   <ContentControl x:Name="PreviewHost" MinHeight="80"/>
                   <local:CueThumbnail x:Name="PreparedMediaCover" Visibility="Collapsed" IsHitTestVisible="False"/>
@@ -355,35 +365,36 @@
               <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
               <TextBlock x:Name="PreparedTitleText" Text="Sin contenido" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,10,0" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
               <Button x:Name="ProjectButton" Grid.Column="1" Style="{StaticResource PrimaryButton}" Click="ProjectClick" MinHeight="34" Padding="14,7" AutomationProperties.Name="Proyectar contenido preparado">
-                <StackPanel Orientation="Horizontal"><TextBlock Text="Proyectar a pantalla" FontSize="12"/><TextBlock Text="F5" FontSize="10" Margin="14,0,0,0" VerticalAlignment="Center" Opacity="0.75"/></StackPanel>
+                <StackPanel Orientation="Horizontal"><TextBlock Text="Proyectar a pantalla" FontSize="12"/><TextBlock Text="F5" FontSize="10" Margin="14,0,0,0" VerticalAlignment="Center"/></StackPanel>
               </Button>
             </Grid>
 
           </Grid>
         </Border>
 </ad:LayoutAnchorable>
-</ad:LayoutAnchorablePane><ad:LayoutAnchorablePane DockWidth="*" DockHeight="*" DockMinWidth="220" DockMinHeight="330">
+</ad:LayoutAnchorablePane><ad:LayoutAnchorablePane DockWidth="*" DockHeight="*" DockMinWidth="220" DockMinHeight="260">
 <ad:LayoutAnchorable Title="En pantalla" ContentId="output" CanClose="False" CanHide="False" CanAutoHide="False" CanDockAsTabbedDocument="False">
-<Border x:Name="LivePanel" Background="#302D38" BorderBrush="#48414F" BorderThickness="1,0,0,0" CornerRadius="6" Padding="10,8" SizeChanged="OutputPanelSizeChanged">
+<Border x:Name="LivePanel" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="0" CornerRadius="{StaticResource PanelRadius}" Padding="10,5" SizeChanged="OutputPanelSizeChanged">
           <Grid>
-            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition MinHeight="102"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <Grid x:Name="LiveHeaderGrid">
               <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
               <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-              <Border Background="#273E38" CornerRadius="9" Padding="7,3" Margin="0,0,9,0"><TextBlock Text="En pantalla" Foreground="{StaticResource LiveBrush}" FontSize="10" FontWeight="SemiBold"/></Border>
+              <Border Background="{StaticResource LiveSurfaceBrush}" CornerRadius="9" Padding="7,3" Margin="0,0,9,0"><TextBlock Text="En pantalla" Foreground="{StaticResource TextBrush}" FontSize="10" FontWeight="SemiBold"/></Border>
               <TextBlock Grid.Column="1" x:Name="LiveTitleText" Text="Sin contenido" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
               <TextBlock Grid.Column="2" x:Name="OutputModeText" Text="SIN SALIDA" Foreground="{StaticResource MutedBrush}" FontSize="9" VerticalAlignment="Center" Margin="8,0,0,0" ToolTip="{Binding Text, ElementName=OutputStatusText}"/>
             </Grid>
             <local:AspectRatioBox Grid.Row="1" Margin="0,10,0,12" VerticalAlignment="Top">
-              <Border x:Name="OutputViewport" BorderBrush="#47796B" BorderThickness="1" Background="#101722">
+              <Border x:Name="OutputViewport" BorderBrush="{StaticResource LiveBrush}" BorderThickness="1" Background="#000000">
                 <projection:OutputMonitor x:Name="LiveMonitor" MinHeight="80" MouseLeftButtonDown="OutputMonitorMouseDown" ToolTip="Abrir reproductor · doble clic" AutomationProperties.Name="Monitor de la salida real"/>
               </Border>
             </local:AspectRatioBox>
-            <UniformGrid Grid.Row="2" x:Name="ScreenNavigationPanel" Columns="2">
+            <ScrollViewer Grid.Row="2" x:Name="LiveScroll" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" CanContentScroll="False" MaxHeight="200">
+            <StackPanel>
+            <UniformGrid x:Name="ScreenNavigationPanel" Columns="2">
               <Button Content="Anterior" Click="PreviousClick" Margin="0,0,5,0" MinHeight="30" Padding="4,5" FontSize="11"/>
               <Button Content="Siguiente" Click="NextClick" Margin="0,0,5,0" MinHeight="30" Padding="4,5" FontSize="11"/>
             </UniformGrid>
-            <ScrollViewer Grid.Row="3" x:Name="LiveScroll" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" CanContentScroll="False" MaxHeight="200">
             <Grid>
             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <StackPanel Margin="0,5,0,0">
@@ -405,7 +416,7 @@
               <Button Content="Reiniciar" Click="RestartClick"/>
             </UniformGrid>
             <Grid Grid.Row="3" x:Name="MediaPlaybackPanel" Visibility="Collapsed" Margin="0,6,0,0">
-              <Border Background="#24222B" CornerRadius="16" Padding="0,3,0,5">
+              <Border Background="{StaticResource InputBrush}" CornerRadius="16" Padding="0,3,0,5">
                 <Grid>
                   <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                   <Grid x:Name="OutputTransportGrid">
@@ -430,15 +441,16 @@
               </Border>
             </Grid>
             </Grid>
-            </ScrollViewer>
-            <StackPanel Grid.Row="4" Margin="0,8,0,0">
+            <StackPanel Margin="0,8,0,0">
               <WrapPanel VerticalAlignment="Center">
                 <CheckBox x:Name="KeepMediaAudioCheck" Content="Mantener audio" Checked="KeepMediaAudioChanged" Unchecked="KeepMediaAudioChanged" FontSize="11" VerticalAlignment="Center" Margin="0,4,10,4" AutomationProperties.Name="Mantener audio al cambiar de contenido"/>
                 <Button x:Name="ReturnToMediaButton" Content="Volver al video" Click="ReturnToMediaClick" Visibility="Collapsed" FontSize="11" Padding="10,5" MinHeight="30" ToolTip="Volver al video · F9"/>
               </WrapPanel>
               <TextBlock x:Name="BackgroundMediaText" Visibility="Collapsed" Foreground="{StaticResource MutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis" Margin="0,3,0,0"/>
             </StackPanel>
-            <UniformGrid Grid.Row="5" x:Name="OutputBackdropsPanel" Columns="2" Margin="0,8,0,0">
+            </StackPanel>
+            </ScrollViewer>
+            <UniformGrid Grid.Row="3" x:Name="OutputBackdropsPanel" Columns="2" Margin="0,8,0,0">
               <Button x:Name="ChurchBackgroundButton" Content="Logo" Click="ChurchBackgroundClick" PreviewMouseRightButtonUp="LogoRightClick" Margin="0,0,5,0" MinHeight="42" Padding="4,7" FontSize="10" AutomationProperties.Name="Logo"/>
               <Button x:Name="BlackoutButton" Content="Fondo negro" Click="BlackBackgroundClick" MinHeight="42" Padding="4,7" FontSize="10" AutomationProperties.Name="Fondo negro"/>
             </UniformGrid>
@@ -450,12 +462,12 @@
             <ad:LayoutPanel Orientation="Horizontal" DockHeight="1.2*">
 <ad:LayoutAnchorablePane DockWidth="0.8*" DockHeight="*" DockMinWidth="240" DockMinHeight="160">
 <ad:LayoutAnchorable Title="Orden del culto" ContentId="order" CanClose="False" CanHide="False" CanAutoHide="False" CanDockAsTabbedDocument="False">
-<Border x:Name="OrderPanel" Background="#2B2933" CornerRadius="8" Padding="10">
+<Border x:Name="OrderPanel" Background="{StaticResource PanelBrush}" CornerRadius="{StaticResource PanelRadius}" Padding="12">
         <Grid>
           <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
           <Grid Margin="0,0,0,12">
             <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-            <TextBlock Text="Orden del culto" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            <TextBlock Text="{Binding Text, ElementName=PlanNameBox}" FontSize="14" FontWeight="Medium" VerticalAlignment="Center"/>
             <TextBlock Grid.Column="1" x:Name="PlanCountText" Text="0" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="8,0"/>
             <Button Grid.Column="2" Content="⋯" Click="OpenActionsClick" Padding="8,2" MinHeight="30" FontSize="18" AutomationProperties.Name="Organizar el orden">
               <Button.ContextMenu><ContextMenu>
@@ -483,7 +495,7 @@
             </Border>
             <Grid>
               <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-              <Button x:Name="AddOrderButton" Background="{StaticResource SelectedBrush}" Foreground="{StaticResource AccentBrush}" BorderBrush="{StaticResource SelectedBrush}" Click="OpenActionsClick" MinHeight="40" Padding="10,5" HorizontalContentAlignment="Center" AutomationProperties.Name="Agregar al orden de culto">
+              <Button x:Name="AddOrderButton" Background="{StaticResource TextBrush}" Foreground="{StaticResource OnActionBrush}" BorderBrush="{StaticResource TextBrush}" Click="OpenActionsClick" MinHeight="40" Padding="10,5" HorizontalContentAlignment="Center" AutomationProperties.Name="Agregar al orden de culto">
                 <StackPanel Orientation="Horizontal"><TextBlock Text="+" FontSize="23" Margin="0,0,8,0" VerticalAlignment="Center"/><TextBlock Text="Agregar" VerticalAlignment="Center"/></StackPanel>
                 <Button.ContextMenu><ContextMenu>
                   <MenuItem x:Name="AddOrderLibrary" Header="Himno o contenido de biblioteca…" Tag="0" Click="AddOrderSourceClick"/>
@@ -508,7 +520,7 @@
 </ad:LayoutAnchorable>
 </ad:LayoutAnchorablePane><ad:LayoutAnchorablePane DockWidth="1.3*" DockHeight="*" DockMinWidth="320" DockMinHeight="260" SelectedContentIndex="1">
 <ad:LayoutAnchorable Title="Secuencia" ContentId="sequence" CanClose="False" CanHide="False" CanAutoHide="False" CanDockAsTabbedDocument="False">
-<Border x:Name="SequencePanel" Background="#2B2833" CornerRadius="8" Padding="5,5,3,2" >
+<Border x:Name="SequencePanel" Background="{StaticResource PanelBrush}" CornerRadius="{StaticResource PanelRadius}" Padding="5,5,3,2" >
           <local:OrderListBox x:Name="SequenceList" ItemsSource="{Binding ItemsSource, ElementName=PlanList}"
               SelectedItem="{Binding SelectedItem, ElementName=PlanList, Mode=TwoWay}"
               LiveCueId="{Binding LiveCueId, ElementName=PlanList}"
@@ -520,7 +532,7 @@
         </Border>
 </ad:LayoutAnchorable>
 <ad:LayoutAnchorable Title="Medios" ContentId="media" IsSelected="True" CanClose="False" CanHide="False" CanAutoHide="False" CanDockAsTabbedDocument="False">
-  <Border x:Name="MediaPanel" Background="#2B2833" CornerRadius="8" Padding="8" SizeChanged="MediaPanelSizeChanged">
+  <Border x:Name="MediaPanel" Background="{StaticResource PanelBrush}" CornerRadius="{StaticResource PanelRadius}" Padding="10" SizeChanged="MediaPanelSizeChanged">
     <Grid>
       <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
       <DockPanel LastChildFill="True">
@@ -566,7 +578,7 @@
           </ad:LayoutPanel>
 <ad:LayoutAnchorablePane DockWidth="*" DockHeight="*" DockMinWidth="390" DockMinHeight="400">
 <ad:LayoutAnchorable Title="Biblioteca y Biblia" ContentId="sources" CanClose="False" CanHide="False" CanAutoHide="False" CanDockAsTabbedDocument="False">
-<Border x:Name="SourcesPanel" Background="#302D39" CornerRadius="8" Padding="12">
+<Border x:Name="SourcesPanel" Background="{StaticResource PanelBrush}" CornerRadius="{StaticResource PanelRadius}" Padding="14">
         <TabControl x:Name="ContentTabs" SelectionChanged="ContentTabChanged">
           <TabItem Header="Himnario">
             <Grid>
@@ -630,11 +642,11 @@
               </StackPanel>
               <StackPanel Grid.Row="3" Margin="0,0,0,8">
                 <TextBlock x:Name="BibleResultText" Style="{StaticResource MutedText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
-                <TextBlock x:Name="BibleSelectionText" Foreground="{StaticResource AccentBrush}" FontSize="12" Margin="0,3,0,0" TextTrimming="CharacterEllipsis" Visibility="Collapsed" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+                <TextBlock x:Name="BibleSelectionText" Foreground="{StaticResource AccentTextBrush}" FontSize="12" Margin="0,3,0,0" TextTrimming="CharacterEllipsis" Visibility="Collapsed" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
               </StackPanel>
               <ListBox Grid.Row="4" x:Name="BibleResults" SelectionMode="Extended" SelectionChanged="BibleSelectionChanged" MouseDoubleClick="BibleResultsDoubleClick" PreviewKeyDown="BibleResultsKeyDown" AutomationProperties.Name="Resultados de Biblia">
                 <ListBox.ItemTemplate><DataTemplate><StackPanel>
-                  <TextBlock Text="{Binding Reference}" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                  <TextBlock Text="{Binding Reference}" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold" Margin="0,0,0,5"/>
                   <TextBlock Text="{Binding Text}" TextWrapping="Wrap" FontSize="15"/>
                 </StackPanel></DataTemplate></ListBox.ItemTemplate>
               </ListBox>

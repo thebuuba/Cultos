@@ -89,8 +89,8 @@ internal static partial class Program
             {
                 var face = new Typeface(window.FontFamily, FontStyles.Normal, weight, FontStretches.Normal);
                 Check(face.TryGetGlyphTypeface(out var glyphs), "Font did not resolve");
-                Check(glyphs!.FontUri.Scheme == "pack" && glyphs.FamilyNames.Values.Any(name => name.Contains("Poppins")),
-                    "Console fell back to a system font instead of bundled Poppins");
+                Check(glyphs!.FontUri.Scheme == "pack" && glyphs.FamilyNames.Values.Any(name => name.Contains("Lexend")),
+                    "Console fell back to a system font instead of bundled Lexend");
                 Check(glyphs.Weight == weight, "Font weight was synthesized");
             }
         });

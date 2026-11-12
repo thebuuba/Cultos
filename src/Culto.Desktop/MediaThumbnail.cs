@@ -14,7 +14,7 @@ public sealed class MediaThumbnail : FrameworkElement
         new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, CueChanged));
     private static readonly Typeface IconFace = new("Segoe MDL2 Assets");
     private static readonly Typeface LabelFace = new("Segoe UI");
-    private static readonly Brush Accent = new SolidColorBrush(Color.FromRgb(187, 167, 255));
+    private static readonly Brush Accent = new SolidColorBrush(Color.FromRgb(36, 178, 126));
     private BitmapSource? _image;
     private CancellationTokenSource? _request;
     private int _generation;
@@ -65,7 +65,7 @@ public sealed class MediaThumbnail : FrameworkElement
         base.OnRender(drawing);
         if (ActualWidth <= 0 || ActualHeight <= 0) return;
         var bounds = new Rect(0, 0, ActualWidth, ActualHeight);
-        drawing.PushClip(new RectangleGeometry(bounds, 7, 7));
+        drawing.PushClip(new RectangleGeometry(bounds, 12, 12));
         drawing.DrawRectangle(Brushes.Black, null, bounds);
         if (_image is { PixelWidth: > 0, PixelHeight: > 0 } image)
         {

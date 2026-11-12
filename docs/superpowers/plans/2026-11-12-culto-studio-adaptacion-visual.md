@@ -215,8 +215,18 @@ Si `.tools/dotnet/dotnet.exe` no existe en el entorno de ejecución, usar el SDK
 
 Si la adaptación no se acepta, cerrar la edición nueva y ejecutar la distribución conservada `artifacts/CultoStudio-0.28.3`. Para el código, revertir únicamente los commits de adaptación o recuperar una copia aislada desde `c13da65`; no usar `reset --hard` sobre trabajo compartido. La recuperación de datos locales usa el respaldo independiente, no el commit. Este plan no requiere migraciones de datos.
 
-## Estado al entregar este documento
+## Estado al entregar este documento, antes de implementarlo
 
 Se revisaron la referencia y el código de `c13da65`, y se calcularon los contrastes indicados. No se modificaron código de aplicación, fuentes, datos, distribución ni iniciadores. No se ejecutaron compilación ni pruebas de la aplicación porque el trabajo solicitado es preparar el plan; los comandos anteriores son comprobaciones de la futura implementación.
 
 La consulta automática de diseño de UI/UX no produjo una propuesta adecuada a esta consola y se descartó. Las decisiones visuales proceden de la referencia observada; la guía WPF se usa para conservar foco, teclado y comportamiento nativo.
+
+## Ejecución — versión 0.29.0
+
+El usuario autorizó ejecutar este plan con «pues trabaja». Se preparó la implementación en `codex/culto-studio-adaptacion-visual`, desde el plan confirmado en `c337534`, conservando la distribución 0.28.3 y el checkpoint `c13da65`.
+
+Se incorporaron Lexend, paleta, estados y superficies de las tareas 1–4. Las correcciones del encaje compacto incluyen `MainWindow.CompactOutput.cs`: controles secundarios dentro del desplazamiento, imagen con mínimo propio y cabecera de una línea. Los mínimos de altura se normalizan antes de restaurar AvalonDock para evitar los desbordamientos reproducidos también en la versión anterior. No se sustituyen sus plantillas ni se cambian los motores de proyección, reproducción o captura.
+
+La evidencia de las verificaciones, los fallos preexistentes y los límites físicos de la tarea 5 están en [validacion.md](../../validacion.md). Las comprobaciones implementadas cubren 1480 × 900, 1280 × 680 y 1200 × 680 DIP, así como una salida flotante mínima. Las escalas 125 %/150 %, HDMI, teléfono, presentador físico y PowerPoint real permanecen como ensayos de hardware pendientes; no se presentan como comprobados.
+
+Los casilleros anteriores conservan la lista del plan original. Esta sección y el registro de validación describen lo efectivamente ejecutado. Los cambios visuales, sus pruebas y la entrega se guardan como un commit conjunto tras verificarlos, en lugar de separar commits de una misma edición de `App.xaml`.

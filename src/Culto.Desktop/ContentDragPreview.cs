@@ -28,11 +28,11 @@ internal sealed class ContentDragPreview : IDisposable
         Grid.SetColumn(labels, 1);
         labels.Children.Add(new TextBlock
         {
-            Text = moving ? "Mover" : "+ Añadir", Foreground = accent, FontSize = 10, FontWeight = FontWeights.SemiBold
+            Text = moving ? "Mover" : "+ Añadir", Foreground = (Brush)source.FindResource("AccentTextBrush"), FontSize = 10, FontWeight = FontWeights.SemiBold
         });
         labels.Children.Add(new TextBlock
         {
-            Text = cue.Title, Foreground = Brushes.White, FontSize = 12, FontWeight = FontWeights.SemiBold,
+            Text = cue.Title, Foreground = (Brush)source.FindResource("TextBrush"), FontSize = 12, FontWeight = FontWeights.SemiBold,
             TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, 3, 0, 3)
         });
         labels.Children.Add(new TextBlock
@@ -44,7 +44,7 @@ internal sealed class ContentDragPreview : IDisposable
                 CueKind.Image => "Imagen", CueKind.Audio => "Audio", CueKind.WindowCapture => "YouTube · Captura",
                 _ => cue.HymnNumber is { } hymn ? $"Himno {hymn:000}" : "Texto"
             },
-            Foreground = new SolidColorBrush(Color.FromRgb(192, 186, 207)), FontSize = 10,
+            Foreground = (Brush)source.FindResource("MutedBrush"), FontSize = 10,
             TextTrimming = TextTrimming.CharacterEllipsis
         });
         contents.Children.Add(labels);
@@ -55,7 +55,7 @@ internal sealed class ContentDragPreview : IDisposable
             Child = new Border
             {
                 Width = 282, Padding = new Thickness(10), CornerRadius = new CornerRadius(12),
-                Background = new SolidColorBrush(Color.FromArgb(242, 47, 43, 58)),
+                Background = (Brush)source.FindResource("PanelBrush"),
                 BorderBrush = accent, BorderThickness = new Thickness(1), Child = contents,
                 IsHitTestVisible = false, SnapsToDevicePixels = true
             }

@@ -1,8 +1,43 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 12 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.28.3`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 12 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.29.0`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### Adaptación visual carbón y verde — versión 0.29.0
+
+Se ejecutó el plan aprobado de adaptación a la referencia de Polymet. La recuperación anterior es `c13da65`; el plan se guardó en `c337534` antes de cambiar código. La implementación se preparó en la rama aislada `codex/culto-studio-adaptacion-visual`. Las pruebas usan datos temporales y fuentes sintéticas; no modifican la biblioteca, Biblia, orden ni distribución reales del usuario.
+
+La consola usa Lexend estática 400/500/600/700 incluida como recurso WPF, fondos carbón y verde esmeralda, paneles de 22 DIP y controles redondeados. La procedencia, licencia OFL y SHA-256 de las fuentes figuran en `THIRD-PARTY-NOTICES.md`. Se comprobó primero el fallo de la prueba al exigir Lexend a la versión Poppins, y después la resolución real de las cuatro caras mediante URI `pack`, sin pesos sintetizados. La tipografía y los colores configurados para los textos proyectados permanecen independientes.
+
+Se conservaron las plantillas de AvalonDock, los seis `ContentId`, controles, manejadores y formatos de datos. Se redondea el contorno de cada panel completo sin sustituir sus plantillas de arrastre. La prueba general verifica flotación y reacoplamiento de los seis paneles, agrupación, persistencia de la distribución y conservación de la sesión. Durante la validación se descartó un intento de sustituir el estilo de pane que anulaba el presentador nativo; esa implementación no forma parte de la entrega.
+
+Las capturas de la base y del resultado se guardan en `.tools/worktrees/culto-polymet/.tools/visual-before` y `visual-final`. Se revisó la consola a 1480 × 900, 1280 × 680 y 1200 × 680 DIP. La base también recortaba el pie del orden y reducía demasiado la salida al bajar la altura. Ahora los mínimos de los monitores son 260 DIP y los ajustes antiguos se normalizan antes de crear los paneles; Medios mantiene su mínimo de 260. La salida reserva una fila de al menos 80 DIP para la imagen y desplaza navegación y controles secundarios. Se comprobó además una salida flotante de 240 × 260 DIP, cuyo panel interior mide 230 × 229: imagen, Logo y Negro quedan dentro. El título se abrevia en una línea, con el nombre completo en su tooltip.
+
+Las comprobaciones visuales verifican el encaje de Agregar/Al orden, la proporción 16:9, Lexend, foco y controles nativos, pestañas sin herencia incorrecta de color y contraste del texto preparado/en vivo. El texto sobre verde usa carbón; los metadatos usan un gris más claro y el foco permanece ámbar. Se corrigió también la opacidad del atajo F5 y la prueba calcula su contraste efectivo. En la salida flotante mínima se comprueba cada botón, slider y casilla dentro del viewport real después de desplazarlo; este conserva al menos 44 DIP para mostrar completo el botón de pausa de 40 DIP.
+
+Resultados de escritorio (los recuentos incluyen la comprobación inicial cuando existe):
+
+| Comando/selector | Resultado |
+|---|---|
+| `scripts/build.ps1` | Compilación sin errores ni advertencias; 232 Core y 61 Remote correctas |
+| `--visual-theme` | 11 comprobaciones correctas y tres capturas comparables |
+| Ensayo general de escritorio | 100 correctas y 2 fallos preexistentes descritos abajo |
+| `--compact-output` | 3 correctas, incluidos controles estrechos y ventana flotante mínima |
+| `--order`, `--content-drag` | 11 y 12 correctas |
+| `--media-layout-headless`, `--capture-layout-headless` | 6 y 2 correctas |
+| `--bible-tools`, `--youtube-controls` | 17 y 4 correctas |
+| `--player`, `--output-player`, `--saved-sets` | 4, 6 y 3 correctas |
+| `--remote-order` | 9 correctas y el mismo fallo previo de Logo vacío |
+| `--backdrops` | Terminó con código 0, pero el registro solo contiene la comprobación inicial; no se considera validación de sus acciones |
+| Renderer `--capture-to-file` | 19 comprobaciones nativas correctas |
+| `--cold-play` | 4 correctas; primera imagen en 784 ms y mayor intervalo de interfaz de 36 ms en esta ejecución |
+
+El ensayo general de la base 0.28.3, sin cambios, produjo cinco fallos: fixture de carpeta Imágenes, desbordamiento compacto, arranque del MKV sintético al restaurar negro, monitor demasiado pequeño y comando remoto de Logo sin imágenes. En la ejecución final permanecen **Imágenes no muestra su archivo/recuento de prueba** y **Logo remoto sin imágenes falla**. Ambos se reprodujeron antes del rediseño; no se ocultan ni se atribuyen al tema. El fallo de arranque nativo no reapareció en la ejecución final y no se declara corregido por este trabajo visual.
+
+Evidencias en el worktree: `.tools/design-baseline.log`, `design-release029.log`, `design-visual-final.log`, `design-desktop-final.log`, `design-compact-minimum.log` (fallo de Logo recortado), `design-compact-player-red.log` (controles más altos que su scroll), `design-compact-minimum-final.log`, `design-*.log` de cada selector, `design-capture-to-file.txt` y `design-cold-play.log`. La comparación sin cambios está en `.tools/design-original-desktop-baseline.log` del checkout principal. Los tiempos son observaciones de una ejecución, no una garantía de rendimiento.
+
+Límites: no se controló Chrome ni se verificó el YouTube modificado del usuario. No se ensayaron HDMI físico, teléfono, presentador USB, PowerPoint real con animaciones/videos ni las escalas de Windows 125 % y 150 %. La captura nativa usa una ventana sintética propia. Los motores de reproducción, audio, Move, proyección, Core y Remote no se cambiaron en este rediseño. La versión 0.28.3 se conserva por separado para recuperación; no hay migración de datos.
 
 ### Primer cambio de captura a archivo — versión 0.28.3
 
