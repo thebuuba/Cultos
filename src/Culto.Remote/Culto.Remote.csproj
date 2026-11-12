@@ -7,5 +7,7 @@
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <EmbeddedResource Include="wwwroot/index.html" />
+    <EmbeddedResource Include="../Culto.Desktop/Assets/Fonts/Lexend-Regular.ttf" LogicalName="Culto.Remote.wwwroot.lexend-regular.ttf" />
+    <EmbeddedResource Include="../Culto.Desktop/Assets/Fonts/Lexend-SemiBold.ttf" LogicalName="Culto.Remote.wwwroot.lexend-semibold.ttf" />
   </ItemGroup>
 </Project>

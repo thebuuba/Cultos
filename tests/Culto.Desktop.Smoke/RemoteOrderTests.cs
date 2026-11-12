@@ -5,6 +5,8 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using Culto.Core;
 using Culto.Desktop;
 using Culto.Desktop.Projection;
@@ -38,6 +40,15 @@ internal static partial class Program
         try
         {
             workspace.Library.Add(libraryOnly);
+            Test("Closing a blacked-out projection publishes closed rather than hidden output", () =>
+            {
+                ResetPlan(); Call(window, "ProjectPrepared"); Call(window, "ToggleBlackout");
+                Check(State().IsBlackout, "Fixture did not enter blackout");
+                Call(window, "CloseOutput");
+                var closed = State();
+                Check(!closed.HasOutput && !closed.IsBlackout && !closed.IsBackground && closed.LiveBody is null,
+                    "Closed output retains a misleading blackout or live preview");
+            });
             Test("Remote snapshot follows the actual edited order and exposes only cue summaries", () =>
             {
                 ResetPlan();
@@ -127,6 +138,14 @@ internal static partial class Program
 
             Test("Remote background blackout and closed-output states match the console", () =>
             {
+                var oldImages = workspace.BackgroundImages; var oldImage = workspace.BackgroundImagePath;
+                var image = Path.Combine(Field<WorkspaceStore>(window, "_store").DirectoryPath, "remote-logo.png");
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(BitmapSource.Create(1, 1, 96, 96, PixelFormats.Bgra32, null, new byte[] { 30, 80, 40, 255 }, 4)));
+                using (var stream = File.Create(image)) encoder.Save(stream);
+                workspace.BackgroundImages = [image]; workspace.BackgroundImagePath = image;
+                try
+                {
                 ResetPlan();
                 Check(Command("cue", first.Id.ToString()).Success, "Could not activate fixture");
                 Check(Command("background").Success, "Background command failed");
@@ -137,6 +156,8 @@ internal static partial class Program
                 Call(window, "CloseOutput");
                 state = State();
                 Check(!state.HasOutput && !state.HasExternalOutput && state.LiveCueId is null && !state.IsBackground, "Closed output retained a live marker");
+                }
+                finally { workspace.BackgroundImages = oldImages; workspace.BackgroundImagePath = oldImage; }
             });
 
             Test("Authenticated HTTP commands dispatch to local video playback and publish native state", () =>

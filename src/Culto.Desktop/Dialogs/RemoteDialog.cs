@@ -8,7 +8,10 @@ using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
+using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
+using System.Windows.Shell;
+using System.Windows.Threading;
 using Culto.Core;
 using Culto.Remote;
 using QRCoder;
@@ -20,18 +23,32 @@ public sealed class RemoteDialog : Window
     public Func<Task<RemoteHost>>? StartRequested { get; set; }
     public Func<Task>? StopRequested { get; set; }
     public Action<List<DeckButton>>? DeckChanged { get; set; }
+    public Func<RemoteSnapshot>? SnapshotRequested { get; set; }
     private RemoteHost? _host;
     private bool _changingConnection;
-    private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap };
-    private readonly TextBlock _stateLabel = new() { FontSize = 11, FontWeight = FontWeights.Bold };
-    private readonly TextBox _url = new() { IsReadOnly = true, TextWrapping = TextWrapping.Wrap, FontSize = 12, MinHeight = 50, MaxHeight = 90 };
-    private readonly Image _qr = new() { Width = 176, Height = 176, Margin = new Thickness(12), Stretch = Stretch.Uniform };
-    private readonly TextBlock _qrEmpty = new() { Text = "El QR aparecerá aquí\nal activar el mando.", TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap, Width = 160, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-    private readonly Border _qrFrame = new() { Width = 200, Height = 200, CornerRadius = new CornerRadius(8) };
+    private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap, FontSize = 11, LineHeight = 17 };
+    private readonly TextBlock _stateLabel = new() { FontSize = 10, FontWeight = FontWeights.SemiBold };
+    private readonly TextBox _url = new() { IsReadOnly = true, TextWrapping = TextWrapping.Wrap, FontSize = 11, MinHeight = 64, MaxHeight = 90, AcceptsReturn = true };
+    private readonly Image _qr = new() { Width = 108, Height = 108, Stretch = Stretch.Uniform };
+    private readonly TextBlock _qrEmpty = new() { TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap, FontSize = 10, Width = 100, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+    private readonly Border _qrFrame = new() { Width = 124, Height = 124, CornerRadius = new CornerRadius(14) };
     private readonly ComboBox _addresses = new();
-    private readonly Button _start = new() { Content = "Activar mando", Margin = new Thickness(0, 0, 8, 8) };
-    private readonly Button _stop = new() { Content = "Desactivar", Margin = new Thickness(0, 0, 0, 8) };
-    private readonly Button _copy = new() { Content = "Copiar enlace", MinHeight = 36 };
+    private readonly Button _start = new() { Content = "Activar mando", Margin = new Thickness(0, 0, 8, 0) };
+    private readonly Button _stop = new() { Content = "Desactivar" };
+    private readonly Button _copy = new() { Content = "Copiar enlace", MinHeight = 30, FontSize = 10, Padding = new Thickness(11, 6, 11, 6), HorizontalAlignment = HorizontalAlignment.Left };
+    private readonly TextBlock _addressLabel = new() { FontSize = 12, FontWeight = FontWeights.Medium, TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock _protectedLabel = new() { FontSize = 10, TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock _connectedCount = new() { FontSize = 11, VerticalAlignment = VerticalAlignment.Center };
+    private readonly StackPanel _devices = new();
+    private readonly TextBlock _phonePlan = new() { FontSize = 9, TextTrimming = TextTrimming.CharacterEllipsis };
+    private readonly TextBlock _phoneLiveLabel = new() { FontSize = 8, FontWeight = FontWeights.Medium };
+    private readonly TextBlock _phoneBody = new() { FontSize = 13, FontWeight = FontWeights.Medium, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center, MaxHeight = 100, TextTrimming = TextTrimming.CharacterEllipsis };
+    private readonly TextBlock _phoneReference = new() { FontSize = 8, TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) };
+    private readonly System.Windows.Controls.Primitives.UniformGrid _phoneDeck = new() { Columns = 3 };
+    private readonly Grid _pages = new();
+    private readonly DispatcherTimer _refreshTimer = new() { Interval = TimeSpan.FromSeconds(2) };
+    private UIElement? _connectionPage, _deckPage;
+    private string? _qrUrl;
     private readonly ObservableCollection<DeckButton> _buttons;
     private readonly ListBox _list = new() { Height = 340 };
     private readonly TextBlock _deckCount = new() { FontSize = 12 };
@@ -47,74 +64,288 @@ public sealed class RemoteDialog : Window
     {
         Style = (Style)Application.Current.FindResource(typeof(Window));
         _host = host; _buttons = new(buttons);
-        Title = "Mando del teléfono — Culto Studio";
-        Width = Math.Min(840, SystemParameters.WorkArea.Width - 48);
-        Height = Math.Min(700, SystemParameters.WorkArea.Height - 48);
+        Title = "Control remoto — Culto Studio";
+        Width = Math.Min(822, SystemParameters.WorkArea.Width - 32);
+        Height = Math.Min(722, SystemParameters.WorkArea.Height - 32);
         MinHeight = 500; MinWidth = 640;
-        MaxHeight = Math.Max(500, SystemParameters.WorkArea.Height - 32);
+        MaxHeight = Math.Max(500, SystemParameters.WorkArea.Height - 16);
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        var root = new DockPanel { Margin = new Thickness(24) };
-        var heading = new StackPanel { Margin = new Thickness(0, 0, 0, 16) };
-        heading.Children.Add(new TextBlock { Text = "El culto, a un toque", FontSize = 25, FontWeight = FontWeights.SemiBold });
-        heading.Children.Add(Muted("Vincula tu teléfono y organiza sus accesos desde aquí.", new Thickness(0, 5, 0, 0)));
-        DockPanel.SetDock(heading, Dock.Top); root.Children.Add(heading);
-        var footer = new DockPanel { Margin = new Thickness(0, 16, 0, 0) };
-        var close = new Button { Content = "Listo", IsCancel = true, MinWidth = 90, HorizontalAlignment = HorizontalAlignment.Right };
-        close.Click += (_, _) => Close(); DockPanel.SetDock(close, Dock.Right); footer.Children.Add(close);
-        var footerHint = Muted("Cerrar esta ventana mantiene el estado del mando.", new Thickness(0, 0, 16, 0));
-        footerHint.VerticalAlignment = VerticalAlignment.Center; footer.Children.Add(footerHint);
-        DockPanel.SetDock(footer, Dock.Bottom); root.Children.Add(footer);
-        var tabs = new TabControl();
-        tabs.Items.Add(new TabItem { Header = "Conectar teléfono", Content = Scroll(BuildConnection()) });
-        tabs.Items.Add(new TabItem { Header = "Organizar botones", Content = Scroll(BuildDeck(cues)) });
-        root.Children.Add(tabs); Content = root;
+        WindowStyle = WindowStyle.None; AllowsTransparency = true; Background = Brushes.Transparent;
+        ResizeMode = ResizeMode.CanResize;
+        WindowChrome.SetWindowChrome(this, new WindowChrome
+        {
+            CaptionHeight = 0, CornerRadius = new CornerRadius(28), ResizeBorderThickness = new Thickness(6),
+            GlassFrameThickness = new Thickness(0), UseAeroCaptionButtons = false
+        });
+        var shell = new Border
+        {
+            Background = ColorBrush("#2A2B2F"), CornerRadius = new CornerRadius(28), Margin = new Thickness(12),
+            Padding = new Thickness(28), BorderBrush = ColorBrush("#3A3B40"), BorderThickness = new Thickness(1),
+            Effect = new DropShadowEffect { Color = Colors.Black, BlurRadius = 20, ShadowDepth = 5, Opacity = .24 }
+        };
+        var root = new Grid(); root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); root.RowDefinitions.Add(new RowDefinition());
+        var header = new Grid { Margin = new Thickness(0, 0, 0, 20), Background = Brushes.Transparent };
+        header.ColumnDefinitions.Add(new ColumnDefinition()); header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var heading = new StackPanel();
+        heading.Children.Add(new TextBlock { Text = "Control remoto", FontSize = 22, FontWeight = FontWeights.Bold });
+        heading.Children.Add(Muted("Controla la proyección desde tu teléfono.", new Thickness(0, 7, 0, 0)));
+        heading.MouseLeftButtonDown += (_, e) => { if (e.ClickCount == 1) DragMove(); };
+        header.Children.Add(heading);
+        var close = new Button
+        {
+            Content = Glyph("M6 6 L18 18 M18 6 L6 18", 16), IsCancel = true, Width = 32, Height = 32, MinHeight = 32,
+            Padding = new Thickness(8), VerticalAlignment = VerticalAlignment.Top, Style = (Style)FindResource("QuietButton"),
+            ToolTip = "Cerrar"
+        };
+        AutomationProperties.SetName(close, "Cerrar control remoto");
+        close.Click += (_, _) => Close(); Grid.SetColumn(close, 1); header.Children.Add(close); root.Children.Add(header);
+        _connectionPage = BuildConnection();
+        _deckPage = BuildDeckPage(cues); _deckPage.Visibility = Visibility.Collapsed;
+        _pages.Children.Add(_connectionPage); _pages.Children.Add(_deckPage); Grid.SetRow(_pages, 1); root.Children.Add(_pages);
+        shell.Child = root; Content = shell;
         _start.Click += async (_, _) => await Start();
         _stop.Click += async (_, _) => await Stop();
         _copy.Click += (_, _) => { if (_host is not null && _url.Text.Length > 0) Clipboard.SetText(_url.Text); };
         if (_buttons.Count > 0) _list.SelectedIndex = 0; else SelectButton();
         RefreshConnection();
+        _refreshTimer.Tick += (_, _) => { RefreshDevices(); RefreshPreview(); };
+        Loaded += (_, _) => { RefreshPreview(); _refreshTimer.Start(); };
+        Closed += (_, _) => _refreshTimer.Stop();
     }
 
     private UIElement BuildConnection()
     {
-        var connection = new StackPanel { Margin = new Thickness(0, 4, 8, 0) };
-        var state = new StackPanel();
-        state.Children.Add(_stateLabel); _status.Margin = new Thickness(0, 4, 0, 0); state.Children.Add(_status);
-        var stateCard = DialogUi.Card(state); stateCard.Padding = new Thickness(14, 10, 14, 10); stateCard.Margin = new Thickness(0, 0, 0, 14); connection.Children.Add(stateCard);
-        AutomationProperties.SetLiveSetting(_status, AutomationLiveSetting.Polite);
         var columns = new Grid();
-        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        var steps = new StackPanel();
-        steps.Children.Add(Section("1  Activa el mando"));
-        steps.Children.Add(Muted("La PC y el teléfono deben estar en la misma red Wi-Fi.", new Thickness(0, 6, 0, 12)));
-        var controls = new WrapPanel(); _start.Style = (Style)FindResource("PrimaryButton"); controls.Children.Add(_start); controls.Children.Add(_stop); steps.Children.Add(controls);
-        steps.Children.Add(Section("2  Revisa la dirección de red", new Thickness(0, 12, 0, 0)));
-        DialogUi.Label(steps, "Dirección de esta computadora", _addresses);
-        RefreshAddresses();
-        _addresses.SelectionChanged += (_, _) => RefreshConnection(); steps.Children.Add(_addresses);
-        var refresh = new Button { Content = "Actualizar red", HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 8, 0, 0) };
-        refresh.Click += (_, _) => { RefreshAddresses(); RefreshConnection(); };
-        steps.Children.Add(refresh);
-        steps.Children.Add(Muted("Si hay varias, elige la conexión que comparte la red del teléfono.", new Thickness(0, 7, 0, 0)));
-        var stepsCard = DialogUi.Card(steps); stepsCard.Margin = new Thickness(0, 0, 14, 0); columns.Children.Add(stepsCard);
-        var qrContent = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center };
-        qrContent.Children.Add(Section("3  Escanea el QR"));
-        qrContent.Children.Add(Muted("Usa la cámara del teléfono.", new Thickness(0, 5, 0, 12)));
-        var qrLayers = new Grid(); qrLayers.Children.Add(_qr); qrLayers.Children.Add(_qrEmpty); _qrFrame.Child = qrLayers; qrContent.Children.Add(_qrFrame);
+        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(390, GridUnitType.Star) });
+        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(24) });
+        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(290, GridUnitType.Star) });
+        var connection = new StackPanel();
+        connection.Children.Add(Section("Conecta tu dispositivo"));
+        connection.Children.Add(Muted("Escanea el código QR en la misma red Wi-Fi.", new Thickness(0, 6, 0, 16)));
+        var pairing = new Grid();
+        pairing.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        pairing.ColumnDefinitions.Add(new ColumnDefinition());
+        var qrLayers = new Grid(); qrLayers.Children.Add(_qr); qrLayers.Children.Add(_qrEmpty); _qrFrame.Child = qrLayers;
+        RenderOptions.SetBitmapScalingMode(_qr, BitmapScalingMode.NearestNeighbor);
         AutomationProperties.SetName(_qr, "Código QR para vincular el teléfono");
-        var qrCard = DialogUi.Card(qrContent); Grid.SetColumn(qrCard, 1); columns.Children.Add(qrCard);
-        connection.Children.Add(columns);
-        var link = new StackPanel();
-        DialogUi.Label(link, "Enlace de vinculación", _url); link.Children.Add(_url);
-        var copyRow = new DockPanel { Margin = new Thickness(0, 8, 0, 0) };
-        DockPanel.SetDock(_copy, Dock.Right); copyRow.Children.Add(_copy);
-        copyRow.Children.Add(Muted("También puedes copiarlo y abrirlo en el navegador del teléfono.", new Thickness(0, 0, 12, 0)));
-        link.Children.Add(copyRow);
-        var linkCard = DialogUi.Card(link); linkCard.Padding = new Thickness(14, 4, 14, 12); linkCard.Margin = new Thickness(0, 14, 0, 0); connection.Children.Add(linkCard);
-        connection.Children.Add(Muted("Mantén Culto Studio abierto. Al desactivar el mando, el enlace deja de funcionar. Usa una red local de confianza.", new Thickness(0, 12, 0, 0)));
-        return connection;
+        pairing.Children.Add(_qrFrame);
+        var link = new StackPanel { Margin = new Thickness(16, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+        var addressHeading = Muted("Dirección local", new Thickness(0, 0, 0, 5)); addressHeading.FontSize = 10; link.Children.Add(addressHeading); link.Children.Add(_addressLabel);
+        var protection = new Grid { Margin = new Thickness(0, 8, 0, 11) };
+        protection.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); protection.ColumnDefinitions.Add(new ColumnDefinition());
+        var lockIcon = Glyph("M7 11 L7 7 A5 5 0 0 1 17 7 L17 11 M5 11 L19 11 L19 21 L5 21 Z M12 15 L12 17", 12);
+        lockIcon.Margin = new Thickness(0, 1, 5, 0); protection.Children.Add(lockIcon);
+        Grid.SetColumn(_protectedLabel, 1); protection.Children.Add(_protectedLabel); link.Children.Add(protection); link.Children.Add(_copy);
+        Grid.SetColumn(link, 1); pairing.Children.Add(link);
+        connection.Children.Add(new Border { Background = ColorBrush("#303136"), CornerRadius = new CornerRadius(24), Padding = new Thickness(16), Child = pairing });
+        var state = new StackPanel { Margin = new Thickness(2, 14, 0, 0) }; state.Children.Add(_stateLabel); _status.Margin = new Thickness(0, 5, 0, 0); _status.Foreground = (Brush)FindResource("MutedBrush"); state.Children.Add(_status); connection.Children.Add(state);
+        AutomationProperties.SetLiveSetting(_status, AutomationLiveSetting.Polite);
+        var deviceHeading = new DockPanel { Margin = new Thickness(0, 24, 0, 12) };
+        _connectedCount.Foreground = (Brush)FindResource("MutedBrush"); DockPanel.SetDock(_connectedCount, Dock.Right); deviceHeading.Children.Add(_connectedCount); deviceHeading.Children.Add(Section("Dispositivos")); connection.Children.Add(deviceHeading);
+        connection.Children.Add(new ScrollViewer { Content = _devices, MaxHeight = 142, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
+        var controls = new WrapPanel { Margin = new Thickness(0, 20, 0, 0) };
+        _start.Style = (Style)FindResource("PrimaryButton"); _start.Foreground = ColorBrush("#10271E");
+        controls.Children.Add(_start); controls.Children.Add(_stop); connection.Children.Add(controls);
+        var options = new StackPanel();
+        DialogUi.Label(options, "Dirección de esta computadora", _addresses); options.Children.Add(_addresses);
+        RefreshAddresses(); _addresses.SelectionChanged += (_, _) => RefreshConnection();
+        var refresh = new Button { Content = "Actualizar red", HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 8, 0, 0), FontSize = 11, MinHeight = 32 };
+        refresh.Click += (_, _) => { RefreshAddresses(); RefreshConnection(); }; options.Children.Add(refresh);
+        DialogUi.Label(options, "Enlace protegido de vinculación", _url); options.Children.Add(_url);
+        options.Children.Add(Muted("El enlace incluye la clave de acceso. Al desactivar el mando deja de funcionar.", new Thickness(0, 8, 0, 0)));
+        connection.Children.Add(new Expander { Header = "Opciones de conexión", Foreground = (Brush)FindResource("TextBrush"), Content = options, Margin = new Thickness(0, 16, 0, 0), FontSize = 11 });
+        var edit = new Button { Content = "Editar botones", HorizontalAlignment = HorizontalAlignment.Left, Style = (Style)FindResource("QuietButton"), Margin = new Thickness(-10, 12, 0, 0), FontSize = 12 };
+        edit.Click += (_, _) => ShowDeck(true); connection.Children.Add(edit);
+        var hint = Muted("Cerrar esta ventana mantiene el mando activo.", new Thickness(0, 7, 0, 2)); hint.FontSize = 10; connection.Children.Add(hint);
+        columns.Children.Add(Scroll(connection));
+        var preview = BuildPhonePanel(); Grid.SetColumn(preview, 2); columns.Children.Add(preview);
+        return columns;
     }
+
+    private UIElement BuildDeckPage(IReadOnlyList<Cue> cues)
+    {
+        var page = new DockPanel();
+        var back = new Button
+        {
+            Content = "‹  Volver a la conexión", HorizontalAlignment = HorizontalAlignment.Left,
+            Style = (Style)FindResource("QuietButton"), Margin = new Thickness(-10, 0, 0, 12)
+        };
+        back.Click += (_, _) => ShowDeck(false); DockPanel.SetDock(back, Dock.Top); page.Children.Add(back);
+        page.Children.Add(Scroll(BuildDeck(cues))); return page;
+    }
+
+    private void ShowDeck(bool show)
+    {
+        if (_connectionPage is null || _deckPage is null) return;
+        _connectionPage.Visibility = show ? Visibility.Collapsed : Visibility.Visible;
+        _deckPage.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        if (show) _list.Focus(); else RefreshPreview();
+    }
+
+    private UIElement BuildPhonePanel()
+    {
+        var panel = new Border { Background = StripeBrush(), CornerRadius = new CornerRadius(24), Padding = new Thickness(10, 14, 10, 14) };
+        var layout = new Grid(); layout.RowDefinitions.Add(new RowDefinition()); layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        var phone = new Border
+        {
+            Width = 264, Height = 540, Background = ColorBrush("#101113"), CornerRadius = new CornerRadius(48),
+            Padding = new Thickness(8), BorderBrush = ColorBrush("#515258"), BorderThickness = new Thickness(2),
+            Effect = new DropShadowEffect { Color = Colors.Black, BlurRadius = 18, ShadowDepth = 6, Opacity = .28 },
+            IsHitTestVisible = false
+        };
+        AutomationProperties.SetName(phone, "Vista previa del mando con el estado actual de la proyección");
+        var screen = new Border { Background = ColorBrush("#242529"), CornerRadius = new CornerRadius(38), Padding = new Thickness(14, 28, 14, 14) };
+        var phoneLayers = new Grid(); phoneLayers.Children.Add(screen);
+        phoneLayers.Children.Add(new Border { Width = 66, Height = 13, CornerRadius = new CornerRadius(7), Background = ColorBrush("#101113"), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 7, 0, 0) });
+        phone.Child = phoneLayers;
+        var content = new StackPanel();
+        var brand = new Grid { Margin = new Thickness(0, 0, 0, 12) }; brand.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); brand.ColumnDefinitions.Add(new ColumnDefinition());
+        brand.Children.Add(new Border { Width = 27, Height = 27, CornerRadius = new CornerRadius(9), Background = ColorBrush("#24B27E"), Child = Glyph("M12 5 L12 19 M6 10 L18 10", 18, ColorBrush("#10271E")) });
+        var brandText = new StackPanel { Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+        brandText.Children.Add(new TextBlock { Text = "Culto Deck", FontSize = 12, FontWeight = FontWeights.SemiBold });
+        _phonePlan.Foreground = (Brush)FindResource("MutedBrush"); _phonePlan.Margin = new Thickness(0, 2, 0, 0); brandText.Children.Add(_phonePlan);
+        Grid.SetColumn(brandText, 1); brand.Children.Add(brandText); content.Children.Add(brand);
+        _phoneLiveLabel.Foreground = ColorBrush("#38D399"); _phoneLiveLabel.Margin = new Thickness(2, 0, 0, 7); content.Children.Add(_phoneLiveLabel);
+        var live = new Grid { Margin = new Thickness(14, 10, 14, 10) };
+        live.RowDefinitions.Add(new RowDefinition()); live.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        _phoneBody.Foreground = Brushes.White; _phoneBody.VerticalAlignment = VerticalAlignment.Center;
+        _phoneReference.Foreground = ColorBrush("#D4D5DA"); live.Children.Add(_phoneBody); Grid.SetRow(_phoneReference, 1); live.Children.Add(_phoneReference);
+        content.Children.Add(new Border { Background = Brushes.Black, CornerRadius = new CornerRadius(18), Height = 112, ClipToBounds = true, Child = live });
+        var navigation = new Grid { Margin = new Thickness(0, 8, 0, 12) }; navigation.ColumnDefinitions.Add(new ColumnDefinition()); navigation.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(6) }); navigation.ColumnDefinitions.Add(new ColumnDefinition());
+        navigation.Children.Add(PhonePill("Anterior", "M14 6 L8 12 L14 18")); var next = PhonePill("Siguiente", "M10 6 L16 12 L10 18", true); Grid.SetColumn(next, 2); navigation.Children.Add(next); content.Children.Add(navigation);
+        content.Children.Add(new TextBlock { Text = "Accesos rápidos", FontSize = 10, FontWeight = FontWeights.Medium, Margin = new Thickness(2, 0, 0, 6) });
+        content.Children.Add(_phoneDeck); screen.Child = content;
+        var viewbox = new Viewbox { Child = phone, Stretch = Stretch.Uniform, StretchDirection = StretchDirection.DownOnly, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        layout.Children.Add(viewbox);
+        var caption = Muted("Vista previa del mando", new Thickness(0, 12, 0, 0)); caption.FontSize = 10; caption.TextAlignment = TextAlignment.Center;
+        Grid.SetRow(caption, 1); layout.Children.Add(caption); panel.Child = layout; return panel;
+    }
+
+    private static Border PhonePill(string label, string geometry, bool primary = false)
+    {
+        var ink = primary ? ColorBrush("#1F2023") : ColorBrush("#D7D8DE");
+        var row = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
+        row.Children.Add(Glyph(geometry, 12, ink)); row.Children.Add(new TextBlock { Text = label, FontSize = 8, Foreground = ink, Margin = new Thickness(4, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center });
+        return new Border { CornerRadius = new CornerRadius(18), Height = 36, Background = primary ? Brushes.White : ColorBrush("#34353A"), Child = row };
+    }
+
+    private static System.Windows.Shapes.Path Glyph(string geometry, double size, Brush? brush = null) => new()
+    {
+        Data = Geometry.Parse(geometry), Width = size, Height = size, Stretch = Stretch.Uniform,
+        Stroke = brush ?? ColorBrush("#D7D8DE"), StrokeThickness = 1.7, StrokeStartLineCap = PenLineCap.Round,
+        StrokeEndLineCap = PenLineCap.Round, StrokeLineJoin = PenLineJoin.Round, VerticalAlignment = VerticalAlignment.Center
+    };
+
+    private static SolidColorBrush ColorBrush(string color)
+    {
+        var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color)); brush.Freeze(); return brush;
+    }
+
+    private static DrawingBrush StripeBrush()
+    {
+        var drawing = new DrawingGroup();
+        drawing.Children.Add(new GeometryDrawing(ColorBrush("#27282C"), null, new RectangleGeometry(new Rect(0, 0, 16, 16))));
+        var pen = new Pen(ColorBrush("#303135"), .7); pen.Freeze();
+        drawing.Children.Add(new GeometryDrawing(null, pen, Geometry.Parse("M-8 8 L8 -8 M0 16 L16 0 M8 24 L24 8")));
+        var brush = new DrawingBrush(drawing) { TileMode = TileMode.Tile, ViewportUnits = BrushMappingMode.Absolute, Viewport = new Rect(0, 0, 16, 16), ViewboxUnits = BrushMappingMode.Absolute, Viewbox = new Rect(0, 0, 16, 16) };
+        brush.Freeze(); return brush;
+    }
+
+    private void RefreshDevices()
+    {
+        _devices.Children.Clear();
+        var clients = _host?.Clients;
+        var connected = _host?.ConnectedClientCount ?? 0;
+        _connectedCount.Text = connected == 1 ? "1 conectado" : $"{connected} conectados";
+        if (clients is null || clients.Count == 0)
+        {
+            var empty = new StackPanel { Margin = new Thickness(13, 11, 13, 11) };
+            empty.Children.Add(new TextBlock { Text = "Aún no hay dispositivos", FontSize = 12, FontWeight = FontWeights.Medium });
+            var hint = Muted(_host is null ? "Activa el mando para conectar tu teléfono." : "Escanea el QR para empezar.", new Thickness(0, 4, 0, 0)); hint.FontSize = 10; empty.Children.Add(hint);
+            _devices.Children.Add(new Border { CornerRadius = new CornerRadius(20), Background = ColorBrush("#303136"), Child = empty }); return;
+        }
+        foreach (var client in clients.OrderByDescending(client => client.IsConnected).ThenByDescending(client => client.LastSeen))
+        {
+            var row = new Grid { Margin = new Thickness(14, 10, 14, 10) };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(30) }); row.ColumnDefinitions.Add(new ColumnDefinition()); row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            var name = string.IsNullOrWhiteSpace(client.Name) ? "Dispositivo" : client.Name;
+            var isPhone = name.Contains("iPhone", StringComparison.OrdinalIgnoreCase) || name.Contains("Android", StringComparison.OrdinalIgnoreCase) || name.Contains("iPad", StringComparison.OrdinalIgnoreCase) || name.Contains("móvil", StringComparison.OrdinalIgnoreCase) || name.Contains("teléfono", StringComparison.OrdinalIgnoreCase);
+            row.Children.Add(Glyph(isPhone ? "M7 2 L17 2 Q19 2 19 4 L19 20 Q19 22 17 22 L7 22 Q5 22 5 20 L5 4 Q5 2 7 2 Z M10 18 L14 18" : "M3 4 L21 4 L21 17 L3 17 Z M12 17 L12 21 M7 21 L17 21", 20));
+            var labels = new StackPanel { Margin = new Thickness(9, 0, 10, 0), VerticalAlignment = VerticalAlignment.Center };
+            labels.Children.Add(new TextBlock { Text = name, FontSize = 11, FontWeight = FontWeights.Medium, TextTrimming = TextTrimming.CharacterEllipsis, ToolTip = name });
+            labels.Children.Add(new TextBlock { Text = client.IsConnected ? "Conectado" : LastSeen(client.LastSeen), FontSize = 9, Margin = new Thickness(0, 3, 0, 0), Foreground = client.IsConnected ? ColorBrush("#38D399") : (Brush)FindResource("MutedBrush") });
+            Grid.SetColumn(labels, 1); row.Children.Add(labels);
+            var dot = new System.Windows.Shapes.Ellipse { Width = 6, Height = 6, Fill = client.IsConnected ? ColorBrush("#24B27E") : ColorBrush("#777A84"), VerticalAlignment = VerticalAlignment.Center }; Grid.SetColumn(dot, 2); row.Children.Add(dot);
+            _devices.Children.Add(new Border { Background = ColorBrush("#34353A"), CornerRadius = new CornerRadius(24), Margin = new Thickness(0, 0, 0, 8), Child = row });
+        }
+    }
+
+    private static string LastSeen(DateTimeOffset seen)
+    {
+        var elapsed = DateTimeOffset.UtcNow - seen;
+        if (elapsed.TotalMinutes < 1) return "Visto hace un momento";
+        if (elapsed.TotalHours < 1) return $"Visto hace {(int)elapsed.TotalMinutes} min";
+        return "Última vez " + seen.ToLocalTime().ToString("g", CultureInfo.CurrentCulture);
+    }
+
+    private void RefreshPreview()
+    {
+        var snapshot = SnapshotRequested?.Invoke();
+        _phonePlan.Text = snapshot?.PlanName ?? "Control remoto";
+        _phoneLiveLabel.Text = snapshot is { HasOutput: true } ? (snapshot.IsBlackout ? "PANTALLA NEGRA" : snapshot.IsBackground ? "LOGO EN PANTALLA" : "EN PANTALLA") : "SALIDA CERRADA";
+        _phoneBody.Text = snapshot switch
+        {
+            null => "Sin vista previa",
+            { HasOutput: false } => "Salida cerrada",
+            { IsBlackout: true } => "",
+            { IsBackground: true } => "Logo",
+            { LiveBody: { Length: > 0 } body } => body,
+            _ => snapshot.LiveTitle
+        };
+        _phoneReference.Text = snapshot is { HasOutput: true, IsBlackout: false, IsBackground: false }
+            ? snapshot.LiveReference ?? (string.IsNullOrWhiteSpace(snapshot.LiveBody) ? "" : snapshot.LiveTitle) : "";
+        _phoneReference.Visibility = _phoneReference.Text.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+        _phoneDeck.Children.Clear();
+        foreach (var button in _buttons.Take(6))
+        {
+            var mappedColor = button.Color.ToUpperInvariant() switch
+            {
+                "#43D9BE" => "#24B27E", "#A7C7FF" => "#4274F4", "#FFCF75" => "#F8BA2A", "#FF9DAD" => "#EF5350", _ => button.Color
+            };
+            SolidColorBrush color;
+            try { color = ColorBrush(mappedColor); } catch (FormatException) { color = ColorBrush("#24B27E"); }
+            var ink = PreviewInk(color.Color);
+            var labels = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4) };
+            labels.Children.Add(Glyph(ActionIcon(button.Action), 21, ink));
+            labels.Children.Add(new TextBlock { Text = button.Label, FontSize = 9, FontWeight = FontWeights.Medium, Foreground = ink, TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap, MaxHeight = 34, Margin = new Thickness(0, 9, 0, 0) });
+            _phoneDeck.Children.Add(new Border { Background = color, CornerRadius = new CornerRadius(24), Height = 92, Margin = new Thickness(2, 2, 2, 2), Child = labels, ToolTip = button.Label });
+        }
+        if (_buttons.Count == 0)
+            _phoneDeck.Children.Add(new TextBlock { Text = "Sin accesos", FontSize = 9, Foreground = (Brush)FindResource("MutedBrush"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(4) });
+    }
+
+    private static Brush PreviewInk(Color color)
+    {
+        static double Linear(byte component)
+        {
+            var value = component / 255d;
+            return value <= .04045 ? value / 12.92 : Math.Pow((value + .055) / 1.055, 2.4);
+        }
+        var luminance = .2126 * Linear(color.R) + .7152 * Linear(color.G) + .0722 * Linear(color.B);
+        return luminance > .179 ? ColorBrush("#101114") : Brushes.White;
+    }
+
+    private static string ActionIcon(string action) => action switch
+    {
+        "next" => "M8 5 L16 12 L8 19 M20 5 L20 19",
+        "previous" => "M16 5 L8 12 L16 19 M4 5 L4 19",
+        "blackout" => "M3 4 L21 4 L21 17 L3 17 Z M12 17 L12 21 M7 21 L17 21 M4 20 L20 2",
+        "background" => "M3 4 L21 4 L21 20 L3 20 Z M3 16 L8 11 L13 15 L17 9 L21 13 M7 8 L8 8",
+        "pause" => "M8 5 L8 19 M16 5 L16 19",
+        "restart" => "M5 8 A8 8 0 1 1 4 15 M5 3 L5 9 L11 9",
+        "cue" => "M5 3 L19 3 L19 21 L5 21 Z M9 7 L15 7 M9 12 L15 12 M9 17 L13 17",
+        _ => "M3 4 L21 4 L21 17 L3 17 Z M10 7 L15 10.5 L10 14 Z M7 21 L17 21 M12 17 L12 21"
+    };
 
     private UIElement BuildDeck(IReadOnlyList<Cue> cues)
     {
@@ -154,7 +385,11 @@ public sealed class RemoteDialog : Window
     private TextBlock Muted(string text, Thickness margin) => new() { Text = text, Style = (Style)FindResource("MutedText"), Margin = margin };
     private static TextBlock Section(string text, Thickness? margin = null) => new() { Text = text, FontSize = 15, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap, Margin = margin ?? new Thickness(0) };
     private static ScrollViewer Scroll(UIElement content) => new() { Content = content, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
-    private void UpdateDeckCount() => _deckCount.Text = $"{_buttons.Count} de 32 accesos disponibles";
+    private void UpdateDeckCount()
+    {
+        _deckCount.Text = $"{_buttons.Count} de 32 accesos disponibles";
+        RefreshPreview();
+    }
     private static DataTemplate DeckTemplate()
     {
         var row = new FrameworkElementFactory(typeof(DockPanel));
@@ -183,6 +418,7 @@ public sealed class RemoteDialog : Window
         if (StartRequested is null || _changingConnection || _host is not null) return;
         RefreshAddresses();
         _changingConnection = true;
+        UpdateConnectionControls();
         _start.IsEnabled = false; _status.Text = "Activando mando…"; _stateLabel.Text = "ACTIVANDO";
         try { _host = await StartRequested(); _changingConnection = false; RefreshConnection(); }
         catch (Exception ex) { _status.Text = "No se pudo activar el mando: " + ex.Message; _stateLabel.Text = "NO SE PUDO ACTIVAR"; _stateLabel.Foreground = (Brush)FindResource("AmberBrush"); _start.IsEnabled = true; }
@@ -192,6 +428,7 @@ public sealed class RemoteDialog : Window
     {
         if (_changingConnection || _host is null) return;
         _changingConnection = true;
+        UpdateConnectionControls();
         _stop.IsEnabled = false; _copy.IsEnabled = false; _stateLabel.Text = "DESACTIVANDO";
         try { if (StopRequested is not null) await StopRequested(); _host = null; _changingConnection = false; RefreshConnection(); }
         catch (Exception ex) { _status.Text = "No se pudo cerrar el mando: " + ex.Message; _stateLabel.Text = "REVISA LA CONEXIÓN"; _stateLabel.Foreground = (Brush)FindResource("AmberBrush"); _stop.IsEnabled = true; _copy.IsEnabled = _host is not null; }
@@ -212,21 +449,26 @@ public sealed class RemoteDialog : Window
         var address = _addresses.SelectedItem as string;
         var canConnect = active && address is not null;
         _stateLabel.Text = active ? "MANDO ACTIVO" : "MANDO DESACTIVADO";
-        _stateLabel.Foreground = (Brush)FindResource(active ? "AccentBrush" : "MutedBrush");
+        _stateLabel.Foreground = (Brush)FindResource(active ? "AccentTextBrush" : "MutedBrush");
         _status.Text = active ? (canConnect ? "Listo para vincular. Escanea el QR desde tu teléfono." : "Sin conexión de red. Conecta la PC y pulsa Actualizar red.") : "Actívalo cuando quieras conectar el teléfono.";
-        _qrFrame.Background = canConnect ? Brushes.White : (Brush)FindResource("RaisedBrush");
-        _qrFrame.BorderBrush = (Brush)FindResource("BorderBrush"); _qrFrame.BorderThickness = canConnect ? new Thickness(0) : new Thickness(1);
+        _qrFrame.Background = Brushes.White;
+        _qrFrame.BorderThickness = new Thickness(0);
         _qr.Visibility = canConnect ? Visibility.Visible : Visibility.Collapsed; _qrEmpty.Visibility = canConnect ? Visibility.Collapsed : Visibility.Visible;
         _qrEmpty.Text = active ? "Sin dirección de red" : "El QR aparecerá aquí\nal activar el mando.";
-        _qrEmpty.Foreground = (Brush)FindResource("MutedBrush");
-        if (_host is null) { _url.Text = "Activa el mando para generar el enlace de vinculación."; _qr.Source = null; return; }
-        if (address is null) { _url.Text = "Sin dirección de red disponible."; _qr.Source = null; return; }
+        _qrEmpty.Foreground = ColorBrush("#555860");
+        _addressLabel.Text = canConnect ? $"{address}:{_host!.Port}" : active ? "Red no disponible" : "Mando desactivado";
+        _protectedLabel.Text = active ? "Acceso protegido por enlace" : "Enlace al activar";
+        _protectedLabel.Foreground = (Brush)FindResource(active ? "AccentTextBrush" : "MutedBrush");
+        RefreshDevices(); RefreshPreview();
+        if (_host is null) { _url.Text = "Activa el mando para generar el enlace de vinculación."; _qr.Source = null; _qrUrl = null; return; }
+        if (address is null) { _url.Text = "Sin dirección de red disponible."; _qr.Source = null; _qrUrl = null; return; }
         _url.Text = $"http://{address}:{_host.Port}/#token={_host.Token}";
+        if (_qrUrl == _url.Text && _qr.Source is not null) return;
         using var data = QRCodeGenerator.GenerateQrCode(_url.Text, QRCodeGenerator.ECCLevel.M);
         using var qr = new PngByteQRCode(data);
         using var stream = new MemoryStream(qr.GetGraphic(8));
         var bitmap = new BitmapImage(); bitmap.BeginInit(); bitmap.CacheOption = BitmapCacheOption.OnLoad; bitmap.StreamSource = stream; bitmap.EndInit(); bitmap.Freeze();
-        _qr.Source = bitmap;
+        _qr.Source = bitmap; _qrUrl = _url.Text;
     }
     private void RefreshAddresses()
     {

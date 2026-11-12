@@ -3,37 +3,136 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#18181D">
-<title>Mando · Culto Studio</title>
+<meta name="theme-color" content="#1F2023">
+<title>Culto Deck · Mando del culto</title>
 <style>
-:root{color-scheme:dark;--bg:#18181D;--surface:#232329;--raised:#2C2B34;--line:#45434F;--text:#F5F3FA;--muted:#B7B3C3;--accent:#C5B1FF;--accent-bg:#393049;--amber:#E8CC94;--danger:#FFB6BA}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 "Segoe UI",system-ui,sans-serif}main{max-width:680px;margin:auto;padding:calc(20px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) calc(32px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:24px}.brand{font-weight:700;font-size:19px;letter-spacing:-.4px}.eyebrow{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);font-weight:700}.status{flex-shrink:0;font-size:12px;border:1px solid var(--line);border-radius:999px;padding:6px 10px;color:var(--amber)}.status.connected{color:var(--accent)}h1{font-size:27px;line-height:1.2;letter-spacing:-.7px;margin:6px 0 12px;overflow-wrap:anywhere}h2{font-size:17px;margin:0}.panel{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:18px;margin-bottom:20px}.live{border-color:#716184;background:linear-gradient(130deg,#302A3B,var(--surface))}.title{font-size:21px;font-weight:600;line-height:1.3;margin:8px 0;overflow-wrap:anywhere}.detail{color:var(--muted);font-size:13px;margin:0}.row{display:flex;align-items:center;justify-content:space-between;gap:12px}.row>*{min-width:0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.controls{margin-top:16px}button{font:600 15px/1.3 "Segoe UI",system-ui,sans-serif;min-height:52px;padding:13px 12px;border:1px solid var(--line);border-radius:999px;background:var(--raised);color:var(--text);cursor:pointer;touch-action:manipulation;overflow-wrap:anywhere;transition:background .15s,border-color .15s}button:hover:not(:disabled){border-color:var(--accent);background:var(--accent-bg)}button:active:not(:disabled){background:#4A3C60}button.primary{background:var(--accent);color:#221A31;border-color:var(--accent);font-size:16px;width:100%;margin-top:14px}button[aria-pressed=true]{border-color:var(--amber);color:var(--amber)}button:disabled{opacity:.45;cursor:not-allowed}:focus-visible{outline:3px solid var(--accent);outline-offset:3px}label{display:block;font-size:14px;color:var(--muted)}input[type=range]{display:block;width:100%;min-height:48px;accent-color:var(--accent);cursor:pointer}input:disabled{opacity:.4}output{font-variant-numeric:tabular-nums;color:var(--text)}.field{margin-top:16px}.message{color:var(--muted);margin:0 0 16px;font-size:13px;min-height:20px;overflow-wrap:anywhere}.message.error{color:var(--danger)}.section-head{margin:26px 2px 12px}.count{font-size:12px;color:var(--muted);white-space:nowrap}#order{list-style:none;padding:0;margin:0 0 24px;display:grid;gap:10px}.cue{width:100%;min-height:82px;display:flex;align-items:center;gap:12px;text-align:left;background:var(--surface);padding:14px;border-radius:18px}.cue[aria-current=true]{border-color:var(--accent);background:var(--accent-bg);box-shadow:inset 3px 0 var(--accent)}.cue-number{display:grid;place-items:center;flex:0 0 32px;height:32px;background:var(--raised);border-radius:10px;color:var(--muted);font-variant-numeric:tabular-nums;font-size:13px}.cue[aria-current=true] .cue-number{background:var(--accent);color:#221A31}.cue-copy{flex:1;min-width:0}.cue-title{display:block;font-size:16px;font-weight:600;overflow-wrap:anywhere}.cue-kind{display:block;color:var(--muted);font-size:12px;font-weight:400;margin-top:3px}.cue-state{flex-shrink:0;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--accent);max-width:76px;text-align:right}.cue-state.prepared{color:var(--amber)}.cue-state:empty{display:none}.playback-head{margin-bottom:16px}.prepared-title{font-size:17px;margin:8px 0 0}.output-controls{margin-bottom:20px}#retry{min-height:48px;width:100%;background:transparent}#deck{margin-top:16px}#deck button{text-align:left;min-height:64px;border-top:3px solid var(--accent)}footer{font-size:12px;color:var(--muted);text-align:center;margin-top:20px}.empty{color:var(--muted);font-size:14px;margin:0 0 20px;padding:16px;border:1px dashed var(--line);border-radius:16px}#deck-empty{margin:12px 0 0;padding:0;border:0}noscript{display:block;padding:20px;color:var(--amber)}[hidden]{display:none!important}@media(min-width:560px){main{padding:36px 24px}.title{font-size:25px}}@media(max-width:350px){main{padding-left:12px;padding-right:12px}.brand{font-size:17px}.status{font-size:11px;padding:6px 8px}.cue{gap:8px;padding:12px}.cue-state{max-width:62px;font-size:9px}}@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+@font-face{font-family:Lexend;src:url('/assets/lexend-regular.ttf') format('truetype');font-style:normal;font-weight:400;font-display:swap}
+@font-face{font-family:Lexend;src:url('/assets/lexend-semibold.ttf') format('truetype');font-style:normal;font-weight:600 800;font-display:swap}
+:root{color-scheme:dark;--bg:#1F2023;--surface:#2A2B2F;--raised:#303136;--text:#F7F8FA;--muted:#B5B7BF;--accent:#8BE9AD;--accent-bg:#263E31;--amber:#F3CC8B;--danger:#FFB4BA;--shadow:0 10px 24px #00000012}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:400 15px/1.5 Lexend,"Segoe UI",system-ui,sans-serif}
+main{max-width:540px;margin:auto;padding:calc(26px + env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) calc(32px + env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left))}
+header{display:flex;gap:16px;align-items:center;justify-content:space-between;margin-bottom:28px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:23px;letter-spacing:-.7px;white-space:nowrap}
+.brand-mark{width:32px;height:32px;flex-shrink:0}
+.status{display:flex;align-items:center;gap:7px;flex-shrink:0;font-size:11px;color:var(--muted)}
+.status::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--amber)}
+.status.connected::before{background:var(--accent);box-shadow:0 0 0 4px #8BE9AD0C}
+.remote-layout,.control-column,.support-column{min-width:0}
+.eyebrow{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:600}
+h1{font-size:24px;line-height:1.3;letter-spacing:-.7px;margin:6px 0 10px;overflow-wrap:anywhere}
+h2{font-size:16px;font-weight:600;letter-spacing:-.3px;margin:0}
+.plan-heading{margin-bottom:18px}
+.message{color:var(--muted);margin:0;font-size:12px;min-height:18px;overflow-wrap:anywhere}
+.message.error{color:var(--danger)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.row>*{min-width:0}
+.live-head{margin:0 3px 10px}
+.live-head .detail{font-size:10px}
+.preview{aspect-ratio:16/10;min-height:190px;border-radius:24px;background:#08090B;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;box-shadow:var(--shadow);overflow:hidden}
+.preview-icon{color:#D7D9E0;display:flex;align-items:center;justify-content:center}
+.preview-icon svg{width:38px;height:38px;stroke-width:1.4}
+.preview-body{font-size:19px;line-height:1.45;font-weight:600;letter-spacing:-.35px;white-space:pre-line;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:6;overflow:hidden}
+.preview[data-text=true] .preview-body{font-size:clamp(16px,4.5vw,22px)}
+.preview-reference{font-size:11px;letter-spacing:.4px;color:#C3C6CF;margin:0}
+.preview[data-muted=true] .preview-body{font-size:15px;font-weight:400;color:var(--muted)}
+.live-meta{margin:14px 3px 0}
+.title{font-size:17px;font-weight:600;line-height:1.4;margin:0 0 5px;letter-spacing:-.3px;overflow-wrap:anywhere}
+.detail{color:var(--muted);font-size:11px;margin:0}
+.output-target{font-size:10px;background:var(--raised);padding:3px 9px;border-radius:999px;white-space:nowrap}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.controls{margin-top:20px}
+button{display:flex;align-items:center;justify-content:center;gap:9px;font:600 13px/1.4 Lexend,"Segoe UI",system-ui,sans-serif;min-height:50px;padding:13px 16px;border:0;border-radius:999px;background:var(--raised);color:var(--text);cursor:pointer;touch-action:manipulation;overflow-wrap:anywhere;transition:filter .16s,box-shadow .16s,background .16s}
+button svg{width:19px;height:19px;flex-shrink:0}
+button:hover:not(:disabled){filter:brightness(1.12)}
+button:active:not(:disabled){filter:brightness(.86)}
+button.next,button.primary{background:#F4F5F7;color:#202125}
+button.primary{width:100%;margin-top:18px}
+button[aria-pressed=true]{box-shadow:inset 0 0 0 2px var(--accent);color:var(--accent);background:var(--accent-bg)}
+button:disabled{opacity:.4;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--accent);outline-offset:4px}
+.section-head{margin:27px 2px 14px}
+.section-note{font-size:10px;color:var(--muted)}
+#deck{grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
+#deck button{background:var(--tile-bg,#24B27E);color:var(--tile-ink,#FFF);min-height:110px;padding:17px 9px 14px;border-radius:26px;flex-direction:column;gap:12px;box-shadow:var(--shadow);font-size:11px;line-height:1.35;text-align:center}
+#deck button svg{width:27px;height:27px;stroke-width:1.7}
+#deck button .tile-label{overflow-wrap:anywhere}
+#deck button[aria-pressed=true]{box-shadow:inset 0 0 0 2px currentColor,0 8px 20px #0000001A}
+.output-controls{margin-top:18px}
+.output-controls button{font-size:12px;background:var(--surface)}
+.panel{background:var(--surface);border-radius:24px;padding:21px;margin-top:24px;box-shadow:var(--shadow)}
+.playback-head{display:flex;align-items:center;gap:9px;margin-bottom:16px}
+.playback-head svg{width:18px;height:18px;color:var(--muted)}
+.playback-buttons button{min-height:46px;font-size:12px}
+.field{margin-top:16px}
+label{display:block;font-size:12px;color:var(--muted)}
+input[type=range]{display:block;width:100%;min-height:44px;margin:1px 0 0;accent-color:var(--accent);cursor:pointer}
+input:disabled{opacity:.4}
+output{font-size:11px;font-variant-numeric:tabular-nums;color:var(--text)}
+.count{font-size:10px;color:var(--muted);white-space:nowrap}
+#order{list-style:none;padding:0;margin:0;display:grid;gap:10px}
+.cue{width:100%;min-height:80px;display:flex;align-items:center;justify-content:flex-start;gap:12px;text-align:left;background:var(--surface);padding:14px;border-radius:22px;box-shadow:var(--shadow)}
+.cue[aria-current=true]{background:var(--accent-bg);box-shadow:inset 0 0 0 1px #8BE9AD45,var(--shadow)}
+.cue-number{display:grid;place-items:center;flex:0 0 32px;height:36px;background:var(--raised);border-radius:11px;color:var(--muted);font-variant-numeric:tabular-nums;font-size:11px}
+.cue[aria-current=true] .cue-number{background:var(--accent);color:#193323}
+.cue-copy{flex:1;min-width:0}
+.cue-title{display:block;font-size:13px;font-weight:600;overflow-wrap:anywhere}
+.cue-kind{display:block;color:var(--muted);font-size:10px;font-weight:400;margin-top:4px}
+.cue-state{flex-shrink:0;font-size:9px;color:var(--accent);max-width:62px;text-align:right}
+.cue-state.prepared{color:var(--amber)}
+.cue-state:empty{display:none}
+.prepared-title{font-size:17px;margin:9px 0 0}
+.empty{color:var(--muted);font-size:12px;margin:0;padding:20px;background:var(--surface);border-radius:22px}
+#deck-empty{padding:18px;margin-top:0}
+.remote-footer{max-width:500px;margin:0 auto}
+#retry{min-height:46px;width:100%;margin-top:22px;background:transparent;color:var(--muted);font-size:12px}
+footer{font-size:10px;color:var(--muted);text-align:center;margin-top:14px}
+noscript{display:block;padding:20px;color:var(--amber)}
+[hidden]{display:none!important}
+@media(min-width:960px){main{max-width:960px;padding:40px 32px}.remote-layout{display:grid;grid-template-columns:minmax(0,500px) minmax(0,304px);justify-content:center;gap:40px}header{max-width:844px;margin:0 auto 32px}.support-column{padding-top:0}.support-column .section-head{margin-top:0}.support-column .panel{margin-top:20px}.preview{min-height:280px}.preview-body{font-size:23px}.preview[data-text=true] .preview-body{font-size:23px}h1{font-size:27px}footer{max-width:500px}}
+@media(max-width:370px){main{padding-left:16px;padding-right:16px}.brand{font-size:21px;gap:8px}.brand-mark{width:28px;height:28px}.status{font-size:10px;gap:5px}#deck{gap:9px}#deck button{padding-left:7px;padding-right:7px;border-radius:23px;font-size:10px}.preview{padding:20px}.cue{gap:9px;padding:12px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
 <noscript>Activa JavaScript para usar el mando local.</noscript>
 <main>
-<header><div class="brand">Culto Studio<div class="eyebrow">Mando del culto</div></div><span id="connection" class="status" role="status">Conectando…</span></header>
-<div class="eyebrow">Conducir el culto</div><h1 id="plan">Esperando la consola</h1>
-<div id="notice" class="message" role="status" aria-live="polite">Conectando con el equipo…</div>
-<section class="panel live" aria-labelledby="live-label"><div class="row"><span id="live-label" class="eyebrow">En pantalla</span><span id="blackout-state" class="detail">Sin confirmar</span></div><div id="live-title" class="title">—</div><div class="row"><p id="play-state" class="detail">Esperando estado</p><span id="output-target" class="detail">—</span></div><div class="grid controls"><button data-action="previous" disabled>← Anterior</button><button data-action="next" disabled>Siguiente →</button></div></section>
-<section aria-labelledby="order-label"><div class="row section-head"><h2 id="order-label">Orden del culto</h2><span id="order-count" class="count">—</span></div><ol id="order" aria-label="Elementos para proyectar"></ol><p id="order-empty" class="empty">Esperando el orden del equipo.</p></section>
-<div class="grid output-controls" aria-label="Salida de proyección"><button data-action="blackout" id="blackout" aria-pressed="false" disabled>Salida en negro</button><button data-action="background" id="background" aria-pressed="false" disabled>Logo</button></div>
-<section class="panel" aria-labelledby="prepared-label"><span id="prepared-label" class="eyebrow">Preparado en el equipo</span><div id="prepared-title" class="title prepared-title">—</div><button class="primary" data-action="project" disabled>Proyectar preparado</button></section>
-<section class="panel" aria-labelledby="playback-label"><h2 id="playback-label" class="playback-head">Reproducción</h2>
-<div class="grid"><button data-action="pause" id="pause" disabled>Reanudar</button><button data-action="restart" disabled>Reiniciar</button></div>
+<header><div class="brand"><svg class="brand-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="m16 1 15 15-15 15L1 16Z" fill="#8BE9AD"/><path d="m16 8 8 8-8 8-8-8Z" fill="#1F2023"/><path d="m16 12 4 4-4 4-4-4Z" fill="#8BE9AD"/></svg>Culto Deck</div><span id="connection" class="status" role="status">Conectando…</span></header>
+<div class="remote-layout">
+<div class="control-column">
+<div class="plan-heading"><div class="eyebrow">Mando del culto</div><h1 id="plan">Esperando la consola</h1><div id="notice" class="message" role="status" aria-live="polite">Conectando con el equipo…</div></div>
+<section class="live" aria-labelledby="live-label">
+<div class="row live-head"><span id="live-label" class="eyebrow">En pantalla</span><span id="blackout-state" class="detail">Sin confirmar</span></div>
+<div id="live-preview" class="preview" data-muted="true"><div id="preview-icon" class="preview-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/></svg></div><div id="preview-body" class="preview-body">Esperando la consola</div><p id="preview-reference" class="preview-reference" hidden></p></div>
+<div class="live-meta"><div id="live-title" class="title">—</div><div class="row"><p id="play-state" class="detail">Esperando estado</p><span id="output-target" class="detail output-target">—</span></div></div>
+<div class="grid controls"><button data-action="previous" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 6-6 6 6 6M4 12h16"/></svg>Anterior</button><button class="next" data-action="next" disabled>Siguiente<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6 6 6-6 6M20 12H4"/></svg></button></div>
+</section>
+<section aria-labelledby="deck-label"><div class="row section-head"><h2 id="deck-label">Accesos del culto</h2><span class="section-note">Tu deck</span></div><div id="deck" class="grid"></div><p id="deck-empty" class="empty">Sin accesos configurados.</p></section>
+<div class="grid output-controls" role="group" aria-label="Salida de proyección"><button data-action="blackout" id="blackout" aria-pressed="false" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 3 18 18M4 8a2 2 0 0 0-1 2v7a2 2 0 0 0 2 2h12M8 5h11a2 2 0 0 1 2 2v9M8 22h8m-4-3v3"/></svg>Salida en negro</button><button data-action="background" id="background" aria-pressed="false" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m7 16 4-4 3 3 3-5M8 8h.01"/></svg>Logo</button></div>
+<section class="panel" aria-labelledby="playback-label"><h2 id="playback-label" class="playback-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 5 11 7-11 7Z"/></svg>Reproducción</h2>
+<div class="grid playback-buttons"><button data-action="pause" id="pause" disabled>Reanudar</button><button data-action="restart" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10a9 9 0 1 1 2 8M3 4v6h6"/></svg>Reiniciar</button></div>
 <div class="field"><div class="row"><label for="position">Posición</label><output id="time" for="position">0:00 / 0:00</output></div><input id="position" type="range" min="0" max="1000" step="1" value="0" disabled aria-label="Posición de reproducción"></div>
 <div class="field"><div class="row"><label for="volume">Volumen de salida</label><output id="volume-value" for="volume">—</output></div><input id="volume" type="range" min="0" max="100" step="1" value="70" disabled></div>
 </section>
-<section class="panel" aria-labelledby="deck-label"><h2 id="deck-label">Accesos del culto</h2><div id="deck" class="grid"></div><p id="deck-empty" class="empty">Sin accesos configurados.</p></section>
-<button id="retry" type="button">Volver a conectar</button>
-<footer>Culto Studio · Control local</footer>
+</div>
+<aside class="support-column" aria-label="Orden y contenido preparado">
+<section aria-labelledby="order-label"><div class="row section-head"><h2 id="order-label">Orden del culto</h2><span id="order-count" class="count">—</span></div><ol id="order" aria-label="Elementos para proyectar"></ol><p id="order-empty" class="empty">Esperando el orden del equipo.</p></section>
+<section class="panel" aria-labelledby="prepared-label"><span id="prepared-label" class="eyebrow">Preparado en el equipo</span><div id="prepared-title" class="title prepared-title">—</div><button class="primary" data-action="project" disabled>Proyectar preparado<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 5 10 7-10 7Z"/></svg></button></section>
+</aside>
+</div>
+<div class="remote-footer"><button id="retry" type="button">Volver a conectar</button><footer>Culto Studio · Control local</footer></div>
 </main>
 <script>
 'use strict';
 const $ = id => document.getElementById(id), storageKey = 'culto.remote.token';
 let token = '', connected = false, pending = false, current = null, polling = null, deckSignature = '', orderSignature = '', commandNotice = null;
-const orderButtons = new Map();
+const orderButtons = new Map(), deckButtons = new Map();
+let clientId = requestId();
+try {
+  const saved = sessionStorage.getItem('culto.remote.client');
+  if (/^[0-9a-f]{32}$/.test(saved || '')) clientId = saved;
+  else sessionStorage.setItem('culto.remote.client', clientId);
+} catch (_) {}
 try {
   const fragment = location.hash.slice(1);
   if (fragment) {
@@ -49,6 +148,7 @@ function enableControls() {
   if (current?.canPause === false) document.querySelectorAll('[data-action="pause"],[data-action="restart"],[data-playback],#position').forEach(element => element.disabled = true);
   $('retry').disabled = pending;
   $('order').setAttribute('aria-busy', String(pending));
+  $('deck').setAttribute('aria-busy', String(pending));
 }
 function connection(ok) {
   connected = ok; $('connection').textContent = ok ? 'Conectado' : 'Sin conexión';
@@ -59,7 +159,74 @@ function time(seconds) {
   return Math.floor(value / 60) + ':' + String(value % 60).padStart(2, '0');
 }
 function kindLabel(kind) {
-  return ({ text: 'Texto', bible: 'Biblia', image: 'Imagen', video: 'Vídeo', audio: 'Audio', windowcapture: 'YouTube', powerpoint: 'PowerPoint', 0: 'Texto', 1: 'Biblia', 2: 'Imagen', 3: 'Vídeo', 4: 'Audio', 6: 'YouTube' })[String(kind).toLowerCase()] || 'Contenido';
+  return ({ text: 'Texto', bible: 'Biblia', image: 'Imagen', video: 'Vídeo', audio: 'Audio', windowcapture: 'YouTube', powerpoint: 'PowerPoint', 0: 'Texto', 1: 'Biblia', 2: 'Imagen', 3: 'Vídeo', 4: 'Audio', 5: 'PowerPoint', 6: 'YouTube' })[String(kind).toLowerCase()] || 'Contenido';
+}
+function icon(name) {
+  const paths = {
+    project: ['M4 4h16v12H4Z', 'M8 21h8m-4-5v5', 'm10 7 5 3-5 3Z'],
+    next: ['m14 6 6 6-6 6M20 12H4'], previous: ['m10 6-6 6 6 6M4 12h16'],
+    blackout: ['m3 3 18 18M4 8a2 2 0 0 0-1 2v7a2 2 0 0 0 2 2h12M8 5h11a2 2 0 0 1 2 2v9M8 22h8m-4-3v3'],
+    background: ['M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Z', 'm7 16 4-4 3 3 3-5M8 8h.01'],
+    pause: ['M8 5v14M16 5v14'], play: ['m8 5 11 7-11 7Z'],
+    restart: ['M3 10a9 9 0 1 1 2 8M3 4v6h6'],
+    text: ['M4 5h16M12 5v15M8 20h8'],
+    bible: ['M12 5c-3-2-6-2-10-1v15c4-1 7-1 10 1 3-2 6-2 10-1V4c-4-1-7-1-10 1Zm0 0v15'],
+    image: ['M3 3h18v18H3Z', 'm3 17 6-6 4 4 3-3 5 5M8 7h.01'],
+    video: ['M3 5h18v14H3Z', 'm10 8 6 4-6 4Z'],
+    audio: ['M9 18V5l11-2v13', 'M9 14c-7-2-7 6-2 5 2 0 2-1 2-3m11-4c-7-2-7 6-2 5 2 0 2-1 2-3'],
+    windowcapture: ['M3 5h18v14H3Z', 'm10 8 6 4-6 4Z'],
+    powerpoint: ['M3 3h18v14H3ZM12 17v5m-5 0 5-3 5 3', 'M8 13V7h4a2 2 0 0 1 0 4H8'],
+    screen: ['M3 4h18v13H3Z', 'M8 21h8m-4-4v4']
+  };
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  for (const [key, value] of Object.entries({ viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.7', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' })) svg.setAttribute(key, value);
+  (Array.isArray(paths[name]) ? paths[name] : paths.screen).forEach(data => {
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', data); svg.appendChild(path);
+  });
+  return svg;
+}
+function contentKind(kind) {
+  return ({ 0: 'text', 1: 'bible', 2: 'image', 3: 'video', 4: 'audio', 5: 'powerpoint', 6: 'windowcapture' })[kind] || String(kind || '').toLowerCase();
+}
+function renderPreview(state) {
+  const live = Array.isArray(state.order) ? state.order.find(item => item.id === state.liveCueId) : null;
+  const kind = contentKind(state.liveKind ?? live?.kind), hidden = state.isBlackout || state.hasOutput === false;
+  const body = !hidden && !state.isBackground && ['text', 'bible'].includes(kind) ? state.liveBody : '';
+  $('live-preview').dataset.text = String(!!body);
+  $('live-preview').dataset.muted = String(hidden || !!state.isBackground);
+  $('preview-body').textContent = state.hasOutput === false ? 'Sin proyección activa' : state.isBlackout ? 'Salida en negro' : state.isBackground ? 'Logo' : body || state.liveTitle || 'Sin contenido en vivo';
+  $('preview-reference').textContent = !hidden && !state.isBackground ? state.liveReference || '' : '';
+  $('preview-reference').hidden = !$('preview-reference').textContent;
+  $('preview-icon').replaceChildren(icon(state.isBackground ? 'background' : hidden ? 'screen' : kind));
+  $('preview-icon').hidden = !!body;
+}
+function renderDeck(state) {
+  const buttons = Array.isArray(state.buttons) ? state.buttons : [], order = Array.isArray(state.order) ? state.order : [];
+  const signature = JSON.stringify([buttons, order.map(item => [item.id, item.kind])]);
+  if (signature !== deckSignature) {
+    deckSignature = signature; $('deck').replaceChildren(); deckButtons.clear();
+    buttons.forEach(item => {
+      const button = document.createElement('button'), label = document.createElement('span');
+      const action = String(item.action).toLowerCase();
+      const kind = action === 'cue' ? contentKind(order.find(cue => cue.id === item.cueId)?.kind) : action;
+      button.dataset.action = 'deck'; label.className = 'tile-label'; label.textContent = item.label || 'Acceso';
+      if (['pause', 'restart', 'seek'].includes(action)) button.dataset.playback = 'true';
+      const palette = { '#43D9BE': '#24B27E', '#A7C7FF': '#4274F4', '#FFCF75': '#F8BA2A', '#FF9DAD': '#EF5350' };
+      const color = palette[String(item.color).toUpperCase()] || (/^#[0-9a-f]{6}$/i.test(item.color) ? item.color : '#24B27E');
+      const channels = color.slice(1).match(/../g).map(value => parseInt(value, 16) / 255).map(value => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4);
+      const light = channels[0] * .2126 + channels[1] * .7152 + channels[2] * .0722;
+      button.style.setProperty('--tile-bg', color); button.style.setProperty('--tile-ink', light > .179 ? '#101114' : '#FFFFFF');
+      button.append(icon(kind), label);
+      button.addEventListener('click', () => send('deck', { buttonId: item.id })); $('deck').appendChild(button);
+      deckButtons.set(item.id, { button, action });
+    });
+    $('deck-empty').hidden = buttons.length > 0;
+  }
+  deckButtons.forEach(({ button, action }) => {
+    if (['blackout', 'background', 'pause'].includes(action)) button.setAttribute('aria-pressed', String(action === 'blackout' ? state.isBlackout : action === 'background' ? !!state.isBackground : state.canPause !== false && state.isPaused));
+    if (action === 'pause') button.firstChild.replaceWith(icon(state.isPaused && state.canPause !== false ? 'play' : 'pause'));
+  });
 }
 function renderOrder(state) {
   const order = Array.isArray(state.order) ? state.order : [], signature = JSON.stringify(order);
@@ -94,36 +261,27 @@ function renderOrder(state) {
 function render(state, force = false) {
   current = state;
   $('plan').textContent = state.planName || 'Culto';
-  $('live-title').textContent = state.isBackground ? 'Logo' : state.hasOutput === false ? 'Sin contenido en pantalla' : state.liveTitle || 'Sin contenido en vivo';
+  $('live-title').textContent = state.hasOutput === false ? 'Sin contenido en pantalla' : state.isBackground ? 'Logo' : state.liveTitle || 'Sin contenido en vivo';
   $('prepared-title').textContent = state.preparedTitle || 'Sin contenido preparado';
-  $('blackout-state').textContent = state.isBlackout ? 'SALIDA EN NEGRO' : state.hasOutput === false ? 'Sin salida' : state.isBackground ? 'Logo' : 'Salida visible';
+  $('blackout-state').textContent = state.hasOutput === false ? 'Sin salida' : state.isBlackout ? 'SALIDA EN NEGRO' : state.isBackground ? 'Logo' : 'Salida visible';
   $('output-target').textContent = state.hasExternalOutput ? 'HDMI' : 'Local';
   $('blackout').setAttribute('aria-pressed', String(state.isBlackout));
   $('background').setAttribute('aria-pressed', String(!!state.isBackground));
-  $('pause').textContent = state.isPaused ? 'Reanudar' : 'Pausar';
-  $('play-state').textContent = state.duration > 0 ? state.isPaused ? 'Reproducción pausada' : 'Reproduciendo' : state.isBlackout ? 'Contenido oculto' : state.hasOutput === false ? 'Sin proyección activa' : 'Estado de la consola';
+  const liveKind = contentKind(state.liveKind ?? (Array.isArray(state.order) ? state.order.find(item => item.id === state.liveCueId)?.kind : ''));
+  $('pause').textContent = liveKind === 'windowcapture' ? 'Control en YouTube' : state.isPaused ? 'Reanudar' : 'Pausar';
+  $('play-state').textContent = state.hasOutput === false ? 'Sin proyección activa' : state.isBlackout ? 'Contenido oculto' : state.isBackground ? 'Logo en pantalla' : liveKind === 'windowcapture' ? 'Reproducción desde YouTube' : state.duration > 0 ? state.isPaused ? 'Reproducción pausada' : 'Reproduciendo' : 'Contenido en pantalla';
   $('time').textContent = time(state.position) + ' / ' + time(state.duration); $('volume-value').textContent = state.volume + ' %';
   if (force || document.activeElement !== $('volume')) $('volume').value = state.volume;
   if (force || document.activeElement !== $('position')) $('position').value = state.duration > 0 ? Math.round(state.position / state.duration * 1000) : 0;
   renderOrder(state);
-  const buttons = Array.isArray(state.buttons) ? state.buttons : [], signature = JSON.stringify(buttons);
-  if (signature !== deckSignature) {
-    deckSignature = signature; $('deck').replaceChildren();
-    buttons.forEach(item => {
-      const button = document.createElement('button'); button.textContent = item.label; button.dataset.action = 'deck';
-      if (['pause', 'restart', 'seek'].includes(item.action)) button.dataset.playback = 'true';
-      if (/^#[0-9a-f]{6}$/i.test(item.color)) button.style.borderTopColor = item.color;
-      button.addEventListener('click', () => send('deck', { buttonId: item.id })); $('deck').appendChild(button);
-    });
-    $('deck-empty').hidden = buttons.length > 0;
-  }
+  renderPreview(state); renderDeck(state);
   enableControls();
 }
 async function request(path, options = {}) {
   const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 5000);
   try {
     const response = await fetch(path, { ...options, cache: 'no-store', credentials: 'omit', signal: controller.signal,
-      headers: { Authorization: 'Bearer ' + token, ...(options.headers || {}) } });
+      headers: { ...(options.headers || {}), Authorization: 'Bearer ' + token, 'X-Culto-Client': clientId } });
     if (response.status === 401) {
       token = ''; try { sessionStorage.removeItem(storageKey); } catch (_) {}
       throw new Error('La vinculación venció. Escanea el QR de la consola.');

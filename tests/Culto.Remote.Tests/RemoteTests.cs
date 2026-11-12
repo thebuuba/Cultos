@@ -10,6 +10,49 @@ namespace Culto.Remote.Tests;
 
 public sealed class RemoteTests
 {
+    [Fact]
+    public async Task OnlyAuthenticatedSameOriginClientsAppearInConnectionStatus()
+    {
+        var (host, client) = await Start();
+        await using var cleanup = host; using var http = client;
+        var clientId = Guid.NewGuid().ToString("N");
+        client.DefaultRequestHeaders.Add("X-Culto-Client", clientId);
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)");
+        client.DefaultRequestHeaders.Authorization = null;
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/state")).StatusCode);
+        Assert.Empty(host.Clients);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", host.Token);
+        await client.GetStringAsync("/api/state");
+        await client.GetStringAsync("/api/state");
+        var connected = Assert.Single(host.Clients);
+        Assert.Equal(clientId, connected.Id);
+        Assert.Equal("iPhone", connected.Name);
+        Assert.True(connected.IsConnected);
+        Assert.Equal(1, host.ConnectedClientCount);
+        client.DefaultRequestHeaders.Remove("X-Culto-Client");
+        client.DefaultRequestHeaders.Add("X-Culto-Client", Guid.NewGuid().ToString("N"));
+        client.DefaultRequestHeaders.Add("Origin", "http://another.example");
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/state")).StatusCode);
+        Assert.Single(host.Clients);
+    }
+
+    [Fact]
+    public async Task RemoteTypographyIsAvailableLocallyWithoutExternalFontServices()
+    {
+        var (host, client) = await Start();
+        await using var cleanup = host; using var http = client;
+        client.DefaultRequestHeaders.Authorization = null;
+        foreach (var weight in new[] { "regular", "semibold" })
+        {
+            var response = await client.GetAsync($"/assets/lexend-{weight}.ttf");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal("font/ttf", response.Content.Headers.ContentType?.MediaType);
+            var data = await response.Content.ReadAsByteArrayAsync();
+            Assert.True(data.Length > 70000);
+            Assert.Equal(new byte[] { 0, 1, 0, 0 }, data[..4]);
+        }
+    }
+
     private const string FirstCueId = "f5caec32-38ea-4f5e-9074-6359fc995456";
     private const string SecondCueId = "1081838f-6514-45c0-92da-6cb12ca45f18";
 

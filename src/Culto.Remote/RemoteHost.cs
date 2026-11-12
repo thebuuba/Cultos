@@ -10,6 +10,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Collections.Concurrent;
 
 namespace Culto.Remote;
 
@@ -19,6 +20,7 @@ public sealed class RemoteHost : IAsyncDisposable
     private readonly SemaphoreSlim commands = new(1, 1);
     private readonly Dictionary<string, CommandResult> completed = new(StringComparer.Ordinal);
     private readonly Queue<string> completedOrder = new();
+    private readonly ConcurrentDictionary<string, (string Name, DateTimeOffset LastSeen)> clients = new();
     private bool started;
     private bool disposed;
     private const int BodyLimit = 16 * 1024;
@@ -32,6 +34,11 @@ public sealed class RemoteHost : IAsyncDisposable
 
     public string Token { get; } = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
     public int Port { get; private set; }
+    public IReadOnlyList<RemoteClientInfo> Clients => clients.Select(client => new RemoteClientInfo(
+        client.Key, client.Value.Name, client.Value.LastSeen,
+        DateTimeOffset.UtcNow - client.Value.LastSeen < TimeSpan.FromSeconds(15)))
+        .OrderByDescending(client => client.LastSeen).ToArray();
+    public int ConnectedClientCount => Clients.Count(client => client.IsConnected);
 
     public async Task StartAsync(int port, Func<RemoteSnapshot> snapshot,
         Func<RemoteCommand, Task<CommandResult>> command, bool loopbackOnly = false)
@@ -78,6 +85,7 @@ public sealed class RemoteHost : IAsyncDisposable
                         await context.Response.WriteAsJsonAsync(new CommandResult(false, "Origen no permitido."), Json);
                         return;
                     }
+                    RecordClient(context.Request);
                 }
                 await next(context);
             }
@@ -98,6 +106,14 @@ public sealed class RemoteHost : IAsyncDisposable
         using var reader = new StreamReader(stream, Encoding.UTF8);
         var page = await reader.ReadToEndAsync();
         app.MapGet("/", () => Results.Content(page, "text/html", Encoding.UTF8));
+        foreach (var weight in new[] { "regular", "semibold" })
+        {
+            using var font = typeof(RemoteHost).Assembly.GetManifestResourceStream($"Culto.Remote.wwwroot.lexend-{weight}.ttf")
+                ?? throw new InvalidOperationException("No se encontró la fuente del mando.");
+            using var bytes = new MemoryStream(); font.CopyTo(bytes);
+            var data = bytes.ToArray();
+            app.MapGet($"/assets/lexend-{weight}.ttf", () => Results.File(data, "font/ttf"));
+        }
         app.MapGet("/api/state", () => Results.Json(snapshot(), Json));
         app.MapPost("/api/command", async (HttpContext context) =>
         {
@@ -146,6 +162,25 @@ public sealed class RemoteHost : IAsyncDisposable
         }
     }
 
+    private void RecordClient(HttpRequest request)
+    {
+        var header = request.Headers["X-Culto-Client"];
+        if (header.Count != 1 || !Guid.TryParseExact(header[0], "N", out var id) || id == Guid.Empty) return;
+        var now = DateTimeOffset.UtcNow;
+        foreach (var client in clients.Where(client => now - client.Value.LastSeen > TimeSpan.FromHours(1)))
+            clients.TryRemove(client.Key, out _);
+        var key = id.ToString("N");
+        if (clients.Count >= 64 && !clients.ContainsKey(key)) return;
+        var agent = request.Headers.UserAgent.ToString();
+        var name = agent.Contains("iPhone", StringComparison.OrdinalIgnoreCase) ? "iPhone"
+            : agent.Contains("iPad", StringComparison.OrdinalIgnoreCase) ? "iPad"
+            : agent.Contains("Android", StringComparison.OrdinalIgnoreCase) ? "Teléfono Android"
+            : agent.Contains("Windows", StringComparison.OrdinalIgnoreCase) ? "Computadora Windows"
+            : agent.Contains("Macintosh", StringComparison.OrdinalIgnoreCase) ? "Mac"
+            : "Navegador";
+        clients[key] = (name, now);
+    }
+
     private bool Authenticated(HttpRequest request)
     {
         var values = request.Headers.Authorization;
@@ -187,6 +222,7 @@ public sealed class RemoteHost : IAsyncDisposable
     {
         if (disposed) return;
         disposed = true;
+        clients.Clear();
         if (app is not null)
         {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(3));
