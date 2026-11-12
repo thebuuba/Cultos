@@ -6,6 +6,8 @@ Consola nativa para Windows destinada a preparar y proyectar cultos. Reúne el o
 
 Ejecuta **Abrir Culto Studio.cmd** en esta carpeta, o abre `artifacts/CultoStudio/CultoStudio.exe`. La distribución publicada incluye .NET y el reproductor nativo; conserva todos los archivos de esa carpeta junto al ejecutable. Windows x64.
 
+La entrega **0.17.0** se prepara por separado en `artifacts/CultoStudio-0.17.0`, con **Abrir Culto Studio 0.17.cmd**, para conservar la versión que está abierta. Incluye el motor Move y los cambios de PowerPoint descritos en [la integración nativa](docs/obs-move-native.md). Se ha limitado la verificación a código, compilación y pruebas sin interfaz por indicación del usuario: aún falta ejecutar el plugin/GPU y comprobar el audio y la barra de PowerPoint.
+
 Una instalación nueva ofrece una plantilla sencilla con bienvenida, oración y despedida. La distribución del programa no incluye videos del himnario ni el texto completo de una traducción bíblica.
 
 La consola tiene dos monitores: **Vista previa a la izquierda y En pantalla a la derecha**. En pantalla reproduce el contenido enviado incluso sin HDMI, incluidos el video, la disolución, la pausa, el negro y el fondo. Al activar HDMI, la pantalla externa usa el mismo reproductor, sin audio duplicado. Antes del primer envío muestra «Sin salida».
@@ -40,7 +42,9 @@ El orden muestra la posición de cada momento y una marca **EN VIVO** en el elem
 
 **Un clic en el orden** prepara la vista previa. **Doble clic sobre un elemento** lo envía a **En pantalla** e inicia su reproducción si es video/audio, incluso sin HDMI. El doble clic en espacio vacío no proyecta. Arrastrar dentro del orden reordena sus elementos. La salida local aparece dentro de la consola, sin otra ventana. Si el HDMI está activado, muestra el mismo contenido en las pantallas de la iglesia.
 
-**Configuración → Transición del sistema…** permite guardar el efecto visual —Corte, Disolución, Desplazamiento o Zoom—, su duración y los fundidos de audio de entrada y salida. Los valores iniciales son **Disolución de 500 ms** y **1,5 segundos para cada fundido de audio**. Guardar cambia las transiciones de los próximos envíos; conserva el contenido que ya está en pantalla.
+**Configuración → Transición del sistema…** permite guardar el efecto visual —Corte, Disolución, Desplazamiento, Zoom o **Move · OBS**—, su duración y los fundidos de audio de entrada y salida. Los valores iniciales son **Disolución de 500 ms** y **1,5 segundos para cada fundido de audio**. Guardar cambia las transiciones de los próximos envíos; conserva el contenido que ya está en pantalla.
+
+Move usa el complemento oficial en un motor privado sin ventana. Anima dos capturas del compositor, incluido el fotograma de un video; al terminar reaparece la reproducción viva. No necesita conectar con la ventana del OBS instalado. La carga y el renderizado nativos todavía requieren comprobación; un error se comunica a la consola y no se sustituye por otro efecto.
 
 La configuración se aplica al proyectar desde el orden, la secuencia, la biblioteca o el botón Proyectar, y al pasar entre videos, audio, textos, imágenes, negro y fondo. Al cargar un video se conserva la imagen anterior hasta recibir su primer fotograma. El audio saliente baja antes de abrir el contenido nuevo; el entrante sube después de iniciar la reproducción. Se usa un solo reproductor de salida VLC, sin superponer pistas. **F8** también usa la transición configurada. La vista previa permanece silenciosa.
 
@@ -98,7 +102,9 @@ El monitor «En pantalla» muestra el reproductor local; con HDMI activado refle
 
 Los archivos de PowerPoint aparecen en la categoría **PowerPoint** y pueden añadirse al orden como cualquier contenido. La reproducción usa **Microsoft PowerPoint instalado en Windows**, que conserva sus animaciones, transiciones y videos incrustados. El programa abre una copia propia de solo lectura; cerrar esa salida no cierra las presentaciones del usuario. La vista preparada puede mostrar la miniatura incluida en el archivo. En modo local, **En pantalla** aloja la ventana nativa dentro del panel para conservar el dibujo de animaciones y video. Al activar HDMI, esa misma ventana pasa a la pantalla externa y el panel la refleja mediante DWM.
 
-**Siguiente** y **Anterior** recorren los pasos de animación y las diapositivas de la presentación activa. PowerPoint conserva sus controles de pausa y reinicio. Sus efectos y videos se reproducen con el motor de Office; los fundidos de audio configurados para VLC no controlan el audio interno de PowerPoint.
+**Siguiente** y **Anterior** recorren los pasos de animación y las diapositivas de la presentación activa. PowerPoint conserva sus controles de pausa y reinicio. Sus efectos y videos se reproducen con el motor de Office. En 0.17, un adaptador aplica los tiempos de fundido a `MediaFormat.Volume` de los medios de la copia propia; conserva sus niveles originales y evita modificar la sesión de audio compartida de Office. El efecto audible durante reproducción todavía no se ha comprobado en ejecución.
+
+La pausa intenta ocultar solamente las barras nativas cuya cadena de propietarios identifica inequívocamente la presentación propia. La propiedad y desaparición de la barra flotante observada siguen pendientes de verificación; no se ocultan barras globales ni de otras presentaciones.
 
 En **Configuración → Presentador USB**, activa **Control en segundo plano** para avanzar la salida aunque estés trabajando en otra aplicación. De forma predeterminada se utilizan **Av Pág / Re Pág**; **Usar flechas izquierda y derecha** cambia a esas dos teclas. Mientras el control está activo, las teclas elegidas quedan reservadas globalmente para Culto Studio, incluidas las del teclado normal. Desactivarlo devuelve las teclas a la aplicación que tenga el foco. La selección se guarda en esta PC.
 
@@ -135,10 +141,11 @@ El SDK .NET 10 se encuentra en `.tools/dotnet` en esta computadora. También pue
 
 ```powershell
 .\scripts\build.ps1
+.\scripts\prepare-obs-move.ps1
 .\scripts\build.ps1 -Publish
 ```
 
-El primer comando compila Release y ejecuta las pruebas del núcleo y del servidor. `-Publish` genera además una distribución autónoma Windows x64. `-Smoke` ejecuta las pruebas de integración de escritorio, que abren ventanas de ensayo y usan una carpeta temporal aislada.
+El primer comando compila Release y ejecuta las pruebas del núcleo y del servidor. El segundo descarga y verifica el runtime portable de OBS/Move sin ejecutarlo ni instalarlo. `-Publish` genera además una distribución autónoma Windows x64; `-OutputDirectory artifacts\CultoStudio-0.17.0` permite publicarla aparte. `-Smoke` ejecuta las pruebas de integración de escritorio, que abren ventanas de ensayo y usan una carpeta temporal aislada; no se ejecutó para 0.17 debido a la restricción de no controlar aplicaciones.
 
 ```powershell
 .\scripts\build.ps1 -Smoke
@@ -151,7 +158,7 @@ Resultados y límites de la comprobación: [validación de esta entrega](docs/va
 
 ## Alcance de esta versión
 
-No incluye transmisión, grabación, mezcla de cámaras, captura general continua de ventanas, importación directa de bases de EasyWorship ni salidas independientes para escenario. Los complementos de OBS, incluido Move, no se cargan directamente: Desplazamiento y Zoom son efectos propios de la aplicación. La Biblia RVR1960 y los videos del himnario ya incorporados en esta PC se guardan por separado del programa.
+No incluye transmisión, grabación, mezcla de cámaras, captura general continua de ventanas, importación directa de bases de EasyWorship ni salidas independientes para escenario. La integración nativa de Move se limita a su transición entre capturas completas; no importa proyectos OBS, no ofrece sus filtros adicionales ni es un cargador general de complementos. Desplazamiento y Zoom siguen siendo efectos propios. La Biblia RVR1960 y los videos del himnario ya incorporados en esta PC se guardan por separado del programa.
 
 La Yamaha MG12XU puede usarse como interfaz de audio USB mediante la salida de sonido de Windows. Sus controles analógicos no funcionan como mando remoto de Culto Studio; no hay integración de esos controles para avanzar contenidos o mover controles de la consola.
 

@@ -10,7 +10,9 @@ public partial class MainWindow
     private RemoteSnapshot GetRemoteState() => Dispatcher.CheckAccess() ? BuildRemoteState() : Dispatcher.Invoke(BuildRemoteState);
     private RemoteSnapshot BuildRemoteState() => new(
         PlanNameBox.Text, _session.Prepared?.Title ?? "Nada preparado", _output is null ? "Salida cerrada" : (_outputWindow is null ? "Local · " : "") + (_session.Live?.Title ?? "Fondo"),
-        _session.IsBlackout, _session.Live?.Kind == CueKind.PowerPoint ? _isPaused : _output?.IsPaused ?? _isPaused, (int)VolumeSlider.Value, _output?.Position ?? 0, _output?.Duration ?? 0, _workspace.Deck.ToArray(),
+        _session.IsBlackout, _pendingCuePlayback.IsPending ? _session.IsBlackout || _session.IsTextHidden || _pendingCuePlayback.Intent.IsPaused
+            : _session.Live?.Kind == CueKind.PowerPoint ? _isPaused : _output?.IsPaused ?? _isPaused,
+        (int)VolumeSlider.Value, _output?.Position ?? 0, _output?.Duration ?? 0, _workspace.Deck.ToArray(),
         _plan.Select(cue => new RemoteCue(cue.Id.ToString(), cue.Title, cue.Kind.ToString())).ToArray(),
         _output is null ? null : _session.Live?.Id.ToString(), _session.Prepared?.Id.ToString(),
         _output is not null, _output is not null && _session.IsTextHidden, _outputWindow is not null);
@@ -71,7 +73,7 @@ public partial class MainWindow
                     if (_session.Live?.Kind == CueKind.PowerPoint && _powerPoint is not null)
                     {
                         if (_session.IsBlackout || _session.IsTextHidden) return new(false, "Restaura el contenido.");
-                        var advanced = _powerPoint.Advance(action == "next" ? 1 : -1);
+                        var advanced = AdvancePowerPointWithFade(action == "next" ? 1 : -1);
                         UpdatePowerPointPosition();
                         return new(advanced, advanced ? "Presentación actualizada." : "Fin de la presentación.");
                     }

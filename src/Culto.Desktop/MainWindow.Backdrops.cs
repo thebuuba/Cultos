@@ -44,6 +44,23 @@ public partial class MainWindow
 
     private void ApplyBackdropTransition()
     {
+        if (_pendingCuePlayback.IsPending)
+        {
+            _pendingCuePlayback.SetPaused(true);
+            _isPaused = true;
+            if (!_pendingCuePlayback.IsPresented)
+            {
+                var token = _pendingCuePlayback.Token;
+                FadePowerPointOut(() => CommitPendingCue(token), _pendingCuePlayback.Transitions.AudioFadeOutMilliseconds);
+                return;
+            }
+        }
+        var transitions = _workspace.Transitions.Normalize();
+        FadePowerPointOut(() => ApplyBackdropTransitionCore(transitions), transitions.AudioFadeOutMilliseconds);
+    }
+
+    private void ApplyBackdropTransitionCore(TransitionOptions transitions)
+    {
         string? presentationError = null;
         if (_powerPoint?.IsRunning == true)
         {
@@ -57,7 +74,7 @@ public partial class MainWindow
             }
         }
         _output!.BackgroundImagePath = _workspace.BackgroundImagePath;
-        _output.Transitions = _workspace.Transitions.Normalize();
+        _output.Transitions = transitions;
         _output.TransitionToBackdrop(_session.Live, _session.IsBlackout, _session.IsTextHidden);
         _isPaused = true;
         UpdateSessionLabels();

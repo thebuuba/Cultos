@@ -28,12 +28,17 @@ public partial class MainWindow
     }
 
     private void ShowLiveCue()
+        => QueueLiveCue();
+
+    private void ShowLiveCueCore(TransitionOptions transitions, BibleVisualStyle bibleStyle)
     {
         if (_output is null) return;
-        _output.BibleStyle = _workspace.BibleStyle.Normalize();
-        _output.Transitions = _workspace.Transitions.Normalize();
-        if (_session.Live?.Kind != CueKind.PowerPoint) StopPowerPointOutput();
-        if (_session.Live is not null) _output.TransitionTo(_session.Live);
+        _output.BibleStyle = bibleStyle;
+        _output.Transitions = transitions;
+        _output.BackgroundImagePath = _workspace.BackgroundImagePath;
+        if (_session.Live?.Kind != CueKind.PowerPoint) StopPowerPointOutput(keepCueRequest: true);
+        if (_session.IsBlackout || _session.IsTextHidden) _output.ShowCue(_session.Live, _session.IsBlackout, _session.IsTextHidden);
+        else if (_session.Live is not null) _output.TransitionTo(_session.Live);
         else _output.ShowCue(_session.Live);
         if (_session.Live?.Kind == CueKind.PowerPoint) ShowPowerPointOutput();
     }

@@ -22,7 +22,7 @@ public sealed class TransitionDialog : Window
         root.Children.Add(new ScrollViewer { Content = fields, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
         fields.Children.Add(new TextBlock { Text = Title, FontSize = 25, Margin = new Thickness(0, 0, 0, 22) });
         var type = new ComboBox { Name = "TransitionKind", SelectedValuePath = "Tag", Margin = new Thickness(0, 6, 0, 20) };
-        foreach (var (value, title) in new[] { ("Cut", "Corte"), ("Dissolve", "Disolución"), ("Slide", "Desplazamiento"), ("Zoom", "Zoom") })
+        foreach (var (value, title) in new[] { ("Cut", "Corte"), ("Dissolve", "Disolución"), ("Slide", "Desplazamiento"), ("Zoom", "Zoom"), ("Move", "Move · OBS") })
             type.Items.Add(new ComboBoxItem { Tag = value, Content = title });
         type.SelectedValue = _draft.Kind;
         type.SelectionChanged += (_, _) => _draft.Kind = (string)type.SelectedValue;

@@ -20,6 +20,7 @@ public class TransitionOptionsTests
     [InlineData("Dissolve")]
     [InlineData("Slide")]
     [InlineData("Zoom")]
+    [InlineData("Move")]
     public void SupportedKindsAndIndependentDurationsSurvivePersistence(string kind)
     {
         var options = new TransitionOptions { Kind = kind, DurationMilliseconds = 780,

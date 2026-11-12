@@ -24,7 +24,6 @@ public partial class MainWindow
         _liveReading = _preparedReading;
         _session.GoLive();
         ShowLiveCue();
-        if (_session.Live?.Kind is CueKind.Video or CueKind.Audio) _output!.SetPaused(false);
         _isPaused = false;
         UpdateSessionLabels();
         SetStatus($"{(_outputWindow is null ? "Local" : "En pantalla")}: {cue.Title}");
@@ -197,10 +196,13 @@ public partial class MainWindow
     private void PauseClick(object sender, RoutedEventArgs e) => TogglePause();
     private void TogglePause()
     {
+        if (TogglePendingCuePause()) return;
         if (_session.Live?.Kind == CueKind.PowerPoint && _powerPoint is not null)
         {
             if (_session.IsBlackout || _session.IsTextHidden) return;
-            _isPaused = !_isPaused; _powerPoint.SetPaused(_isPaused);
+            _isPaused = !_isPaused;
+            if (_isPaused) FadePowerPointOut(() => _powerPoint?.SetPaused(true));
+            else { _powerPoint.SetPaused(false); FadePowerPointIn(); }
             PowerPointPauseButton.Content = _isPaused ? "Continuar" : "Pausar";
             return;
         }
@@ -213,10 +215,14 @@ public partial class MainWindow
     private void RestartClick(object sender, RoutedEventArgs e) => RestartMedia();
     private void RestartMedia()
     {
+        if (RestartPendingCue()) return;
         if (_session.Live?.Kind == CueKind.PowerPoint && _powerPoint is not null)
         {
             if (_session.IsBlackout || _session.IsTextHidden) return;
-            _powerPoint.Restart(); _isPaused = false; UpdatePowerPointPosition();
+            var transitions = _workspace.Transitions.Normalize();
+            FadePowerPointOut(() => { _powerPoint?.Restart(); UpdatePowerPointPosition(); FadePowerPointIn(transitions.AudioFadeInMilliseconds); },
+                transitions.AudioFadeOutMilliseconds);
+            _isPaused = false;
             PowerPointPauseButton.Content = "Pausar"; return;
         }
         if (_output is null || _session.Live?.Kind is not (CueKind.Video or CueKind.Audio)) return;
@@ -229,6 +235,8 @@ public partial class MainWindow
         if (e.NewValue > 0) _audibleVolume = e.NewValue;
         UpdateMuteButton();
         if (_output is not null) _output.Volume = (int)e.NewValue;
+        try { _powerPoint?.SetAudioMasterVolume((int)e.NewValue); }
+        catch (Exception error) { SetStatus("PowerPoint: " + error.Message, true); }
         if (_ready) SaveWorkspace();
     }
     private void LoopChanged(object sender, RoutedEventArgs e)
@@ -243,10 +251,20 @@ public partial class MainWindow
     }
     private void TimerTick(object? sender, EventArgs e)
     {
-        if (_powerPoint is not null && !_powerPoint.IsRunning)
+        _powerPoint?.SuppressOwnedPauseToolbar();
+        if (_powerPoint is not null && !_powerPoint.IsRunning && !(_pendingCuePlayback.IsPending && _pendingCuePlayback.IsPresented))
         {
-            StopPowerPointOutput();
-            SetStatus("La presentación de PowerPoint se cerró. Puedes enviarla otra vez desde el orden.", true);
+            if (_pendingCuePlayback.IsPending)
+            {
+                var token = _pendingCuePlayback.Token;
+                StopPowerPointOutput(keepPending: true, keepCueRequest: true);
+                CommitPendingCue(token);
+            }
+            else
+            {
+                StopPowerPointOutput();
+                SetStatus("La presentación de PowerPoint se cerró. Puedes enviarla otra vez desde el orden.", true);
+            }
         }
         if (_session.Prepared?.Kind is CueKind.Video or CueKind.Audio)
         {
@@ -267,7 +285,11 @@ public partial class MainWindow
             PositionSlider.IsEnabled = duration > 0 && !_session.IsBlackout && !_session.IsTextHidden;
             if (!_outputScrubbing && !PositionSlider.IsMouseCaptureWithin) PositionSlider.Value = duration > 0 ? Math.Clamp(position / duration, 0, 1) : 0;
             if (_session.Live?.Kind is CueKind.Video or CueKind.Audio)
-            { _isPaused = _output.IsPaused; UpdatePlayButton(PauseButton, _isPaused, false); }
+            {
+                _isPaused = _pendingCuePlayback.IsPending
+                    ? _session.IsBlackout || _session.IsTextHidden || _pendingCuePlayback.Intent.IsPaused : _output.IsPaused;
+                UpdatePlayButton(PauseButton, _isPaused, false);
+            }
         }
         if (++_displayTick < 10) return;
         _displayTick = 0;

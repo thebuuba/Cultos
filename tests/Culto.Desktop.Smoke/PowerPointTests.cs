@@ -207,6 +207,9 @@ internal static partial class Program
                     Call(window, "ToggleBlackout");
                     Call(window, "HandlePresenterAdvance", -1);
                     Check(presentation.SlideIndex == 2, "Presenter advanced a blacked-out presentation");
+                    Until(() => PowerPointViewState(presentation) == 2 && presentation.AudioGain == 0
+                        && !Field<ProjectionSurface>(window, "_output").IsTransitioning,
+                        "Blackout did not finish its owned-media fade and pause the native presentation");
                     var blackoutPosition = 0;
                     if (optionalVideo is not null)
                     {

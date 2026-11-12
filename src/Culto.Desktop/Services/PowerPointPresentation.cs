@@ -6,9 +6,10 @@ namespace Culto.Desktop.Services;
 
 // PowerPoint owns the rendering, builds, transitions and embedded media. Only our
 // untitled read-only copy is closed; an existing user's presentation is never owned.
-public sealed class PowerPointPresentation : IDisposable
+public sealed partial class PowerPointPresentation : IDisposable
 {
     private dynamic? _application, _presentation, _show;
+    private PowerPointToolbarSuppressor? _toolbarSuppressor;
     private readonly HashSet<int> _pausedMedia = [];
     private int _pausedMediaSlideId;
     private bool _isPaused;
@@ -36,6 +37,7 @@ public sealed class PowerPointPresentation : IDisposable
             finally { _application.AutomationSecurity = security; }
             SlideCount = (int)_presentation.Slides.Count;
             if (SlideCount == 0) throw new InvalidDataException("La presentación no contiene diapositivas.");
+            CaptureAudioChannels();
         }
         catch { Dispose(); throw; }
     }
@@ -59,6 +61,7 @@ public sealed class PowerPointPresentation : IDisposable
             // IDispatch access. Resolve only the new slideshow created by this Run.
             Handle = FindOwnedShowWindow(previousWindows, (string)_presentation.Name);
             if (Handle == IntPtr.Zero) throw new InvalidOperationException("PowerPoint no entregó una ventana de presentación independiente.");
+            _toolbarSuppressor = PowerPointToolbarSuppressor.Capture(Handle);
             var style = GetWindowLong(Handle, -16);
             SetWindowLong(Handle, -16, style & ~0x00FF0000); // No frame, caption, sizing border or scrollbars.
             var extended = GetWindowLong(Handle, -20);
@@ -158,7 +161,19 @@ public sealed class PowerPointPresentation : IDisposable
                 _isPaused = false;
             }
         }
-        finally { Release(shapes); Release(slide); Release(view); RestoreForeground(previousFocus); }
+        finally
+        {
+            Release(shapes); Release(slide); Release(view);
+            SuppressOwnedPauseToolbar();
+            RestoreForeground(previousFocus);
+        }
+    }
+
+    // Also called by the console's existing timer: Office may show the pause bar
+    // later when a modal opens. Unattributed/global Office windows remain untouched.
+    public void SuppressOwnedPauseToolbar()
+    {
+        if (_isPaused && IsRunning) _toolbarSuppressor?.HideAttributedToolbars();
     }
 
     public void Restart()
@@ -180,7 +195,9 @@ public sealed class PowerPointPresentation : IDisposable
 
     public void Dispose()
     {
+        _toolbarSuppressor = null;
         try { if (_show is not null) _show.View.Exit(); } catch (COMException) { }
+        try { DisposeAudioChannels(); } catch (Exception error) when (error is COMException or AggregateException) { }
         try { if (_presentation is not null) { _presentation.Saved = -1; _presentation.Close(); } } catch (COMException) { }
         Release(_show); Release(_presentation); Release(_application);
         _show = _presentation = _application = null; Handle = IntPtr.Zero;

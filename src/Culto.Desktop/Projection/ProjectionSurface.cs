@@ -377,6 +377,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         CancelAudioFade(silence: true);
         CancelDissolve();
         _disposed = true;
+        _moveClient?.Dispose(); _moveClient = null;
         if (_player is not null)
         {
             _player.EncounteredError -= OnPlaybackError; _player.Playing -= OnPlaying; _player.EndReached -= OnEndReached;

@@ -80,6 +80,7 @@ public sealed partial class ProjectionSurface
     {
         _waitingForFrame = false;
         _frameTimeout.Stop();
+        if (_transitionKind == "Move") { BeginNativeMove(); return; }
         var fade = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(_dissolveMilliseconds)) { FillBehavior = FillBehavior.Stop };
         var generation = _dissolveGeneration;
         var ease = new CubicEase { EasingMode = EasingMode.EaseInOut };
@@ -109,6 +110,8 @@ public sealed partial class ProjectionSurface
 
     private void CancelDissolve()
     {
+        _moveCancellation?.Cancel();
+        _latestMoveFrame = null;
         _dissolveGeneration++;
         _waitingForFrame = false;
         _frameTimeout.Stop();

@@ -34,7 +34,7 @@ public partial class MainWindow
 
     private void ShowPowerPointOutput()
     {
-        StopPowerPointOutput(keepPending: true);
+        StopPowerPointOutput(keepPending: true, keepCueRequest: true);
         if (_pendingPowerPoint is null) return;
         if (!_powerPointTimerReady)
         {
@@ -45,15 +45,24 @@ public partial class MainWindow
                 if (_output?.IsTransitioning == true) return;
                 _powerPointTimer.Stop();
                 if (_pendingPowerPoint is null || _session.Live?.Kind != CueKind.PowerPoint) return;
-                _powerPoint = _pendingPowerPoint; _pendingPowerPoint = null;
+                var presentation = _pendingPowerPoint;
+                _powerPoint = presentation; _pendingPowerPoint = null;
+                var request = _pendingCuePlayback.Token;
+                var fadeInMilliseconds = _pendingCuePlayback.Transitions.AudioFadeInMilliseconds;
                 try
                 {
-                    _powerPoint.Start(null);
-                    _isPaused = _session.IsBlackout || _session.IsTextHidden;
-                    if (_isPaused) _powerPoint.SetPaused(true);
+                    presentation.SetAudioMasterVolume((int)VolumeSlider.Value);
+                    presentation.SetAudioGain(0);
+                    presentation.Start(null);
+                    if (!ReferenceEquals(presentation, _powerPoint) || !_pendingCuePlayback.Matches(request)) return;
+                    var intent = _pendingCuePlayback.Complete(request)!.Value;
+                    _isPaused = _session.IsBlackout || _session.IsTextHidden || intent.IsPaused;
+                    if (intent.Restart) presentation.Restart();
+                    if (_isPaused) presentation.SetPaused(true);
                     PowerPointPauseButton.Content = _isPaused ? "Continuar" : "Pausar";
                     RoutePowerPointOutput();
                     UpdatePowerPointPosition();
+                    if (!_isPaused) FadePowerPointIn(fadeInMilliseconds);
                 }
                 catch (Exception error) { StopPowerPointOutput(); SetStatus("PowerPoint: " + error.Message, true); }
             };
@@ -79,8 +88,10 @@ public partial class MainWindow
         }
     }
 
-    private void StopPowerPointOutput(bool keepPending = false)
+    private void StopPowerPointOutput(bool keepPending = false, bool keepCueRequest = false)
     {
+        CancelPowerPointAudioFade();
+        if (!keepCueRequest) _pendingCuePlayback.Cancel();
         _powerPointTimer.Stop();
         if (!keepPending) { _pendingPowerPoint?.Dispose(); _pendingPowerPoint = null; }
         LiveMonitor.SetNativeSource(IntPtr.Zero);
@@ -96,7 +107,7 @@ public partial class MainWindow
             if (_session.IsBlackout || _session.IsTextHidden) return;
             try
             {
-                if (_powerPoint?.Advance(direction) == true) UpdatePowerPointPosition();
+                if (AdvancePowerPointWithFade(direction)) UpdatePowerPointPosition();
                 else SetStatus("Sin más pasos en esa dirección.");
             }
             catch (Exception error) { StopPowerPointOutput(); SetStatus("PowerPoint: " + error.Message, true); }

@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Culto.Core/Culto.Core.csproj" />
+    <Project Path="src/Culto.MoveHost/Culto.MoveHost.csproj" />
     <Project Path="src/Culto.Desktop/Culto.Desktop.csproj" />
     <Project Path="src/Culto.Remote/Culto.Remote.csproj" />
   </Folder>

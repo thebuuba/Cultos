@@ -4,6 +4,16 @@ Comprobación realizada el 11 de noviembre de 2026 en esta PC Windows. Entrega a
 
 ## Compilación y pruebas
 
+### Motor Move y PowerPoint — versión 0.17.0, verificación sin interfaz
+
+Se preparó `artifacts/CultoStudio-0.17.0` por separado, sin reemplazar ni reiniciar la aplicación abierta. `scripts/build.ps1 -Publish -OutputDirectory artifacts\CultoStudio-0.17.0` terminó con código 0, sin advertencias ni errores. Pasaron **133 pruebas del núcleo y 60 del mando: 193 en total** (`.tools/release017-headless.log`). Los proyectos de escritorio y reproductor se compilaron, pero sus pruebas con ventanas no se ejecutaron por indicación del usuario.
+
+La entrega contiene un host privado sin ventana para el complemento **Move Transition 3.2.1** y **libobs 33.0.1**. Se verificaron los hashes de los ZIP oficiales, los 265 archivos extraídos, arquitectura AMD64 y exports de todos los enlaces nativos usados por el host, leyendo bytes sin cargar DLLs (`.tools/obs-move-static-exports.log`). Las pruebas puras cubren framing del pipe, lecturas parciales, límites de tamaños, escrituras concurrentes, estructura ABI y barreras de timestamp que descartan fotogramas anteriores.
+
+El fundido de PowerPoint usa una envolvente sobre `MediaFormat.Volume` de los medios de la copia propia. Las pruebas cubren cancelación, restauración, solicitudes reemplazadas y conservación de pausa/reinicio/negro y de ajustes capturados durante el cambio. La supresión de barras solo acepta una ventana atribuible al HWND propio por su cadena de propietarios; su política se prueba sin llamadas Win32.
+
+**Pendiente de ejecución:** carga/renderizado real de Move con la GPU, efecto audible de `MediaFormat.Volume` durante reproducción y propiedad/desaparición de la barra flotante de PowerPoint. El host no se ejecutó, las DLLs no se cargaron y no se abrió ni controló ninguna aplicación para esta verificación. Move trabaja con dos capturas completas del compositor; no se presenta como un editor de escenas OBS ni como compatibilidad con todos los filtros del paquete. Detalles: [integración nativa y límites](obs-move-native.md).
+
 ### Biblia, transiciones, cultos guardados y PowerPoint — versión 0.16.0
 
 El editor bíblico permite elegir imagen o color de fondo, oscurecimiento, fuente, tamaño, color, negrita/cursiva, alineación y sombra/brillo. Su vista previa usa el mismo renderizador y cancelar no modifica la salida. Guardar mantiene el contenido en vivo hasta el siguiente envío. La búsqueda admite abreviaturas, citas separadas por espacios, capítulos y frases, con actualización automática y navegación por teclado.
