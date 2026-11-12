@@ -7,6 +7,7 @@ public sealed class WorkspaceData
 {
     public ServicePlan Plan { get; set; } = new();
     public List<Cue> Library { get; set; } = [];
+    public List<Cue> YouTubeSources { get; set; } = [];
     public List<SavedSet> VideoCollections { get; set; } = [];
     public List<SavedSet> SavedServices { get; set; } = [];
     public bool PresenterEnabled { get; set; }
@@ -18,15 +19,22 @@ public sealed class WorkspaceData
         new("next", "Siguiente", "#43D9BE", "next"),
         new("pause", "Pausar / continuar", "#FFCF75", "pause"),
         new("blackout", "Pantalla negra", "#FF9DAD", "blackout"),
-        new("background", "Mostrar fondo", "#A7C7FF", "background")
+        new("background", "Logo", "#A7C7FF", "background")
     ];
     public string? DisplayDevice { get; set; }
     public string? BackgroundImagePath { get; set; }
     public List<string> BackgroundImages { get; set; } = [];
+    public LogoPlaybackOptions LogoPlayback { get; set; } = new();
     public BibleVisualStyle BibleStyle { get; set; } = new();
     public TransitionOptions Transitions { get; set; } = new();
+    public int TransitionDefaultsVersion { get; set; }
     public int Volume { get; set; } = 80;
     public bool Loop { get; set; }
+    public bool KeepMediaAudio { get; set; }
+    public string MediaViewMode { get; set; } = "Thumbnails";
+    public int MediaFolderFilter { get; set; } = 2;
+    public string? MediaCustomFolderPath { get; set; }
+    public bool MediaSortDescending { get; set; }
 }
 
 public sealed class WorkspaceStore
@@ -45,11 +53,19 @@ public sealed class WorkspaceStore
         if (data is not null)
         {
             data.Plan ??= new(); data.Plan.Items ??= []; data.Library ??= []; data.Deck ??= [];
+            data.YouTubeSources = (data.YouTubeSources ?? []).Where(cue => cue is not null && cue.Kind == CueKind.WindowCapture).ToList();
+            foreach (var cue in data.Library.Where(cue => cue.Kind == CueKind.WindowCapture))
+                if (data.YouTubeSources.All(source => source.Id != cue.Id)) data.YouTubeSources.Add(YouTubeDiscovery.Clone(cue));
+            data.Library.RemoveAll(cue => cue.Kind == CueKind.WindowCapture);
+            data.Deck = data.Deck.Select(button => button is { Action: "background", Label: "Mostrar fondo" }
+                ? button with { Label = "Logo" } : button).ToList();
             data.VideoCollections = NormalizeSets(data.VideoCollections, videosOnly: true);
             data.SavedServices = NormalizeSets(data.SavedServices);
             data.BackgroundImages ??= [];
+            data.LogoPlayback = (data.LogoPlayback ?? new()).Normalize();
             data.BibleStyle = (data.BibleStyle ?? new()).Normalize();
-            data.Transitions = (data.Transitions ?? new()).Normalize();
+            data.Transitions = (data.Transitions ?? new()).UpgradeStoredDefaults(data.TransitionDefaultsVersion);
+            data.TransitionDefaultsVersion = Math.Max(data.TransitionDefaultsVersion, 1);
             data.Volume = Math.Clamp(data.Volume, 0, 100);
             return data;
         }
@@ -59,6 +75,7 @@ public sealed class WorkspaceStore
         var items = new List<Cue> { welcome, prayer, closing };
         return new WorkspaceData
         {
+            TransitionDefaultsVersion = 1,
             Plan = new ServicePlan { Name = "Mi primer culto", Items = items },
             Library = items.Select(c => new Cue { Title = c.Title, Body = c.Body, Kind = c.Kind }).ToList()
         };

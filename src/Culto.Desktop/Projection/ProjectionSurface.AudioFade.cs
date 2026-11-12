@@ -22,8 +22,8 @@ public sealed partial class ProjectionSurface
     private int _audioGeneration, _playbackGeneration;
 
     // This is playback intent, including loading and a queued media change.
-    public bool IsPaused => _disposed || _suppressed || _pauseRequested
-        || _pendingPresentation is { Blackout: true } or { HideText: true } or { PauseAfter: true };
+    public bool IsPaused => _mixer?.IsPaused ?? (_disposed || _suppressed || _pauseRequested
+        || _pendingPresentation is { Blackout: true } or { HideText: true } or { PauseAfter: true });
 
     private void InitializeAudioFade() => _audioTimer.Tick += (_, _) =>
     {
@@ -40,12 +40,22 @@ public sealed partial class ProjectionSurface
 
     private void ApplyAudioVolume()
     {
+        ApplyCapturedAudioVolume();
         if (_player is null || _disposed) return;
         var silent = _preview || _suppressed || _pauseRequested || _awaitingAudioStart;
-        var volume = silent ? 0 : (int)Math.Round(_volume * _audioGain);
+        var volume = silent ? 0 : NativeFadeVolume(_volume, _audioGain);
+        // A preloaded surface stays natively muted even if VLC creates its
+        // audio output after Playing, until the shared blend gives it gain.
+        silent |= volume == 0;
         if (_player.Volume != volume) _player.Volume = volume;
         if (_player.Mute != silent) _player.Mute = silent;
     }
+
+    // VLC DirectSound maps its volume percentage to amplitude cubically.
+    // Compensate only the envelope, preserving the operator's master volume:
+    // a half-gain fade must emit half amplitude, not one eighth.
+    internal static int NativeFadeVolume(int masterVolume, double gain) =>
+        (int)Math.Round(Math.Clamp(masterVolume, 0, 100) * Math.Cbrt(Math.Clamp(gain, 0, 1)));
 
     private void OnAudioOutputChanged(object? sender, EventArgs args)
     {

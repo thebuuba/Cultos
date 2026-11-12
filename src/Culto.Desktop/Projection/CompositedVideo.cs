@@ -104,8 +104,10 @@ internal sealed class CompositedVideo : Image, IDisposable
     }
 
     // Owner stops/disposes VLC before disposing the pixel buffer.
-    public void Dispose()
+    internal void BeginDispose()
     {
-        _disposed = true; Clear(); var opaque = IntPtr.Zero; Cleanup(ref opaque); _bitmap = null;
+        _disposed = true; Clear(); _bitmap = null;
     }
+    internal void FinishDispose() { var opaque = IntPtr.Zero; Cleanup(ref opaque); }
+    public void Dispose() { BeginDispose(); FinishDispose(); }
 }

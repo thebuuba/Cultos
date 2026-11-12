@@ -7,6 +7,11 @@ namespace Culto.Desktop;
 
 public partial class App : Application
 {
+    protected override void OnExit(ExitEventArgs e)
+    {
+        Services.CapturedApplicationAudio.ShutdownShared();
+        base.OnExit(e);
+    }
     private void ButtonHoverChanged(object sender, System.Windows.Input.MouseEventArgs e)
     {
         if (sender is System.Windows.Controls.Button button &&
@@ -47,7 +52,7 @@ public sealed class CueKindConverter : IValueConverter
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture) => value is CueKind kind ? kind switch
     {
         CueKind.Bible => "BIBLIA", CueKind.Video => "VIDEO / HIMNO", CueKind.Image => "IMAGEN",
-        CueKind.Audio => "AUDIO", CueKind.PowerPoint => "POWERPOINT", _ => "TEXTO"
+        CueKind.Audio => "AUDIO", CueKind.PowerPoint => "POWERPOINT", CueKind.WindowCapture => "VENTANA", _ => "TEXTO"
     } : "CONTENIDO";
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
 }

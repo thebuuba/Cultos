@@ -22,9 +22,9 @@ internal static partial class Program
             Call(window, "PrepareCue", cue, null); Call(window, "ProjectPrepared");
             var output = Field<ProjectionSurface>(window, "_output");
             var preview = Field<ProjectionSurface>(window, "_preview");
-            Until(() => output.IsPlaying && output.Duration > 0 && preview.Duration > 0 && !output.IsTransitioning,
+            Until(() => output.IsPlaying && output.Duration > 0 && !output.IsTransitioning,
                 "Player test video did not load");
-            output.SetPaused(true); preview.SetPaused(true);
+            output.SetPaused(true);
             PumpFor(100);
 
             Test("Player scrubbing preserves the selected position and paused output", () =>
@@ -49,16 +49,12 @@ internal static partial class Program
                 Check(!Field<bool>(window, "_outputScrubbing") && !slider.IsMouseCaptured, "Track release retained scrubbing or mouse capture");
             });
 
-            Test("Player skip controls affect only their own renderer", () =>
+            Test("Player skip controls operate the shared output without a preview decoder", () =>
             {
-                preview.Seek(.5); output.Seek(.6); PumpFor(150);
-                var previewPosition = preview.Position;
+                output.Seek(.6); PumpFor(150);
                 ((Button)window.FindName("OutputSkipBackButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 Until(() => output.Position < .3, "Output rewind did not clamp to the beginning");
-                Check(Math.Abs(preview.Position - previewPosition) < .2 && output.IsPaused, "Output rewind changed the preview or resumed output");
-                ((Button)window.FindName("PreviewSkipBackButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                Until(() => preview.Position < .3, "Preview rewind did not clamp to the beginning");
-                Check(preview.Volume == 0 && output.Position < .3, "Preview controls changed output or enabled preview audio");
+                Check(output.IsPaused && !preview.IsPlaying && preview.Duration == 0, "Skip started another player or resumed output");
             });
 
             Test("Player mute restores chosen volume and play controls expose their state", () =>

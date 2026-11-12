@@ -17,7 +17,7 @@ public partial class MainWindow
     private FileSystemWatcher? _folderWatcher;
     private DispatcherTimer? _folderRefreshTimer;
 
-    private static bool IsFolderFilter(int filter) => filter is 2 or 3 or 6;
+    private static bool IsFolderFilter(int filter) => filter is 2 or 3 or 6 or 8;
     private string CurrentFolderPath => _folderPaths.GetValueOrDefault(_activeFolderFilter, "");
 
     private void SetLibraryFolder(int filter)
@@ -44,10 +44,10 @@ public partial class MainWindow
         var filter = _activeFolderFilter;
         var path = CurrentFolderPath;
         _folderLoading = true;
-        // SetLibraryFolder calls this during RefreshLibrary; yield before refreshing again.
+        // Keep folder changes responsive before scanning files off the UI thread.
         await Task.Yield();
         if (token.IsCancellationRequested || _closing) return;
-        RefreshLibrary();
+        RefreshMedia();
         try
         {
             CueKind? kind = filter switch { 2 => CueKind.Video, 3 => CueKind.Image, _ => null };
@@ -65,7 +65,7 @@ public partial class MainWindow
         }
         if (token.IsCancellationRequested || _closing) return;
         _folderLoading = false;
-        RefreshLibrary();
+        RefreshMedia();
         if (_folderWatcher is null) WatchLibraryFolder();
     }
 

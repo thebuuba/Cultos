@@ -131,7 +131,7 @@ internal static partial class Program
                     verse.SelectedItem = 176;
                     var addSelected = (Button)window.FindName("AddSelectedBibleButton");
                     var addPassage = (Button)window.FindName("AddBiblePassageButton");
-                    Check(addPassage.Visibility == Visibility.Visible && addPassage.Content?.ToString() == "Pasaje (176)",
+                    Check(addPassage.Visibility == Visibility.Visible && addPassage.Content?.ToString() == "Separados (176)",
                         "Whole-passage action does not identify the 176 verses that it will add");
                     addSelected.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                     Check(plan.Count == oldPlan.Length + 1 && plan[^1].Reference == "Salmos 119:176",

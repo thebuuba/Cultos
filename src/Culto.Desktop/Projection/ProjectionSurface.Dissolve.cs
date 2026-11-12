@@ -18,14 +18,14 @@ public sealed partial class ProjectionSurface
     private int _dissolveGeneration;
     private int _dissolveMilliseconds = 400;
     private string _transitionKind = "Dissolve";
-    private TransitionOptions _transitions = new() { DurationMilliseconds = 400, AudioFadeOutMilliseconds = 180, AudioFadeInMilliseconds = 350 };
-    private TransitionOptions _presentedTransitions = new() { DurationMilliseconds = 400, AudioFadeOutMilliseconds = 180, AudioFadeInMilliseconds = 350 };
+    private TransitionOptions _transitions = new();
+    private TransitionOptions _presentedTransitions = new();
     public TransitionOptions Transitions
     {
-        get => _transitions with { };
-        set => _transitions = (value ?? new()).Normalize();
+        get => _mixer?.Transitions ?? _transitions with { };
+        set { _transitions = (value ?? new()).Normalize(); if (_mixer is not null) _mixer.Transitions = _transitions; }
     }
-    public bool IsTransitioning => _pendingPresentation is not null || _dissolve.Visibility == Visibility.Visible;
+    public bool IsTransitioning => _mixer?.IsTransitioning ?? (_pendingPresentation is not null || _dissolve.Visibility == Visibility.Visible);
 
     private void InitializeDissolve()
     {
@@ -38,12 +38,16 @@ public sealed partial class ProjectionSurface
 
     public void TransitionTo(Cue cue)
     {
+        if (_mixer is not null) { _mixer.TransitionTo(cue); return; }
         var kind = cue.Kind == CueKind.Bible && _bibleStyle.Transition != "System" ? _bibleStyle.Transition : _transitions.Kind;
         Present(CreatePresentation(cue, false, false, kind != "Cut") with { AnimateAudio = true });
     }
 
     public void TransitionToBackdrop(Cue? live, bool blackout, bool hideText)
-        => Present(CreatePresentation(live, blackout, hideText, _transitions.Kind != "Cut", pauseAfter: true) with { AnimateAudio = true });
+    {
+        if (_mixer is not null) _mixer.TransitionToBackdrop(live, blackout, hideText);
+        else Present(CreatePresentation(live, blackout, hideText, _transitions.Kind != "Cut", pauseAfter: true) with { AnimateAudio = true });
+    }
 
     private void TransitionToCore(Presentation presentation)
     {

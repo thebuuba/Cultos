@@ -18,7 +18,7 @@
 <div id="notice" class="message" role="status" aria-live="polite">Conectando con el equipo…</div>
 <section class="panel live" aria-labelledby="live-label"><div class="row"><span id="live-label" class="eyebrow">En pantalla</span><span id="blackout-state" class="detail">Sin confirmar</span></div><div id="live-title" class="title">—</div><div class="row"><p id="play-state" class="detail">Esperando estado</p><span id="output-target" class="detail">—</span></div><div class="grid controls"><button data-action="previous" disabled>← Anterior</button><button data-action="next" disabled>Siguiente →</button></div></section>
 <section aria-labelledby="order-label"><div class="row section-head"><h2 id="order-label">Orden del culto</h2><span id="order-count" class="count">—</span></div><ol id="order" aria-label="Elementos para proyectar"></ol><p id="order-empty" class="empty">Esperando el orden del equipo.</p></section>
-<div class="grid output-controls" aria-label="Salida de proyección"><button data-action="blackout" id="blackout" aria-pressed="false" disabled>Salida en negro</button><button data-action="background" id="background" aria-pressed="false" disabled>Solo fondo</button></div>
+<div class="grid output-controls" aria-label="Salida de proyección"><button data-action="blackout" id="blackout" aria-pressed="false" disabled>Salida en negro</button><button data-action="background" id="background" aria-pressed="false" disabled>Logo</button></div>
 <section class="panel" aria-labelledby="prepared-label"><span id="prepared-label" class="eyebrow">Preparado en el equipo</span><div id="prepared-title" class="title prepared-title">—</div><button class="primary" data-action="project" disabled>Proyectar preparado</button></section>
 <section class="panel" aria-labelledby="playback-label"><h2 id="playback-label" class="playback-head">Reproducción</h2>
 <div class="grid"><button data-action="pause" id="pause" disabled>Reanudar</button><button data-action="restart" disabled>Reiniciar</button></div>
@@ -46,6 +46,7 @@ function message(text, error = false) { $('notice').textContent = text; $('notic
 function enableControls() {
   document.querySelectorAll('[data-action],#volume,#position').forEach(element => element.disabled = !connected || pending);
   if (connected && !pending && (!current || current.duration <= 0)) $('position').disabled = true;
+  if (current?.canPause === false) document.querySelectorAll('[data-action="pause"],[data-action="restart"],[data-playback],#position').forEach(element => element.disabled = true);
   $('retry').disabled = pending;
   $('order').setAttribute('aria-busy', String(pending));
 }
@@ -58,7 +59,7 @@ function time(seconds) {
   return Math.floor(value / 60) + ':' + String(value % 60).padStart(2, '0');
 }
 function kindLabel(kind) {
-  return ({ text: 'Texto', bible: 'Biblia', image: 'Imagen', video: 'Vídeo', audio: 'Audio', 0: 'Texto', 1: 'Biblia', 2: 'Imagen', 3: 'Vídeo', 4: 'Audio' })[String(kind).toLowerCase()] || 'Contenido';
+  return ({ text: 'Texto', bible: 'Biblia', image: 'Imagen', video: 'Vídeo', audio: 'Audio', windowcapture: 'YouTube', powerpoint: 'PowerPoint', 0: 'Texto', 1: 'Biblia', 2: 'Imagen', 3: 'Vídeo', 4: 'Audio', 6: 'YouTube' })[String(kind).toLowerCase()] || 'Contenido';
 }
 function renderOrder(state) {
   const order = Array.isArray(state.order) ? state.order : [], signature = JSON.stringify(order);
@@ -81,7 +82,7 @@ function renderOrder(state) {
   orderButtons.forEach(({ button, marker, title }, id) => {
     const live = showingCue && id === state.liveCueId, prepared = id === state.preparedCueId;
     if (live) button.setAttribute('aria-current', 'true'); else button.removeAttribute('aria-current');
-    const liveLabel = state.isBlackout ? 'En negro' : state.isBackground ? 'Fondo' : 'En vivo';
+    const liveLabel = state.isBlackout ? 'En negro' : state.isBackground ? 'Logo' : 'En vivo';
     marker.textContent = live ? liveLabel : prepared ? 'Preparado' : '';
     marker.classList.toggle('prepared', !live && prepared);
     button.setAttribute('aria-label', 'Proyectar ' + title + (live ? ', ' + liveLabel.toLowerCase() : prepared ? ', preparado' : ''));
@@ -93,9 +94,9 @@ function renderOrder(state) {
 function render(state, force = false) {
   current = state;
   $('plan').textContent = state.planName || 'Culto';
-  $('live-title').textContent = state.isBackground ? 'Fondo del culto' : state.hasOutput === false ? 'Sin contenido en pantalla' : state.liveTitle || 'Sin contenido en vivo';
+  $('live-title').textContent = state.isBackground ? 'Logo' : state.hasOutput === false ? 'Sin contenido en pantalla' : state.liveTitle || 'Sin contenido en vivo';
   $('prepared-title').textContent = state.preparedTitle || 'Sin contenido preparado';
-  $('blackout-state').textContent = state.isBlackout ? 'SALIDA EN NEGRO' : state.hasOutput === false ? 'Sin salida' : state.isBackground ? 'Solo fondo' : 'Salida visible';
+  $('blackout-state').textContent = state.isBlackout ? 'SALIDA EN NEGRO' : state.hasOutput === false ? 'Sin salida' : state.isBackground ? 'Logo' : 'Salida visible';
   $('output-target').textContent = state.hasExternalOutput ? 'HDMI' : 'Local';
   $('blackout').setAttribute('aria-pressed', String(state.isBlackout));
   $('background').setAttribute('aria-pressed', String(!!state.isBackground));
@@ -110,6 +111,7 @@ function render(state, force = false) {
     deckSignature = signature; $('deck').replaceChildren();
     buttons.forEach(item => {
       const button = document.createElement('button'); button.textContent = item.label; button.dataset.action = 'deck';
+      if (['pause', 'restart', 'seek'].includes(item.action)) button.dataset.playback = 'true';
       if (/^#[0-9a-f]{6}$/i.test(item.color)) button.style.borderTopColor = item.color;
       button.addEventListener('click', () => send('deck', { buttonId: item.id })); $('deck').appendChild(button);
     });

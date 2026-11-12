@@ -2,6 +2,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
+using AvalonDock;
+using AvalonDock.Layout;
 using Culto.Core;
 using Culto.Desktop;
 
@@ -50,8 +52,12 @@ internal static partial class Program
         Test("Central preview keeps a 16 by 9 viewport at desktop and compact sizes", () =>
         {
             var width = window.Width; var height = window.Height;
+            var manager = (DockingManager)window.FindName("WorkspaceDock");
+            var mediaTab = manager.Layout.Descendents().OfType<LayoutAnchorable>().Single(p => p.ContentId == "media");
+            var previousTab = ((LayoutAnchorablePane)mediaTab.Parent).Children.FirstOrDefault(p => p.IsSelected)?.ContentId;
             try
             {
+                Call(window, "ActivateWorkspacePanel", "media");
                 foreach (var size in new[] { new Size(1480, 900), new Size(1280, 680) })
                 {
                     window.Width = size.Width; window.Height = size.Height; window.UpdateLayout();
@@ -59,14 +65,23 @@ internal static partial class Program
                     Check(viewport is not null, "Widescreen preview frame is missing");
                     Check(viewport!.ActualHeight >= 80 && Math.Abs(viewport.ActualWidth / viewport.ActualHeight - 16d / 9) < .04,
                         "Preview frame is distorted or unusably small");
-                    var sequence = (FrameworkElement)window.FindName("SequenceList");
+                    var media = (FrameworkElement)window.FindName("MediaPanel");
+                    var mediaList = (FrameworkElement)window.FindName("MediaList");
                     var stageBounds = BoundsWithin(viewport, window);
-                    var sequenceBounds = BoundsWithin(sequence, window);
-                    Check(sequence.IsVisible && sequence.ActualHeight >= 90 && sequenceBounds.Top >= stageBounds.Bottom,
-                        "Sequence is hidden or overlaps the preview");
+                    var mediaBounds = BoundsWithin(media, window);
+                    Check(media.IsVisible && mediaList.IsVisible && mediaList.ActualHeight >= 48 && mediaBounds.Top >= stageBounds.Bottom,
+                        "Media browser is hidden, has no usable file area, or overlaps the preview");
+                    CheckWithin(mediaList, media, new Rect(media.RenderSize), "Media file area");
+                    foreach (var control in Descendants(media).OfType<FrameworkElement>().Where(e => e is Button or TextBox && e.IsVisible))
+                        CheckWithin(control, media, new Rect(media.RenderSize), "Media browser control " + control.Name);
                 }
             }
-            finally { window.Width = width; window.Height = height; window.UpdateLayout(); }
+            finally
+            {
+                window.Width = width; window.Height = height;
+                if (previousTab is not null) Call(window, "ActivateWorkspacePanel", previousTab);
+                window.UpdateLayout();
+            }
         });
         Test("Console font is bundled and resolves all four weights offline", () =>
         {

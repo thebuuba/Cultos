@@ -3,6 +3,8 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using Culto.Core;
 using Culto.Desktop;
 using Culto.Desktop.Services;
@@ -20,6 +22,8 @@ internal static partial class Program
         var planList = (ListBox)window.FindName("PlanList");
         var plan = Field<ObservableCollection<Cue>>(window, "_plan");
         var oldLibrary = workspace.Library.ToList();
+        var oldBackgroundImages = workspace.BackgroundImages.ToList();
+        var oldBackgroundPath = workspace.BackgroundImagePath;
         var oldPlan = plan.ToList();
         var oldQuery = search.Text;
         var oldFilter = filter.SelectedIndex;
@@ -32,6 +36,11 @@ internal static partial class Program
         var hymn13 = new Cue { Title = "013 Himno sintético trece", HymnNumber = 13 };
         var hymn113 = new Cue { Title = "113 Himno sintético ciento trece", HymnNumber = 113 };
         var title13 = new Cue { Title = "Aviso sintético 13", Body = "Texto sintético de prueba" };
+        var logoPath = Path.Combine(directory, "usability-logo.png");
+        var logoEncoder = new PngBitmapEncoder();
+        logoEncoder.Frames.Add(BitmapFrame.Create(BitmapSource.Create(1, 1, 96, 96, PixelFormats.Bgr32, null,
+            new byte[] { 30, 80, 120, 255 }, 4)));
+        using (var stream = File.Create(logoPath)) logoEncoder.Save(stream);
         try
         {
             workspace.Library = [hymn13, hymn113, title13];
@@ -99,30 +108,34 @@ internal static partial class Program
                 }
                 finally { SetField(window, "_ready", true); }
             });
-            Test("Playback controls follow live media while preview controls follow prepared media", () =>
+            Test("Playback controls belong only to live media", () =>
             {
                 Call(window, "CloseOutput");
                 var mediaPanel = (FrameworkElement)window.FindName("MediaPlaybackPanel");
-                var previewPause = (Button)window.FindName("PreviewPauseButton");
+                Check(window.FindName("PreviewPauseButton") is null, "Preview still has a second transport");
                 var navigation = (FrameworkElement)window.FindName("ScreenNavigationPanel");
                 var outputMode = (TextBlock)window.FindName("OutputModeText");
                 Check(outputMode.Text == "SIN SALIDA", "Closed output retained a live mode indicator");
                 Call(window, "PrepareCue", new Cue { Title = "Texto sintético", Kind = CueKind.Text }, null);
-                Check(mediaPanel.Visibility == Visibility.Collapsed && previewPause.Visibility == Visibility.Collapsed, "Text/closed output shows irrelevant media controls");
+                Check(mediaPanel.Visibility == Visibility.Collapsed, "Text/closed output shows irrelevant media controls");
                 var fixture = Path.Combine(AppContext.BaseDirectory, "fixtures", "test.mkv");
                 Call(window, "PrepareCue", new Cue { Title = "Video sintético", Kind = CueKind.Video, FilePath = fixture }, null);
-                Check(previewPause.Visibility == Visibility.Visible && mediaPanel.Visibility == Visibility.Collapsed, "Preparing video exposed live controls or hid preview playback");
+                Check(mediaPanel.Visibility == Visibility.Collapsed, "Preparing video exposed live controls");
                 Call(window, "OpenOutput", DisplayService.GetDisplays().First(), true);
                 Call(window, "ProjectPrepared");
                 Check(mediaPanel.Visibility == Visibility.Visible, "Live video has no playback controls");
+                workspace.BackgroundImages = [logoPath];
+                workspace.BackgroundImagePath = logoPath;
                 Call(window, "ShowBackground");
                 Call(window, "PrepareCue", title13, null);
-                Check(previewPause.Visibility == Visibility.Collapsed && mediaPanel.Visibility == Visibility.Visible, "Prepared text hid the controls for the still-live video");
-                Check(outputMode.Text == "FONDO", "Preparing another cue hid the persistent background-only indicator");
+                Check(mediaPanel.Visibility == Visibility.Visible, "Prepared text hid the controls for the still-live video");
+                Check(outputMode.Text == "LOGO", "Preparing another cue hid the persistent Logo indicator");
                 Call(window, "ToggleBlackout");
                 Check(outputMode.Text == "NEGRO", "Blackout did not take priority over background-only mode");
+                Check(!Field<LogoSlideshow>(window, "_logoSlides").IsRunning, "Blackout left Logo cycling behind the black screen");
                 Call(window, "ToggleBlackout");
-                Check(outputMode.Text == "FONDO", "Restoring blackout lost the retained background-only indicator");
+                Check(outputMode.Text == "LOGO", "Restoring blackout lost the retained Logo indicator");
+                Check(Field<LogoSlideshow>(window, "_logoSlides").IsRunning, "Restoring blackout did not resume Logo cycling");
                 Check(navigation.Visibility == Visibility.Visible, "Screen navigation disappeared with contextual controls");
                 Call(window, "ProjectPrepared");
                 Check(mediaPanel.Visibility == Visibility.Collapsed, "Live text retained video playback controls");
@@ -160,6 +173,10 @@ internal static partial class Program
         }
         finally
         {
+            Call(window, "StopLogo");
+            workspace.BackgroundImages = oldBackgroundImages;
+            workspace.BackgroundImagePath = oldBackgroundPath;
+            File.Delete(logoPath);
             workspace.Library = oldLibrary;
             plan.Clear(); foreach (var cue in oldPlan) plan.Add(cue); Call(window, "UpdatePlanCount");
             search.Text = oldQuery; filter.SelectedIndex = oldFilter; Call(window, "RefreshLibrary"); tabs.SelectedIndex = oldTab;

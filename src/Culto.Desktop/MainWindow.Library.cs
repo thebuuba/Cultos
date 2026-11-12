@@ -27,8 +27,7 @@ public partial class MainWindow
         if (!_ready) return;
         var query = LibrarySearch.Text.Trim();
         var filter = LibraryFilter.SelectedIndex;
-        SetLibraryFolder(filter);
-        var sourceItems = IsFolderFilter(filter) ? _folderItems : _workspace.Library;
+        var sourceItems = _workspace.Library.Where(cue => cue.Kind != CueKind.WindowCapture).ToList();
         var numericQuery = query.Length > 0 && query.All(char.IsAsciiDigit);
         var exactHymnSearch = numericQuery && filter is 0 or 1;
         var validNumber = int.TryParse(query, out var number);
@@ -50,15 +49,11 @@ public partial class MainWindow
             LibraryList.SelectedItem = _libraryView.FirstOrDefault(c => c.Id == selectedId);
         }
         finally { _refreshingLibrary = false; }
-        LibraryCountText.Text = _folderLoading && IsFolderFilter(filter) ? "Cargando archivos…" : $"{_libraryView.Count:N0} de {sourceItems.Count:N0} contenidos";
-        LibraryCountText.ToolTip = IsFolderFilter(filter) ? CurrentFolderPath : null;
-        RefreshFolderButton.Visibility = IsFolderFilter(filter) ? Visibility.Visible : Visibility.Collapsed;
+        LibraryCountText.Text = $"{_libraryView.Count:N0} de {sourceItems.Count:N0} contenidos";
         ClearSearchButton.IsEnabled = query.Length > 0;
         LibraryEmpty.Visibility = _libraryView.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         var category = (LibraryFilter.SelectedItem as ListBoxItem)?.Content?.ToString() ?? "Todo";
-        LibraryEmpty.Text = IsFolderFilter(filter)
-            ? _folderLoading ? "Cargando archivos…" : _folderError ?? (query.Length > 0 ? $"Sin resultados para «{query}»." : $"Sin archivos multimedia en {category}.")
-            : _workspace.Library.Count == 0
+        LibraryEmpty.Text = _workspace.Library.Count == 0
             ? "Biblioteca vacía"
             : query.Length > 0
                 ? $"Sin resultados para «{query}» en {category}."
@@ -136,7 +131,7 @@ public partial class MainWindow
     private static Cue CopyCue(Cue c, bool newId = false) => new()
     {
         Id = newId ? Guid.NewGuid() : c.Id, Title = c.Title, Kind = c.Kind, Body = c.Body,
-        Reference = c.Reference, Version = c.Version, FilePath = c.FilePath, HymnNumber = c.HymnNumber, Notes = c.Notes
+        Reference = c.Reference, Version = c.Version, FilePath = c.FilePath, HymnNumber = c.HymnNumber, Notes = c.Notes, Capture = c.Capture is {} capture ? capture with {} : null
     };
     private void AddToPlan(Cue cue)
     {
@@ -150,6 +145,13 @@ public partial class MainWindow
     private void EditLibraryClick(object sender, RoutedEventArgs e)
     {
         if (LibraryList.SelectedItem is not Cue cue) { SetStatus("Selecciona un elemento para editarlo."); return; }
+        if (cue.Kind == CueKind.WindowCapture)
+        {
+            var capture = new WindowCaptureDialog(cue) { Owner = this };
+            if (capture.ShowDialog() != true || capture.SelectedCue is not { } edited) return;
+            cue.Title = edited.Title; cue.Capture = edited.Capture;
+            RefreshLibrary(); SaveWorkspace(); PrepareCue(cue); return;
+        }
         var dialog = new CueEditDialog(cue) { Owner = this };
         if (dialog.ShowDialog() != true) return;
         cue.Title = dialog.CueTitle; cue.HymnNumber = dialog.HymnNumber;

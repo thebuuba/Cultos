@@ -86,6 +86,7 @@ public partial class MainWindow
             _outputWindow?.Hide();
             LiveMonitor.SetNativeSource(_powerPoint.Handle, embedded: _outputDisplay is null);
         }
+        SyncPreviewSource();
     }
 
     private void StopPowerPointOutput(bool keepPending = false, bool keepCueRequest = false)
@@ -95,6 +96,8 @@ public partial class MainWindow
         _powerPointTimer.Stop();
         if (!keepPending) { _pendingPowerPoint?.Dispose(); _pendingPowerPoint = null; }
         LiveMonitor.SetNativeSource(IntPtr.Zero);
+        PreviewLiveMonitor.SetMirrorSource(null);
+        PreviewLiveMonitor.SetNativeSource(IntPtr.Zero);
         _powerPoint?.Dispose(); _powerPoint = null;
         if (_outputWindow is not null && !_outputWindow.IsVisible) _outputWindow.Show();
     }

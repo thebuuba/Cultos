@@ -175,13 +175,14 @@ $hostExports = @([regex]::Matches($bindings, 'internal static extern\s+\w+\s+(\w
 if ($hostExports.Count -eq 0) { throw 'No native OBS bindings were found for static compatibility verification.' }
 $binaries = @(
     Read-PeMetadata 'bin/64bit/obs.dll' $hostExports
+    Read-PeMetadata 'bin/64bit/libobs-winrt.dll' @('winrt_capture_supported', 'winrt_capture_init_window', 'winrt_capture_free', 'winrt_capture_active', 'winrt_capture_render', 'winrt_capture_width', 'winrt_capture_height')
     Read-PeMetadata 'bin/64bit/obs-frontend-api.dll' @('obs_frontend_get_current_scene')
     Read-PeMetadata 'obs-plugins/64bit/image-source.dll' $moduleExports
     Read-PeMetadata 'obs-plugins/64bit/obs-transitions.dll' $moduleExports
     Read-PeMetadata 'obs-plugins/64bit/move-transition.dll' $moduleExports
 )
 foreach ($required in @('bin/64bit/Qt6Core.dll', 'bin/64bit/Qt6Gui.dll', 'bin/64bit/Qt6Widgets.dll',
-    'bin/64bit/libobs-d3d11.dll', 'data/libobs/default.effect', 'data/obs-studio/license/gplv2.txt',
+    'bin/64bit/libobs-d3d11.dll', 'bin/64bit/libobs-winrt.dll', 'data/libobs/default.effect', 'data/obs-studio/license/gplv2.txt',
     'data/obs-plugins/image-source/locale/en-US.ini', 'data/obs-plugins/obs-transitions/locale/en-US.ini',
     'data/obs-plugins/move-transition/locale/en-US.ini')) {
     if (-not (Test-Path -LiteralPath (Get-RuntimePath $required))) { throw "Required runtime file missing: $required" }

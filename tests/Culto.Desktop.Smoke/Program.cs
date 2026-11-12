@@ -19,7 +19,11 @@ internal static partial class Program
     private static int closePromptsObserved;
     private static void Check(bool condition, string message) { if (!condition) throw new InvalidOperationException(message); }
     private static object? Call(object instance, string method, params object?[] args) => instance.GetType().GetMethod(method, Private)!.Invoke(instance, args);
-    private static T Field<T>(object instance, string name) => (T)instance.GetType().GetField(name, Private)!.GetValue(instance)!;
+    private static T Field<T>(object instance, string name)
+    {
+        if (instance is ProjectionSurface surface && name != "_mixer") instance = surface.ActiveSurface;
+        return (T)instance.GetType().GetField(name, Private)!.GetValue(instance)!;
+    }
     private static void SetField(object instance, string name, object? value) => instance.GetType().GetField(name, Private)!.SetValue(instance, value);
     private static void Wait(Task task)
     {
@@ -84,6 +88,10 @@ internal static partial class Program
     [STAThread]
     private static int Main(string[] args)
     {
+        // This route creates only disconnected controls: no App, Window, native
+        // player, dispatcher loop or desktop interaction.
+        if (args.Contains("--youtube-sources")) return RunYouTubeSourceTests();
+        if (args.Contains("--media-layout-headless")) return RunMediaLayoutHeadlessTests();
         var directory = Path.Combine(Path.GetTempPath(), "CultoDesktopSmoke-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         Environment.SetEnvironmentVariable("CULTO_DATA_DIR", directory);
@@ -97,6 +105,9 @@ internal static partial class Program
                 Check(seeded.Plan.Items[0].Id != seeded.Library[0].Id, "Seeded library and plan share cue IDs");
             });
 
+            if (args.Contains("--cold-play") && Environment.GetEnvironmentVariable("CULTO_FIRST_PLAY_WORKSPACE") is { } sourceDirectory)
+                foreach (var name in new[] { "workspace.json", "biblia.json", "dock-layout.xml" })
+                    if (File.Exists(Path.Combine(sourceDirectory, name))) File.Copy(Path.Combine(sourceDirectory, name), Path.Combine(directory, name), true);
             var app = new App();
             app.InitializeComponent();
             app.ShutdownMode = ShutdownMode.OnExplicitShutdown;
@@ -108,7 +119,7 @@ internal static partial class Program
                 window.Show();
                 app.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
                 {
-                    try { if (args.Contains("--transition-settings")) RunTransitionSettingsTests(window); else if (args.Contains("--powerpoint")) RunPowerPointTests(window, directory); else if (args.Contains("--presenter")) RunPresenterHotkeysTests(window); else if (args.Contains("--saved-sets")) RunSavedSetsTests(window); else if (args.Contains("--bible-tools")) { RunBibleSearchTests(window, directory); RunBibleStyleIntegrationTests(window); RunBibleEditorTests(window); } else if (args.Contains("--content-sources")) { RunLocalMediaFolderServiceTests(); RunFolderSourcesTests(window); RunContentDragDropTests(window); } else if (args.Contains("--local-output")) RunLocalOutputTests(window); else if (args.Contains("--compact-output")) RunCompactOutputTests(window); else if (args.Contains("--player")) RunPlayerControlsTests(window); else if (args.Contains("--backdrops")) RunBackdropControlsTests(window); else if (args.Contains("--remote-order")) { RunRemoteOrderTests(window); RunRemoteDialogTests(window); } else RunWindowTests(window, directory); }
+                    try { if (args.Contains("--content-drag")) RunContentDragDropTests(window); else if (args.Contains("--youtube-controls")) RunYouTubeControlsTests(window); else if (args.Contains("--cold-play")) RunColdPlaybackTests(window); else if (args.Contains("--order")) RunOrderInteractionTests(window); else if (args.Contains("--output-player")) RunOutputPlayerWindowTests(window); else if (args.Contains("--window-capture-picker")) RunWindowCapturePickerTests(window); else if (args.Contains("--transition-settings")) RunTransitionSettingsTests(window); else if (args.Contains("--powerpoint")) RunPowerPointTests(window, directory); else if (args.Contains("--presenter")) RunPresenterHotkeysTests(window); else if (args.Contains("--saved-sets")) RunSavedSetsTests(window); else if (args.Contains("--bible-tools")) { RunBibleSearchTests(window, directory); RunBibleSelectionTests(window); RunBibleStyleIntegrationTests(window); RunBibleEditorTests(window); } else if (args.Contains("--content-sources")) { RunLocalMediaFolderServiceTests(); RunFolderSourcesTests(window); RunContentDragDropTests(window); } else if (args.Contains("--local-output")) RunLocalOutputTests(window); else if (args.Contains("--compact-output")) RunCompactOutputTests(window); else if (args.Contains("--player")) RunPlayerControlsTests(window); else if (args.Contains("--backdrops")) RunBackdropControlsTests(window); else if (args.Contains("--remote-order")) { RunRemoteOrderTests(window); RunRemoteDialogTests(window); } else RunWindowTests(window, directory); }
                     finally
                     {
                         if (!Field<bool>(window, "_closing"))
@@ -331,6 +342,7 @@ internal static partial class Program
         RunOrderInteractionTests(window);
         RunBibleNavigationTests(window, directory);
         RunBibleSearchTests(window, directory);
+        RunBibleSelectionTests(window);
         RunBibleStyleIntegrationTests(window);
         RunBibleEditorTests(window);
         RunSavedSetsTests(window); RunPresenterHotkeysTests(window); RunTransitionSettingsTests(window);
@@ -497,20 +509,16 @@ internal static partial class Program
             Check(session.Live!.Id == live, "Deep scrolling/reorder/removal changed live output");
         });
 
-        Test("Preparing another cue resets the visible preview pause control", () =>
+        Test("Preparing videos keeps live output and never creates preview playback", () =>
         {
             var live = session.Live!.Id;
-            var pause = (Button)window.FindName("PreviewPauseButton");
             var fixture = Path.Combine(AppContext.BaseDirectory, "fixtures", "test.mkv");
-            Call(window, "PrepareCue", new Cue { Title = "Previa sintética uno", Kind = CueKind.Video, FilePath = fixture }, null);
-            pause.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Check(System.Windows.Automation.AutomationProperties.GetName(pause) == "Reproducir vista previa", "Pausing preview did not offer Play");
-            Call(window, "PrepareCue", new Cue { Title = "Previa sintética dos", Kind = CueKind.Video, FilePath = fixture }, null);
-            Check(System.Windows.Automation.AutomationProperties.GetName(pause) == "Pausar vista previa", "New prepared cue retained the previous preview pause label");
-            pause.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Check(System.Windows.Automation.AutomationProperties.GetName(pause) == "Reproducir vista previa", "First pause on a new cue used stale pause state");
-            pause.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Check(session.Live!.Id == live, "Preview controls changed live output");
+            Call(window, "PrepareCue", new Cue { Title = "Prepared video", Kind = CueKind.Video, FilePath = fixture }, null);
+            Check(window.FindName("PreviewPauseButton") is null, "Preview retains independent controls");
+            var preview = Field<ProjectionSurface>(window, "_preview");
+            Check(!preview.IsPlaying && preview.Duration == 0, "Prepared video opened a decoder");
+            Check(((FrameworkElement)window.FindName("PreparedMediaCover")).Visibility == Visibility.Visible, "Prepared video has no cover");
+            Check(session.Live!.Id == live, "Preparing video changed live output");
         });
 
         Test("Compact docked console keeps both monitors and source controls reachable", () =>
@@ -582,9 +590,9 @@ internal static partial class Program
                     var video = MediaLibrary.FromFile(Path.Combine(AppContext.BaseDirectory, "fixtures", "test.mkv"));
                     Call(window, "PrepareCue", video, null); Call(window, "ProjectPrepared");
                     window.UpdateLayout(); PumpFor(25);
-                    foreach (var name in new[] { "ProjectButton", "BlackoutButton", "PreviewHost", "PreviewPlaybackPanel", "PreviewPauseButton", "PreviewPositionSlider", "PreviewRestartButton", "MediaPlaybackPanel", "PauseButton", "VolumeSlider", "LoopCheck", "PositionSlider" })
+                    foreach (var name in new[] { "ProjectButton", "BlackoutButton", "PreviewLiveMonitor", "MediaPlaybackPanel", "PauseButton", "VolumeSlider", "LoopCheck", "PositionSlider" })
                         CheckWithin((FrameworkElement)window.FindName(name), client, viewport, $"Media layout: {name} at height {compactHeight}");
-                    Check(((FrameworkElement)window.FindName("PreviewHost")).ActualHeight >= 80, "Media controls squeeze the preview below its minimum");
+                    Check(((FrameworkElement)window.FindName("PreviewViewport")).ActualHeight >= 80, "Media controls squeeze the preview below its minimum");
                     Call(window, "PrepareCue", new Cue { Kind = CueKind.Bible, Title = "Lectura sintética", Body = "Texto sintético que conserva una vista previa legible.", Reference = "Lectura 1:1", Version = "Prueba" }, null);
                     Call(window, "ProjectPrepared");
                 }

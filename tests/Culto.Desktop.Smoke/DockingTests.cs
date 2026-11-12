@@ -77,13 +77,13 @@ internal static partial class Program
             Call(window, "OpenOutput", Culto.Desktop.Services.DisplayService.GetDisplays().First(), true);
             Call(window, "ProjectPrepared"); Until(() => monitor.IsConnected, "Reopened output did not reconnect");
         });
-        Test("All five panels can float regroup and restore without replacing controls or session", () =>
+        Test("All six panels can float regroup and restore without replacing controls or session", () =>
         {
             var live = session.Live; var prepared = session.Prepared;
             var original = manager.Layout.Descendents().OfType<LayoutAnchorable>().ToDictionary(p => p.ContentId, p => p.Content);
             try
             {
-                Check(original.Count == 5, "Missing dockable workspace panels");
+                Check(original.Count == 6, "Missing dockable workspace panels");
                 foreach (var id in original.Keys)
                 {
                     var pane = Panel(id);
@@ -103,6 +103,28 @@ internal static partial class Program
                 Check(ReferenceEquals(Panel("order").Parent, Panel("sequence").Parent), "Saved grouping was lost");
                 foreach (var entry in original) Check(ReferenceEquals(Panel(entry.Key).Content, entry.Value), "Restoring recreated " + entry.Key);
                 Check(ReferenceEquals(live, session.Live) && ReferenceEquals(prepared, session.Prepared), "Moving/restoring changed presentation session");
+            }
+            finally { Call(window, "RestoreDockLayout", initial); }
+        });
+        Test("Legacy layout gains a selected media tab alongside sequence without resetting other panels", () =>
+        {
+            try
+            {
+                var document = System.Xml.Linq.XDocument.Parse(initial);
+                document.Descendants().Single(e => (string?)e.Attribute("ContentId") == "media").Remove();
+                var sequence = document.Descendants().Single(e => (string?)e.Attribute("ContentId") == "sequence");
+                sequence.Parent!.SetAttributeValue("DockWidth", "1.25*");
+                sequence.SetAttributeValue("IsSelected", "true");
+                var contents = manager.Layout.Descendents().OfType<LayoutAnchorable>().ToDictionary(p => p.ContentId, p => p.Content);
+                Call(window, "RestoreDockLayout", document.ToString());
+                Check(ReferenceEquals(Panel("media").Parent, Panel("sequence").Parent), "Media was not migrated into the sequence tab group");
+                Check(Panel("media").IsSelected && !Panel("sequence").IsSelected, "Migration did not initially select media");
+                Check(((LayoutAnchorablePane)Panel("sequence").Parent).DockWidth == new GridLength(1.25, GridUnitType.Star), "Migration reset saved pane geometry");
+                foreach (var content in contents) Check(ReferenceEquals(Panel(content.Key).Content, content.Value), "Migration replaced " + content.Key);
+                Panel("sequence").IsSelected = true;
+                var saved = (string)Call(window, "SerializeDockLayout")!;
+                Call(window, "RestoreDockLayout", saved);
+                Check(Panel("sequence").IsSelected && !Panel("media").IsSelected, "A later restore overrode the chosen tab");
             }
             finally { Call(window, "RestoreDockLayout", initial); }
         });

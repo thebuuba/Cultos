@@ -12,4 +12,10 @@ tests/Culto.Renderer.Smoke/fixtures/image.png
 tests/Culto.Renderer.Smoke/fixtures/video.png
 tests/Culto.Renderer.Smoke/fixtures/dissolve-red.png
 tests/Culto.Renderer.Smoke/fixtures/dissolve-blue.png
+tests/Culto.Renderer.Smoke/fixtures/isolation-*.wav
+tests/Culto.Renderer.Smoke/fixtures/audio-isolation-*.wav
+tests/Culto.Renderer.Smoke/fixtures/audio-isolation-*.json
+tests/Culto.Renderer.Smoke/fixtures/audio-crossfade-*.wav
+tests/Culto.Renderer.Smoke/fixtures/audio-crossfade-*.json
+tests/Culto.Renderer.Smoke/fixtures/audio-capture-*.wav
 

@@ -11,26 +11,24 @@ namespace Culto.Desktop;
 public partial class MainWindow
 {
     private double _audibleVolume = 80;
-    private bool _outputScrubbing, _previewScrubbing;
+    private bool _outputScrubbing;
 
     private void InitializePlayerControls()
     {
-        WireSeek(PositionSlider, false);
-        WireSeek(PreviewPositionSlider, true);
+        WireSeek(PositionSlider);
         PositionSlider.PreviewKeyUp += (_, e) => { if (IsSeekKey(e.Key)) SeekOutput(); };
         UpdatePlayButton(PauseButton, true, false);
-        UpdatePlayButton(PreviewPauseButton, true, true);
         UpdateMuteButton();
     }
 
     private static bool IsSeekKey(Key key) => key is Key.Left or Key.Right or Key.Up or Key.Down
         or Key.Home or Key.End or Key.PageUp or Key.PageDown;
 
-    private void WireSeek(Slider slider, bool preview)
+    private void WireSeek(Slider slider)
     {
         slider.IsMoveToPointEnabled = true;
         slider.SmallChange = .01; slider.LargeChange = .1;
-        void Scrubbing(bool value) { if (preview) _previewScrubbing = value; else _outputScrubbing = value; }
+        void Scrubbing(bool value) => _outputScrubbing = value;
         slider.AddHandler(PreviewMouseLeftButtonDownEvent, new MouseButtonEventHandler((_, e) =>
         {
             Scrubbing(true);
@@ -40,15 +38,15 @@ public partial class MainWindow
         }), true);
         slider.AddHandler(PreviewMouseLeftButtonUpEvent, new MouseButtonEventHandler((_, _) =>
         {
-            if (preview ? _previewScrubbing : _outputScrubbing)
-            { if (preview) SeekPreview(); else SeekOutput(); }
+            if (_outputScrubbing)
+            { SeekOutput(); }
             Scrubbing(false);
             if (slider.IsMouseCaptured) slider.ReleaseMouseCapture();
         }), true);
         slider.AddHandler(Thumb.DragStartedEvent, new DragStartedEventHandler((_, _) => Scrubbing(true)));
         slider.AddHandler(Thumb.DragCompletedEvent, new DragCompletedEventHandler((_, e) =>
         {
-            if (!e.Canceled) { if (preview) SeekPreview(); else SeekOutput(); }
+            if (!e.Canceled) { SeekOutput(); }
             Scrubbing(false);
         }));
         slider.LostMouseCapture += (_, _) => Scrubbing(false);
@@ -57,10 +55,10 @@ public partial class MainWindow
         slider.LostKeyboardFocus += (_, _) => Scrubbing(false);
         slider.ValueChanged += (_, _) =>
         {
-            if (preview ? _previewScrubbing : _outputScrubbing)
+            if (_outputScrubbing)
             {
-                var duration = preview ? _preview?.Duration ?? 0 : _output?.Duration ?? 0;
-                (preview ? PreviewTimeText : TimeText).Text = FormatTime(slider.Value * duration);
+                var duration = _output?.Duration ?? 0;
+                TimeText.Text = FormatTime(slider.Value * duration);
             }
         };
     }
@@ -103,15 +101,9 @@ public partial class MainWindow
     }
     private void OutputSkipBackClick(object sender, RoutedEventArgs e) => SkipOutput(-10);
     private void OutputSkipForwardClick(object sender, RoutedEventArgs e) => SkipOutput(10);
-    private void PreviewSkipBackClick(object sender, RoutedEventArgs e) => SkipPreview(-10);
-    private void PreviewSkipForwardClick(object sender, RoutedEventArgs e) => SkipPreview(10);
     private void SkipOutput(double seconds)
     {
         if (_session.Live?.Kind is CueKind.Video or CueKind.Audio && !_session.IsBlackout && !_session.IsTextHidden)
             Skip(_output, seconds);
-    }
-    private void SkipPreview(double seconds)
-    {
-        if (_ready && _session.Prepared?.Kind is CueKind.Video or CueKind.Audio) Skip(_preview, seconds);
     }
 }

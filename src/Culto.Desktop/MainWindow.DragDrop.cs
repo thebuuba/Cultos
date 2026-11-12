@@ -4,6 +4,7 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using Culto.Core;
+using Culto.Desktop.Services;
 
 namespace Culto.Desktop;
 
@@ -16,34 +17,40 @@ public partial class MainWindow
     private ListBox? _contentDragSource;
     private Cue? _contentDragCue;
     private ListBox? _contentMouseCapture;
+    private ContentDragPreview? _contentDragPreview;
     private PlanInsertionAdorner? _planInsertionAdorner;
     private AdornerLayer? _planInsertionLayer;
     private long _lastPlanDragScroll;
 
     private void InitializeContentDragDrop()
     {
-        foreach (var list in new[] { LibraryList, BibleResults })
+        foreach (var list in new[] { LibraryList, BibleResults, MediaList, YouTubeList })
         {
             list.AddHandler(PreviewMouseLeftButtonDownEvent, new MouseButtonEventHandler(ContentMouseDown), true);
             list.AddHandler(PreviewMouseMoveEvent, new MouseEventHandler(ContentMouseMove), true);
         }
-        foreach (var list in new ListBox[] { LibraryList, BibleResults, PlanList })
+        foreach (var list in new ListBox[] { LibraryList, BibleResults, PlanList, SequenceList, MediaList, YouTubeList })
         {
             list.AddHandler(PreviewMouseLeftButtonUpEvent, new MouseButtonEventHandler(ContentMouseUp), true);
             list.AddHandler(QueryContinueDragEvent, new QueryContinueDragEventHandler(ContentQueryContinueDrag), true);
         }
-        PlanList.AllowDrop = true;
-        PlanList.AddHandler(PreviewMouseMoveEvent, new MouseEventHandler(PlanMouseMove), true);
-        // Preview routing also covers children that handle the bubbling drag events.
-        PlanList.PreviewDragEnter += PlanDragOver;
-        PlanList.PreviewDragOver += PlanDragOver;
-        PlanList.PreviewDragLeave += PlanDragLeave;
-        PlanList.PreviewDrop += PlanDrop;
+        SequenceList.AddHandler(PreviewMouseLeftButtonDownEvent, new MouseButtonEventHandler(PlanMouseDown), true);
+        foreach (var list in new ListBox[] { PlanList, SequenceList })
+        {
+            list.AllowDrop = true;
+            list.AddHandler(PreviewMouseMoveEvent, new MouseEventHandler(PlanMouseMove), true);
+            // Preview routing also covers children that handle the bubbling drag events.
+            list.PreviewDragEnter += PlanDragOver;
+            list.PreviewDragOver += PlanDragOver;
+            list.PreviewDragLeave += PlanDragLeave;
+            list.PreviewDrop += PlanDrop;
+        }
         // The next mouse move can already be over another panel. Keep source handlers
         // for floating panels, and also observe the main window's input route.
         AddHandler(PreviewMouseMoveEvent, new MouseEventHandler(ContentMouseMove), true);
         AddHandler(PreviewMouseLeftButtonUpEvent, new MouseButtonEventHandler(ContentMouseUp), true);
         Deactivated += (_, _) => { if (Mouse.LeftButton != MouseButtonState.Pressed) ClearContentDrag(); };
+        Closed += (_, _) => ClearContentDrag();
     }
 
     private static ListBoxItem? ContentRowAt(ListBox list, object? source)
@@ -57,19 +64,45 @@ public partial class MainWindow
     {
         _orderDragPerformed = false;
         ContentMouseDown(sender, e);
-        _orderDragCue = _contentDragSource == PlanList ? _contentDragCue : null;
+        _orderDragCue = IsOrderDragSource(_contentDragSource) ? _contentDragCue : null;
     }
+
+    private bool IsOrderDragSource(ListBox? source) => source == PlanList || source == SequenceList;
+
+    private static Cue? ContentCue(object? item) => item switch
+    {
+        Cue cue => cue,
+        BibleResult result => result.Cue,
+        YouTubeSource source => source.Cue,
+        _ => null
+    };
 
     private void ContentMouseDown(object sender, MouseButtonEventArgs e)
     {
         ClearContentDrag();
-        if (!_ready || e.ChangedButton != MouseButton.Left || e.ClickCount != 1 || sender is not ListBox list) return;
-        var cue = ContentRowAt(list, e.OriginalSource)?.DataContext switch
+        if (!_ready || e.ChangedButton != MouseButton.Left || sender is not ListBox list) return;
+        var row = ContentRowAt(list, e.OriginalSource);
+        if (list == BibleResults)
         {
-            Cue item => item,
-            BibleResult result => result.Cue,
-            _ => null
-        };
+            _bibleProjectionClickTimestamp = -1;
+            // Let WPF extend/toggle the selection. These gestures must not arm a drag.
+            if ((Keyboard.Modifiers & (ModifierKeys.Shift | ModifierKeys.Control)) != 0) return;
+            if (row?.DataContext is BibleResult selected && list.SelectedItems.Count > 1 && list.SelectedItems.Contains(selected))
+            {
+                // Keep a selected passage intact when grabbing or double-clicking
+                // one of its rows. The normal ListBox press would collapse it.
+                e.Handled = true;
+                if (e.ClickCount == 2)
+                {
+                    _bibleProjectionClickTimestamp = e.Timestamp;
+                    ProjectBibleResult(selected);
+                    return;
+                }
+                if (!list.IsKeyboardFocusWithin) list.Focus();
+            }
+        }
+        if (e.ClickCount != 1) return;
+        var cue = ContentCue(row?.DataContext);
         if (cue is null) return;
         _contentDragSource = list;
         _contentDragCue = cue;
@@ -90,10 +123,15 @@ public partial class MainWindow
         var data = CreateContentDragData(list, cue);
         if (data is null) { ClearContentDrag(); return; }
         _contentDragCue = null; // A nested message loop must not start a second drag.
-        if (list == PlanList) _orderDragPerformed = true;
+        var moving = IsOrderDragSource(list);
+        if (moving) _orderDragPerformed = true;
         e.Handled = true;
         ReleaseContentMouseCapture();
-        try { DragDrop.DoDragDrop(list, data, list == PlanList ? DragDropEffects.Move : DragDropEffects.Copy); }
+        try
+        {
+            ShowContentDragPreview();
+            DragDrop.DoDragDrop(list, data, moving ? DragDropEffects.Move : DragDropEffects.Copy);
+        }
         finally { ClearContentDrag(); }
     }
 
@@ -103,15 +141,10 @@ public partial class MainWindow
         var source = _contentDragSource;
         ClearContentDrag();
         if (!_ready || cue is null || _session.Prepared?.Id == cue.Id || source is not ListBox list) return;
-        var releasedCue = ContentRowAt(list, e.OriginalSource)?.DataContext switch
-        {
-            Cue item => item,
-            BibleResult result => result.Cue,
-            _ => null
-        };
+        var releasedCue = ContentCue(ContentRowAt(list, e.OriginalSource)?.DataContext);
         if (!ReferenceEquals(cue, releasedCue)) return;
-        if (list == LibraryList) PrepareCue(cue);
-        else if (list == BibleResults) PrepareCue(cue, _bibleReading);
+        if (list == LibraryList || list == MediaList || list == YouTubeList) PrepareCue(cue);
+        else if (list == BibleResults) PrepareBibleSelection();
     }
 
     private void ContentQueryContinueDrag(object sender, QueryContinueDragEventArgs e)
@@ -121,6 +154,8 @@ public partial class MainWindow
 
     private void ClearContentDrag()
     {
+        _contentDragPreview?.Dispose();
+        _contentDragPreview = null;
         _contentDragSource = null;
         _contentDragCue = null;
         _orderDragCue = null;
@@ -128,6 +163,13 @@ public partial class MainWindow
         _contentDropToken = null;
         ReleaseContentMouseCapture();
         ClearPlanInsertion();
+    }
+
+    private void ShowContentDragPreview()
+    {
+        _contentDragPreview?.Dispose();
+        _contentDragPreview = _contentDropPayload is { } drag
+            ? new ContentDragPreview(drag.Source, drag.Cue, IsOrderDragSource(drag.Source)) : null;
     }
 
     private void ReleaseContentMouseCapture()
@@ -144,10 +186,14 @@ public partial class MainWindow
 
     private DataObject? CreateContentDragData(ListBox source, Cue cue)
     {
-        var valid = source == PlanList ? _plan.Contains(cue)
-            : source == LibraryList ? source.Items.Contains(cue)
+        var valid = IsOrderDragSource(source) ? _plan.Contains(cue)
+            : source == LibraryList || source == MediaList ? source.Items.Contains(cue)
+            : source == YouTubeList ? source.Items.OfType<YouTubeSource>().Any(item => ReferenceEquals(item.Cue, cue))
             : source == BibleResults && source.Items.OfType<BibleResult>().Any(result => ReferenceEquals(result.Cue, cue));
         if (!valid) return null;
+        if (source == BibleResults && source.SelectedItems.Count > 1
+            && source.SelectedItems.OfType<BibleResult>().Any(result => ReferenceEquals(result.Cue, cue)))
+            cue = SelectedBibleCue() ?? cue;
         // OLE transports a string, never WPF controls or a serialized Cue object.
         // The actual source and content stay in this window for the active gesture.
         _contentDropPayload = new ContentDrag(source, cue);
@@ -162,8 +208,9 @@ public partial class MainWindow
     private DragDropEffects ContentDropEffect(IDataObject data)
     {
         if (ReadContentDrag(data) is not ContentDrag drag) return DragDropEffects.None;
-        if (drag.Source == PlanList) return _plan.Contains(drag.Cue) ? DragDropEffects.Move : DragDropEffects.None;
-        return drag.Source == LibraryList || drag.Source == BibleResults ? DragDropEffects.Copy : DragDropEffects.None;
+        if (IsOrderDragSource(drag.Source)) return _plan.Contains(drag.Cue) ? DragDropEffects.Move : DragDropEffects.None;
+        return drag.Source == LibraryList || drag.Source == BibleResults || drag.Source == MediaList || drag.Source == YouTubeList
+            ? DragDropEffects.Copy : DragDropEffects.None;
     }
 
     private void PlanDragOver(object sender, DragEventArgs e)
@@ -171,9 +218,10 @@ public partial class MainWindow
         e.Effects = ContentDropEffect(e.Data) & e.AllowedEffects;
         e.Handled = true;
         if (e.Effects == DragDropEffects.None) { ClearPlanInsertion(); return; }
-        var point = e.GetPosition(PlanList);
-        ScrollPlanDuringDrag(point);
-        ShowPlanInsertion(PlanInsertionIndex(point));
+        var target = (ListBox)sender;
+        var point = e.GetPosition(target);
+        ScrollPlanDuringDrag(target, point);
+        ShowOrderInsertion(target, target == SequenceList ? SequenceInsertionIndex(point) : PlanInsertionIndex(point));
     }
 
     private void PlanDragLeave(object sender, DragEventArgs e) => ClearPlanInsertion();
@@ -188,10 +236,37 @@ public partial class MainWindow
         return index + (point.Y >= top + row.ActualHeight / 2 ? 1 : 0);
     }
 
+    private int SequenceInsertionIndex(Point point)
+    {
+        // A wrapped strip has horizontal slots within each row. Include the gaps
+        // between cards and the blank area after the final row in the hit test.
+        ListBoxItem? nearest = null;
+        var distance = double.MaxValue;
+        var bottom = 0d;
+        for (var i = 0; i < _plan.Count; i++)
+        {
+            if (SequenceList.ItemContainerGenerator.ContainerFromIndex(i) is not ListBoxItem row) continue;
+            var bounds = new Rect(row.TranslatePoint(new Point(), SequenceList), row.RenderSize);
+            bottom = Math.Max(bottom, bounds.Bottom);
+            var dx = point.X - Math.Clamp(point.X, bounds.Left, bounds.Right);
+            var dy = point.Y - Math.Clamp(point.Y, bounds.Top, bounds.Bottom);
+            var d = dx * dx + dy * dy;
+            if (d < distance) { distance = d; nearest = row; }
+        }
+        if (nearest is null || point.Y >= bottom) return _plan.Count;
+        var topLeft = nearest.TranslatePoint(new Point(), SequenceList);
+        var index = SequenceList.ItemContainerGenerator.IndexFromContainer(nearest);
+        if (point.Y < topLeft.Y) return index;
+        return index + (point.X >= topLeft.X + nearest.ActualWidth / 2 ? 1 : 0);
+    }
+
     private void PlanDrop(object sender, DragEventArgs e)
     {
         var effect = ContentDropEffect(e.Data) & e.AllowedEffects;
-        e.Effects = effect == DragDropEffects.None ? effect : ApplyContentDrop(e.Data, PlanInsertionIndex(e.GetPosition(PlanList)));
+        var target = (ListBox)sender;
+        var point = e.GetPosition(target);
+        e.Effects = effect == DragDropEffects.None ? effect : ApplyContentDrop(e.Data,
+            target == SequenceList ? SequenceInsertionIndex(point) : PlanInsertionIndex(point));
         e.Handled = true;
         ClearPlanInsertion();
     }
@@ -235,32 +310,52 @@ public partial class MainWindow
         return null;
     }
 
-    private void ScrollPlanDuringDrag(Point point)
+    private void ScrollPlanDuringDrag(ListBox target, Point point)
     {
-        if (Environment.TickCount64 - _lastPlanDragScroll < 90 || DragVisualChild<ScrollViewer>(PlanList) is not ScrollViewer scroll) return;
+        if (Environment.TickCount64 - _lastPlanDragScroll < 90 || DragVisualChild<ScrollViewer>(target) is not ScrollViewer scroll) return;
         if (point.Y < 28) scroll.LineUp();
-        else if (point.Y > PlanList.ActualHeight - 28) scroll.LineDown();
+        else if (point.Y > target.ActualHeight - 28) scroll.LineDown();
         else return;
         _lastPlanDragScroll = Environment.TickCount64;
-        PlanList.UpdateLayout();
+        target.UpdateLayout();
     }
 
-    private void ShowPlanInsertion(int index)
+    private void ShowOrderInsertion(ListBox target, int index)
     {
-        var y = 8d;
-        if (PlanList.ItemContainerGenerator.ContainerFromIndex(index) is ListBoxItem next)
-            y = next.TranslatePoint(new Point(), PlanList).Y;
-        else if (index > 0 && PlanList.ItemContainerGenerator.ContainerFromIndex(index - 1) is ListBoxItem previous)
-            y = previous.TranslatePoint(new Point(0, previous.ActualHeight), PlanList).Y;
-        else if (_plan.Count > 0) y = PlanList.ActualHeight - 5;
-        _planInsertionLayer ??= AdornerLayer.GetAdornerLayer(PlanList);
+        if (_planInsertionAdorner is not null && _planInsertionAdorner.AdornedElement != target) ClearPlanInsertion();
+        var sequence = target == SequenceList;
+        var point = new Point(8, 8);
+        var height = 80d;
+        if (target.ItemContainerGenerator.ContainerFromIndex(index) is ListBoxItem next)
+        {
+            point = next.TranslatePoint(new Point(), target);
+            height = next.ActualHeight;
+        }
+        else if (index > 0 && target.ItemContainerGenerator.ContainerFromIndex(index - 1) is ListBoxItem previous)
+        {
+            point = previous.TranslatePoint(sequence ? new Point(previous.ActualWidth, 0) : new Point(0, previous.ActualHeight), target);
+            height = previous.ActualHeight;
+        }
+        else if (_plan.Count > 0) point.Y = target.ActualHeight - 5;
+        _planInsertionLayer ??= AdornerLayer.GetAdornerLayer(target);
         if (_planInsertionLayer is null) return;
         if (_planInsertionAdorner is null)
         {
-            _planInsertionAdorner = new PlanInsertionAdorner(PlanList, (Brush)FindResource("AccentBrush"));
+            _planInsertionAdorner = new PlanInsertionAdorner(target, (Brush)FindResource("AccentBrush"));
             _planInsertionLayer.Add(_planInsertionAdorner);
         }
-        _planInsertionAdorner.Position = Math.Clamp(y, 3, Math.Max(3, PlanList.ActualHeight - 3));
+        if (sequence)
+        {
+            var x = Math.Clamp(point.X, 3, Math.Max(3, target.ActualWidth - 3));
+            _planInsertionAdorner.Start = new Point(x, Math.Max(3, point.Y + 3));
+            _planInsertionAdorner.End = new Point(x, Math.Min(target.ActualHeight - 3, point.Y + height - 3));
+        }
+        else
+        {
+            var y = Math.Clamp(point.Y, 3, Math.Max(3, target.ActualHeight - 3));
+            _planInsertionAdorner.Start = new Point(8, y);
+            _planInsertionAdorner.End = new Point(Math.Max(8, target.ActualWidth - 8), y);
+        }
         _planInsertionAdorner.InvalidateVisual();
     }
 
@@ -279,10 +374,13 @@ public partial class MainWindow
             IsHitTestVisible = false;
             _pen = new Pen(brush, 2);
         }
-        public double Position { get; set; }
+        public Point Start { get; set; }
+        public Point End { get; set; }
         protected override void OnRender(DrawingContext context)
         {
-            context.DrawLine(_pen, new Point(8, Position), new Point(Math.Max(8, AdornedElement.RenderSize.Width - 8), Position));
+            context.DrawLine(_pen, Start, End);
+            context.DrawEllipse(_pen.Brush, null, Start, 3, 3);
+            context.DrawEllipse(_pen.Brush, null, End, 3, 3);
         }
     }
 }

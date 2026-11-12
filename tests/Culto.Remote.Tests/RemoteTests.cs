@@ -56,6 +56,15 @@ public sealed class RemoteTests
     }
 
     [Fact]
+    public async Task StateCanDisablePlaybackControlsForLiveWindowCapture()
+    {
+        var (host, client) = await Start(snapshot: () => Snapshot("YouTube") with { CanPause = false });
+        await using var cleanup = host; using var http = client;
+        using var json = JsonDocument.Parse(await client.GetStringAsync("/api/state"));
+        Assert.False(json.RootElement.GetProperty("canPause").GetBoolean());
+    }
+
+    [Fact]
     public async Task CueSelectionDispatchesAndConcurrentRetriesExecuteOnce()
     {
         var calls = 0;

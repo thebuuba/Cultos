@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -23,17 +24,27 @@ internal static partial class Program
 
         var workspace = Field<WorkspaceData>(window, "_workspace");
         var plan = Field<ObservableCollection<Cue>>(window, "_plan");
-        var view = Field<ObservableCollection<Cue>>(window, "_libraryView");
+        var view = Field<ObservableCollection<Cue>>(window, "_mediaView");
+        var importedView = Field<ObservableCollection<Cue>>(window, "_libraryView");
         var paths = Field<Dictionary<int, string>>(window, "_folderPaths");
-        var filter = (ListBox)window.FindName("LibraryFilter");
-        var search = (TextBox)window.FindName("LibrarySearch");
-        var library = (ListBox)window.FindName("LibraryList");
+        var filter = (ListBox)window.FindName("MediaFolders");
+        var importedFilter = (ListBox)window.FindName("LibraryFilter");
+        var importedSearch = (TextBox)window.FindName("LibrarySearch");
+        var search = (TextBox)window.FindName("MediaSearch");
+        var library = (ListBox)window.FindName("MediaList");
+        var refresh = Descendants((FrameworkElement)window.FindName("MediaPanel")).OfType<Button>()
+            .Single(button => AutomationProperties.GetName(button) == "Actualizar medios");
         var tabs = (TabControl)window.FindName("ContentTabs");
         var session = Field<PresentationSession>(window, "_session");
         var oldPaths = paths.ToDictionary(pair => pair.Key, pair => pair.Value);
         var oldLibrary = workspace.Library.ToList();
         var oldPlan = plan.ToList();
-        var oldFilter = filter.SelectedIndex;
+        var oldFilter = filter.SelectedValue;
+        var oldImportedFilter = importedFilter.SelectedIndex;
+        var oldImportedQuery = importedSearch.Text;
+        var oldViewMode = workspace.MediaViewMode;
+        var oldFolderFilter = workspace.MediaFolderFilter;
+        var oldDescending = workspace.MediaSortDescending;
         var oldQuery = search.Text;
         var oldTab = tabs.SelectedIndex;
         var oldPrepared = session.Prepared;
@@ -59,7 +70,7 @@ internal static partial class Program
         void SelectFolder(int index, params string[] expected)
         {
             search.Clear();
-            filter.SelectedIndex = index;
+            filter.SelectedValue = index.ToString();
             Until(() => Ready() && HasPaths(expected), "Folder category did not show exactly its expected files");
         }
         void CheckLibraryUnchanged() => Check(workspace.Library.Select(cue => cue.Id).SequenceEqual(oldLibrary.Select(cue => cue.Id)),
@@ -68,9 +79,11 @@ internal static partial class Program
         try
         {
             // Override every Windows source before selecting any folder category.
-            filter.SelectedIndex = 0;
+            Call(window, "SetLibraryFolder", -1);
+            filter.SelectedIndex = -1;
             paths[2] = videos; paths[3] = pictures; paths[6] = downloads;
             tabs.SelectedIndex = 0;
+            importedSearch.Clear();
             File.WriteAllText(nestedVideo, "Synthetic discovery fixture; never played");
             WriteImage(imagePath);
             WriteImage(Path.Combine(videos, "Wrong category.png"));
@@ -94,7 +107,7 @@ internal static partial class Program
                 Check(view.Select(cue => cue.Kind).ToHashSet().SetEquals([CueKind.Audio, CueKind.Image, CueKind.Video]),
                     "Downloads did not expose all supported media kinds");
                 CheckLibraryUnchanged();
-                Check(((Button)window.FindName("RefreshFolderButton")).Visibility == Visibility.Visible,
+                Check(refresh.Visibility == Visibility.Visible,
                     "Windows folder source has no refresh action");
             });
 
@@ -107,7 +120,7 @@ internal static partial class Program
                 Check(view.Count == 1 && view[0].Id == cue.Id, "Folder search did not match its current source case-insensitively");
                 Check((library.SelectedItem as Cue)?.Id == cue.Id, "Searching discarded a still-visible selection");
                 search.Text = "absent-folder-query";
-                Check(view.Count == 0 && ((TextBlock)window.FindName("LibraryEmpty")).Visibility == Visibility.Visible,
+                Check(view.Count == 0 && ((TextBlock)window.FindName("MediaEmptyText")).Visibility == Visibility.Visible,
                     "Unmatched folder query did not show its empty state");
                 search.Clear();
                 library.SelectedItem = view.Single();
@@ -126,7 +139,7 @@ internal static partial class Program
                 var source = view.Single();
                 var count = plan.Count;
                 library.SelectedItem = source;
-                Call(window, "AddLibraryToPlanClick", window, new RoutedEventArgs());
+                Call(window, "AddMediaToPlanClick", window, new RoutedEventArgs());
                 Check(plan.Count == count + 1, "Folder image was not added to the order");
                 var added = plan.Last();
                 Check(!ReferenceEquals(source, added) && added.Id != source.Id && added.FilePath == imagePath,
@@ -141,6 +154,72 @@ internal static partial class Program
                 var output = Field<ProjectionSurface>(window, "_output");
                 Until(() => !output.IsTransitioning && Field<Image>(output, "_image").Source is BitmapSource { PixelWidth: 1, PixelHeight: 1 },
                     "Folder image did not decode on the projection surface");
+                CheckLibraryUnchanged();
+            });
+
+            Test("Media list and thumbnail views preserve selection and prepared/live content while saving preferences", () =>
+            {
+                SelectFolder(6, downloadAudio, downloadImage, downloadVideo);
+                var selected = view.Single(cue => cue.FilePath == downloadImage);
+                library.SelectedItem = selected;
+                var separate = new Cue { Title = "Keep prepared", Body = "No replacement during a view change" };
+                Call(window, "PrepareCue", separate, null);
+                var prepared = session.Prepared;
+                var live = session.Live;
+                foreach (var (buttonName, mode, template, panel) in new[]
+                {
+                    ("MediaListViewButton", "List", "MediaRowTemplate", "MediaRowsPanel"),
+                    ("MediaTilesViewButton", "Thumbnails", "MediaTileTemplate", "MediaTilesPanel")
+                })
+                {
+                    ((Button)window.FindName(buttonName)).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    window.UpdateLayout();
+                    Check((library.SelectedItem as Cue)?.Id == selected.Id, "Changing media view discarded the selected file");
+                    Check(ReferenceEquals(session.Prepared, prepared) && ReferenceEquals(session.Live, live),
+                        "Changing media view prepared or projected content");
+                    Check(ReferenceEquals(library.ItemTemplate, window.FindResource(template))
+                        && ReferenceEquals(library.ItemsPanel, window.FindResource(panel)), "Media view did not select its requested presentation");
+                    var stored = new WorkspaceStore().Load();
+                    Check(stored.MediaViewMode == mode && stored.MediaFolderFilter == 6,
+                        "Media view and folder choice did not survive persistence");
+                }
+                var descending = workspace.MediaSortDescending;
+                ((Button)window.FindName("MediaSortButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                Check(workspace.MediaSortDescending != descending
+                    && new WorkspaceStore().Load().MediaSortDescending == workspace.MediaSortDescending,
+                    "Media ordering preference was not persisted");
+                var expected = workspace.MediaSortDescending
+                    ? view.OrderByDescending(cue => cue.Title, StringComparer.CurrentCultureIgnoreCase)
+                    : view.OrderBy(cue => cue.Title, StringComparer.CurrentCultureIgnoreCase);
+                Check(view.Select(cue => cue.Id).SequenceEqual(expected.Select(cue => cue.Id)), "Media rows did not follow the chosen name order");
+                Check((library.SelectedItem as Cue)?.Id == selected.Id
+                    && ReferenceEquals(session.Prepared, prepared) && ReferenceEquals(session.Live, live),
+                    "Sorting media changed selection or presentation");
+                CheckLibraryUnchanged();
+            });
+
+            Test("Dragging a media folder file to the order makes an independent persisted cue without projecting", () =>
+            {
+                SelectFolder(3, imagePath);
+                var source = view.Single();
+                var count = plan.Count;
+                var live = session.Live;
+                var data = (IDataObject?)Call(window, "CreateContentDragData", library, source)
+                    ?? throw new InvalidOperationException("The media browser did not create drag data");
+                Check((DragDropEffects)Call(window, "ContentDropEffect", data)! == DragDropEffects.Copy,
+                    "The media browser is not a supported copy source");
+                var transported = new DataObject("CultoStudio.ContentCue", data.GetData("CultoStudio.ContentCue", false)!, false);
+                Check((DragDropEffects)Call(window, "ApplyContentDrop", transported, 0)! == DragDropEffects.Copy,
+                    "Media browser drag token was not accepted by the order");
+                var added = plan[0];
+                Check(plan.Count == count + 1 && added.Id != source.Id && !ReferenceEquals(source, added)
+                    && added.FilePath == source.FilePath && added.Kind == CueKind.Image,
+                    "Media folder drop lost its file or shared the source identity");
+                Check(session.Prepared?.Id == added.Id && ReferenceEquals(session.Live, live),
+                    "Media folder drop did not prepare its independent order copy without projecting");
+                Check(new WorkspaceStore().Load().Plan.Items.First().Id == added.Id,
+                    "Dropped media file was not persisted at the selected order position");
+                Call(window, "ClearContentDrag");
                 CheckLibraryUnchanged();
             });
 
@@ -199,34 +278,36 @@ internal static partial class Program
                 SelectFolder(2, nestedVideo);
                 var obsoleteScan = (Task)Call(window, "LoadLibraryFolderAsync")!;
                 Check(!Ready(), "Folder reload did not enter its asynchronous loading state");
-                filter.SelectedIndex = 3;
+                filter.SelectedValue = "3";
                 Wait(obsoleteScan);
                 Until(() => Ready() && HasPaths(imagePath), "An obsolete video scan replaced the active Pictures source");
                 var pictureScan = (Task)Call(window, "LoadLibraryFolderAsync")!;
-                filter.SelectedIndex = 0;
+                importedFilter.SelectedIndex = 0;
+                Call(window, "RefreshLibrary");
                 Wait(pictureScan);
-                Check(Ready() && view.Select(cue => cue.Id).ToHashSet().SetEquals(oldLibrary.Select(cue => cue.Id)),
-                    "Canceled folder loading leaked files or loading state into the imported library");
+                Check(Ready() && HasPaths(imagePath) && importedView.Select(cue => cue.Id).ToHashSet().SetEquals(oldLibrary.Select(cue => cue.Id)),
+                    "Imported library selection changed media browsing or mixed its files with imported contents");
                 Check(((Button)window.FindName("RefreshFolderButton")).Visibility == Visibility.Collapsed,
                     "Imported library retained a folder-only refresh action");
             });
 
             Test("Unavailable folders show a coherent empty state and recover on explicit refresh", () =>
             {
-                filter.SelectedIndex = 0;
+                filter.SelectedIndex = -1;
+                Call(window, "SetLibraryFolder", -1);
                 var missing = Path.Combine(root, "MissingDownloads");
                 paths[6] = missing;
-                filter.SelectedIndex = 6;
+                filter.SelectedValue = "6";
                 Until(Ready, "Unavailable folder left the source loading indefinitely");
-                var empty = (TextBlock)window.FindName("LibraryEmpty");
+                var empty = (TextBlock)window.FindName("MediaEmptyText");
                 Check(view.Count == 0 && empty.Visibility == Visibility.Visible && !string.IsNullOrWhiteSpace(empty.Text)
                     && empty.Text == Field<string?>(window, "_folderError"), "Unavailable folder did not explain its empty source");
-                Check((string?)((TextBlock)window.FindName("LibraryCountText")).ToolTip == missing,
+                Check(((TextBlock)window.FindName("MediaFolderPathText")).Text == missing,
                     "Folder status did not identify the unavailable configured path");
                 Directory.CreateDirectory(missing);
                 var recovered = Path.Combine(missing, "Recovered image.png");
                 WriteImage(recovered);
-                ((Button)window.FindName("RefreshFolderButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                refresh.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 Until(() => Ready() && HasPaths(recovered), "Refresh did not recover a newly available folder");
                 Check(Field<string?>(window, "_folderError") is null && empty.Visibility == Visibility.Collapsed,
                     "Recovered folder retained its unavailable error");
@@ -235,14 +316,23 @@ internal static partial class Program
         }
         finally
         {
-            filter.SelectedIndex = 0;
-            Call(window, "DisposeLibraryFolders");
+            filter.SelectedIndex = -1;
+            Call(window, "SetLibraryFolder", -1);
             plan.Clear(); foreach (var cue in oldPlan) plan.Add(cue);
             Call(window, "UpdatePlanCount");
             paths.Clear(); foreach (var pair in oldPaths) paths[pair.Key] = pair.Value;
-            // Do not start scanning a user's actual Windows folders during test cleanup.
-            filter.SelectedIndex = oldFilter is 2 or 3 or 6 ? 0 : oldFilter;
+            // Restore controls/preferences without scanning a user's Windows folders during cleanup.
+            SetField(window, "_ready", false);
+            filter.SelectedValue = oldFilter;
             search.Text = oldQuery; tabs.SelectedIndex = oldTab;
+            importedFilter.SelectedIndex = oldImportedFilter;
+            importedSearch.Text = oldImportedQuery;
+            SetField(window, "_ready", true);
+            workspace.MediaFolderFilter = oldFolderFilter;
+            workspace.MediaSortDescending = oldDescending;
+            Call(window, "SetMediaView", oldViewMode, false);
+            Call(window, "UpdateMediaSortButton");
+            Call(window, "RefreshMedia");
             Call(window, "RefreshLibrary");
             if (oldLive is not null) { Call(window, "PrepareCue", oldLive, oldLiveReading); Call(window, "ProjectPrepared"); }
             if (oldPrepared is not null) Call(window, "PrepareCue", oldPrepared, oldPreparedReading);

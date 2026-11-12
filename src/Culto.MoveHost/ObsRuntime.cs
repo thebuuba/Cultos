@@ -8,7 +8,7 @@ internal sealed class ObsRuntime : IDisposable
     private readonly List<nint> _searchDirectories = [];
     private bool _started;
     public string Root { get; }
-    public ObsRuntime(string root, int width, int height)
+    public ObsRuntime(string root, int width, int height, bool captureOnly = false)
     {
         Root = Path.GetFullPath(root);
         try
@@ -25,15 +25,19 @@ internal sealed class ObsRuntime : IDisposable
             }
             var library = NativeLibrary.Load(RequiredFile("bin", "64bit", "obs.dll"));
             // Keep this module loaded for the worker process lifetime, including its resolver.
+            var winrt = captureOnly ? NativeLibrary.Load(RequiredFile("bin", "64bit", "libobs-winrt.dll")) : 0;
             NativeLibrary.SetDllImportResolver(typeof(ObsNative).Assembly,
-                (name, _, _) => name == ObsNative.Library ? library : 0);
+                (name, _, _) => name == ObsNative.Library ? library : name == ObsWinrtNative.Library ? winrt : 0);
             var config = Path.Combine(Path.GetTempPath(), "CultoMoveHost", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(config);
             if (!ObsNative.obs_startup("en-US", config, 0)) throw new InvalidOperationException("obs_startup failed.");
             _started = true;
             var dataPath = Path.Combine(Root, "data", "libobs");
             if (!Directory.Exists(dataPath)) throw new DirectoryNotFoundException(dataPath);
-            ObsNative.obs_add_data_path(dataPath);
+            // libobs check_path concatenates the directory and filename directly;
+            // it does not add a separator. Without this slash every shader lookup
+            // becomes "libobsdefault.effect" and graphics initialization fails.
+            ObsNative.obs_add_data_path(dataPath.TrimEnd('\\', '/') + "/");
             var audio = new ObsNative.AudioInfo { SamplesPerSecond = 48000, Speakers = 2 };
             if (!ObsNative.obs_reset_audio(ref audio)) throw new InvalidOperationException("OBS audio initialization failed.");
             var graphics = Marshal.StringToCoTaskMemUTF8(RequiredFile("bin", "64bit", "libobs-d3d11.dll"));
@@ -51,10 +55,13 @@ internal sealed class ObsRuntime : IDisposable
                     throw new InvalidOperationException("OBS did not accept the exact BGRA output dimensions.");
             }
             finally { Marshal.FreeCoTaskMem(graphics); }
-            LoadModule("image-source");
-            LoadModule("obs-transitions");
-            LoadModule("move-transition");
-            ObsNative.obs_post_load_modules();
+            if (!captureOnly)
+            {
+                LoadModule("image-source");
+                LoadModule("obs-transitions");
+                LoadModule("move-transition");
+                ObsNative.obs_post_load_modules();
+            }
         }
         catch { Dispose(); throw; }
     }

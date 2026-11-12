@@ -43,22 +43,54 @@ internal static partial class Program
             .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         try
         {
-            Test("Default transition settings expose one and a half second audio fades", () =>
+            Test("Default transition settings expose fast independently editable fades", () =>
             {
                 var defaults = new WorkspaceData().Transitions;
-                Check(defaults.AudioFadeOutMilliseconds == 1500 && defaults.AudioFadeInMilliseconds == 1500,
-                    "New workspace no longer defaults both audio fades to 1.5 seconds");
+                Check(defaults.DurationMilliseconds == 300 && defaults.AudioFadeOutMilliseconds == 250
+                    && defaults.AudioFadeInMilliseconds == 250, "New workspace does not use fast transition defaults");
                 workspace.Transitions = defaults;
                 ExerciseSettings(dialog =>
                 {
-                    Check(Control<Slider>(dialog, "AudioFadeOut").Value == 1500
-                        && Control<Slider>(dialog, "AudioFadeIn").Value == 1500,
+                    Check(Control<Slider>(dialog, "TransitionDuration").Value == 300
+                        && Control<Slider>(dialog, "AudioFadeOut").Value == 250
+                        && Control<Slider>(dialog, "AudioFadeIn").Value == 250,
                         "Audio fade sliders do not show workspace defaults");
                     Check(Control<ComboBox>(dialog, "TransitionKind").SelectedValue as string == "Dissolve",
                         "Default visual transition is not selected");
                     Descendants(dialog).OfType<Button>().Single(button => button.IsCancel)
                         .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 });
+            });
+
+            Test("Restoring fast defaults updates only the draft until saved", () =>
+            {
+                var custom = new TransitionOptions { Kind = "Slide", DurationMilliseconds = 1750,
+                    AudioFadeOutMilliseconds = 2250, AudioFadeInMilliseconds = 850 };
+                workspace.Transitions = custom;
+                ExerciseSettings(dialog =>
+                {
+                    foreach (var name in new[] { "TransitionDuration", "AudioFadeOut", "AudioFadeIn" })
+                    {
+                        var slider = Control<Slider>(dialog, name);
+                        Check(slider.SmallChange == 50 && slider.TickFrequency == 50,
+                            "Transition controls cannot be adjusted in 50 millisecond steps");
+                    }
+                    Control<Button>(dialog, "RestoreFastTransitions").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    Check(Control<ComboBox>(dialog, "TransitionKind").SelectedValue as string == "Dissolve"
+                        && Control<Slider>(dialog, "TransitionDuration").Value == 300
+                        && Control<Slider>(dialog, "AudioFadeOut").Value == 250
+                        && Control<Slider>(dialog, "AudioFadeIn").Value == 250,
+                        "Restore did not update all transition controls");
+                    Check(dialog.Options.DurationMilliseconds == 300
+                        && dialog.Options.AudioFadeOutMilliseconds == 250 && dialog.Options.AudioFadeInMilliseconds == 250,
+                        "Restored controls and draft differ");
+                    Check(ReferenceEquals(workspace.Transitions, custom) && custom.Kind == "Slide"
+                        && custom.DurationMilliseconds == 1750 && custom.AudioFadeOutMilliseconds == 2250
+                        && custom.AudioFadeInMilliseconds == 850, "Restore changed saved settings before confirmation");
+                    Save(dialog);
+                });
+                Check(new WorkspaceStore().Load().Transitions == new TransitionOptions(),
+                    "Saved fast defaults did not survive reload");
             });
 
             Test("Canceling edited transitions preserves saved settings and live output", () =>
@@ -93,7 +125,7 @@ internal static partial class Program
                 output = Field<ProjectionSurface>(window, "_output");
                 Until(() => !output.IsTransitioning, "Previous output transition did not settle before editing settings");
                 var live = session.Live; var prepared = session.Prepared;
-                var presented = Field<TransitionOptions>(output, "_presentedTransitions");
+                var presented = output.PresentedTransitions;
                 var expected = new TransitionOptions { Kind = "Zoom", DurationMilliseconds = 1200,
                     AudioFadeOutMilliseconds = 2100, AudioFadeInMilliseconds = 800 };
                 var dialog = ExerciseSettings(editor =>
@@ -107,7 +139,7 @@ internal static partial class Program
                 Check(workspace.Transitions == expected && new WorkspaceStore().Load().Transitions == expected,
                     "Save did not persist all transition settings");
                 Check(output.Transitions == expected, "Active output did not adopt saved transition settings");
-                Check(ReferenceEquals(presented, Field<TransitionOptions>(output, "_presentedTransitions")),
+                Check(presented == output.PresentedTransitions,
                     "Saving settings re-presented the current frame");
                 Check(ReferenceEquals(live, session.Live) && ReferenceEquals(prepared, session.Prepared),
                     "Saving settings changed the live or prepared cue");

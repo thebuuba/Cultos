@@ -159,6 +159,56 @@ public sealed class BibleCatalog
         return new Cue { Title = reference, Kind = CueKind.Bible, Body = verse.Text, Reference = reference, Version = Document.Name, Notes = Document.Attribution };
     }
 
+    public Cue ToCue(IEnumerable<BibleVerse> selectedVerses)
+    {
+        ArgumentNullException.ThrowIfNull(selectedVerses);
+        var selected = new HashSet<(string Book, int Chapter, int Verse)>();
+        foreach (var verse in selectedVerses)
+        {
+            if (verse is null || !TryBook(verse.Book, out var book) || verse.Chapter <= 0 || verse.Verse <= 0)
+                throw new ArgumentException("La selección contiene un versículo inválido.", nameof(selectedVerses));
+            selected.Add((Books[book], verse.Chapter, verse.Verse));
+        }
+        if (selected.Count == 0)
+            throw new ArgumentException("Selecciona al menos un versículo.", nameof(selectedVerses));
+        // Use the catalog's canonical order and stored text, never caller-supplied
+        // text. Missing references must not silently yield a partial passage.
+        var passage = verses.Where(verse => selected.Contains((verse.Book, verse.Chapter, verse.Verse))).ToArray();
+        if (passage.Length != selected.Count)
+            throw new ArgumentException("La selección contiene versículos que no están en esta Biblia.", nameof(selectedVerses));
+        if (passage.Length == 1) return ToCue(passage[0]);
+
+        var chapters = passage.GroupBy(verse => (verse.Book, verse.Chapter)).ToArray();
+        var multipleBooks = passage.Select(verse => verse.Book).Distinct().Skip(1).Any();
+        var reference = string.Join("; ", chapters.Select(chapter =>
+            $"{chapter.Key.Book} {chapter.Key.Chapter}:{CompactVerseNumbers(chapter.Select(verse => verse.Verse))}"));
+        var body = string.Join("\n", passage.Select(verse =>
+        {
+            var number = multipleBooks ? $"{verse.Book} {verse.Chapter}:{verse.Verse}"
+                : chapters.Length > 1 ? $"{verse.Chapter}:{verse.Verse}" : verse.Verse.ToString();
+            return $"{number} {verse.Text}";
+        }));
+        return new Cue { Title = reference, Kind = CueKind.Bible, Body = body, Reference = reference,
+            Version = Document.Name, Notes = Document.Attribution };
+    }
+
+    private static string CompactVerseNumbers(IEnumerable<int> verseNumbers)
+    {
+        var numbers = verseNumbers.ToArray();
+        var ranges = new List<string>();
+        for (var index = 0; index < numbers.Length; index++)
+        {
+            var start = numbers[index];
+            var end = start;
+            while (index + 1 < numbers.Length && numbers[index + 1] == (long)end + 1)
+                end = numbers[++index];
+            ranges.Add(start == end ? start.ToString() : $"{start}-{end}");
+        }
+        return string.Join(",", ranges);
+    }
+
+    public static bool IsKnownBook(string? value) => TryBook(value, out _);
+
     private static ArgumentException InvalidReference() => new("La referencia bíblica es inválida o está incompleta en la Biblia importada. Use, por ejemplo, Juan 3:16-17.", "query");
     private static IEnumerable<XElement> Children(XElement element, string name) => element.Elements().Where(e => e.Name.LocalName == name);
     private static bool TryBook(string? value, out int number) => BookNumbers.TryGetValue(BookKey(value ?? ""), out number);

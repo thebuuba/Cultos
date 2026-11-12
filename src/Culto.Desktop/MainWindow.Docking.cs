@@ -5,6 +5,7 @@ using System.Xml;
 using System.Xml.Linq;
 using AvalonDock.Layout;
 using AvalonDock.Serializer.Xml;
+using Culto.Core;
 
 namespace Culto.Desktop;
 
@@ -46,6 +47,7 @@ public partial class MainWindow
     {
         using var reader = XmlReader.Create(new StringReader(xml), new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, MaxCharactersInDocument = 1000000 });
         var document = XDocument.Load(reader);
+        if (_dockContents.ContainsKey("media")) DockLayoutMigration.AddMediaTab(document);
         var ids = document.Descendants().Attributes("ContentId").Select(a => a.Value).ToArray();
         if (ids.Length != _dockContents.Count || !ids.Order().SequenceEqual(_dockContents.Keys.Order()))
             throw new InvalidOperationException("La distribución no contiene todos los paneles.");
@@ -96,10 +98,10 @@ public partial class MainWindow
         foreach (var pane in WorkspaceDock.Layout.Descendents().OfType<LayoutAnchorablePane>())
         {
             if (pane.Children.Count == 0) continue;
-            var width = pane.Children.Max(p => p.ContentId switch { "sources" => 390d, "preview" => 280d, "output" => 220d, _ => 240d });
+            var width = pane.Children.Max(p => p.ContentId switch { "sources" => 390d, "preview" => 280d, "output" => 220d, "media" => 320d, _ => 240d });
             // The preview's timeline, time labels and transport need separate rows;
             // retain at least 80px for the picture after controls and dock chrome.
-            var height = pane.Children.Max(p => p.ContentId switch { "sources" => 400d, "preview" => 340d, "output" => 330d, "sequence" => 150d, _ => 160d });
+            var height = pane.Children.Max(p => p.ContentId switch { "sources" => 400d, "preview" => 340d, "output" => 330d, "sequence" => 150d, "media" => 260d, _ => 160d });
             if (pane.DockMinWidth != width) pane.DockMinWidth = width;
             if (pane.DockMinHeight != height) pane.DockMinHeight = height;
         }

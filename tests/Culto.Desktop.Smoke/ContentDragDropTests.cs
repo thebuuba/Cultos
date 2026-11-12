@@ -3,6 +3,7 @@ using System.IO;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using Culto.Core;
 using Culto.Desktop;
@@ -15,6 +16,7 @@ internal static partial class Program
     {
         var plan = Field<ObservableCollection<Cue>>(window, "_plan");
         var list = (ListBox)window.FindName("PlanList");
+        var sequence = (ListBox)window.FindName("SequenceList");
         var library = (ListBox)window.FindName("LibraryList");
         var bible = (ListBox)window.FindName("BibleResults");
         var tabs = (TabControl)window.FindName("ContentTabs");
@@ -49,6 +51,73 @@ internal static partial class Program
             library.ItemsSource = new[] { hymn, other, video };
             SetField(window, "_bible", null);
             bible.ItemsSource = new[] { result };
+            Test("Sequence cards can be grabbed and moved through the same persisted order without projecting", () =>
+            {
+                Call(window, "ActivateWorkspacePanel", "sequence");
+                var a = new Cue { Title = "Primero" }; var b = new Cue { Title = "Segundo" }; var c = new Cue { Title = "Tercero" };
+                ResetPlan(a, b, c);
+                var live = session.Live;
+                Press(sequence, Row(sequence, b));
+                Check(ReferenceEquals(Field<Cue?>(window, "_contentDragCue"), b), "Sequence press did not arm its card for dragging");
+                Check(Drop(Data(sequence, b), 0) == DragDropEffects.Move && plan.SequenceEqual(new[] { b, a, c }), "Sequence did not move the original card before its neighbour");
+                Drop(Data(sequence, b), plan.Count);
+                Check(plan.SequenceEqual(new[] { a, c, b }) && sequence.Items.Cast<Cue>().SequenceEqual(plan), "Sequence and order disagree after a tail move");
+                Check(ReferenceEquals(live, session.Live), "Reordering changed the live output");
+                SetField(window, "_orderDragPerformed", true);
+                var prepared = session.Prepared;
+                sequence.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+                    { RoutedEvent = UIElement.PreviewMouseLeftButtonUpEvent, Source = Row(sequence, a) });
+                sequence.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+                    { RoutedEvent = Control.MouseDoubleClickEvent, Source = Row(sequence, a) });
+                Check(ReferenceEquals(prepared, session.Prepared) && ReferenceEquals(live, session.Live), "Drag release triggered preview or projection");
+                SetField(window, "_orderDragPerformed", false);
+                var persisted = Field<WorkspaceStore>(window, "_store").Load().Plan.Items;
+                Check(persisted.Select(cue => cue.Id).SequenceEqual(plan.Select(cue => cue.Id)), "Sequence reorder was not saved with original IDs");
+                Call(window, "ClearContentDrag");
+            });
+            Test("Sequence drop slots follow card halves and wrapped rows, including blank space", () =>
+            {
+                ResetPlan(Enumerable.Range(1, 12).Select(i => new Cue { Title = "Tarjeta " + i }).ToArray());
+                window.UpdateLayout();
+                var rows = plan.Select(cue => Row(sequence, cue)).ToArray();
+                sequence.ScrollIntoView(plan[0]); window.UpdateLayout();
+                for (var i = 0; i < rows.Length; i++)
+                {
+                    var row = rows[i];
+                    var left = row.TranslatePoint(new Point(), sequence);
+                    Check((int)Call(window, "SequenceInsertionIndex", new Point(left.X + row.ActualWidth * .25, left.Y + row.ActualHeight / 2))! == i,
+                        "Left half did not insert before card " + i);
+                    Check((int)Call(window, "SequenceInsertionIndex", new Point(left.X + row.ActualWidth * .75, left.Y + row.ActualHeight / 2))! == i + 1,
+                        "Right half did not insert after card " + i);
+                }
+                var last = rows[^1];
+                var bottom = last.TranslatePoint(new Point(0, last.ActualHeight + 8), sequence);
+                Check((int)Call(window, "SequenceInsertionIndex", bottom)! == plan.Count, "Blank area after wrapped cards did not append");
+                ResetPlan();
+                Check((int)Call(window, "SequenceInsertionIndex", new Point(20, 20))! == 0, "Empty sequence did not accept its first card");
+            });
+            Test("Drag card identifies the grabbed content and closes on Escape without changing the order", () =>
+            {
+                tabs.SelectedIndex = 0;
+                ResetPlan(other);
+                var live = session.Live;
+                Data(library, video);
+                Call(window, "ShowContentDragPreview");
+                var preview = Field<object>(window, "_contentDragPreview");
+                var popup = Field<Popup>(preview, "_popup");
+                PumpFor(80);
+                Check(popup.IsOpen && popup.Child is FrameworkElement { ActualWidth: > 0, ActualHeight: > 0 }, "Drag card did not appear");
+                Check(Descendants(popup.Child).OfType<TextBlock>().Any(text => text.Text == video.Title), "Drag card shows a different title");
+                Check(Descendants(popup.Child).OfType<MediaThumbnail>().Single().Cue == video, "Drag card lost the grabbed media thumbnail");
+                Check(!popup.IsHitTestVisible && window.IsActive, "Drag card intercepts input or steals focus");
+                var cancel = (QueryContinueDragEventArgs)Activator.CreateInstance(typeof(QueryContinueDragEventArgs),
+                    BindingFlags.Instance | BindingFlags.NonPublic, null, new object[] { true, DragDropKeyStates.LeftMouseButton }, null)!;
+                cancel.RoutedEvent = DragDrop.QueryContinueDragEvent;
+                library.RaiseEvent(cancel);
+                Check(!popup.IsOpen && popup.Child is null && Field<object?>(window, "_contentDragPreview") is null,
+                    "Escape left a floating drag card behind");
+                Check(plan.Count == 1 && plan[0] == other && ReferenceEquals(live, session.Live), "Cancelling changed the order or live output");
+            });
             Test("Content drag uses the pressed library row, ignores blank space, and clears on release or cancel", () =>
             {
                 tabs.SelectedIndex = 0; library.SelectedItem = other;

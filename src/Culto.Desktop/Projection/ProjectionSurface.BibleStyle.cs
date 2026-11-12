@@ -17,8 +17,8 @@ public sealed partial class ProjectionSurface
     // Each request captures its own value, including when outgoing audio delays presentation.
     public BibleVisualStyle BibleStyle
     {
-        get => _bibleStyle with { };
-        set => _bibleStyle = (value ?? new BibleVisualStyle()).Normalize();
+        get => _mixer?.BibleStyle ?? _bibleStyle with { };
+        set { _bibleStyle = (value ?? new BibleVisualStyle()).Normalize(); if (_mixer is not null) _mixer.BibleStyle = _bibleStyle; }
     }
 
     private Presentation CreatePresentation(Cue? cue, bool blackout, bool hideText, bool dissolve, bool pauseAfter = false)

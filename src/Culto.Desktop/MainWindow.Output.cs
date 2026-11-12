@@ -22,6 +22,7 @@ public partial class MainWindow
         if (!EnsureOutput()) return;
         if (!PreparePowerPointOutput(cue)) return;
         _liveReading = _preparedReading;
+        _preparedBibleStyleChanged = false;
         _session.GoLive();
         ShowLiveCue();
         _isPaused = false;
@@ -31,6 +32,17 @@ public partial class MainWindow
     }
     private bool CheckMedia(Cue cue)
     {
+        if (cue.Kind == CueKind.WindowCapture)
+        {
+            try
+            {
+                _ = WindowCaptureCatalog.Resolve(cue.Capture ?? throw new InvalidOperationException("Selecciona una ventana."));
+                if (!ObsWindowCaptureClient.IsAvailable) throw new InvalidOperationException("Falta el motor de captura incluido.");
+                return true;
+            }
+            catch (Exception error) when (error is InvalidOperationException or ArgumentException)
+            { SetStatus("Captura: " + error.Message, true); return false; }
+        }
         if (cue.Kind is not (CueKind.Image or CueKind.Video or CueKind.Audio or CueKind.PowerPoint)) return true;
         try
         {
@@ -52,15 +64,35 @@ public partial class MainWindow
         if (_output is not null) return true;
         try
         {
-            _output = new ProjectionSurface { Volume = (int)VolumeSlider.Value, Loop = LoopCheck.IsChecked == true,
+            _output = new ProjectionSurface(smoothTransitions: true) { Volume = (int)VolumeSlider.Value, Loop = LoopCheck.IsChecked == true,
+                KeepMediaAudio = _workspace.KeepMediaAudio,
                 BackgroundImagePath = _workspace.BackgroundImagePath, BibleStyle = _workspace.BibleStyle.Normalize(), Transitions = _workspace.Transitions.Normalize() };
-            _output.PlaybackError += message => Dispatcher.BeginInvoke(() => { _isPaused = true; SetStatus(message, true); });
+            _output.PlaybackError += OnOutputPlaybackError;
             _output.ShowCue(_session.Live, blackout: true);
             _output.ShowCue(_session.Live, _session.IsBlackout, _session.IsTextHidden);
             AttachLocalOutput();
             return true;
         }
         catch (Exception ex) { SetStatus("No se pudo abrir la proyección: " + ex.Message, true); return false; }
+    }
+    private void OnOutputPlaybackError(string message)
+    {
+        var output = _output;
+        var requested = _session.Live;
+        if (output is null) return;
+        var displayed = output.DisplayedCue;
+        var blackout = output.DisplayedBlackout;
+        var hidden = output.DisplayedHidden;
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (!ReferenceEquals(output, _output) || !ReferenceEquals(requested, _session.Live)) return;
+            if (output.IsTransitioning) { SetStatus(message, true); return; }
+            _session.RestoreOutput(displayed, blackout, hidden);
+            if (_liveReading?.Any(cue => cue.Id == displayed?.Id) != true) _liveReading = null;
+            _isPaused = output.IsPaused;
+            UpdateSessionLabels();
+            SetStatus(message, true);
+        });
     }
     private void AttachLocalOutput()
     {
@@ -71,6 +103,7 @@ public partial class MainWindow
         _output.Arrange(new Rect(0, 0, 1920, 1080));
         _output.UpdateLayout();
         LiveMonitor.SetLocalSource(_output);
+        SyncPreviewSource();
     }
     private void OpenOutput(DisplayInfo display, bool test)
     {
@@ -111,9 +144,12 @@ public partial class MainWindow
     }
     private void CloseOutput()
     {
+        StopLogo();
         StopPowerPointOutput();
         CloseExternalOutput();
         LiveMonitor.SetLocalSource(null);
+        PreviewLiveMonitor.SetLocalSource(null);
+        _outputPlayerWindow?.Monitor.SetLocalSource(null);
         _output?.SetPaused(true); _output?.Dispose(); _output = null;
         _isPaused = true;
         if (_ready) UpdateSessionLabels();
@@ -166,11 +202,9 @@ public partial class MainWindow
             _session.Prepare(_liveReading[readingIndex]); _session.GoLive();
         }
         else { SetStatus("Este contenido no pertenece al orden. Prepara el siguiente y pulsa Proyectar."); return; }
+        _preparedBibleStyleChanged = false;
         ShowLiveCue(); _isPaused = false;
-        _preview.BibleStyle = _workspace.BibleStyle.Normalize();
-        _preview.ShowCue(_session.Prepared);
-        _previewPaused = false;
-        UpdatePlayButton(PreviewPauseButton, false, true);
+        RenderPreparedPreview();
         UpdateSessionLabels();
         SetStatus("En pantalla: " + _session.Live!.Title);
     }
@@ -179,6 +213,7 @@ public partial class MainWindow
     {
         if (_output is null) { SetStatus("La salida ya está cerrada."); return; }
         _session.ToggleBlackout();
+        if (_session.IsTextHidden && !_session.IsBlackout) { ShowLogo(); return; }
         ApplyBackdropTransition();
         _isPaused = true;
         UpdateSessionLabels();
@@ -186,16 +221,11 @@ public partial class MainWindow
     }
     private void BackgroundClick(object sender, RoutedEventArgs e) => ShowBackground();
     private void ShowBackground()
-    {
-        if (_output is null) return;
-        _session.ShowBackground();
-        ApplyBackdropTransition();
-        _isPaused = true; UpdateSessionLabels();
-        SetStatus("Fondo sin contenido.");
-    }
+        => ShowLogo();
     private void PauseClick(object sender, RoutedEventArgs e) => TogglePause();
     private void TogglePause()
     {
+        if (_session.Live?.Kind == CueKind.WindowCapture) return;
         if (TogglePendingCuePause()) return;
         if (_session.Live?.Kind == CueKind.PowerPoint && _powerPoint is not null)
         {
@@ -211,6 +241,7 @@ public partial class MainWindow
         _isPaused = !_output.IsPaused;
         _output.SetPaused(_isPaused);
         UpdatePlayButton(PauseButton, _isPaused, false);
+        if (_session.Live?.Kind == CueKind.WindowCapture) UpdateCapturePlayButton();
     }
     private void RestartClick(object sender, RoutedEventArgs e) => RestartMedia();
     private void RestartMedia()
@@ -251,6 +282,9 @@ public partial class MainWindow
     }
     private void TimerTick(object? sender, EventArgs e)
     {
+        if (_output?.IsPreparingPlaybackEngine == true) SetStatus("Preparando reproductor…");
+        else if (StatusText.Text == "Preparando reproductor…")
+            SetStatus(_output?.DisplayedCue is { } ready ? "En pantalla: " + ready.Title : "Reproductor preparado.");
         _powerPoint?.SuppressOwnedPauseToolbar();
         if (_powerPoint is not null && !_powerPoint.IsRunning && !(_pendingCuePlayback.IsPending && _pendingCuePlayback.IsPresented))
         {
@@ -266,17 +300,6 @@ public partial class MainWindow
                 SetStatus("La presentación de PowerPoint se cerró. Puedes enviarla otra vez desde el orden.", true);
             }
         }
-        if (_session.Prepared?.Kind is CueKind.Video or CueKind.Audio)
-        {
-            var duration = _preview.Duration;
-            if (!_previewScrubbing) PreviewTimeText.Text = FormatTime(_preview.Position);
-            PreviewDurationText.Text = FormatTime(duration);
-            PreviewPositionSlider.IsEnabled = duration > 0;
-            if (!_previewScrubbing && !PreviewPositionSlider.IsMouseCaptureWithin)
-                PreviewPositionSlider.Value = duration > 0 ? Math.Clamp(_preview.Position / duration, 0, 1) : 0;
-            _previewPaused = _preview.IsPaused;
-            UpdatePlayButton(PreviewPauseButton, _previewPaused, true);
-        }
         if (_output is not null)
         {
             var duration = _output.Duration; var position = _output.Position;
@@ -284,13 +307,16 @@ public partial class MainWindow
             OutputDurationText.Text = FormatTime(duration);
             PositionSlider.IsEnabled = duration > 0 && !_session.IsBlackout && !_session.IsTextHidden;
             if (!_outputScrubbing && !PositionSlider.IsMouseCaptureWithin) PositionSlider.Value = duration > 0 ? Math.Clamp(position / duration, 0, 1) : 0;
-            if (_session.Live?.Kind is CueKind.Video or CueKind.Audio)
+            if (_session.Live?.Kind is CueKind.Video or CueKind.Audio or CueKind.WindowCapture)
             {
                 _isPaused = _pendingCuePlayback.IsPending
                     ? _session.IsBlackout || _session.IsTextHidden || _pendingCuePlayback.Intent.IsPaused : _output.IsPaused;
                 UpdatePlayButton(PauseButton, _isPaused, false);
+                if (_session.Live?.Kind == CueKind.WindowCapture) UpdateCapturePlayButton();
             }
         }
+        UpdateOutputPlayer();
+        UpdateBackgroundAudioState();
         if (++_displayTick < 10) return;
         _displayTick = 0;
         if (_outputDisplay is not null && !DisplayService.GetDisplays().Any(d => d.DeviceName == _outputDisplay.DeviceName))

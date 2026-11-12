@@ -5,13 +5,13 @@ using Xunit;
 public class TransitionOptionsTests
 {
     [Fact]
-    public void MissingPersistedOptionsUseIndependentOneAndAHalfSecondAudioFades()
+    public void MissingPersistedOptionsUseFastVisualAndIndependentAudioFades()
     {
         var options = JsonSerializer.Deserialize<TransitionOptions>("{}")!;
         Assert.Equal("Dissolve", options.Kind);
-        Assert.Equal(500, options.DurationMilliseconds);
-        Assert.Equal(1500, options.AudioFadeOutMilliseconds);
-        Assert.Equal(1500, options.AudioFadeInMilliseconds);
+        Assert.Equal(300, options.DurationMilliseconds);
+        Assert.Equal(250, options.AudioFadeOutMilliseconds);
+        Assert.Equal(250, options.AudioFadeInMilliseconds);
         Assert.Equal("System", new BibleVisualStyle().Transition);
     }
 
@@ -62,5 +62,49 @@ public class TransitionOptionsTests
         Assert.Equal(700, snapshot.DurationMilliseconds);
         Assert.Equal(2000, snapshot.AudioFadeOutMilliseconds);
         Assert.Equal(800, snapshot.AudioFadeInMilliseconds);
+    }
+
+    [Fact]
+    public void OldFactorySettingsUpgradeWithoutMutatingTheLoadedObject()
+    {
+        var old = JsonSerializer.Deserialize<TransitionOptions>("""
+            {"Kind":"Dissolve","DurationMilliseconds":500,"AudioFadeOutMilliseconds":1500,"AudioFadeInMilliseconds":1500}
+            """)!;
+        var upgraded = old.UpgradeStoredDefaults(0);
+        Assert.Equal("Dissolve", upgraded.Kind);
+        Assert.Equal(300, upgraded.DurationMilliseconds);
+        Assert.Equal(250, upgraded.AudioFadeOutMilliseconds);
+        Assert.Equal(250, upgraded.AudioFadeInMilliseconds);
+        Assert.Equal(500, old.DurationMilliseconds);
+        Assert.Equal(1500, old.AudioFadeOutMilliseconds);
+        Assert.Equal(1500, old.AudioFadeInMilliseconds);
+    }
+
+    [Theory]
+    [InlineData("Dissolve", 550, 1500, 1500, 0)]
+    [InlineData("Dissolve", 500, 1450, 1500, 0)]
+    [InlineData("Dissolve", 500, 1500, 1450, 0)]
+    [InlineData("Move", 500, 1500, 1500, 0)]
+    [InlineData("Dissolve", 500, 1500, 1500, 1)]
+    [InlineData("Dissolve", 500, 1500, 1500, 2)]
+    public void UpgradePreservesCustomSettingsAndAlreadyMigratedWorkspaces(string kind, int duration,
+        int fadeOut, int fadeIn, int version)
+    {
+        var original = new TransitionOptions { Kind = kind, DurationMilliseconds = duration,
+            AudioFadeOutMilliseconds = fadeOut, AudioFadeInMilliseconds = fadeIn };
+        var upgraded = original.UpgradeStoredDefaults(version);
+        Assert.Equal(original, upgraded);
+        Assert.NotSame(original, upgraded);
+    }
+
+    [Fact]
+    public void UpgradeStillSanitizesInvalidStoredValues()
+    {
+        var upgraded = new TransitionOptions { Kind = "unsupported", DurationMilliseconds = -1,
+            AudioFadeOutMilliseconds = -1, AudioFadeInMilliseconds = 9000 }.UpgradeStoredDefaults(0);
+        Assert.Equal("Dissolve", upgraded.Kind);
+        Assert.Equal(100, upgraded.DurationMilliseconds);
+        Assert.Equal(0, upgraded.AudioFadeOutMilliseconds);
+        Assert.Equal(5000, upgraded.AudioFadeInMilliseconds);
     }
 }

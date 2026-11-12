@@ -33,7 +33,6 @@ public partial class MainWindow : Window
     private bool _ready;
     private bool _closing;
     private bool _workspaceRecoveryBlocked;
-    private bool _previewPaused;
     private bool _isPaused;
     private int _displayTick;
     private Point _dragStart;
@@ -42,6 +41,8 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        InitializeBibleReferenceInput();
+        InitializeOrderActions();
         InitializePlayerControls();
         InitializeUsabilityShortcuts();
         InitializeContentDragDrop();
@@ -82,17 +83,20 @@ public partial class MainWindow : Window
         PlanNameBox.Text = _workspace.Plan.Name;
         VolumeSlider.Value = _workspace.Volume;
         LoopCheck.IsChecked = _workspace.Loop;
+        KeepMediaAudioCheck.IsChecked = _workspace.KeepMediaAudio;
         _preview = new ProjectionSurface(preview: true);
         _preview.PlaybackError += message => Dispatcher.BeginInvoke(() => SetStatus(message, true));
         PreviewHost.Content = _preview;
         InitializeDocking();
         _session.Changed += UpdateSessionLabels;
         _ready = true;
+        InitializeYouTube();
+        InitializeMediaBrowser();
         SetupPresenterHotkeys();
         RefreshLibrary();
         LoadSavedBible();
         UpdatePlanCount();
-        if (_plan.Count > 0) PlanList.SelectedIndex = 0;
+        if (_plan.Count > 0 && _plan[0].Kind != CueKind.WindowCapture) PlanList.SelectedIndex = 0;
         _timer.Tick += TimerTick;
         _timer.Start();
         if (recoveryMessage is not null) SetStatus(recoveryMessage, true);
@@ -102,26 +106,24 @@ public partial class MainWindow : Window
     {
         _preparedReading = reading;
         _session.Prepare(cue);
-        _preview.BibleStyle = _workspace.BibleStyle.Normalize();
-        _preview.ShowCue(cue.Kind == CueKind.PowerPoint ? PowerPointPreview(cue) : cue);
-        _previewPaused = false;
-        UpdatePlayButton(PreviewPauseButton, false, true);
-        PreviewTimeText.Text = "00:00";
-        PreviewDurationText.Text = "00:00";
-        PreviewPositionSlider.Value = 0;
+        RenderPreparedPreview();
         PreparedTitleText.Text = cue.Title;
         UpdateUsabilityState();
+        SyncPreviewSource();
+        UpdateBackgroundAudioState();
         SetStatus($"Vista previa: {cue.Title}");
     }
 
     private void UpdateSessionLabels()
     {
+        SyncLogoPlayback();
         PreparedTitleText.Text = _session.Prepared?.Title ?? "Sin contenido";
         var live = _output is null ? null : _session.Live;
         ToggleOutputButton.Content = _outputWindow is null ? "Activar HDMI" : "Desactivar HDMI";
         if (_outputWindow is null) OutputStatusText.Text = _output is null ? "Salida desactivada" : "Reproducción local · HDMI desactivado";
-        LiveTitleText.Text = live?.Title ?? "Sin contenido";
-        LiveReferenceText.Text = live is null ? "" : string.Join(" · ", new[] { live.Reference, live.Version }.Where(s => !string.IsNullOrWhiteSpace(s)));
+        LiveTitleText.Text = _output is not null && _session.IsTextHidden && !_session.IsBlackout ? "Logo" : live?.Title ?? "Sin contenido";
+        LiveReferenceText.Text = _session.IsTextHidden ? Path.GetFileNameWithoutExtension(CurrentBackgroundPath) ?? ""
+            : live is null ? "" : string.Join(" · ", new[] { live.Reference, live.Version }.Where(s => !string.IsNullOrWhiteSpace(s)));
         LiveBodyText.Text = _output is null ? "La salida está cerrada." : _session.IsBlackout ? "Pantalla en negro" : _session.IsTextHidden ? "Fondo sin contenido" : live?.Kind switch
         {
             CueKind.Video => "VIDEO EN SALIDA\n" + live.Title,
@@ -131,7 +133,7 @@ public partial class MainWindow : Window
         };
         OutputModeText.Text = _output is null ? "SIN SALIDA"
             : _session.IsBlackout ? "NEGRO"
-            : _session.IsTextHidden ? "FONDO"
+            : _session.IsTextHidden ? "LOGO"
             : _outputWindow is null ? "LOCAL" : _outputIsTest ? "ENSAYO" : "ACTIVA";
         OutputModeText.Foreground = (Brush)FindResource(_output is not null && (_session.IsBlackout || _session.IsTextHidden) ? "AmberBrush" : "MutedBrush");
         BlackoutButton.Content = "Fondo negro";
@@ -141,8 +143,9 @@ public partial class MainWindow : Window
         var churchActive = _output is not null && _session.IsTextHidden && !_session.IsBlackout;
         ChurchBackgroundButton.Background = (Brush)FindResource(churchActive ? "SelectedBrush" : "RaisedBrush");
         ChurchBackgroundButton.Foreground = (Brush)FindResource(churchActive ? "AccentBrush" : "TextBrush");
-        ChurchBackgroundButton.ToolTip = "Elegir fondo de iglesia";
+        ChurchBackgroundButton.ToolTip = "Logo";
         UpdateUsabilityState();
+        SyncPreviewSource();
     }
 
     private void SetStatus(string message, bool error = false)
@@ -186,6 +189,7 @@ public partial class MainWindow : Window
         _notesCue = PlanList.SelectedItem as Cue;
         NotesBox.Text = _notesCue?.Notes ?? "";
         if (_notesCue is not null) PrepareCue(_notesCue);
+        else FollowLivePreview();
     }
     private void CommitNotes()
     {
@@ -193,12 +197,6 @@ public partial class MainWindow : Window
         { _notesCue.Notes = NotesBox.Text; SaveWorkspace(); }
     }
     private void NotesChanged(object sender, RoutedEventArgs e) => CommitNotes();
-    private void PreviewPauseClick(object sender, RoutedEventArgs e)
-    {
-        if (!_ready || _session.Prepared?.Kind is not (CueKind.Video or CueKind.Audio)) return;
-        _previewPaused = !_preview.IsPaused; _preview.SetPaused(_previewPaused);
-        UpdatePlayButton(PreviewPauseButton, _previewPaused, true);
-    }
 
     private async void OnWindowClosing(object? sender, CancelEventArgs e)
     {
@@ -215,13 +213,16 @@ public partial class MainWindow : Window
         }
         SaveDockLayout();
         _closing = true; _timer.Stop();
+        DisposeYouTube();
         DisposePresenterHotkeys();
         _bibleSearchTimer?.Stop();
         DisposeLibraryFolders();
         try { if (_remote is not null) await _remote.DisposeAsync(); }
         catch (Exception) { /* Closing must still release the native media players. */ }
+        _outputPlayerWindow?.Close();
         CloseOutput();
         _preview?.Dispose();
+        PreviewLiveMonitor.Dispose();
         LiveMonitor.Dispose();
         Application.Current.Shutdown();
     }

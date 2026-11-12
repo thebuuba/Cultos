@@ -18,6 +18,8 @@ internal static class ObsNative
     [StructLayout(LayoutKind.Sequential)] internal struct AudioInfo { public uint SamplesPerSecond; public int Speakers; }
     [StructLayout(LayoutKind.Sequential)] internal struct Vec2 { public float X, Y; }
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] internal delegate void VideoCallback(nint parameter, nint frame);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)] internal delegate void RenderCallback(nint parameter, uint width, uint height);
+    [StructLayout(LayoutKind.Sequential)] internal struct GraphicsRect { public int X, Y, Width, Height; }
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] [return: MarshalAs(UnmanagedType.I1)]
     internal static extern bool obs_startup([MarshalAs(UnmanagedType.LPUTF8Str)] string locale, [MarshalAs(UnmanagedType.LPUTF8Str)] string configPath, nint profiler);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void obs_shutdown();
@@ -53,4 +55,14 @@ internal static class ObsNative
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern ulong obs_get_video_frame_time();
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] [return: MarshalAs(UnmanagedType.I1)] internal static extern bool video_output_connect(nint video, nint conversion, VideoCallback callback, nint parameter);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void video_output_disconnect(nint video, VideoCallback callback, nint parameter);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void obs_add_raw_video_callback(nint conversion, VideoCallback callback, nint parameter);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void obs_remove_raw_video_callback(VideoCallback callback, nint parameter);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void obs_add_main_render_callback(RenderCallback callback, nint parameter);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void obs_remove_main_render_callback(RenderCallback callback, nint parameter);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void gs_matrix_push();
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void gs_matrix_pop();
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void gs_matrix_translate3f(float x, float y, float z);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void gs_matrix_scale3f(float x, float y, float z);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void gs_set_scissor_rect(ref GraphicsRect rect);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void gs_set_scissor_rect(nint rect);
 }

@@ -47,12 +47,15 @@ internal static partial class Program
                 Check(results.Items.Count == 1 && ((BibleResult)results.Items[0]).Reference == "Génesis 1:1", "Initial Bible page is empty");
                 Check(ReferenceEquals(prepared, session.Prepared) && ReferenceEquals(live, session.Live), "Initial chapter changed prepared or live");
             });
-            Test("Typing debounces Bible search and Enter immediately resolves flexible citations", () =>
+            Test("Typing debounces Bible search and Enter resolves and projects the citation", () =>
             {
                 query.Text = "Jn 3 16";
                 Check(results.Items.Count == 0, "Typing retained actionable stale results");
                 SendKey(Key.Enter);
                 Check(results.Items.Count == 1 && session.Prepared?.Reference == "Juan 3:16", "Enter did not resolve the citation immediately");
+                Check(session.Live?.Reference == "Juan 3:16" && Field<object?>(window, "_output") is not null,
+                    "Enter only prepared the verse instead of projecting it locally");
+                live = session.Live;
                 query.Text = "amor";
                 PumpFor(100);
                 Check(results.Items.Count == 0, "Search did not debounce input");
@@ -88,6 +91,44 @@ internal static partial class Program
                 previous.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 Check(session.Prepared?.Reference == "Juan 3:16", "Previous chapter did not return to the first available verse");
                 Check(ReferenceEquals(live, session.Live), "Chapter navigation changed live");
+            });
+            Test("Bible result double click projects its row even when another source is prepared", () =>
+            {
+                query.Text = "Juan 3";
+                Call(window, "SearchBible");
+                var result = (BibleResult)results.Items[1];
+                var oldLive = session.Live;
+                results.SelectedItem = result;
+                Check(ReferenceEquals(oldLive, session.Live), "Single selection projected instead of preparing");
+                Call(window, "PrepareCue", new Cue { Title = "Otro contenido", Body = "No proyectar" }, null);
+                results.ScrollIntoView(result); window.UpdateLayout();
+                var row = (ListBoxItem)results.ItemContainerGenerator.ContainerFromItem(result);
+                results.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+                    { RoutedEvent = Control.MouseDoubleClickEvent, Source = row });
+                Check(session.Live?.Reference == "Juan 3:17", "Double click projected a different prepared source");
+                Check(ReferenceEquals(Field<IReadOnlyList<Cue>>(window, "_liveReading"), Field<IReadOnlyList<Cue>>(window, "_bibleReading")),
+                    "Bible projection lost the reading used by Next/Previous");
+                live = session.Live;
+                results.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+                    { RoutedEvent = Control.MouseDoubleClickEvent });
+                results.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Right)
+                    { RoutedEvent = Control.MouseDoubleClickEvent, Source = row });
+                Check(ReferenceEquals(live, session.Live), "Blank space or right double click projected content");
+            });
+            Test("Enter in Bible results projects the selected verse and ignores an empty selection", () =>
+            {
+                results.SelectedIndex = 0;
+                Call(window, "PrepareCue", new Cue { Title = "Otra fuente" }, null);
+                results.Focus(); window.UpdateLayout();
+                results.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(window)!, 0, Key.Enter)
+                    { RoutedEvent = Keyboard.PreviewKeyDownEvent });
+                Check(session.Live?.Reference == "Juan 3:16", "Enter in results projected the wrong cue");
+                live = session.Live;
+                query.Text = "Juan 3:";
+                SendKey(Key.Enter);
+                results.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(window)!, 0, Key.Enter)
+                    { RoutedEvent = Keyboard.PreviewKeyDownEvent });
+                Check(ReferenceEquals(live, session.Live), "An invalid or empty Bible result projected stale content");
             });
         }
         finally

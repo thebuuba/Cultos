@@ -103,16 +103,26 @@ public partial class MainWindow
     }
     private void BibleQueryKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Enter) { SearchBible(); e.Handled = true; }
+        if (e.Key == Key.Enter)
+        {
+            e.Handled = true;
+            if (!_ready || e.IsRepeat) return;
+            SearchBible();
+            ProjectBibleResult(BibleResults.SelectedItem as BibleResult);
+            SelectBibleQueryBook();
+        }
         else if (e.Key == Key.Escape) { ClearBibleQueryClick(sender, e); e.Handled = true; }
         else if (e.Key == Key.Down)
         {
             if (_bibleSearchTimer?.IsEnabled == true) SearchBible();
             if (BibleResults.Items.Count > 0)
             {
-                BibleResults.Focus();
+                if (BibleResults.SelectedItem is { } selected) BibleResults.ScrollIntoView(selected);
                 BibleResults.UpdateLayout();
-                (BibleResults.ItemContainerGenerator.ContainerFromItem(BibleResults.SelectedItem) as ListBoxItem)?.Focus();
+                // Focusing the list before its row would make WPF treat this as
+                // a new keyboard selection and collapse an already selected range.
+                if (BibleResults.ItemContainerGenerator.ContainerFromItem(BibleResults.SelectedItem) is ListBoxItem row) row.Focus();
+                else BibleResults.Focus();
             }
             e.Handled = true;
         }
@@ -176,22 +186,37 @@ public partial class MainWindow
         NextBibleChapterButton.IsEnabled = BibleChapterPicker.SelectedIndex >= 0
             && BibleChapterPicker.SelectedIndex < BibleChapterPicker.Items.Count - 1;
     }
-    private void SetBibleResults(IReadOnlyList<BibleVerse> verses, bool referenceSearch, int? selectedVerse = null, bool selectFirst = true)
+    private void SetBibleResults(IReadOnlyList<BibleVerse> verses, bool referenceSearch, int? selectedVerse = null, bool selectFirst = true, bool selectRange = false)
     {
         var results = verses.Select(verse => new BibleResult(verse, _bibleCuesByReference[(verse.Book, verse.Chapter, verse.Verse)])).ToList();
         _referenceSearch = referenceSearch;
         _bibleResults = results;
-        BibleResults.ItemsSource = results;
+        _updatingBibleSelection = true;
+        try
+        {
+            BibleResults.ItemsSource = results;
+            if (results.Count > 0 && selectFirst)
+            {
+                if (selectRange)
+                    foreach (var result in results) BibleResults.SelectedItems.Add(result);
+                else BibleResults.SelectedItem = selectedVerse.HasValue
+                    ? results.FirstOrDefault(result => result.Verse.Verse == selectedVerse.Value) ?? results[0]
+                    : results[0];
+            }
+        }
+        finally { _updatingBibleSelection = false; }
         BibleResultText.Text = results.Count switch
         {
             0 => "No se encontraron versículos.",
             1 => $"1 versículo · {_bible!.Document.Name}",
             _ => $"{results.Count:N0} versículos · {_bible!.Document.Name}"
         };
-        if (results.Count > 0 && selectFirst)
-            BibleResults.SelectedItem = selectedVerse.HasValue
-                ? results.FirstOrDefault(result => result.Verse.Verse == selectedVerse.Value) ?? results[0]
-                : results[0];
+        if (BibleResults.SelectedItem is BibleResult first)
+        {
+            PrepareBibleSelection();
+            SynchronizeBiblePickers(first.Verse);
+            BibleResults.ScrollIntoView(first);
+        }
         UpdateBibleAddActions();
     }
     private void UpdateBibleAddActions()
@@ -199,8 +224,9 @@ public partial class MainWindow
         AddSelectedBibleButton.IsEnabled = BibleResults.SelectedItem is BibleResult;
         AddBiblePassageButton.IsEnabled = BibleResults.SelectedItem is BibleResult && _referenceSearch && _bibleResults.Count > 1;
         AddBiblePassageButton.Visibility = _referenceSearch && _bibleResults.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
-        AddBiblePassageButton.Content = $"Pasaje ({_bibleResults.Count:N0})";
-        AddBiblePassageButton.ToolTip = $"Añadir al orden los {_bibleResults.Count:N0} versículos mostrados, en el mismo orden.";
+        AddBiblePassageButton.Content = $"Separados ({_bibleResults.Count:N0})";
+        AddBiblePassageButton.ToolTip = $"Añadir los {_bibleResults.Count:N0} versículos mostrados como elementos separados del orden.";
+        UpdateBibleSelectionSummary();
     }
     private void SearchBible()
     {
@@ -211,7 +237,8 @@ public partial class MainWindow
         try
         {
             var verses = _bible.Lookup(query, out var referenceSearch);
-            SetBibleResults(verses, referenceSearch);
+            var selectRange = referenceSearch && BibleReferenceInput.TryParse(query, out var reference) && reference.HasVerseRange;
+            SetBibleResults(verses, referenceSearch, selectRange: selectRange);
         }
         catch (ArgumentException ex) { ClearBibleResults(ex.Message.Split('\n')[0]); }
     }
@@ -225,18 +252,43 @@ public partial class MainWindow
     }
     private void BibleSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (_updatingBibleSelection) return;
         if (BibleResults.SelectedItem is BibleResult result)
         {
-            PrepareCue(result.Cue, _bibleReading);
+            PrepareBibleSelection();
             SynchronizeBiblePickers(result.Verse);
-            BibleResults.ScrollIntoView(result);
+            // WPF keeps the keyboard's moving end visible during Shift selection.
+            if (BibleResults.SelectedItems.Count == 1) BibleResults.ScrollIntoView(result);
         }
         UpdateBibleAddActions();
     }
+    private void BibleResultsDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (!_ready || e.Timestamp == _bibleProjectionClickTimestamp || e.ChangedButton != MouseButton.Left
+            || ContentRowAt(BibleResults, e.OriginalSource)?.DataContext is not BibleResult result) return;
+        e.Handled = true;
+        ProjectBibleResult(result);
+    }
+    private void BibleResultsKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter) return;
+        e.Handled = true;
+        if (!_ready || e.IsRepeat) return;
+        ProjectBibleResult(BibleResults.SelectedItem as BibleResult);
+    }
+    private void ProjectBibleResult(BibleResult? result)
+    {
+        // A cleared/invalid search must never send the previously prepared cue.
+        if (!_ready || _bible is null || result is null || !_bibleResults.Contains(result)
+            || !BibleResults.Items.Contains(result)) return;
+        if (!BibleResults.SelectedItems.Contains(result)) BibleResults.SelectedItem = result;
+        PrepareBibleSelection();
+        ProjectPrepared();
+    }
     private void AddSelectedBibleToPlanClick(object sender, RoutedEventArgs e)
     {
-        if (BibleResults.SelectedItem is not BibleResult selected) { SetStatus("Busca y selecciona primero un versículo."); return; }
-        _plan.Add(CopyCue(selected.Cue, true));
+        if (SelectedBibleCue() is not Cue selected) { SetStatus("Busca y selecciona primero un versículo."); return; }
+        _plan.Add(CopyCue(selected, true));
         UpdatePlanCount(); SaveWorkspace();
         SetStatus($"Añadido al orden: {selected.Reference}.");
     }

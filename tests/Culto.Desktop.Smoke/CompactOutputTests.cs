@@ -19,7 +19,14 @@ internal static partial class Program
             try
             {
                 var doc = XDocument.Parse(initial);
-                var panes = doc.Descendants("LayoutAnchorablePane").ToDictionary(p => (string)p.Element("LayoutAnchorable")!.Attribute("ContentId")!, p => new XElement(p));
+                // Build this diagnostic layout by content ID, independent of which
+                // tabs currently share a pane or which tab is first in that group.
+                var panes = doc.Descendants("LayoutAnchorable").ToDictionary(p => (string)p.Attribute("ContentId")!,
+                    p => new XElement("LayoutAnchorablePane", new XElement(p)));
+                doc.Descendants("LayoutAnchorable").Remove();
+                doc.Root!.Element("FloatingWindows")?.RemoveNodes();
+                doc.Root.Element("Hidden")?.RemoveNodes();
+                panes["sequence"].Add(panes["media"].Element("LayoutAnchorable"));
                 foreach (var entry in panes.Values) entry.SetAttributeValue("DockWidth", "*");
                 panes["order"].SetAttributeValue("DockMinWidth", "390");
                 panes["output"].SetAttributeValue("DockMinWidth", "360");

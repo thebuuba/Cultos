@@ -6,6 +6,7 @@
     <Project Path="src/Culto.Remote/Culto.Remote.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Culto.CaptureAudio.Smoke/Culto.CaptureAudio.Smoke.csproj" />
     <Project Path="tests/Culto.Core.Tests/Culto.Core.Tests.csproj" />
     <Project Path="tests/Culto.Desktop.Smoke/Culto.Desktop.Smoke.csproj" />
     <Project Path="tests/Culto.Remote.Tests/Culto.Remote.Tests.csproj" />

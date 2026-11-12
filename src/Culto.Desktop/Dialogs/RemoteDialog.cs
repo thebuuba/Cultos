@@ -40,7 +40,7 @@ public sealed class RemoteDialog : Window
     private readonly TextBox _label = new();
     private readonly ComboBox _action = new(), _cue = new(), _color = new();
     private readonly string[] _actionValues = ["project", "next", "previous", "blackout", "background", "pause", "restart", "cue"];
-    private static readonly string[] ActionLabels = ["Proyectar preparado", "Siguiente", "Anterior", "Pantalla negra / restaurar", "Mostrar fondo", "Pausar / continuar", "Reiniciar video", "Proyectar un contenido"];
+    private static readonly string[] ActionLabels = ["Proyectar preparado", "Siguiente", "Anterior", "Pantalla negra / restaurar", "Logo", "Pausar / continuar", "Reiniciar video", "Proyectar un contenido"];
     private readonly string[] _colors = ["#43D9BE", "#A7C7FF", "#FFCF75", "#FF9DAD"];
 
     public RemoteDialog(RemoteHost? host, IReadOnlyList<DeckButton> buttons, IReadOnlyList<Cue> cues)
@@ -173,7 +173,7 @@ public sealed class RemoteDialog : Window
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture) => (value as string) switch
         {
             "project" => "Proyectar preparado", "next" => "Siguiente", "previous" => "Anterior", "blackout" => "Pantalla negra / restaurar",
-            "background" => "Mostrar fondo", "pause" => "Pausar / continuar", "restart" => "Reiniciar video", "cue" => "Contenido del culto", _ => "Acción del culto"
+            "background" => "Logo", "pause" => "Pausar / continuar", "restart" => "Reiniciar video", "cue" => "Contenido del culto", _ => "Acción del culto"
         };
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
     }

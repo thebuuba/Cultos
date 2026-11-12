@@ -32,7 +32,7 @@ public partial class MainWindow
         if (_session.Live?.Kind == CueKind.PowerPoint) return; // Keep intent until the delayed native Start.
         if (_pendingCuePlayback.Complete(token) is not { } intent) return;
         if (intent.Restart) _output?.Restart();
-        _output?.SetPaused(_isPaused);
+        if (!_logoSlides.IsRunning || !_session.IsTextHidden || _session.IsBlackout) _output?.SetPaused(_isPaused);
         UpdateSessionLabels();
     }
 

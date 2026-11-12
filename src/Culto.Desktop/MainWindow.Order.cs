@@ -22,9 +22,12 @@ public partial class MainWindow
 
     private void PlanMouseUp(object sender, MouseButtonEventArgs e)
     {
-        if (!_ready || _orderDragPerformed || OrderCueAt(e.OriginalSource) is not Cue cue) return;
-        // Revisit a selected row after browsing elsewhere without restarting its own video.
+        if (!_ready || e.ChangedButton != MouseButton.Left || _orderDragPerformed
+            || OrderCueAt(e.OriginalSource) is not Cue cue) return;
+        PlanList.SelectedItem = cue;
+        // Revisit a selected row after browsing elsewhere, without projecting it.
         if (_session.Prepared?.Id != cue.Id) PrepareCue(cue);
+        ShowOrderActions(cue);
     }
 
     private void PlanDoubleClick(object sender, MouseButtonEventArgs e)
@@ -47,14 +50,14 @@ public partial class MainWindow
 
     private void SequenceMouseUp(object sender, MouseButtonEventArgs e)
     {
-        if (!_ready || SequenceCueAt(e.OriginalSource) is not Cue cue) return;
+        if (!_ready || e.ChangedButton != MouseButton.Left || _orderDragPerformed || SequenceCueAt(e.OriginalSource) is not Cue cue) return;
         PlanList.SelectedItem = cue;
         if (_session.Prepared?.Id != cue.Id) PrepareCue(cue);
     }
 
     private void SequenceDoubleClick(object sender, MouseButtonEventArgs e)
     {
-        if (!_ready || e.ChangedButton != MouseButton.Left || SequenceCueAt(e.OriginalSource) is not Cue cue) return;
+        if (!_ready || e.ChangedButton != MouseButton.Left || _orderDragPerformed || SequenceCueAt(e.OriginalSource) is not Cue cue) return;
         e.Handled = true;
         PlanList.SelectedItem = cue;
         if (_session.Prepared?.Id != cue.Id) PrepareCue(cue);
@@ -90,21 +93,4 @@ public partial class MainWindow
         finally { AddOrderButton.IsEnabled = true; }
     }
 
-    private void PreviewRestartClick(object sender, RoutedEventArgs e)
-    {
-        if (!_ready || _session.Prepared?.Kind is not (CueKind.Video or CueKind.Audio)) return;
-        _preview.Restart(); _previewPaused = false;
-        UpdatePlayButton(PreviewPauseButton, false, true);
-    }
-
-    private void PreviewPositionSeek(object sender, MouseButtonEventArgs e) { SeekPreview(); _previewScrubbing = false; }
-    private void PreviewPositionKeyUp(object sender, KeyEventArgs e)
-    {
-        if (e.Key is Key.Left or Key.Right or Key.Up or Key.Down or Key.Home or Key.End or Key.PageUp or Key.PageDown) SeekPreview();
-    }
-    private void SeekPreview()
-    {
-        if (_ready && _session.Prepared?.Kind is CueKind.Video or CueKind.Audio)
-            _preview.Seek(PreviewPositionSlider.Value);
-    }
 }

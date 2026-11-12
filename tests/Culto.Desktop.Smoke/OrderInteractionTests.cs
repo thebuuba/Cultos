@@ -3,9 +3,12 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using AvalonDock;
+using AvalonDock.Layout;
 using Culto.Core;
 using Culto.Desktop;
 using Culto.Desktop.Projection;
+using Culto.Desktop.Services;
 
 internal static partial class Program
 {
@@ -51,6 +54,81 @@ internal static partial class Program
                     { RoutedEvent = Control.MouseDoubleClickEvent });
                 Check(ReferenceEquals(live, session.Live), "Blank-space double click reprojected a cue");
             });
+            Test("Order left click offers actions without changing output or capturing a popup", () =>
+            {
+                var live = session.Live;
+                list.SelectedItem = a;
+                list.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+                    { RoutedEvent = UIElement.PreviewMouseLeftButtonUpEvent, Source = Row(a) });
+                var actions = (FrameworkElement)window.FindName("OrderActionsPanel");
+                Check(actions.Visibility == Visibility.Visible, "Left click did not offer row actions");
+                Check(ReferenceEquals(actions.Tag, a), "Actions target a different order row");
+                Check(ReferenceEquals(live, session.Live), "Opening actions projected a cue");
+                Check(Mouse.Captured is not System.Windows.Controls.Primitives.Popup,
+                    "Actions captured a popup and would intercept double click");
+                Call(window, "PrepareCue", b, null);
+                ((Button)window.FindName("OrderPlayButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                Check(session.Live?.Id == a.Id, "Play used the prepared cue instead of the clicked order row");
+                list.SelectedItem = b;
+                Check(actions.Visibility == Visibility.Hidden, "Actions retained a stale row after selection changed");
+            });
+            Test("Order delete removes only its clicked row while live output and library remain intact", () =>
+            {
+                var removable = new Cue { Kind = CueKind.Video, Title = "Remove order row", FilePath = video.FilePath };
+                var workspace = Field<WorkspaceData>(window, "_workspace");
+                var libraryBefore = workspace.Library.ToArray();
+                plan.Add(removable); list.SelectedItem = removable;
+                list.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+                    { RoutedEvent = UIElement.PreviewMouseLeftButtonUpEvent, Source = Row(removable) });
+                var live = session.Live;
+                ((Button)window.FindName("OrderDeleteButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                Check(!plan.Contains(removable) && !workspace.Plan.Items.Contains(removable), "Delete did not persist the order change");
+                Check(workspace.Library.SequenceEqual(libraryBefore) && File.Exists(video.FilePath), "Delete removed library content or a media file");
+                Check(ReferenceEquals(live, session.Live), "Deleting an order row changed the projected cue");
+                if (list.SelectedItem is null) Check(session.PreviewFollowsLive, "Removing the selection left a stale prepared cue");
+                Check(((FrameworkElement)window.FindName("OrderActionsPanel")).Visibility == Visibility.Hidden,
+                    "Delete left stale row actions visible");
+                var count = plan.Count;
+                Call(window, "DeleteOrderActionClick", window, new RoutedEventArgs());
+                Check(plan.Count == count, "A stale delete action removed another row");
+            });
+            Test("Delete key removes the focused order selection and preserves live output and library", () =>
+            {
+                var removable = new Cue { Title = "Quitar con Supr", Body = "Solo del orden" };
+                var workspace = Field<WorkspaceData>(window, "_workspace");
+                var library = workspace.Library.ToArray();
+                plan.Add(removable); list.SelectedItem = removable; Row(removable).Focus();
+                var live = session.Live;
+                var key = new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(list), Environment.TickCount, Key.Delete)
+                    { RoutedEvent = Keyboard.PreviewKeyDownEvent };
+                list.RaiseEvent(key);
+                Check(key.Handled && !plan.Contains(removable) && !workspace.Plan.Items.Contains(removable), "Delete key did not remove and persist selection");
+                Check(ReferenceEquals(live, session.Live) && library.SequenceEqual(workspace.Library), "Delete key changed live output or library");
+                list.SelectedItem = a;
+                var search = (TextBox)window.FindName("LibrarySearch"); search.Focus();
+                var count = plan.Count;
+                search.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(search), Environment.TickCount, Key.Delete)
+                    { RoutedEvent = Keyboard.PreviewKeyDownEvent });
+                Check(plan.Count == count && plan.Contains(a), "Delete in another field removed an order cue");
+            });
+            Test("Order drag release and empty space do not offer actions or project", () =>
+            {
+                Call(window, "HideOrderActions");
+                var live = session.Live;
+                var actions = (FrameworkElement)window.FindName("OrderActionsPanel");
+                list.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+                    { RoutedEvent = UIElement.PreviewMouseLeftButtonUpEvent });
+                Check(actions.Visibility == Visibility.Hidden, "Blank space offered stale actions");
+                SetField(window, "_orderDragPerformed", true);
+                try
+                {
+                    list.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+                        { RoutedEvent = UIElement.PreviewMouseLeftButtonUpEvent, Source = Row(a) });
+                    Check(actions.Visibility == Visibility.Hidden, "Drag release offered actions");
+                    Check(ReferenceEquals(live, session.Live), "Drag release changed output");
+                }
+                finally { SetField(window, "_orderDragPerformed", false); }
+            });
             Test("Order add menu opens each content source without projecting", () =>
             {
                 var add = window.FindName("AddOrderButton") as Button;
@@ -66,29 +144,42 @@ internal static partial class Program
             });
             Test("Sequence thumbnails follow order and preserve single and double click behavior", () =>
             {
-                var strip = window.FindName("SequenceList") as ListBox;
-                Check(strip is not null, "Sequence strip is missing");
-                Check(strip!.Items.Cast<Cue>().SequenceEqual(plan), "Sequence is not bound to the actual order");
-                var live = session.Live;
-                strip.SelectedItem = a;
-                window.UpdateLayout();
-                Check(ReferenceEquals(list.SelectedItem, a) && session.Prepared?.Id == a.Id, "Thumbnail selection did not prepare its cue");
-                Check(ReferenceEquals(live, session.Live), "Single thumbnail selection projected");
-                Call(window, "PrepareCue", b, null);
-                strip.ScrollIntoView(a); strip.UpdateLayout();
-                var row = (ListBoxItem)strip.ItemContainerGenerator.ContainerFromItem(a);
-                strip.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
-                    { RoutedEvent = UIElement.PreviewMouseLeftButtonUpEvent, Source = row });
-                Check(session.Prepared?.Id == a.Id, "Revisiting an already selected thumbnail failed");
-                strip.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
-                    { RoutedEvent = Control.MouseDoubleClickEvent, Source = row });
-                Check(session.Live?.Id == a.Id, "Thumbnail double click did not project its cue");
-                live = session.Live;
-                strip.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
-                    { RoutedEvent = Control.MouseDoubleClickEvent });
-                Check(ReferenceEquals(live, session.Live), "Empty sequence space projected");
-                plan.Move(0, 1); window.UpdateLayout();
-                Check(strip.Items.Cast<Cue>().SequenceEqual(plan), "Sequence order became stale after reordering");
+                var manager = (DockingManager)window.FindName("WorkspaceDock");
+                var sequenceTab = manager.Layout.Descendents().OfType<LayoutAnchorable>().Single(p => p.ContentId == "sequence");
+                var previousTab = ((LayoutAnchorablePane)sequenceTab.Parent).Children.FirstOrDefault(p => p.IsSelected)?.ContentId;
+                try
+                {
+                    Call(window, "ActivateWorkspacePanel", "sequence");
+                    window.UpdateLayout();
+                    var strip = window.FindName("SequenceList") as ListBox;
+                    Check(strip is not null, "Sequence strip is missing");
+                    Check(strip!.Items.Cast<Cue>().SequenceEqual(plan), "Sequence is not bound to the actual order");
+                    var live = session.Live;
+                    strip.SelectedItem = a;
+                    window.UpdateLayout();
+                    Check(ReferenceEquals(list.SelectedItem, a) && session.Prepared?.Id == a.Id, "Thumbnail selection did not prepare its cue");
+                    Check(ReferenceEquals(live, session.Live), "Single thumbnail selection projected");
+                    Call(window, "PrepareCue", b, null);
+                    strip.ScrollIntoView(a); strip.UpdateLayout();
+                    var row = (ListBoxItem)strip.ItemContainerGenerator.ContainerFromItem(a);
+                    strip.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+                        { RoutedEvent = UIElement.PreviewMouseLeftButtonUpEvent, Source = row });
+                    Check(session.Prepared?.Id == a.Id, "Revisiting an already selected thumbnail failed");
+                    strip.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+                        { RoutedEvent = Control.MouseDoubleClickEvent, Source = row });
+                    Check(session.Live?.Id == a.Id, "Thumbnail double click did not project its cue");
+                    live = session.Live;
+                    strip.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+                        { RoutedEvent = Control.MouseDoubleClickEvent });
+                    Check(ReferenceEquals(live, session.Live), "Empty sequence space projected");
+                    plan.Move(0, 1); window.UpdateLayout();
+                    Check(strip.Items.Cast<Cue>().SequenceEqual(plan), "Sequence order became stale after reordering");
+                }
+                finally
+                {
+                    if (previousTab is not null) Call(window, "ActivateWorkspacePanel", previousTab);
+                    window.UpdateLayout();
+                }
             });
             Test("Library double click projects its row and ignores empty space", () =>
             {
@@ -114,30 +205,34 @@ internal static partial class Program
                 }
                 finally { library.ItemsSource = originalSource; }
             });
-            Test("Video double click starts output while mini player pause seek and restart stay independent", () =>
+            Test("Video preview follows the one output player until another cue is prepared", () =>
             {
                 list.SelectedItem = video;
                 var preview = Field<ProjectionSurface>(window, "_preview");
-                Until(() => preview.IsPlaying && preview.Duration > 0, "Video did not start in mini player");
+                Check(!preview.IsPlaying && preview.Duration == 0, "Preparing media opened a second player");
                 DoubleClick(video);
                 var output = Field<ProjectionSurface>(window, "_output");
-                Check(output.GetType().GetProperty("IsTransitioning")?.GetValue(output) is true,
-                    "Double click cut directly to video without a dissolve");
                 Until(() => output.IsPlaying && output.Duration > 0, "Double click did not play output video");
-                var panel = window.FindName("PreviewPlaybackPanel") as FrameworkElement;
-                Check(panel?.Visibility == Visibility.Visible, "Mini player controls are missing");
-                Call(window, "PreviewPauseClick", window.FindName("PreviewPauseButton"), new RoutedEventArgs());
-                Until(() => !preview.IsPlaying, "Mini player did not pause");
-                Check(output.IsPlaying && preview.Volume == 0, "Preview pause/mute changed live playback");
-                var slider = (Slider)window.FindName("PreviewPositionSlider");
-                slider.Value = .5;
-                Call(window, "PreviewPositionSeek", slider, new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left));
-                Until(() => preview.Position >= preview.Duration * .35, "Mini player did not seek");
-                Call(window, "PreviewRestartClick", window, new RoutedEventArgs());
-                Until(() => preview.IsPlaying && preview.Position < preview.Duration * .3, "Mini player did not restart");
-                Check(output.IsPlaying, "Restarting preview stopped live playback");
+                var mirror = (OutputMonitor)window.FindName("PreviewLiveMonitor");
+                Check(mirror.Visibility == Visibility.Visible && session.PreviewFollowsLive, "Preview did not follow live output");
+                Check(window.FindName("PreviewPauseButton") is null, "Duplicate transport remains in preview");
+                var brush = Field<System.Windows.Media.VisualBrush>(mirror, "_localImage");
+                Check(ReferenceEquals(brush.Visual, output), "Preview is not drawing the actual output compositor");
+                Check(!preview.IsPlaying && preview.Duration == 0, "Following output started another decoder");
                 list.SelectedItem = a;
-                Check(panel!.Visibility == Visibility.Collapsed && session.Live?.Id == video.Id, "Text preview retained video controls or replaced output");
+                Check(mirror.Visibility == Visibility.Collapsed && session.Live?.Id == video.Id, "Preparing text replaced live playback");
+                var oldPosition = output.Position;
+                Call(window, "FollowLivePreviewClick", window, new RoutedEventArgs());
+                Check(mirror.Visibility == Visibility.Visible && output.IsPlaying && session.Live?.Id == video.Id,
+                    "Returning to output interrupted playback");
+                Check(output.Position >= oldPosition - .2, "Returning to output restarted video");
+                output.SetPaused(true);
+                Check(ReferenceEquals(Field<System.Windows.Media.VisualBrush>(mirror, "_localImage").Visual, output),
+                    "Paused preview stopped sharing the output surface");
+                Call(window, "ToggleBlackout");
+                Check(mirror.Visibility == Visibility.Visible && session.IsBlackout, "Blackout disconnected preview");
+                Call(window, "CloseOutput");
+                Check(Field<object?>(mirror, "_localImage") is null, "Closed output left a stale preview");
             });
         }
         finally

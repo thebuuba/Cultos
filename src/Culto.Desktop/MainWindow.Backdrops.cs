@@ -7,31 +7,7 @@ namespace Culto.Desktop;
 public partial class MainWindow
 {
     private void ChurchBackgroundClick(object sender, RoutedEventArgs e)
-    {
-        var paths = _workspace.BackgroundImages
-            .Concat(_workspace.BackgroundImagePath is { } selected ? new[] { selected } : Array.Empty<string>())
-            .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
-        var dialog = new BackgroundGalleryDialog(paths, _workspace.BackgroundImagePath,
-            _output is not null && (_session.IsTextHidden || _session.IsBlackout)) { Owner = this };
-        var chosen = dialog.ShowDialog() == true;
-        _workspace.BackgroundImages = dialog.Images;
-        if (_workspace.BackgroundImagePath is { } previous && !dialog.Images.Contains(previous, StringComparer.OrdinalIgnoreCase))
-            _workspace.BackgroundImagePath = null;
-        SaveWorkspace();
-        if (!chosen) return;
-        if (dialog.RestoreContent)
-        {
-            _session.RestoreContent(); ApplyBackdropTransition(); return;
-        }
-        if (dialog.SelectedPath is { } path && !CheckMedia(new Cue { Kind = CueKind.Image, Title = "Fondo iglesia", FilePath = path })) return;
-        var alreadyShowing = _output is not null && _session.IsTextHidden && !_session.IsBlackout;
-        SetChurchBackground(dialog.SelectedPath);
-        if (!alreadyShowing)
-        {
-            if (!EnsureOutput()) return;
-            _session.ShowBackground(); ApplyBackdropTransition();
-        }
-    }
+        => ShowLogo();
     private void BlackBackgroundClick(object sender, RoutedEventArgs e) => ShowBlackBackdrop();
 
     private void ShowBlackBackdrop()
@@ -56,6 +32,8 @@ public partial class MainWindow
             }
         }
         var transitions = _workspace.Transitions.Normalize();
+        if (_logoSlides.IsRunning && _session.IsTextHidden && !_session.IsBlackout)
+            transitions = transitions with { Kind = "Dissolve", DurationMilliseconds = _workspace.LogoPlayback.Normalize().TransitionMilliseconds };
         FadePowerPointOut(() => ApplyBackdropTransitionCore(transitions), transitions.AudioFadeOutMilliseconds);
     }
 
@@ -73,12 +51,15 @@ public partial class MainWindow
                 StopPowerPointOutput(); presentationError = "PowerPoint se cerró al detener la reproducción: " + error.Message;
             }
         }
-        _output!.BackgroundImagePath = _workspace.BackgroundImagePath;
+        _output!.BackgroundImagePath = CurrentBackgroundPath;
         _output.Transitions = transitions;
         _output.TransitionToBackdrop(_session.Live, _session.IsBlackout, _session.IsTextHidden);
-        _isPaused = true;
+        _logoAwaitingOutput = false;
+        _isPaused = _output.HasBackgroundMedia ? _output.IsPaused
+            : _session.Live?.Kind != CueKind.WindowCapture || _session.IsBlackout || _session.IsTextHidden;
         UpdateSessionLabels();
-        SetStatus(presentationError ?? (_session.IsBlackout ? "Fondo negro" : _session.IsTextHidden ? "Fondo iglesia" : "Contenido restaurado; reproducción pausada."), presentationError is not null);
+        SetStatus(presentationError ?? (_session.IsBlackout ? "Fondo negro" : _session.IsTextHidden ? "Logo"
+            : _isPaused ? "Contenido restaurado; reproducción pausada." : "Contenido restaurado."), presentationError is not null);
     }
 
     private void ChangeChurchBackgroundClick(object sender, RoutedEventArgs e)

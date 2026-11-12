@@ -4,9 +4,21 @@ public sealed class PresentationSession
 {
     public Cue? Prepared { get; private set; }
     public Cue? Live { get; private set; }
+    // Compare rendered content, not just the ID: an edited copy must stay prepared
+    // until it is sent, while selecting the unchanged live item follows its output.
+    public bool PreviewFollowsLive => Prepared is null || Live is not null
+        && Prepared.Id == Live.Id && Prepared.Kind == Live.Kind
+        && Prepared.Title == Live.Title && Prepared.Body == Live.Body
+        && Prepared.Reference == Live.Reference && Prepared.Version == Live.Version
+        && Prepared.FilePath == Live.FilePath && Prepared.Capture == Live.Capture;
     public bool IsBlackout { get; private set; }
     public bool IsTextHidden { get; private set; }
     public event Action? Changed;
+    public void FollowLive()
+    {
+        Prepared = Live is null ? null : Copy(Live);
+        Changed?.Invoke();
+    }
     public void Prepare(Cue cue)
     {
         ArgumentNullException.ThrowIfNull(cue);
@@ -17,16 +29,26 @@ public sealed class PresentationSession
     public void GoLive()
     {
         if (Prepared is null) return;
-        Live = new Cue
-        {
-            Id = Prepared.Id, Title = Prepared.Title, Kind = Prepared.Kind,
-            Body = Prepared.Body, Reference = Prepared.Reference, Version = Prepared.Version,
-            FilePath = Prepared.FilePath, HymnNumber = Prepared.HymnNumber, Notes = Prepared.Notes
-        };
+        Live = Copy(Prepared);
         IsBlackout = false;
         IsTextHidden = false;
         Changed?.Invoke();
     }
+
+    public void RestoreOutput(Cue? cue, bool blackout, bool hidden)
+    {
+        Live = cue is null ? null : Copy(cue);
+        IsBlackout = blackout;
+        IsTextHidden = hidden;
+        Changed?.Invoke();
+    }
+
+    private static Cue Copy(Cue cue) => new()
+    {
+        Id = cue.Id, Title = cue.Title, Kind = cue.Kind, Body = cue.Body,
+        Reference = cue.Reference, Version = cue.Version, FilePath = cue.FilePath,
+        HymnNumber = cue.HymnNumber, Notes = cue.Notes, Capture = cue.Capture is {} capture ? capture with {} : null
+    };
 
     public void ToggleBlackout()
     {

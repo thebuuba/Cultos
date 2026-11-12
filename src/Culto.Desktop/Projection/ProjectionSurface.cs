@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -14,6 +15,11 @@ namespace Culto.Desktop.Projection;
 public sealed partial class ProjectionSurface : UserControl, IDisposable
 {
     private readonly bool _preview;
+    private readonly Func<LibVLC>? _sharedVlc;
+    private readonly ProjectionMixer? _mixer;
+    private Cue? _shownCue;
+    private bool _loop;
+    private string? _backgroundImagePath;
     private readonly Grid _root = new() { Background = BackgroundBrush, ClipToBounds = true };
     private readonly TextBlock _body = Text(72);
     private readonly TextBlock _reference = Text(40);
@@ -36,9 +42,10 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
 
     public event Action<string>? PlaybackError;
 
-    public ProjectionSurface(bool preview = false)
+    public ProjectionSurface(bool preview = false, bool smoothTransitions = false, Func<LibVLC>? sharedVlc = null)
     {
         _preview = preview;
+        _sharedVlc = sharedVlc;
         _words = new StackPanel { Width = 1400, VerticalAlignment = VerticalAlignment.Center };
         _words.Children.Add(_body);
         _reference.Margin = new Thickness(0, 48, 0, 0);
@@ -55,6 +62,12 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         InitializeAudioFade();
         InitializeDissolve();
         ShowCue(null);
+        if (smoothTransitions && !preview)
+        {
+            _mixer = new ProjectionMixer();
+            _mixer.PlaybackError += message => PlaybackError?.Invoke(message);
+            Content = _mixer;
+        }
     }
 
     private static TextBlock Text(double size) => new()
@@ -65,29 +78,48 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
 
     public int Volume
     {
-        get => _preview ? 0 : _volume;
+        get => _mixer?.Volume ?? (_preview ? 0 : _volume);
         set
         {
+            if (_mixer is not null) { _mixer.Volume = value; return; }
             _volume = Math.Clamp(value, 0, 100);
             ApplyAudioVolume();
         }
     }
-    public bool Loop { get; set; }
-    public string? BackgroundImagePath { get; set; }
-    public double Position => _player is null || _disposed ? 0 : Math.Max(0, _player.Time / 1000d);
-    public double Duration => _player is null || _disposed ? 0 : Math.Max(0, _player.Length / 1000d);
-    public bool IsPlaying => !_disposed && _player?.IsPlaying == true;
+    public bool Loop { get => _mixer?.Loop ?? _loop; set { _loop = value; if (_mixer is not null) _mixer.Loop = value; } }
+    public bool KeepMediaAudio { get => _mixer?.KeepMediaAudio == true; set { if (_mixer is not null) _mixer.KeepMediaAudio = value; } }
+    public Cue? RetainedMediaCue => _mixer?.RetainedMediaCue;
+    public bool HasBackgroundMedia => _mixer?.HasBackgroundMedia == true;
+    public string? BackgroundImagePath { get => _mixer?.BackgroundImagePath ?? _backgroundImagePath;
+        set { _backgroundImagePath = value; if (_mixer is not null) _mixer.BackgroundImagePath = value; } }
+    public double Position => _mixer?.Position ?? (_player is null || _disposed ? 0 : Math.Max(0, _player.Time / 1000d));
+    public double Duration => _mixer?.Duration ?? (_player is null || _disposed ? 0 : Math.Max(0, _player.Length / 1000d));
+    public bool IsPlaying => !_disposed && (_mixer?.IsPlaying ?? (_captureClient is not null
+        ? _captureReady && !_pauseRequested && !_suppressed : _player?.IsPlaying == true));
+    public bool IsPreparingPlaybackEngine => _mixer?.IsPreparingPlaybackEngine == true;
+    internal bool HasVideoFrame => _captureClient is not null ? _captureReady : _compositedVideo.Source is not null;
+    internal bool HasLoadedMedia => _media is not null || _captureClient is not null;
+    public bool DisplayedBlackout => _mixer?.DisplayedBlackout ?? _suppressed;
+    public bool DisplayedHidden => _mixer?.DisplayedHidden ?? false;
+    public ProjectionSurface ActiveSurface => _mixer?.ActiveSurface ?? this;
+    public Cue? DisplayedCue => _mixer?.DisplayedCue ?? _shownCue;
+    public TransitionOptions PresentedTransitions => _mixer?.PresentedTransitions ?? _presentedTransitions with { };
 
     public void ShowCue(Cue? cue, bool blackout = false, bool hideText = false)
-        => Present(CreatePresentation(cue, blackout, hideText, false));
+    {
+        if (_mixer is not null) _mixer.ShowCue(cue, blackout, hideText);
+        else Present(CreatePresentation(cue, blackout, hideText, false));
+    }
 
     private void ShowCueCore(Cue? cue, bool blackout = false, bool hideText = false, bool paused = false)
     {
         if (_disposed) return;
+        _shownCue = cue;
+        if (cue?.Kind != CueKind.WindowCapture) StopWindowCapture();
         CancelDissolve();
         _cueFailed = false;
         _suppressed = blackout || hideText;
-        _root.Background = blackout ? Brushes.Black : BackgroundBrush;
+        _root.Background = blackout || (!hideText && cue?.Kind == CueKind.Video) ? Brushes.Black : BackgroundBrush;
         _image.Visibility = _text.Visibility = _video.Visibility = _compositedVideo.Visibility = Visibility.Collapsed;
         ResetVisualStyle();
         if (_suppressed) SetPaused(true);
@@ -110,7 +142,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         if (paused) SetPaused(true);
         if (_suppressed)
         {
-            if (!_preview && hideText && !blackout) ShowBackgroundImage();
+            if (!_preview && hideText && !blackout) { _root.Background = Brushes.Black; ShowBackgroundImage(); }
             return;
         }
 
@@ -135,6 +167,9 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
                     _image.Source = ReadImage(cue.FilePath);
                     _image.Visibility = Visibility.Visible;
                     break;
+                case CueKind.WindowCapture:
+                    ShowWindowCapture(cue, paused);
+                    break;
                 case CueKind.Video:
                 case CueKind.Audio:
                     RequireFile(cue.FilePath);
@@ -155,7 +190,8 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
                     break;
             }
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException or VLCException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException or VLCException
+            || cue?.Kind == CueKind.WindowCapture && ex is InvalidOperationException or System.ComponentModel.Win32Exception)
         {
             ReportError("No se pudo mostrar el contenido. " + ex.Message);
         }
@@ -223,7 +259,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
     private void EnsurePlayer()
     {
         if (_player is not null) return;
-        _vlc = new LibVLC("--no-video-title-show", "--quiet");
+        _vlc = _sharedVlc?.Invoke() ?? CreatePlaybackEngine();
         _player = new MediaPlayer(_vlc) { Volume = 0, Mute = true, EnableMouseInput = false, EnableKeyInput = false };
         if (_preview) _video.MediaPlayer = _player;
         else _compositedVideo.Attach(_player);
@@ -232,6 +268,12 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         _player.EndReached += OnEndReached;
         _player.TimeChanged += OnAudioOutputChanged;
     }
+
+    // VLC's default mmdevice output changes a shared Windows audio session.
+    // Muting/preloading one decoder would also mute the live decoder. DirectSound
+    // controls each decoder's own buffer, including independent volume and mute.
+    internal static LibVLC CreatePlaybackEngine() => new("--no-video-title-show", "--quiet",
+        "--aout=directsound", "--no-volume-save");
 
     private void OnPlaybackError(object? sender, EventArgs args)
     {
@@ -308,6 +350,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
 
     public void SetPaused(bool paused)
     {
+        if (_mixer is not null) { _mixer.SetPaused(paused); return; }
         if (_disposed) return;
         var wasPaused = _pauseRequested;
         _pauseRequested = paused || _suppressed;
@@ -323,6 +366,12 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         {
             if (!queued.Blackout && !queued.HideText)
                 _pendingPresentation = queued with { PauseAfter = false };
+            return;
+        }
+        if (_captureClient is not null)
+        {
+            if (!_pauseRequested) FadeAudio(1, _presentedTransitions.AudioFadeInMilliseconds);
+            else ApplyCapturedAudioVolume();
             return;
         }
         if (_player is null) return;
@@ -342,6 +391,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
 
     public void Restart()
     {
+        if (_mixer is not null) { _mixer.Restart(); return; }
         if (_disposed || _player is null || _media is null) return;
         if (_pendingPresentation is { } pending)
         {
@@ -365,26 +415,44 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
 
     public void Seek(double fraction)
     {
+        if (_mixer is not null) { _mixer.Seek(fraction); return; }
         if (_disposed || _player is null || _pendingPresentation is not null || !double.IsFinite(fraction)) return;
         _player.Position = (float)Math.Clamp(fraction, 0, 1);
     }
 
-    public void Dispose()
+    public void Dispose() => DisposePlayback(background: false).GetAwaiter().GetResult();
+    internal Task RetireAsync() => DisposePlayback(background: true);
+
+    private Task DisposePlayback(bool background)
     {
-        if (_disposed) return;
+        if (_disposed) return Task.CompletedTask;
         _pendingPresentation = null;
         _playbackGeneration++;
         CancelAudioFade(silence: true);
         CancelDissolve();
         _disposed = true;
+        StopWindowCapture();
+        _mixer?.Dispose();
         _moveClient?.Dispose(); _moveClient = null;
         if (_player is not null)
         {
             _player.EncounteredError -= OnPlaybackError; _player.Playing -= OnPlaying; _player.EndReached -= OnEndReached;
             _player.TimeChanged -= OnAudioOutputChanged;
-            _player.Stop(); _video.MediaPlayer = null; _player.Dispose();
+            _video.MediaPlayer = null;
         }
-        _video.Dispose(); _compositedVideo.Dispose(); _media?.Dispose(); _vlc?.Dispose();
+        _video.Dispose(); _compositedVideo.BeginDispose();
         _image.Source = null;
+        void ReleaseNative()
+        {
+            try { _player?.Stop(); }
+            finally
+            {
+                _player?.Dispose(); _media?.Dispose(); _compositedVideo.FinishDispose();
+                if (_sharedVlc is null) _vlc?.Dispose();
+            }
+        }
+        if (background) return Task.Run(ReleaseNative);
+        ReleaseNative();
+        return Task.CompletedTask;
     }
 }

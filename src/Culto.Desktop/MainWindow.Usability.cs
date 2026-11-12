@@ -13,6 +13,8 @@ public partial class MainWindow
         InputBindings.Add(new KeyBinding(new ActionCommand(() => SelectContentSource(0)), Key.D1, ModifierKeys.Control));
         InputBindings.Add(new KeyBinding(new ActionCommand(() => SelectContentSource(1)), Key.D2, ModifierKeys.Control));
         InputBindings.Add(new KeyBinding(new ActionCommand(() => SelectContentSource(2)), Key.D3, ModifierKeys.Control));
+        InputBindings.Add(new KeyBinding(new ActionCommand(() => SelectContentSource(3)), Key.D4, ModifierKeys.Control));
+        InputBindings.Add(new KeyBinding(new ActionCommand(ReturnToMedia), Key.F9, ModifierKeys.None));
     }
 
     private void SelectContentSource(int index)
@@ -21,12 +23,18 @@ public partial class MainWindow
         ActivateWorkspacePanel("sources");
         ContentTabs.SelectedIndex = index;
         ContentTabs.UpdateLayout();
-        FocusActiveSource();
+        FocusContentTabSearch();
     }
 
     private void FocusActiveSource()
     {
         if (!_ready) return;
+        if (MediaPanel.IsKeyboardFocusWithin) { MediaSearch.Focus(); MediaSearch.SelectAll(); return; }
+        FocusContentTabSearch();
+    }
+    private void FocusContentTabSearch()
+    {
+        if (ContentTabs.SelectedIndex == 3) { YouTubeList.Focus(); return; }
         var target = ContentTabs.SelectedIndex switch
         {
             0 => LibrarySearch,
@@ -34,23 +42,38 @@ public partial class MainWindow
             _ => TextBodyBox
         };
         target.Focus();
-        target.SelectAll();
+        if (!ReferenceEquals(target, BibleQuery) || !SelectBibleQueryBook()) target.SelectAll();
     }
 
     private void UpdateUsabilityState()
     {
         if (!_ready) return;
-        var liveMedia = _output is not null && _session.Live?.Kind is CueKind.Video or CueKind.Audio;
+        var capture = _output is not null && _session.Live?.Kind == CueKind.WindowCapture;
+        var liveMedia = _output is not null && _session.Live?.Kind is CueKind.Video or CueKind.Audio or CueKind.WindowCapture;
+        OutputTransportGrid.Visibility = capture || _session.Live?.Kind is not (CueKind.Video or CueKind.Audio) ? Visibility.Collapsed : Visibility.Visible;
+        PauseButton.IsEnabled = !capture;
+        PauseButton.Visibility = capture ? Visibility.Collapsed : Visibility.Visible;
+        foreach (var control in new FrameworkElement[] { PositionSlider, TimeText, OutputDurationText,
+            RestartOutputButton, OutputSkipBackButton, OutputSkipForwardButton, LoopCheck })
+            control.Visibility = capture ? Visibility.Collapsed : Visibility.Visible;
+        if (capture) UpdateCapturePlayButton();
         PowerPointPlaybackPanel.Visibility = _output is not null && _session.Live?.Kind == CueKind.PowerPoint ? Visibility.Visible : Visibility.Collapsed;
         if (FindName("MediaPlaybackPanel") is FrameworkElement mediaPanel)
-            mediaPanel.Visibility = liveMedia ? Visibility.Visible : Visibility.Collapsed;
-        PreviewPauseButton.Visibility = _session.Prepared?.Kind is CueKind.Video or CueKind.Audio ? Visibility.Visible : Visibility.Collapsed;
-        PreviewPlaybackPanel.Visibility = PreviewPauseButton.Visibility;
+            mediaPanel.Visibility = liveMedia || _output?.HasBackgroundMedia == true ? Visibility.Visible : Visibility.Collapsed;
         if (FindName("ScreenNavigationPanel") is FrameworkElement navigation)
             navigation.Visibility = Visibility.Visible;
         PlanList.LiveCueId = _output is not null ? _session.Live?.Id : null;
         if (FindName("NextLiveText") is TextBlock next)
             next.Text = NextLiveHint();
+    }
+
+    private void UpdateCapturePlayButton()
+    {
+        PauseButton.IsEnabled = false;
+        PauseButton.Visibility = Visibility.Collapsed;
+        var label = "Reproducción controlada desde YouTube";
+        PauseButton.ToolTip = label;
+        System.Windows.Automation.AutomationProperties.SetName(PauseButton, label);
     }
 
     private string NextLiveHint()

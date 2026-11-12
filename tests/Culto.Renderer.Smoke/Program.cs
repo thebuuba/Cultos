@@ -17,14 +17,22 @@ internal static partial class Program
 {
     static readonly string Folder = Path.GetFullPath("tests/Culto.Renderer.Smoke/fixtures");
     static readonly List<string> Results = [];
+    static string ResultPath => Environment.GetEnvironmentVariable("CULTO_RENDERER_RESULT") ?? Path.Combine(Folder, "result.txt");
     [STAThread]
     static void Main(string[] args)
     {
+        if (args.Contains("--capture-source")) { RunCaptureSource(); return; }
         var app = new System.Windows.Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
         app.Startup += async (_, _) =>
         {
-            try { await Run(args.Contains("--audio-fades"), args.Contains("--backdrops"), args.Contains("--bible-styles"), args.Contains("--global-transitions"), args.Contains("--dissolves")); File.WriteAllLines(Path.Combine(Folder, "result.txt"), Results); app.Shutdown(0); }
-            catch (Exception ex) { File.WriteAllLines(Path.Combine(Folder, "result.txt"), Results.Append(ex.ToString())); app.Shutdown(1); }
+            try { if (args.Contains("--audio-isolation")) await RunAudioIsolationChecks();
+                else if (args.Contains("--audio-crossfade")) await RunAudioCrossfadeCaptureChecks();
+                else if (args.Contains("--capture-recovery")) await RunWindowCaptureRecoveryChecks();
+                else if (args.Contains("--persistent-media")) await RunPersistentMediaChecks();
+                else if (args.Contains("--window-capture")) await RunWindowCaptureChecks();
+                else if (args.Contains("--capture-integration")) await RunWindowCaptureIntegrationChecks();
+                else await Run(args.Contains("--audio-fades"), args.Contains("--backdrops"), args.Contains("--bible-styles"), args.Contains("--global-transitions"), args.Contains("--dissolves"), args.Contains("--smooth-transitions")); File.WriteAllLines(ResultPath, Results); app.Shutdown(0); }
+            catch (Exception ex) { File.WriteAllLines(ResultPath, Results.Append(ex.ToString())); app.Shutdown(1); }
         };
         app.Run();
     }
@@ -39,8 +47,9 @@ internal static partial class Program
         for (int i = 0; i < VisualTreeHelper.GetChildrenCount(value); i++)
             foreach (var child in Descendants(VisualTreeHelper.GetChild(value, i))) yield return child;
     }
-    static async Task Run(bool audioOnly = false, bool backdropsOnly = false, bool bibleStylesOnly = false, bool globalTransitionsOnly = false, bool dissolvesOnly = false)
+    static async Task Run(bool audioOnly = false, bool backdropsOnly = false, bool bibleStylesOnly = false, bool globalTransitionsOnly = false, bool dissolvesOnly = false, bool smoothOnly = false)
     {
+        if (smoothOnly) { await RunSmoothTransitionChecks(); return; }
         using var output = new ProjectionSurface();
         using var preview = new ProjectionSurface(true);
         var window = new ProjectionWindow(output) { Width = 960, Height = 600, Left = 20, Top = 20 };
