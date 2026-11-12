@@ -1,8 +1,18 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 12 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.28.2`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 12 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.28.3`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### Primer cambio de captura a archivo — versión 0.28.3
+
+El usuario confirmó que la espera se producía solo en el primer cambio después de abrir el programa. Se reprodujo con una ventana animada propia y salida local fuera del árbol visual: el primer cambio a MKV tardó 19.566 ms; los siguientes necesitaron una sola orden. Una ejecución posterior con archivos ya cargados tardó 580 ms, de los cuales 154 ms correspondieron a crear el motor; estas cifras de distintas ejecuciones no constituyen una comparación controlada de rendimiento.
+
+Ahora una captura visible inicia la preparación de VLC en segundo plano, compartiendo su tarea con la futura solicitud de archivo. La captura continúa mientras tanto; no se abre un decoder ni se reproduce audio adicional. El cierre libera el motor incluso si la preparación termina después. Repetir una solicitud equivalente de video o audio pendiente conserva su decoder y actualiza la intención de pausa. Un archivo distinto o una configuración diferente siguen sustituyendo la solicitud anterior.
+
+Se comprobaron dos regresiones rojas antes de corregirlas: repetir una solicitud retiraba el decoder que esperaba su primer fotograma y la captura no preparaba el motor antes del primer archivo. El selector `--capture-to-file` pasa 19 comprobaciones con captura real de un proceso sintético separado, primera carga, tres cambios posteriores y repetición de órdenes durante la espera del primer fotograma. Pasaron también las 41 comprobaciones de transiciones y las cuatro del ensayo de arranque, pausa, cierre y última solicitud. El ensayo de arranque agotó inicialmente su espera de ocho segundos en la prueba de pausa; una segunda ejecución completa pasó, con 47 ms de intervalo máximo entre actualizaciones de interfaz y video en 869 ms. Se conservan ambos resultados. Falta ensayar el cambio con el navegador y archivos concretos del usuario; no se controló Chrome ni se reinició su aplicación.
+
+Evidencias: `.tools/capture-to-file-baseline.txt`, `.tools/capture-to-file-red.txt`, `.tools/capture-to-file-warmup-red.txt`, `.tools/capture-to-file-final.txt`, `.tools/capture-switch-smooth-regression.txt`, `.tools/capture-switch-cold-initial.log` y `.tools/capture-switch-cold-regression.log`. La compilación y las pruebas del núcleo y mando quedan registradas en `.tools/release0283.log`.
 
 ### Recorte persistente de YouTube — versión 0.28.2
 

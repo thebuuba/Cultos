@@ -29,6 +29,7 @@ internal static partial class Program
                 else if (args.Contains("--audio-crossfade")) await RunAudioCrossfadeCaptureChecks();
                 else if (args.Contains("--capture-recovery")) await RunWindowCaptureRecoveryChecks();
                 else if (args.Contains("--capture-local")) await RunLocalCaptureChecks();
+                else if (args.Contains("--capture-to-file")) await RunLocalCaptureChecks(switchToFile: true);
                 else if (args.Contains("--persistent-media")) await RunPersistentMediaChecks();
                 else if (args.Contains("--window-capture")) await RunWindowCaptureChecks();
                 else if (args.Contains("--capture-integration")) await RunWindowCaptureIntegrationChecks();

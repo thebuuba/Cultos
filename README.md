@@ -4,7 +4,9 @@ Consola nativa para Windows destinada a preparar y proyectar cultos. Reúne el o
 
 ## Abrir el programa
 
-Ejecuta **Abrir Culto Studio.cmd** en esta carpeta, o abre `artifacts/CultoStudio-0.28.2/CultoStudio.exe`. La distribución publicada incluye .NET y el reproductor nativo; conserva todos los archivos de esa carpeta junto al ejecutable. Windows x64.
+Ejecuta **Abrir Culto Studio.cmd** en esta carpeta, o abre `artifacts/CultoStudio-0.28.3/CultoStudio.exe`. La distribución publicada incluye .NET y el reproductor nativo; conserva todos los archivos de esa carpeta junto al ejecutable. Windows x64.
+
+En 0.28.3, al proyectar una captura se prepara el motor de archivos en segundo plano para adelantar su primera carga antes de cambiar de YouTube a un video de la PC. Durante esa preparación la captura sigue funcionando. Repetir la orden del mismo archivo mientras carga conserva el reproductor pendiente y su avance de carga. Una selección distinta sigue sustituyendo la solicitud anterior.
 
 En 0.28.2, **YouTube → Editar captura → Guardar captura** conserva el recorte, posición y tamaño como ajuste para las siguientes capturas de YouTube, aunque cambie el video o reinicies el programa. Si hay una sola fuente guardada y una sola ventana compatible, la lista puede recuperarla tras cerrar y volver a abrir Chrome con otro título. Las capturas que ya tienen un recorte propio lo conservan. Cierra la versión anterior antes de abrir esta actualización; si el recorte anterior ya se perdió, ajústalo y guárdalo una vez.
 

@@ -15,7 +15,7 @@ using Culto.Desktop.Services;
 
 internal static partial class Program
 {
-    private static async Task RunLocalCaptureChecks()
+    private static async Task RunLocalCaptureChecks(bool switchToFile = false)
     {
         Check(ObsWindowCaptureClient.IsAvailable, "Local capture has the shipped native capture worker");
         var start = new ProcessStartInfo(Path.GetFullPath(".tools/dotnet/dotnet.exe"))
@@ -34,6 +34,17 @@ internal static partial class Program
         var host = new Window { Title = "Culto local capture resize test", Content = grid, Width = 850, Height = 330,
             Left = 600, Top = 50, Topmost = true, ShowInTaskbar = false };
         var errors = new List<string>(); output.PlaybackError += errors.Add;
+        long engineMilliseconds = -1;
+        var mixer = typeof(ProjectionSurface).GetField("_mixer", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(output)!;
+        if (switchToFile)
+            mixer.GetType().GetField("_engineFactory", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(mixer,
+                (Func<LibVLCSharp.Shared.LibVLC>)(() =>
+                {
+                    var engineClock = Stopwatch.StartNew();
+                    var engine = ProjectionSurface.CreatePlaybackEngine();
+                    System.Threading.Interlocked.Exchange(ref engineMilliseconds, engineClock.ElapsedMilliseconds);
+                    return engine;
+                }));
         object? Field(object instance, string name) => instance.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(instance);
         bool SourceIsColored()
         {
@@ -76,6 +87,33 @@ internal static partial class Program
             var selected = WindowCaptureCatalog.List().Single(item => item.Options.ProcessId == source.Id).Options;
             output.TransitionTo(new Cue { Kind = CueKind.WindowCapture, Capture = selected with { ControlAudio = false } });
             await Until(() => !output.IsTransitioning && output.IsPlaying && SourceIsColored(), "Off-tree output receives real source pixels");
+            if (switchToFile)
+            {
+                var capture = output.DisplayedCue!;
+                var video = new Cue { Kind = CueKind.Video, Title = "File replacing capture", FilePath = Path.Combine(Folder, "test.mkv") };
+                await Until(() => !output.IsPreparingPlaybackEngine, "Capture can finish warming the local video engine", 30000);
+                var engineWasReadyBeforeFirstFile = engineMilliseconds >= 0;
+                var requested = Stopwatch.StartNew();
+                output.TransitionTo(video); output.SetPaused(false);
+                await Until(() => output.DisplayedCue?.Id == video.Id && !output.IsTransitioning && output.IsPlaying,
+                    "One request replaces a live capture with the first local video", 30000);
+                Results.Add($"INFO first capture-to-file request: {requested.ElapsedMilliseconds} ms; native engine: {engineMilliseconds} ms");
+                for (var i = 0; i < 3; i++)
+                {
+                    output.TransitionTo(capture); output.SetPaused(false);
+                    await Until(() => output.DisplayedCue?.Id == capture.Id && !output.IsTransitioning && SourceIsColored(), "Capture returns for the next file change");
+                    output.TransitionTo(video); output.SetPaused(false);
+                    var pending = Field(mixer, "_incoming");
+                    Check(pending is not null, "The local file is preparing its first decoded frame");
+                    output.TransitionTo(video); output.SetPaused(false);
+                    Check(ReferenceEquals(pending, Field(mixer, "_incoming")), "Repeating the same pending file request keeps its decoder instead of starting over");
+                    await Until(() => output.DisplayedCue?.Id == video.Id && !output.IsTransitioning && output.IsPlaying,
+                        "One request replaces capture with an already initialized video player");
+                }
+                Check(engineWasReadyBeforeFirstFile, "A live capture prepares the local video engine before the first file request");
+                Check(errors.Count == 0, "Capture-to-file changes report no playback failures");
+                return;
+            }
             await CheckMonitors("before maximizing");
             var client = Field(output.ActiveSurface, "_captureClient");
             for (var i = 0; i < 3; i++)

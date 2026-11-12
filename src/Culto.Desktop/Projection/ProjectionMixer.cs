@@ -150,6 +150,16 @@ internal sealed class ProjectionMixer : Grid, IDisposable
     private void Enqueue(Request request)
     {
         if (_disposed) return;
+        if (_loading is { } loading && request.Cue?.Kind is CueKind.Video or CueKind.Audio
+            && SameMedia(loading.Cue, request.Cue) && loading.Cue?.Title == request.Cue.Title
+            && loading.Blackout == request.Blackout && loading.Hidden == request.Hidden
+            && loading.Options == request.Options && loading.Style == request.Style && loading.Background == request.Background)
+        {
+            // Repeated projection of a loading file must not discard its decoder
+            // and restart the wait for its first frame.
+            SetPaused(request.PauseAfter);
+            return;
+        }
         if (_blend is not null)
         {
             // Finish the brief visible blend; keep only the newest queued request.
@@ -166,6 +176,10 @@ internal sealed class ProjectionMixer : Grid, IDisposable
         _desiredPause = request.PauseAfter; _pauseImmediately = false;
         _blackout = request.Blackout; _hidden = request.Hidden;
         _appliedOptions = request.Options with { };
+        // A capture can run for an entire service before the first local file.
+        // Warm the engine now, without opening a decoder or changing its audio.
+        if (_vlc is null && request.Cue?.Kind == CueKind.WindowCapture && !request.Blackout && !request.Hidden)
+            _initialization ??= Task.Run(_engineFactory);
         if (_vlc is null && request.Cue?.Kind is CueKind.Video or CueKind.Audio && !request.Blackout && !request.Hidden)
         {
             // libvlc_new may scan/load hundreds of native plugins on a cold install.
