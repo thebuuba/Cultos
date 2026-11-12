@@ -1,8 +1,22 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 12 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.28.0`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 12 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.28.2`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### Recorte persistente de YouTube — versión 0.28.2
+
+El recorte y la transformación visual se guardan como ajuste de YouTube, sin identidad de ventana ni opciones de audio o cursor. Las ventanas nuevas y los elementos antiguos sin recorte heredan este ajuste; se respetan los recortes propios de cada fuente o elemento del orden. Al cargar datos antiguos se recupera un único ajuste visual existente en las fuentes o el orden; si hay ajustes distintos no se elige uno arbitrariamente. Guardar en el editor y añadir al orden persisten el ajuste, con reversión si falla el guardado. No se modificaron los datos reales del usuario.
+
+La lista recupera una única fuente guardada tras cerrar Chrome y abrir un video de título distinto, únicamente si hay una sola ventana compatible y se confirma que desapareció la identidad original. Una ventana oculta, en otro escritorio o cuyo proceso no puede consultarse no se considera cerrada. Las fuentes ambiguas se eligen manualmente. El editor conserva el recorte al asociarlo a la identidad actual y no lo restablece en la siguiente actualización. La salida, vista previa y restauración desde negro/Logo aplican el mismo ajuste.
+
+Pasaron 12 pruebas sin ventanas de descubrimiento, recortes independientes, reconexión, identidad oculta, migración y persistencia en disco, además de dos pruebas del editor con controles desconectados y sin captura. La regresión de identidad oculta falló antes de aplicar la protección. Compilación sin errores ni advertencias, 232 pruebas del núcleo y 61 del mando correctas. Evidencias: `.tools/youtube-layout-red.log`, `.tools/youtube-hidden-red.log`, `.tools/youtube-layout-final.log`, `.tools/youtube-layout-editor.log` y `.tools/release0282.log`. Esta entrega se preparó sin controlar el escritorio ni reiniciar la aplicación; falta comprobar el recorte real del navegador en la nueva versión. El recorte previamente perdido no puede recuperarse de datos que contienen todos sus valores en cero.
+
+### Compatibilidad de captura al maximizar — versión 0.28.1
+
+Se observó con el navegador real que al maximizar Culto Studio la región de video de Chrome quedaba negra, mientras su interfaz seguía capturándose; al restaurar Culto volvía el video. Se añadió una compatibilidad temporal en la ventana de la consola durante capturas de Chromium para que no se considere completamente opaca en la detección de oclusión. Conserva el marco, los controles nativos y la recepción de clics; se retira al terminar la captura. Incluye notificación de cambio de estado para invalidar el cálculo de oclusión del navegador.
+
+Las cuatro comprobaciones nativas del estilo, entrada, restauración y transición pasaron, junto con un ensayo de captura de una ventana sintética durante tres ciclos de maximizar/restaurar. Evidencias: `.tools/browser-compat-final.log`, `.tools/browser-compat-publish-final.log` y `.tools/local-capture-baseline.txt`. El usuario interrumpió el control con Esc antes de terminar el ensayo final con YouTube: **sigue pendiente confirmar que esta compatibilidad resuelva el negro del navegador real**. La corrección se conserva en 0.28.2.
 
 ### Punto de recuperación antes del rediseño
 

@@ -37,6 +37,7 @@ public partial class MainWindow
     private void ShowLiveCueCore(TransitionOptions transitions, BibleVisualStyle bibleStyle)
     {
         if (_output is null) return;
+        var cue = WithYouTubeLayout(_session.Live);
         _output.BibleStyle = bibleStyle;
         _output.Transitions = transitions;
         _output.BackgroundImagePath = CurrentBackgroundPath;
@@ -44,12 +45,12 @@ public partial class MainWindow
         if (_session.IsTextHidden && !_session.IsBlackout && _logoSlides.IsRunning)
         {
             _output.Transitions = transitions with { Kind = "Dissolve", DurationMilliseconds = _workspace.LogoPlayback.Normalize().TransitionMilliseconds };
-            _output.TransitionToBackdrop(_session.Live, false, true);
+            _output.TransitionToBackdrop(cue, false, true);
             _logoAwaitingOutput = false;
         }
-        else if (_session.IsBlackout || _session.IsTextHidden) _output.ShowCue(_session.Live, _session.IsBlackout, _session.IsTextHidden);
-        else if (_session.Live is not null) _output.TransitionTo(_session.Live);
-        else _output.ShowCue(_session.Live);
+        else if (_session.IsBlackout || _session.IsTextHidden) _output.ShowCue(cue, _session.IsBlackout, _session.IsTextHidden);
+        else if (cue is not null) _output.TransitionTo(cue);
+        else _output.ShowCue(cue);
         if (_session.Live?.Kind == CueKind.PowerPoint) ShowPowerPointOutput();
     }
 }

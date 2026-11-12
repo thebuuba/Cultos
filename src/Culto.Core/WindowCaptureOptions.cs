@@ -40,6 +40,22 @@ public sealed record WindowCaptureOptions
     }
 }
 
+// A reusable visual layout has no window/process identity or audio controls.
+public sealed record WindowCaptureLayout(int CropLeft = 0, int CropTop = 0, int CropRight = 0, int CropBottom = 0,
+    WindowCaptureTransform? Transform = null)
+{
+    public static bool IsConfigured(WindowCaptureOptions source) => source.CropLeft != 0 || source.CropTop != 0
+        || source.CropRight != 0 || source.CropBottom != 0 || source.Transform is not null;
+
+    public static WindowCaptureLayout From(WindowCaptureOptions source) =>
+        new(source.CropLeft, source.CropTop, source.CropRight, source.CropBottom, source.Transform);
+
+    public WindowCaptureOptions ApplyTo(WindowCaptureOptions target) => (target with
+    {
+        CropLeft = CropLeft, CropTop = CropTop, CropRight = CropRight, CropBottom = CropBottom, Transform = Transform
+    }).Normalize();
+}
+
 public sealed record ObsCaptureCommand(WindowCaptureOptions Source)
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);

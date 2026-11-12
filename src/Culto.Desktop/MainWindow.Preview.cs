@@ -8,7 +8,7 @@ public partial class MainWindow
     private bool _preparedBibleStyleChanged;
     private void RenderPreparedPreview()
     {
-        var cue = _session.Prepared;
+        var cue = WithYouTubeLayout(_session.Prepared);
         _preview.BibleStyle = _workspace.BibleStyle.Normalize();
         PreparedMediaCover.Cue = cue;
         // Prepared video/audio are title covers, never a second VLC player.

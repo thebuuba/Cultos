@@ -68,8 +68,9 @@ public partial class MainWindow
                 KeepMediaAudio = _workspace.KeepMediaAudio,
                 BackgroundImagePath = _workspace.BackgroundImagePath, BibleStyle = _workspace.BibleStyle.Normalize(), Transitions = _workspace.Transitions.Normalize() };
             _output.PlaybackError += OnOutputPlaybackError;
-            _output.ShowCue(_session.Live, blackout: true);
-            _output.ShowCue(_session.Live, _session.IsBlackout, _session.IsTextHidden);
+            var initialCue = WithYouTubeLayout(_session.Live);
+            _output.ShowCue(initialCue, blackout: true);
+            _output.ShowCue(initialCue, _session.IsBlackout, _session.IsTextHidden);
             AttachLocalOutput();
             return true;
         }
@@ -282,6 +283,7 @@ public partial class MainWindow
     }
     private void TimerTick(object? sender, EventArgs e)
     {
+        UpdateBrowserCaptureCompatibility();
         if (_output?.IsPreparingPlaybackEngine == true) SetStatus("Preparando reproductor…");
         else if (StatusText.Text == "Preparando reproductor…")
             SetStatus(_output?.DisplayedCue is { } ready ? "En pantalla: " + ready.Title : "Reproductor preparado.");

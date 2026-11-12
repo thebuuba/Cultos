@@ -24,6 +24,7 @@ public sealed class WindowCaptureDialog : Window
     private readonly CheckBox _cursor = new() { Content = "Mostrar cursor", Name = "CaptureCursor", Margin = new Thickness(0, 8, 20, 8) };
     private readonly CheckBox _audio = new() { Content = "Audio de la aplicación", Name = "CaptureAudio", IsChecked = true, Margin = new Thickness(0, 8, 0, 8), ToolTip = "El volumen incluye otras pestañas y ventanas con sonido del mismo navegador." };
     private readonly Cue? _initialCue;
+    private readonly WindowCaptureLayout? _youTubeLayout;
     private bool _initialApplied;
     private readonly Button _add;
     private readonly DispatcherTimer _debounce = new() { Interval = TimeSpan.FromMilliseconds(220) };
@@ -35,9 +36,10 @@ public sealed class WindowCaptureDialog : Window
     private bool _closed, _ready, _refreshing;
     public Cue? SelectedCue { get; private set; }
 
-    public WindowCaptureDialog(Cue? initialCue = null)
+    public WindowCaptureDialog(Cue? initialCue = null, WindowCaptureLayout? youTubeLayout = null)
     {
         _initialCue = initialCue;
+        _youTubeLayout = youTubeLayout;
         Style = (Style)Application.Current.FindResource(typeof(Window));
         Title = initialCue is null ? "Capturar ventana" : "Editar captura";
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -169,7 +171,10 @@ public sealed class WindowCaptureDialog : Window
     {
         if (_windows.SelectedItem is not WindowCaptureTarget target) return;
         var saved = !_initialApplied ? _initialCue?.Capture : null;
-        _captureCanvas.SetSource(target.Width, target.Height, saved ?? target.Options);
+        var options = WindowCaptureCatalog.CopySelection(saved ?? target.Options, target.Options);
+        if (_youTubeLayout is not null && YouTubeDiscovery.IsYouTube(target.Options) && !WindowCaptureLayout.IsConfigured(options))
+            options = _youTubeLayout.ApplyTo(options);
+        _captureCanvas.SetSource(target.Width, target.Height, options);
         _name.Text = !_initialApplied && _initialCue is not null ? _initialCue.Title : target.Options.WindowTitle;
         _cursor.IsChecked = (saved ?? target.Options).CaptureCursor;
         _audio.IsChecked = (saved ?? target.Options).ControlAudio;

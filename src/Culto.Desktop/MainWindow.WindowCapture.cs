@@ -17,7 +17,7 @@ public partial class MainWindow
 
     private void CaptureWindowClick(object sender, RoutedEventArgs e)
     {
-        var dialog = new WindowCaptureDialog { Owner = this };
+        var dialog = new WindowCaptureDialog(youTubeLayout: _workspace.YouTubeLayout) { Owner = this };
         if (dialog.ShowDialog() != true || dialog.SelectedCue is not { } cue) return;
         AddCaptureToPlan(cue);
     }

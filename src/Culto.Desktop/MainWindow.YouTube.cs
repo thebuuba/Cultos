@@ -52,7 +52,8 @@ public partial class MainWindow
         selectedKey ??= (YouTubeList.SelectedItem as YouTubeSource)?.Key;
         try
         {
-            var sources = YouTubeDiscovery.Build(_workspace.YouTubeSources, WindowCaptureCatalog.List());
+            var sources = YouTubeDiscovery.Build(_workspace.YouTubeSources, WindowCaptureCatalog.List(), _workspace.YouTubeLayout,
+                WindowCaptureCatalog.WindowStillExists);
             _refreshingYouTube = true;
             try
             {
@@ -113,17 +114,20 @@ public partial class MainWindow
     private void EditYouTubeClick(object sender, RoutedEventArgs e)
     {
         if (YouTubeList.SelectedItem is not YouTubeSource source) return;
-        var dialog = new WindowCaptureDialog(CopyCue(source.Cue)) { Owner = this };
+        var dialog = new WindowCaptureDialog(CopyCue(source.Cue), _workspace.YouTubeLayout) { Owner = this };
         if (dialog.ShowDialog() != true || dialog.SelectedCue is not { } edited) return;
         var index = _workspace.YouTubeSources.FindIndex(cue => cue.Id == edited.Id);
         var previous = index >= 0 ? _workspace.YouTubeSources[index] : null;
         var saved = CopyCue(edited);
+        var previousLayout = _workspace.YouTubeLayout;
+        RememberYouTubeLayout(saved);
         if (index >= 0) _workspace.YouTubeSources[index] = saved;
         else _workspace.YouTubeSources.Add(saved);
         if (!SaveWorkspace())
         {
             if (index >= 0) _workspace.YouTubeSources[index] = previous!;
             else _workspace.YouTubeSources.Remove(saved);
+            _workspace.YouTubeLayout = previousLayout;
             return;
         }
         RefreshYouTube("saved:" + saved.Id);
@@ -133,6 +137,8 @@ public partial class MainWindow
 
     private void AddCaptureToPlan(Cue cue)
     {
+        var previousLayout = _workspace.YouTubeLayout;
+        RememberYouTubeLayout(cue);
         var saved = _workspace.YouTubeSources.FirstOrDefault(source => source.Id == cue.Id);
         var added = saved is null;
         if (added) { saved = CopyCue(cue); _workspace.YouTubeSources.Add(saved); }
@@ -144,6 +150,7 @@ public partial class MainWindow
             if (added) _workspace.YouTubeSources.Remove(saved!);
             _plan.Remove(item);
             _workspace.Plan.Items = _plan.ToList();
+            _workspace.YouTubeLayout = previousLayout;
             UpdatePlanCount();
             return;
         }
@@ -153,4 +160,12 @@ public partial class MainWindow
         PrepareCue(item);
         SetStatus("Captura añadida al orden y guardada en YouTube.");
     }
+
+    private void RememberYouTubeLayout(Cue cue)
+    {
+        if (cue.Kind == CueKind.WindowCapture && cue.Capture is { } capture && YouTubeDiscovery.IsYouTube(capture))
+            _workspace.YouTubeLayout = WindowCaptureLayout.From(capture.Normalize());
+    }
+
+    private Cue? WithYouTubeLayout(Cue? cue) => cue is null ? null : YouTubeDiscovery.ApplyLayout(cue, _workspace.YouTubeLayout);
 }

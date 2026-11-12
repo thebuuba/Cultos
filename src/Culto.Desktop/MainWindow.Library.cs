@@ -147,10 +147,19 @@ public partial class MainWindow
         if (LibraryList.SelectedItem is not Cue cue) { SetStatus("Selecciona un elemento para editarlo."); return; }
         if (cue.Kind == CueKind.WindowCapture)
         {
-            var capture = new WindowCaptureDialog(cue) { Owner = this };
+            var capture = new WindowCaptureDialog(cue, _workspace.YouTubeLayout) { Owner = this };
             if (capture.ShowDialog() != true || capture.SelectedCue is not { } edited) return;
+            var previous = CopyCue(cue);
+            var previousLayout = _workspace.YouTubeLayout;
             cue.Title = edited.Title; cue.Capture = edited.Capture;
-            RefreshLibrary(); SaveWorkspace(); PrepareCue(cue); return;
+            RememberYouTubeLayout(cue);
+            RefreshLibrary();
+            if (!SaveWorkspace())
+            {
+                cue.Title = previous.Title; cue.Capture = previous.Capture;
+                _workspace.YouTubeLayout = previousLayout; RefreshLibrary(); return;
+            }
+            PrepareCue(cue); return;
         }
         var dialog = new CueEditDialog(cue) { Owner = this };
         if (dialog.ShowDialog() != true) return;

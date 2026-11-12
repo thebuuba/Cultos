@@ -49,6 +49,8 @@ public partial class MainWindow : Window
         _plan.CollectionChanged += (_, _) => UpdateUsabilityState();
         Loaded += (_, _) => InitializeWorkspace();
         Closing += OnWindowClosing;
+        SizeChanged += (_, _) => UpdateBrowserCaptureCompatibility();
+        StateChanged += (_, _) => UpdateBrowserCaptureCompatibility();
         InputBindings.Add(new KeyBinding(new ActionCommand(ProjectPrepared), Key.F5, ModifierKeys.None));
         InputBindings.Add(new KeyBinding(new ActionCommand(() => AdvancePresentation(1)), Key.F6, ModifierKeys.None));
         InputBindings.Add(new KeyBinding(new ActionCommand(() => AdvancePresentation(-1)), Key.F7, ModifierKeys.None));
@@ -111,6 +113,7 @@ public partial class MainWindow : Window
         UpdateUsabilityState();
         SyncPreviewSource();
         UpdateBackgroundAudioState();
+        UpdateBrowserCaptureCompatibility();
         SetStatus($"Vista previa: {cue.Title}");
     }
 
@@ -146,6 +149,7 @@ public partial class MainWindow : Window
         ChurchBackgroundButton.ToolTip = "Logo";
         UpdateUsabilityState();
         SyncPreviewSource();
+        UpdateBrowserCaptureCompatibility();
     }
 
     private void SetStatus(string message, bool error = false)
@@ -213,6 +217,7 @@ public partial class MainWindow : Window
         }
         SaveDockLayout();
         _closing = true; _timer.Stop();
+        UpdateBrowserCaptureCompatibility();
         DisposeYouTube();
         DisposePresenterHotkeys();
         _bibleSearchTimer?.Stop();

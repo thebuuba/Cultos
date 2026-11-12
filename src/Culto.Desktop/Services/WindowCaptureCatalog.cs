@@ -21,6 +21,25 @@ public static class WindowCaptureCatalog
         IsWindow((nint)handle) && GetClientRect((nint)handle, out var bounds)
             && bounds.Right > 0 && bounds.Bottom > 0 ? (bounds.Right, bounds.Bottom) : null;
 
+    public static bool WindowStillExists(WindowCaptureOptions selected)
+    {
+        var window = (nint)selected.WindowHandle;
+        if (!IsWindow(window)) return false;
+        GetWindowThreadProcessId(window, out uint processId);
+        if (processId != selected.ProcessId) return false;
+        if (selected.ProcessStartTimeUtcTicks <= 0) return true;
+        try
+        {
+            using var process = Process.GetProcessById(selected.ProcessId);
+            return process.StartTime.ToUniversalTime().Ticks == selected.ProcessStartTimeUtcTicks;
+        }
+        catch (Exception error) when (error is System.ComponentModel.Win32Exception or InvalidOperationException or ArgumentException)
+        {
+            // An inaccessible process is not proof that the selected window closed.
+            return true;
+        }
+    }
+
     public static IReadOnlyList<WindowCaptureTarget> List()
     {
         var result = new List<WindowCaptureTarget>();
@@ -70,7 +89,7 @@ public static class WindowCaptureCatalog
         return exact.IsMinimized || !IsWindowVisible((nint)selected.WindowHandle) ? null : CopySelection(selected, exact.Options);
     }
 
-    private static WindowCaptureOptions CopySelection(WindowCaptureOptions saved, WindowCaptureOptions current) => saved with
+    public static WindowCaptureOptions CopySelection(WindowCaptureOptions saved, WindowCaptureOptions current) => saved with
     {
         WindowHandle = current.WindowHandle, ProcessId = current.ProcessId,
         ProcessStartTimeUtcTicks = current.ProcessStartTimeUtcTicks,

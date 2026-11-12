@@ -53,7 +53,7 @@ public partial class MainWindow
         }
         _output!.BackgroundImagePath = CurrentBackgroundPath;
         _output.Transitions = transitions;
-        _output.TransitionToBackdrop(_session.Live, _session.IsBlackout, _session.IsTextHidden);
+        _output.TransitionToBackdrop(WithYouTubeLayout(_session.Live), _session.IsBlackout, _session.IsTextHidden);
         _logoAwaitingOutput = false;
         _isPaused = _output.HasBackgroundMedia ? _output.IsPaused
             : _session.Live?.Kind != CueKind.WindowCapture || _session.IsBlackout || _session.IsTextHidden;

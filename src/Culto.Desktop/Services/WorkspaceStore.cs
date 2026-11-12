@@ -8,6 +8,7 @@ public sealed class WorkspaceData
     public ServicePlan Plan { get; set; } = new();
     public List<Cue> Library { get; set; } = [];
     public List<Cue> YouTubeSources { get; set; } = [];
+    public WindowCaptureLayout? YouTubeLayout { get; set; }
     public List<SavedSet> VideoCollections { get; set; } = [];
     public List<SavedSet> SavedServices { get; set; } = [];
     public bool PresenterEnabled { get; set; }
@@ -57,6 +58,16 @@ public sealed class WorkspaceStore
             foreach (var cue in data.Library.Where(cue => cue.Kind == CueKind.WindowCapture))
                 if (data.YouTubeSources.All(source => source.Id != cue.Id)) data.YouTubeSources.Add(YouTubeDiscovery.Clone(cue));
             data.Library.RemoveAll(cue => cue.Kind == CueKind.WindowCapture);
+            // Recover one unambiguous existing layout, including a cut that was
+            // saved only on an independent copy in the worship order.
+            if (data.YouTubeLayout is null)
+            {
+                var layouts = data.YouTubeSources.Concat(data.Plan.Items)
+                    .Where(cue => cue?.Kind == CueKind.WindowCapture && cue.Capture is { } capture && YouTubeDiscovery.IsYouTube(capture))
+                    .Select(cue => WindowCaptureLayout.From(cue.Capture!.Normalize()))
+                    .Where(layout => layout != new WindowCaptureLayout()).Distinct().Take(2).ToArray();
+                if (layouts.Length == 1) data.YouTubeLayout = layouts[0];
+            }
             data.Deck = data.Deck.Select(button => button is { Action: "background", Label: "Mostrar fondo" }
                 ? button with { Label = "Logo" } : button).ToList();
             data.VideoCollections = NormalizeSets(data.VideoCollections, videosOnly: true);
