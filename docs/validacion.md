@@ -22,7 +22,7 @@ Resultados de escritorio (los recuentos incluyen la comprobación inicial cuando
 |---|---|
 | `scripts/build.ps1` | Compilación sin errores ni advertencias; 232 Core y 61 Remote correctas |
 | `--visual-theme` | 11 comprobaciones correctas y tres capturas comparables |
-| Ensayo general de escritorio | 100 correctas y 2 fallos preexistentes descritos abajo |
+| Ensayo general de escritorio | 101 correctas y 2 fallos preexistentes descritos abajo |
 | `--compact-output` | 3 correctas, incluidos controles estrechos y ventana flotante mínima |
 | `--order`, `--content-drag` | 11 y 12 correctas |
 | `--media-layout-headless`, `--capture-layout-headless` | 6 y 2 correctas |
