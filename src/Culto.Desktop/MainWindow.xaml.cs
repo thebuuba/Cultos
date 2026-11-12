@@ -41,6 +41,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        InitializeWorkspaceHeader();
         InitializeBibleReferenceInput();
         InitializeOrderActions();
         InitializePlayerControls();
@@ -61,7 +62,11 @@ public partial class MainWindow : Window
     private void InitializeWorkspace()
     {
         string? recoveryMessage = null;
-        try { _workspace = _store.Load(); }
+        try
+        {
+            _workspace = _store.Load();
+            _workspaceSaveOkay = File.Exists(Path.Combine(_store.DirectoryPath, "workspace.json")) ? true : null;
+        }
         catch (Exception ex)
         {
             _workspaceRecoveryBlocked = true;
@@ -171,9 +176,10 @@ public partial class MainWindow : Window
             SetStatus("No se puede guardar sobre los archivos sin recuperar. Exporta el culto con Guardar antes de cerrar.", true);
             return false;
         }
-        try { _store.Save(_workspace); return true; }
+        try { _store.Save(_workspace); _workspaceSaveOkay = true; return true; }
         catch (Exception ex)
         {
+            _workspaceSaveOkay = false;
             SetStatus("No se pudo guardar. Exporta el culto con Guardar. " + ex.Message, true);
             return false;
         }

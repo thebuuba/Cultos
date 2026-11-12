@@ -114,13 +114,14 @@ internal static partial class Program
             app.ShutdownMode = ShutdownMode.OnExplicitShutdown;
             // Rendering/animation checks need a visible compositor surface even
             // when the user's normal console or Office is also open.
-            var window = new MainWindow { Topmost = true };
+            var window = new MainWindow { Topmost = true, WindowState = WindowState.Normal };
             app.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
             {
                 window.Show();
                 app.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
                 {
-                    try { if (args.Contains("--visual-theme")) RunVisualThemeTests(window); else if (args.Contains("--browser-capture-compat")) RunBrowserCaptureCompatibilityTests(window); else if (args.Contains("--content-drag")) RunContentDragDropTests(window); else if (args.Contains("--youtube-controls")) RunYouTubeControlsTests(window); else if (args.Contains("--cold-play")) RunColdPlaybackTests(window); else if (args.Contains("--order")) RunOrderInteractionTests(window); else if (args.Contains("--output-player")) RunOutputPlayerWindowTests(window); else if (args.Contains("--window-capture-picker")) RunWindowCapturePickerTests(window); else if (args.Contains("--transition-settings")) RunTransitionSettingsTests(window); else if (args.Contains("--powerpoint")) RunPowerPointTests(window, directory); else if (args.Contains("--presenter")) RunPresenterHotkeysTests(window); else if (args.Contains("--saved-sets")) RunSavedSetsTests(window); else if (args.Contains("--bible-tools")) { RunBibleSearchTests(window, directory); RunBibleSelectionTests(window); RunBibleStyleIntegrationTests(window); RunBibleEditorTests(window); } else if (args.Contains("--content-sources")) { RunLocalMediaFolderServiceTests(); RunFolderSourcesTests(window); RunContentDragDropTests(window); } else if (args.Contains("--local-output")) RunLocalOutputTests(window); else if (args.Contains("--compact-output")) RunCompactOutputTests(window); else if (args.Contains("--player")) RunPlayerControlsTests(window); else if (args.Contains("--backdrops")) RunBackdropControlsTests(window); else if (args.Contains("--remote-order")) { RunRemoteOrderTests(window); RunRemoteDialogTests(window); } else RunWindowTests(window, directory); }
+                    try { if (args.Contains("--workspace-layouts")) RunWorkspacePresetTests(window, directory); else if (args.Contains("--visual-theme")) RunVisualThemeTests(window); else if (args.Contains("--browser-capture-compat")) RunBrowserCaptureCompatibilityTests(window); else if (args.Contains("--content-drag")) RunContentDragDropTests(window); else if (args.Contains("--youtube-controls")) RunYouTubeControlsTests(window); else if (args.Contains("--cold-play")) RunColdPlaybackTests(window); else if (args.Contains("--order")) RunOrderInteractionTests(window); else if (args.Contains("--output-player")) RunOutputPlayerWindowTests(window); else if (args.Contains("--window-capture-picker")) RunWindowCapturePickerTests(window); else if (args.Contains("--transition-settings")) RunTransitionSettingsTests(window); else if (args.Contains("--powerpoint")) RunPowerPointTests(window, directory); else if (args.Contains("--presenter")) RunPresenterHotkeysTests(window); else if (args.Contains("--saved-sets")) RunSavedSetsTests(window); else if (args.Contains("--bible-tools")) { RunBibleSearchTests(window, directory); RunBibleSelectionTests(window); RunBibleStyleIntegrationTests(window); RunBibleEditorTests(window); } else if (args.Contains("--content-sources")) { RunLocalMediaFolderServiceTests(); RunFolderSourcesTests(window); RunContentDragDropTests(window); } else if (args.Contains("--local-output")) RunLocalOutputTests(window); else if (args.Contains("--compact-output")) RunCompactOutputTests(window); else if (args.Contains("--player")) RunPlayerControlsTests(window); else if (args.Contains("--backdrops")) RunBackdropControlsTests(window); else if (args.Contains("--remote-order")) { RunRemoteOrderTests(window); RunRemoteDialogTests(window); } else RunWindowTests(window, directory); }
+                    catch (Exception error) { failures++; Console.WriteLine("FAIL smoke callback: " + error); }
                     finally
                     {
                         if (!Field<bool>(window, "_closing"))
@@ -389,7 +390,7 @@ internal static partial class Program
 
     private static void RunDesignTests(MainWindow window, string directory, PresentationSession session)
     {
-        var tabs = (TabControl)window.FindName("ContentTabs");
+
         var library = (ListBox)window.FindName("LibraryList");
         var filter = (ListBox)window.FindName("LibraryFilter");
         var search = (TextBox)window.FindName("LibrarySearch");
@@ -399,7 +400,7 @@ internal static partial class Program
 
         Test("Library search and categories show counts while clear retains category and live", () =>
         {
-            tabs.SelectedIndex = 0; filter.SelectedIndex = 0; search.Clear();
+            Call(window, "SelectContentSource", 0); filter.SelectedIndex = 0; search.Clear();
             var previousCount = library.Items.Count;
             var live = session.Live!; var liveBody = live.Body;
             var fixture = Path.Combine(AppContext.BaseDirectory, "fixtures", "test.mkv");
@@ -436,10 +437,18 @@ internal static partial class Program
             Check(!clear.IsEnabled, "Clear search remains enabled with an empty query");
             library.SelectedIndex = 0;
             Field<Dictionary<int, string>>(window, "_folderPaths")[3] = directory;
-            filter.SelectedIndex = 3;
-            Until(() => !Field<bool>(window, "_folderLoading"), "Pictures folder did not finish loading");
-            Check(library.Items.Count == 1 && count.Text == "1 de 1 contenidos", "Pictures folder did not show its image/count");
-            Check(((Cue)library.Items[0]).Kind == CueKind.Image, "Images category contains a different media type");
+            var folders = (ListBox)window.FindName("MediaFolders");
+            var media = (ListBox)window.FindName("MediaList");
+            var oldFolder = folders.SelectedValue;
+            try
+            {
+                Call(window, "SetLibraryFolder", -1);
+                folders.SelectedValue = "3";
+                Until(() => !Field<bool>(window, "_folderLoading"), "Pictures folder did not finish loading");
+                Check(media.Items.Count == 1 && ((TextBlock)window.FindName("MediaCountText")).Text == "1 archivos", "Pictures source did not show its image/count");
+                Check(((Cue)media.Items[0]).Kind == CueKind.Image, "Pictures source contains a different media type");
+            }
+            finally { folders.SelectedValue = oldFolder; }
             filter.SelectedIndex = 5; search.Text = "aviso sintético"; CheckCount(1);
             Check(((Cue)library.Items[0]).Title == "Aviso sintético especial", "Text title search missed the saved announcement");
             search.Clear(); filter.SelectedIndex = 0; CheckCount(total);
@@ -524,7 +533,7 @@ internal static partial class Program
 
         Test("Compact docked console keeps both monitors and source controls reachable", () =>
         {
-            var width = window.Width; var height = window.Height; var selectedTab = tabs.SelectedIndex;
+            var width = window.Width; var height = window.Height; var selectedTab = Field<int>(window, "_activeContentSource");
             var previousLive = session.Live!;
             var client = (FrameworkElement)window.Content;
             var preview = (FrameworkElement)window.FindName("PreviewHost");
@@ -541,6 +550,8 @@ internal static partial class Program
                 Call(window, "ProjectPrepared");
                 window.WindowState = WindowState.Normal; window.Width = Math.Max(width, 1600); window.Height = 900;
                 window.Activate(); window.UpdateLayout(); PumpFor(50);
+                Call(window, "ApplyWorkspacePreset", "compacta", false);
+                Call(window, "SelectContentSource", 0);
                 var orderColumn = (FrameworkElement)window.FindName("OrderPanel");
                 var contentColumn = (FrameworkElement)window.FindName("SourcesPanel");
                 var outputColumn = (FrameworkElement)window.FindName("PreviewPanel");
@@ -552,6 +563,7 @@ internal static partial class Program
                 Check(contentColumn.ActualWidth > sourceWidth, "Dock sizing did not enlarge the source panel");
                 foreach (var compactHeight in new[] { 720, 680 })
                 {
+                    Call(window, "SelectContentSource", 0);
                     window.Width = 1280; window.Height = compactHeight;
                     window.UpdateLayout(); PumpFor(50);
                     var viewport = new Rect(client.RenderSize);
@@ -563,6 +575,8 @@ internal static partial class Program
                     foreach (var name in new[] { "ProjectButton", "BlackoutButton", "FileMenuButton", "LibraryMenuButton", "SettingsMenuButton", "AddOrderButton" })
                     {
                         var button = (Button)window.FindName(name);
+                        if (((ScrollViewer)window.FindName("LiveScroll")).IsAncestorOf(button))
+                        { button.BringIntoView(); window.UpdateLayout(); }
                         CheckWithin(button, client, viewport, name);
                         var bounds = BoundsWithin(button, client);
                         var hit = client.InputHitTest(new Point(bounds.Left + bounds.Width / 2, bounds.Top + bounds.Height / 2)) as DependencyObject;
@@ -586,16 +600,15 @@ internal static partial class Program
                         else CheckWithin(element, client, liveViewport, $"{name} at height {compactHeight}");
                     }
                     Check(liveBody.ActualHeight >= liveBody.FontSize, "Compact layout hides every line of the live reading excerpt");
-                    foreach (var tab in tabs.Items.Cast<TabItem>())
+                    for (var index = 0; index < 4; index++)
                     {
-                        tabs.SelectedItem = tab; window.UpdateLayout(); PumpFor(25);
-                        CheckWithin(tab, client, BoundsWithin(contentColumn, client), $"{tab.Header} tab header");
-                        var page = (FrameworkElement)tab.Content;
+                        Call(window, "SelectContentSource", index); window.UpdateLayout(); PumpFor(25);
+                        var page = (FrameworkElement)window.FindName(new[] { "SourcesPanel", "BiblePanel", "TextPanel", "YouTubePanel" }[index]);
                         var pageViewport = BoundsWithin(page, client);
-                        CheckWithin(page, client, BoundsWithin(contentColumn, client), $"{tab.Header} page");
+                        CheckWithin(page, client, viewport, $"Source {index} page");
                         foreach (var control in Descendants(page).OfType<FrameworkElement>()
                             .Where(element => element.IsVisible && (element is Button or TextBox or ListBox or ComboBox)))
-                            CheckWithin(control, client, pageViewport, $"{tab.Header}: {control.Name} {control.GetType().Name} at height {compactHeight}");
+                            CheckWithin(control, client, pageViewport, $"Source {index}: {control.Name} {control.GetType().Name} at height {compactHeight}");
                     }
                     var video = MediaLibrary.FromFile(Path.Combine(AppContext.BaseDirectory, "fixtures", "test.mkv"));
                     Call(window, "PrepareCue", video, null); Call(window, "ProjectPrepared");
@@ -610,7 +623,7 @@ internal static partial class Program
             finally
             {
                 Call(window, "RestoreDockLayout", originalLayout);
-                window.Width = width; window.Height = height; tabs.SelectedIndex = selectedTab; window.UpdateLayout();
+                window.Width = width; window.Height = height; Call(window, "SelectContentSource", selectedTab); window.UpdateLayout();
                 Call(window, "PrepareCue", previousLive, null); Call(window, "ProjectPrepared");
             }
         });

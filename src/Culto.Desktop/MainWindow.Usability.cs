@@ -7,8 +7,11 @@ namespace Culto.Desktop;
 
 public partial class MainWindow
 {
+    private int _activeContentSource;
+
     private void InitializeUsabilityShortcuts()
     {
+        WorkspaceDock.ActiveContentChanged += (_, _) => UpdateActiveContentSource();
         InputBindings.Add(new KeyBinding(new ActionCommand(FocusActiveSource), Key.F, ModifierKeys.Control));
         InputBindings.Add(new KeyBinding(new ActionCommand(() => SelectContentSource(0)), Key.D1, ModifierKeys.Control));
         InputBindings.Add(new KeyBinding(new ActionCommand(() => SelectContentSource(1)), Key.D2, ModifierKeys.Control));
@@ -19,23 +22,33 @@ public partial class MainWindow
 
     private void SelectContentSource(int index)
     {
-        if (!_ready) return;
-        ActivateWorkspacePanel("sources");
-        ContentTabs.SelectedIndex = index;
-        ContentTabs.UpdateLayout();
-        FocusContentTabSearch();
+        if (!_ready || index is < 0 or > 3) return;
+        _activeContentSource = index;
+        ActivateWorkspacePanel(index switch { 0 => "sources", 1 => "bible", 2 => "text", _ => "youtube" });
+        WorkspaceDock.UpdateLayout();
+        FocusContentSourceSearch();
+    }
+
+    private void UpdateActiveContentSource()
+    {
+        FrameworkElement[] panels = [SourcesPanel, BiblePanel, TextPanel, YouTubePanel];
+        var index = Array.FindIndex(panels, panel => ReferenceEquals(WorkspaceDock.ActiveContent, panel));
+        if (index < 0) index = Array.FindIndex(panels, panel => panel.IsKeyboardFocusWithin);
+        if (index >= 0) _activeContentSource = index;
     }
 
     private void FocusActiveSource()
     {
         if (!_ready) return;
-        if (MediaPanel.IsKeyboardFocusWithin) { MediaSearch.Focus(); MediaSearch.SelectAll(); return; }
-        FocusContentTabSearch();
+        if (ReferenceEquals(WorkspaceDock.ActiveContent, MediaPanel) || WorkspaceDock.ActiveContent is null && MediaPanel.IsKeyboardFocusWithin)
+        { MediaSearch.Focus(); MediaSearch.SelectAll(); return; }
+        UpdateActiveContentSource();
+        SelectContentSource(_activeContentSource);
     }
-    private void FocusContentTabSearch()
+    private void FocusContentSourceSearch()
     {
-        if (ContentTabs.SelectedIndex == 3) { YouTubeList.Focus(); return; }
-        var target = ContentTabs.SelectedIndex switch
+        if (_activeContentSource == 3) { YouTubeList.Focus(); return; }
+        var target = _activeContentSource switch
         {
             0 => LibrarySearch,
             1 => BibleQuery,

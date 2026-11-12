@@ -25,12 +25,6 @@ public partial class MainWindow
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr window, int attribute, ref int value, int size);
 
-    private void ContentTabChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (ReferenceEquals(e.Source, ContentTabs) && ContentTabs.SelectedItem is TabItem { Content: FrameworkElement content })
-            UiMotion.Reveal(content);
-    }
-
     private void OpenActionsClick(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { ContextMenu: { } menu } button) return;

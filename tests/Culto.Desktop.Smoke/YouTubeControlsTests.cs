@@ -1,6 +1,9 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
+using AvalonDock;
+using AvalonDock.Layout;
 using Culto.Core;
 using Culto.Desktop;
 using Culto.Desktop.Projection;
@@ -39,17 +42,38 @@ internal static partial class Program
                 floating.Close(); floating = null;
                 Call(window, "CloseOutput");
             });
-            Test("YouTube is its own content tab and old Library capture menu is removed", () =>
+            Test("YouTube opens its independent native panel without starting capture", () =>
             {
-                var tabs = (TabControl)window.FindName("ContentTabs");
-                Check(tabs.Items.Count == 4 && ((TabItem)tabs.Items[3]).Header?.ToString() == "YouTube", "Dedicated YouTube tab is absent");
+                var manager = (DockingManager)window.FindName("WorkspaceDock");
+                var pane = manager.Layout.Descendents().OfType<LayoutAnchorable>().Single(item => item.ContentId == "youtube");
+                var panel = (FrameworkElement)window.FindName("YouTubePanel");
                 var library = (Button)window.FindName("LibraryMenuButton");
                 Check(!library.ContextMenu!.Items.OfType<MenuItem>().Any(item => item.Header?.ToString()?.Contains("Capturar ventana") == true),
                     "Capture still lives in Library menu");
                 Call(window, "SelectContentSource", 3);
-                Check(tabs.SelectedIndex == 3, "YouTube shortcut did not select its section");
+                Until(() => Field<int>(window, "_activeContentSource") == 3 && pane.IsActive && panel.IsVisible
+                    && ((ListBox)window.FindName("YouTubeList")).IsKeyboardFocusWithin, "YouTube shortcut did not activate and focus its native panel");
+                Check(ReferenceEquals(manager.ActiveContent, panel), "YouTube activation opened a different panel");
                 Check(Field<object?>(Field<ProjectionSurface>(window, "_preview"), "_captureClient") is null,
                     "Opening YouTube started an unrequested capture");
+            });
+            Test("YouTube discovery refreshes on native activation and runs only while its panel is visible", () =>
+            {
+                var panel = (FrameworkElement)window.FindName("YouTubePanel");
+                var timer = Field<DispatcherTimer>(window, "_youTubeTimer");
+                var count = (TextBlock)window.FindName("YouTubeCountText");
+                Call(window, "ActivateWorkspacePanel", "order");
+                count.Text = "Pending native activation refresh";
+                Call(window, "ActivateWorkspacePanel", "youtube");
+                Check(count.Text != "Pending native activation refresh", "Activating an already visible YouTube panel did not rediscover windows");
+                var visibility = panel.Visibility;
+                try
+                {
+                    panel.Visibility = Visibility.Collapsed;
+                    Until(() => !timer.IsEnabled, "Hidden YouTube panel kept polling windows");
+                }
+                finally { panel.Visibility = visibility; }
+                Until(() => panel.IsVisible && timer.IsEnabled, "Showing YouTube did not resume discovery");
             });
             Test("Keep audio and one-way return work through the actual console actions", () =>
             {

@@ -26,7 +26,8 @@ internal static partial class Program
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(BitmapSource.Create(1, 1, 96, 96, PixelFormats.Bgr32, null, new byte[] { 20, 180, 30, 255 }, 4)));
         using (var stream = File.Create(imagePath)) encoder.Save(stream);
-        using (var stream = File.Create(secondImagePath)) encoder.Save(stream);
+        var secondEncoder = new PngBitmapEncoder(); secondEncoder.Frames.Add(encoder.Frames[0]);
+        using (var stream = File.Create(secondImagePath)) secondEncoder.Save(stream);
         void Click(string name)
         {
             var button = window.FindName(name) as Button;

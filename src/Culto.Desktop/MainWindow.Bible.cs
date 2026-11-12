@@ -9,6 +9,7 @@ namespace Culto.Desktop;
 
 public sealed record BibleResult(BibleVerse Verse, Cue Cue)
 {
+    public bool ShowReference { get; init; }
     public string Reference => $"{Verse.Book} {Verse.Chapter}:{Verse.Verse}";
     public string Text => Verse.Text;
 }
@@ -188,7 +189,8 @@ public partial class MainWindow
     }
     private void SetBibleResults(IReadOnlyList<BibleVerse> verses, bool referenceSearch, int? selectedVerse = null, bool selectFirst = true, bool selectRange = false)
     {
-        var results = verses.Select(verse => new BibleResult(verse, _bibleCuesByReference[(verse.Book, verse.Chapter, verse.Verse)])).ToList();
+        var results = verses.Select(verse => new BibleResult(verse, _bibleCuesByReference[(verse.Book, verse.Chapter, verse.Verse)])
+            { ShowReference = !string.IsNullOrWhiteSpace(BibleQuery.Text) }).ToList();
         _referenceSearch = referenceSearch;
         _bibleResults = results;
         _updatingBibleSelection = true;

@@ -77,13 +77,13 @@ internal static partial class Program
             Call(window, "OpenOutput", Culto.Desktop.Services.DisplayService.GetDisplays().First(), true);
             Call(window, "ProjectPrepared"); Until(() => monitor.IsConnected, "Reopened output did not reconnect");
         });
-        Test("All six panels can float regroup and restore without replacing controls or session", () =>
+        Test("All nine panels can float regroup and restore without replacing controls or session", () =>
         {
             var live = session.Live; var prepared = session.Prepared;
             var original = manager.Layout.Descendents().OfType<LayoutAnchorable>().ToDictionary(p => p.ContentId, p => p.Content);
             try
             {
-                Check(original.Count == 6, "Missing dockable workspace panels");
+                Check(original.Count == 9, "Missing dockable workspace panels");
                 foreach (var id in original.Keys)
                 {
                     var pane = Panel(id);
@@ -97,7 +97,7 @@ internal static partial class Program
                 ((LayoutAnchorablePane)order.Parent).Children.Remove(order); target.Children.Add(order); order.IsSelected = true;
                 Check(ReferenceEquals(order.Parent, Panel("sequence").Parent), "Panel grouping failed");
                 Call(window, "SaveDockLayout");
-                var saved = File.ReadAllText(Path.Combine(directory, "paneles.xml"));
+                var saved = File.ReadAllText(Path.Combine(directory, "paneles-v2.xml"));
                 Call(window, "RestoreDockLayout", initial);
                 Call(window, "RestoreDockLayout", saved);
                 Check(ReferenceEquals(Panel("order").Parent, Panel("sequence").Parent), "Saved grouping was lost");
@@ -112,6 +112,7 @@ internal static partial class Program
             {
                 var document = System.Xml.Linq.XDocument.Parse(initial);
                 document.Descendants().Single(e => (string?)e.Attribute("ContentId") == "media").Remove();
+                foreach (var id in new[] { "bible", "text", "youtube" }) document.Descendants().Single(e => (string?)e.Attribute("ContentId") == id).Remove();
                 var sequence = document.Descendants().Single(e => (string?)e.Attribute("ContentId") == "sequence");
                 sequence.Parent!.SetAttributeValue("DockWidth", "1.25*");
                 sequence.SetAttributeValue("IsSelected", "true");

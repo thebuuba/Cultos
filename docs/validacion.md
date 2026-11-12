@@ -1,8 +1,42 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 12 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.29.0`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 12 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.30.0`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### Tarjetas, distribuciones y mando — versión 0.30.0
+
+El usuario amplió el alcance con dos capturas: pidió reproducir formas, tarjetas, sombras, bordes, cabecera y mando remoto, además de fuentes visibles a la vez, paneles movibles, tres distribuciones y reset. La implementación parte de `eb9d6a6`, conserva 0.29.0 y se preparó en `codex/polymet-cards-and-remote`. El plan está en `docs/superpowers/plans/2026-11-12-culto-studio-tarjetas-y-mando.md`.
+
+Hay nueve paneles AvalonDock reutilizando los controles existentes. Principal separa Medios, Himnario, Biblia y YouTube; Texto queda inicialmente junto a Himnario. Compacta agrupa las fuentes a la derecha. Proyección las agrupa a la izquierda y aumenta el área de los monitores. Se verificaron identidad de controles/sesión, agrupación y flotación, guardado/restauración, rechazo de XML corrupto y reset. Principal se adapta a ventanas pequeñas únicamente mientras no esté personalizada. Las posiciones nuevas usan `paneles-v2.xml`; `paneles.xml` queda intacto y se puede recuperar desde el menú. Una distribución completa antigua de seis paneles incorpora las tres fuentes nuevas conservando sus grupos y geometría.
+
+Cada panel tiene un contorno continuo, título con separación, esquinas y sombra discreta; los monitores y portadas se recortan visualmente con su radio, sin alterar el contenido enviado. La cabecera muestra nombre y guardado reales, posición actual en el orden y Control remoto. El área de imagen aumenta al ampliar el panel; el desplazamiento secundario conserva al menos 44 DIP para mostrar los controles completos. La búsqueda bíblica conserva la cita completa en las consultas por texto; las tarjetas estrechas ajustan sus acciones sin recortar las etiquetas.
+
+El diálogo de mando usa QR/enlace reales, lista de navegadores autenticados y preview de teléfono. La página local tiene el mismo lenguaje visual en móvil y PC: tarjetas, navegación y accesos con iconos SVG y color de superficie. Conserva los comandos, orden, autenticación Bearer, comprobación de origen e idempotencia. Los dos pesos web de Lexend se sirven desde el propio ejecutable. El texto bíblico/anuncio proyectado se publica en la preview autenticada; los videos y capturas muestran su título/estado, sin añadir streaming de video al teléfono. No se inventan PIN, batería ni nombres personales.
+
+La conexión distingue sesiones autenticadas mediante `X-Culto-Client`, conserva nombres generales del navegador/dispositivo y considera activo un cliente con solicitud en los últimos 15 segundos. Se verificó que solicitudes anónimas y de otro origen no registran clientes. El estado de salida cerrada tiene prioridad sobre un negro anterior, tanto en el snapshot como en la página. El editor nativo conserva la creación y guardado de accesos.
+
+Resultados finales:
+
+| Verificación | Resultado |
+|---|---|
+| Release | 0 errores/advertencias; 232 Core y 63 Remote correctas |
+| Escritorio general completo | 137 comprobaciones, 0 fallos; proceso terminado normalmente |
+| `--workspace-layouts` | 9 correctas, incluyendo fixture inicial y ocho pruebas de distribuciones |
+| `--visual-theme` | 12 correctas; capturas 1900×1000, 1480×900, 1280×680 y 1200×680 DIP, diálogo y editor |
+| `--compact-output`, `--order`, `--content-drag` | 3, 11 y 12 correctas |
+| `--bible-tools`, `--youtube-controls`, `--remote-order` | 17, 5 y 11 correctas |
+| `--player`, `--output-player`, `--saved-sets`, `--backdrops` | 4, 6, 3 y 8 correctas |
+| Layouts sin ventanas de Medios y captura | 6 y 2 correctas |
+| Renderer `--capture-to-file` | 19 comprobaciones nativas correctas |
+| `--cold-play` | 4 correctas; imagen en 785 ms y mayor intervalo de UI de 36 ms en esa ejecución |
+| Script de la web | Sintaxis JavaScript válida; API y fuentes locales verificadas por HTTP |
+
+Se corrigieron tres problemas de los ensayos anteriores: Imágenes seguía comprobándose en el filtro oculto del Himnario en vez de Medios; el escenario remoto de Logo no cargaba ninguna imagen; y el fixture de fondos reutilizaba un `BitmapEncoder` en dos guardados, lo cual lanzaba una excepción fuera de las comprobaciones. Ahora usa un encoder por archivo, el callback registra excepciones como fallo y el ensayo general ejecuta también los bloques posteriores de fondos y medios. No se presentan estos cambios de pruebas como arreglos del motor de reproducción. La excepción reveló además una búsqueda tardía de recursos al desmontar los títulos de panel: los recursos se conservan y las actualizaciones se detienen al cerrar.
+
+Evidencias en `.tools/worktrees/culto-polymet/.tools/`: `reference-desktop-complete.log`, `reference-release-build.log`, `reference-workspace-layouts.log`, `reference-visual-theme.log`, `reference-*.log` de cada selector y `reference-capture-to-file.txt`. Las capturas están en `reference-final`. Se conservan los resultados iniciales y los stacks `reference-desktop-hang-stack.txt` y `reference-desktop-teardown-stack.txt`. Las pruebas usan datos temporales y fuentes propias; no reemplazan biblioteca, Biblia ni orden reales.
+
+Límites: **la revisión automática bloqueó la inspección de Chrome porque no pudo verificar la URL de su ventana**. No se eludió el bloqueo; el render visual real de la web y el teléfono físico siguen pendientes. Las capturas del teléfono son del componente WPF del diálogo, no de un navegador móvil. No se ensayaron HDMI físico, PowerPoint real, presentador USB ni DPI 125 %/150 %. Los motores de audio, video, captura y Move se conservaron.
 
 ### Adaptación visual carbón y verde — versión 0.29.0
 

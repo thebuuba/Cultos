@@ -34,7 +34,6 @@ internal static partial class Program
         var library = (ListBox)window.FindName("MediaList");
         var refresh = Descendants((FrameworkElement)window.FindName("MediaPanel")).OfType<Button>()
             .Single(button => AutomationProperties.GetName(button) == "Actualizar medios");
-        var tabs = (TabControl)window.FindName("ContentTabs");
         var session = Field<PresentationSession>(window, "_session");
         var oldPaths = paths.ToDictionary(pair => pair.Key, pair => pair.Value);
         var oldLibrary = workspace.Library.ToList();
@@ -46,7 +45,7 @@ internal static partial class Program
         var oldFolderFilter = workspace.MediaFolderFilter;
         var oldDescending = workspace.MediaSortDescending;
         var oldQuery = search.Text;
-        var oldTab = tabs.SelectedIndex;
+        var oldSource = Field<int>(window, "_activeContentSource");
         var oldPrepared = session.Prepared;
         var oldLive = session.Live;
         var oldPreparedReading = Field<IReadOnlyList<Cue>?>(window, "_preparedReading");
@@ -82,7 +81,7 @@ internal static partial class Program
             Call(window, "SetLibraryFolder", -1);
             filter.SelectedIndex = -1;
             paths[2] = videos; paths[3] = pictures; paths[6] = downloads;
-            tabs.SelectedIndex = 0;
+            Call(window, "SelectContentSource", 0);
             importedSearch.Clear();
             File.WriteAllText(nestedVideo, "Synthetic discovery fixture; never played");
             WriteImage(imagePath);
@@ -324,10 +323,11 @@ internal static partial class Program
             // Restore controls/preferences without scanning a user's Windows folders during cleanup.
             SetField(window, "_ready", false);
             filter.SelectedValue = oldFilter;
-            search.Text = oldQuery; tabs.SelectedIndex = oldTab;
+            search.Text = oldQuery;
             importedFilter.SelectedIndex = oldImportedFilter;
             importedSearch.Text = oldImportedQuery;
             SetField(window, "_ready", true);
+            Call(window, "SelectContentSource", oldSource);
             workspace.MediaFolderFilter = oldFolderFilter;
             workspace.MediaSortDescending = oldDescending;
             Call(window, "SetMediaView", oldViewMode, false);

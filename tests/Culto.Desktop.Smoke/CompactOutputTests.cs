@@ -27,6 +27,7 @@ internal static partial class Program
                 doc.Root!.Element("FloatingWindows")?.RemoveNodes();
                 doc.Root.Element("Hidden")?.RemoveNodes();
                 panes["sequence"].Add(panes["media"].Element("LayoutAnchorable"));
+                foreach (var id in new[] { "bible", "text", "youtube" }) panes["sources"].Add(panes[id].Element("LayoutAnchorable"));
                 foreach (var entry in panes.Values) entry.SetAttributeValue("DockWidth", "*");
                 panes["order"].SetAttributeValue("DockMinWidth", "390");
                 panes["output"].SetAttributeValue("DockMinWidth", "360");
@@ -74,8 +75,7 @@ internal static partial class Program
                 var client = (FrameworkElement)PresentationSource.FromVisual(panel).RootVisual;
                 Console.WriteLine($"COMPACT Floating host {floating.ActualWidth}x{floating.ActualHeight}; output panel {panel.ActualWidth}x{panel.ActualHeight}");
                 CheckWithin(panel, client, new Rect(client.RenderSize), "Small floating output panel");
-                foreach (var name in new[] { "OutputViewport", "ChurchBackgroundButton", "BlackoutButton" })
-                    CheckWithin((FrameworkElement)window.FindName(name), panel, new Rect(panel.RenderSize), name);
+                CheckWithin((FrameworkElement)window.FindName("OutputViewport"), panel, new Rect(panel.RenderSize), "Output picture");
                 Check(((FrameworkElement)window.FindName("OutputViewport")).ActualHeight >= 80, "Small floating output picture is too small");
                 var scroll = (ScrollViewer)window.FindName("LiveScroll");
                 foreach (var control in Descendants(scroll).OfType<FrameworkElement>()

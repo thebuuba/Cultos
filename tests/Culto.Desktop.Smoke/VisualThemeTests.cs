@@ -6,6 +6,8 @@ using System.Windows.Media.Imaging;
 using Culto.Core;
 using Culto.Desktop;
 using Culto.Desktop.Services;
+using Culto.Desktop.Dialogs;
+using Culto.Remote;
 
 internal static partial class Program
 {
@@ -22,13 +24,20 @@ internal static partial class Program
             new Cue { Kind = CueKind.Audio, Title = "Música de bienvenida", FilePath = Path.Combine(AppContext.BaseDirectory, "fixtures", "test.mkv") }
         });
         Call(window, "RefreshLibrary");
+        JsonFileStore.Save(Path.Combine(Field<WorkspaceStore>(window, "_store").DirectoryPath, "biblia.json"), new BibleDocument
+        {
+            Name = "Biblia de prueba", Attribution = "Texto sintético para validar el diseño",
+            Verses = Enumerable.Range(14, 8).Select(number => new BibleVerse("Juan", 3, number,
+                "Texto de prueba para comprobar la lectura, la selección y el espacio entre versículos.")).ToList()
+        });
+        Call(window, "LoadSavedBible");
         Call(window, "PrepareCue", (Cue)((ListBox)window.FindName("PlanList")).Items[0], null);
         Call(window, "ProjectPrepared");
         PumpFor(450);
         Call(window, "PrepareCue", new Cue { Kind = CueKind.Bible, Title = "Lectura del culto", Reference = "Lectura bíblica", Version = "Vista de prueba", Body = "Preparamos juntos el orden del culto." }, null);
         var folder = Environment.GetEnvironmentVariable("CULTO_DESIGN_CAPTURE_DIR") ?? Path.Combine(Environment.CurrentDirectory, ".tools", "visual-theme");
         Directory.CreateDirectory(folder);
-        foreach (var size in new[] { new Size(1480, 900), new Size(1280, 680), new Size(1200, 680) })
+        foreach (var size in new[] { new Size(1900, 1000), new Size(1480, 900), new Size(1280, 680), new Size(1200, 680) })
         {
             window.Width = size.Width; window.Height = size.Height;
             window.UpdateLayout(); PumpFor(180);
@@ -36,16 +45,13 @@ internal static partial class Program
                 Test($"Compact {size.Width} window keeps order and media actions visible with a usable output picture", () =>
                 {
                     var client = (FrameworkElement)window.Content;
+                    var dock = (FrameworkElement)window.FindName("WorkspaceDock");
                     foreach (var name in new[] { "AddOrderButton", "AddMediaToPlanButton" })
-                        CheckWithin((FrameworkElement)window.FindName(name), client, new Rect(client.RenderSize), name);
+                        CheckWithin((FrameworkElement)window.FindName(name), client, BoundsWithin(dock, client), name);
                     Check(((FrameworkElement)window.FindName("OutputViewport")).ActualHeight >= 80, "Compact output picture is smaller than 80 DIP");
                 });
-            var bitmap = new RenderTargetBitmap((int)Math.Ceiling(window.ActualWidth), (int)Math.Ceiling(window.ActualHeight), 96, 96, PixelFormats.Pbgra32);
-            bitmap.Render(window);
-            var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
             var path = Path.Combine(folder, $"console-{(int)size.Width}x{(int)size.Height}.png");
-            using (var stream = File.Create(path)) encoder.Save(stream);
-            Console.WriteLine("CAPTURE " + path);
+            CaptureDesignWindow(window, path);
         }
         window.Width = 1480; window.Height = 900; window.UpdateLayout();
         RunThemeTests(window);
@@ -67,6 +73,47 @@ internal static partial class Program
             var raised = (Brush)window.FindResource("RaisedBrush");
             Check(ThemeContrast(muted, raised) >= 4.5, "Metadata is unreadable on raised controls");
         });
+        Test("Remote dialog fits its QR and full phone deck at compact desktop height", () =>
+        {
+            var state = (RemoteSnapshot)Call(window, "BuildRemoteState")!;
+            var host = new RemoteHost();
+            Wait(host.StartAsync(0, () => state, _ => Task.FromResult(new CommandResult(true, "Prueba")), true));
+            var dialog = new RemoteDialog(host, workspace.Deck, workspace.Library) { Owner = window, SnapshotRequested = () => state };
+            try
+            {
+                var addresses = Field<ComboBox>(dialog, "_addresses");
+                addresses.ItemsSource = new[] { "127.0.0.1" }; addresses.SelectedIndex = 0;
+                Call(dialog, "RefreshConnection");
+                dialog.Height = 680; dialog.Show(); dialog.UpdateLayout(); PumpFor(100);
+                var qr = Field<Image>(dialog, "_qr");
+                Check(qr.Source is not null, "Real pairing host produced no QR");
+                var phone = Descendants(dialog).OfType<Border>().Single(border => System.Windows.Automation.AutomationProperties.GetName(border).StartsWith("Vista previa del mando con"));
+                var deck = Field<System.Windows.Controls.Primitives.UniformGrid>(dialog, "_phoneDeck");
+                foreach (FrameworkElement tile in deck.Children)
+                    CheckWithin(tile, phone, new Rect(phone.RenderSize), "Remote phone tile");
+                Check(Field<TextBlock>(dialog, "_phoneBody").Text == state.LiveBody, "Phone preview does not display actual projected text");
+                CaptureDesignWindow(dialog, Path.Combine(folder, "control-remoto.png"));
+                Call(dialog, "ShowDeck", true); dialog.UpdateLayout(); PumpFor(60);
+                Check(Field<ListBox>(dialog, "_list").IsVisible, "Deck editor is unreachable from connection view");
+                List<DeckButton>? saved = null; dialog.DeckChanged = buttons => saved = buttons;
+                Field<TextBox>(dialog, "_label").Text = "Acceso de prueba";
+                Call(dialog, "SaveButton");
+                Check(saved?.Any(button => button.Label == "Acceso de prueba") == true, "The redesigned editor does not save deck changes");
+                CaptureDesignWindow(dialog, Path.Combine(folder, "control-remoto-editor.png"));
+            }
+            finally { dialog.Close(); Wait(host.DisposeAsync().AsTask()); }
+        });
+    }
+
+    private static void CaptureDesignWindow(Window window, string path)
+    {
+        var bitmap = new RenderTargetBitmap((int)Math.Ceiling(window.ActualWidth), (int)Math.Ceiling(window.ActualHeight), 96, 96, PixelFormats.Pbgra32);
+        var canvas = new DrawingVisual();
+        using (var drawing = canvas.RenderOpen()) drawing.DrawRectangle(window.Background, null, new Rect(window.RenderSize));
+        bitmap.Render(canvas); bitmap.Render(window);
+        var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        using (var stream = File.Create(path)) encoder.Save(stream);
+        Console.WriteLine("CAPTURE " + path);
     }
     private static double ThemeContrast(Brush foreground, Brush background, double opacity = 1)
     {

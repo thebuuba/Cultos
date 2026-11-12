@@ -19,12 +19,11 @@ internal static partial class Program
         var sequence = (ListBox)window.FindName("SequenceList");
         var library = (ListBox)window.FindName("LibraryList");
         var bible = (ListBox)window.FindName("BibleResults");
-        var tabs = (TabControl)window.FindName("ContentTabs");
         var session = Field<PresentationSession>(window, "_session");
         var savedPlan = plan.ToArray();
         var savedLibrary = library.ItemsSource;
         var savedBible = bible.ItemsSource;
-        var savedTab = tabs.SelectedIndex;
+        var savedSource = Field<int>(window, "_activeContentSource");
         var savedCatalog = Field<BibleCatalog?>(window, "_bible");
         var hymn = new Cue { Title = "Himno de prueba", HymnNumber = 42, Body = "Letra sintética", Notes = "Nota de fuente" };
         var other = new Cue { Title = "Otra selección", Body = "No arrastrar" };
@@ -98,7 +97,7 @@ internal static partial class Program
             });
             Test("Drag card identifies the grabbed content and closes on Escape without changing the order", () =>
             {
-                tabs.SelectedIndex = 0;
+                Call(window, "SelectContentSource", 0);
                 ResetPlan(other);
                 var live = session.Live;
                 Data(library, video);
@@ -120,7 +119,7 @@ internal static partial class Program
             });
             Test("Content drag uses the pressed library row, ignores blank space, and clears on release or cancel", () =>
             {
-                tabs.SelectedIndex = 0; library.SelectedItem = other;
+                Call(window, "SelectContentSource", 0); library.SelectedItem = other;
                 Press(library, Row(library, hymn));
                 Check(ReferenceEquals(Field<Cue?>(window, "_contentDragCue"), hymn), "Drag took the previously selected cue");
                 library.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
@@ -159,7 +158,7 @@ internal static partial class Program
             });
             Test("Bible result drag unwraps the verse and preserves metadata at the chosen position", () =>
             {
-                tabs.SelectedIndex = 1;
+                Call(window, "SelectContentSource", 1);
                 Press(bible, Row(bible, result));
                 Check(ReferenceEquals(Field<Cue?>(window, "_contentDragCue"), verse), "Bible drag did not unwrap its result");
                 bible.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
@@ -244,7 +243,7 @@ internal static partial class Program
             Call(window, "CloseOutput");
             library.ItemsSource = savedLibrary; bible.ItemsSource = savedBible;
             SetField(window, "_bible", savedCatalog);
-            ResetPlan(savedPlan); tabs.SelectedIndex = savedTab;
+            ResetPlan(savedPlan); Call(window, "SelectContentSource", savedSource);
             if (plan.Count > 0) list.SelectedIndex = 0;
             Call(window, "SaveWorkspace");
         }

@@ -94,6 +94,7 @@ internal static partial class Program
             });
             Test("Delete key removes the focused order selection and preserves live output and library", () =>
             {
+                Call(window, "ActivateWorkspacePanel", "order"); window.UpdateLayout();
                 var removable = new Cue { Title = "Quitar con Supr", Body = "Solo del orden" };
                 var workspace = Field<WorkspaceData>(window, "_workspace");
                 var library = workspace.Library.ToArray();
@@ -105,6 +106,7 @@ internal static partial class Program
                 Check(key.Handled && !plan.Contains(removable) && !workspace.Plan.Items.Contains(removable), "Delete key did not remove and persist selection");
                 Check(ReferenceEquals(live, session.Live) && library.SequenceEqual(workspace.Library), "Delete key changed live output or library");
                 list.SelectedItem = a;
+                Call(window, "SelectContentSource", 0); window.UpdateLayout();
                 var search = (TextBox)window.FindName("LibrarySearch"); search.Focus();
                 var count = plan.Count;
                 search.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(search), Environment.TickCount, Key.Delete)
@@ -134,11 +136,13 @@ internal static partial class Program
                 var add = window.FindName("AddOrderButton") as Button;
                 Check(add?.ContextMenu is not null, "Order has no add menu");
                 var live = session.Live;
-                foreach (var entry in new[] { ("AddOrderLibrary", 0), ("AddOrderBible", 1), ("AddOrderText", 2) })
+                var manager = (DockingManager)window.FindName("WorkspaceDock");
+                foreach (var entry in new[] { ("AddOrderLibrary", 0, "SourcesPanel"), ("AddOrderBible", 1, "BiblePanel"), ("AddOrderText", 2, "TextPanel") })
                 {
                     var item = add!.ContextMenu!.Items.OfType<MenuItem>().Single(i => i.Name == entry.Item1);
                     item.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
-                    Check(((TabControl)window.FindName("ContentTabs")).SelectedIndex == entry.Item2, "Add menu opened wrong source");
+                    Check(Field<int>(window, "_activeContentSource") == entry.Item2 && ReferenceEquals(manager.ActiveContent, window.FindName(entry.Item3)),
+                        "Add menu opened wrong source");
                 }
                 Check(ReferenceEquals(live, session.Live), "Add menu changed live output");
             });

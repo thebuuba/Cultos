@@ -14,8 +14,7 @@ internal static partial class Program
         var prepared = session.Prepared;
         var reading = Field<IReadOnlyList<Cue>?>(window, "_preparedReading");
         var live = session.Live;
-        var tabs = (TabControl)window.FindName("ContentTabs");
-        var oldTab = tabs.SelectedIndex;
+        var oldSource = Field<int>(window, "_activeContentSource");
         var query = (TextBox)window.FindName("BibleQuery");
         var oldQuery = query.Text;
         var results = (ListBox)window.FindName("BibleResults");
@@ -40,7 +39,7 @@ internal static partial class Program
         }
         try
         {
-            tabs.SelectedIndex = 1;
+            Call(window, "SelectContentSource", 1);
             Call(window, "InstallBibleCatalog", synthetic);
             Test("Bible opens with a chapter without replacing prepared or live", () =>
             {
@@ -61,6 +60,10 @@ internal static partial class Program
                 Check(results.Items.Count == 0, "Search did not debounce input");
                 PumpFor(250);
                 Check(results.Items.Count == 2, "Debounced phrase search did not show matches");
+                results.ScrollIntoView(results.Items[0]); results.UpdateLayout();
+                var row = (ListBoxItem)results.ItemContainerGenerator.ContainerFromIndex(0);
+                Check(Descendants(row).OfType<TextBlock>().Any(text => text.IsVisible && text.Text == "Juan 3:16"),
+                    "Phrase search lost the full visible Bible reference");
                 Check(ReferenceEquals(live, session.Live), "Typing projected a Bible result");
             });
             Test("Incomplete Bible citations clear stale results and Escape clears the query", () =>
@@ -137,7 +140,7 @@ internal static partial class Program
             query.Text = oldQuery;
             Field<DispatcherTimer?>(window, "_bibleSearchTimer")?.Stop();
             if (prepared is not null) Call(window, "PrepareCue", prepared, reading);
-            tabs.SelectedIndex = oldTab;
+            Call(window, "SelectContentSource", oldSource);
         }
     }
 }

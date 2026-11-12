@@ -4,7 +4,13 @@ Consola nativa para Windows destinada a preparar y proyectar cultos. Reúne el o
 
 ## Abrir el programa
 
-Ejecuta **Abrir Culto Studio.cmd** en esta carpeta, o abre `artifacts/CultoStudio-0.29.0/CultoStudio.exe`. La distribución publicada incluye .NET y el reproductor nativo; conserva todos los archivos de esa carpeta junto al ejecutable. Windows x64.
+Ejecuta **Abrir Culto Studio.cmd** en esta carpeta, o abre `artifacts/CultoStudio-0.30.0/CultoStudio.exe`. Cierra la versión anterior primero. La distribución publicada incluye .NET y el reproductor nativo; conserva todos los archivos de esa carpeta junto al ejecutable. Windows x64.
+
+En **0.30.0** el cambio incluye la estructura: tarjetas con un solo contorno, sombras discretas, controles cápsula y cabecera con el culto, su posición en el orden y **Control remoto**. Himnario, Biblia, Texto y YouTube son paneles independientes. El programa abre maximizado; puedes restaurar el tamaño de la ventana.
+
+**Espacio de trabajo** ofrece tres distribuciones: **Principal**, con Medios, Himnario, Biblia y YouTube juntos y los monitores a la derecha; **Compacta**, con las fuentes en pestañas; y **Proyección**, con monitores grandes y las fuentes agrupadas a la izquierda. Arrastra y acopla sus cabeceras como prefieras, guarda la distribución y usa **Restablecer diseño principal** para volver. Principal se adapta a una ventana pequeña mientras no hayas personalizado sus posiciones. Las nuevas posiciones se guardan en `paneles-v2.xml`; el archivo anterior se conserva y puede recuperarse desde el mismo menú.
+
+**Control remoto** abre la conexión con QR, dispositivos activos y vista de teléfono. **Editar botones** conserva la personalización de los accesos. La web del mando comparte este diseño en móvil y PC, mantiene el orden del culto y controla la salida de la computadora. La preview muestra el texto bíblico o anuncio real; para videos y capturas muestra título y estado. La vinculación sigue usando el enlace privado del QR; cerrar la ventana de conexión mantiene el mando funcionando.
 
 En **0.29.0** la consola adopta fondos carbón, acentos verdes, Lexend incluida y paneles y controles redondeados. Conserva los seis paneles movibles y sus distribuciones guardadas. Al reducir la ventana, los controles secundarios de salida se desplazan dentro de su panel y permanecen visibles la imagen, Logo y Fondo negro. El diseño de la consola no cambia el estilo que hayas elegido para los textos proyectados. La distribución 0.28.3 se conserva por separado.
 
@@ -44,11 +50,11 @@ Una instalación nueva ofrece una plantilla sencilla con bienvenida, oración y 
 
 La consola tiene dos monitores: **Vista previa a la izquierda y En pantalla a la derecha**. En pantalla reproduce el contenido enviado incluso sin HDMI, incluidos el video, la disolución, la pausa, el negro y el fondo. Al activar HDMI, la pantalla externa usa el mismo reproductor, sin audio duplicado. Antes del primer envío muestra «Sin salida».
 
-Vista previa, En pantalla, Orden del culto, Secuencia, Medios y Biblioteca/Biblia son paneles independientes. Arrastra sus cabeceras para moverlos, acoplarlos a los bordes, agruparlos en pestañas o separarlos en ventanas; arrastra los separadores para cambiar su tamaño. El menú superior **Espacio de trabajo** permite activar cada panel, guardar la distribución o restablecerla. La distribución también se guarda al cerrar y se recupera al abrir, en `paneles.xml`, aparte de los datos del culto. Los monitores y contenidos conservan su estado al moverlos.
+Vista previa, En pantalla, Orden del culto, Secuencia, Medios, Himnario, Biblia, Texto y YouTube son paneles independientes. Arrastra sus cabeceras para moverlos, acoplarlos a los bordes, agruparlos en pestañas o separarlos en ventanas; arrastra los separadores para cambiar su tamaño. El menú superior **Espacio de trabajo** permite activar cada panel, elegir una distribución, guardarla o restablecerla. Las posiciones también se guardan al cerrar y se recuperan al abrir, en `paneles-v2.xml`, aparte de los datos del culto. Los monitores y contenidos conservan su estado al moverlos.
 
-En pantalla admite un ancho mínimo de 220 píxeles. Al estrecharlo, el título, los botones y la barra de reproducción se reorganizan en filas, manteniendo el video en 16:9. Si falta altura, se desplazan los controles secundarios; el video, Negro y Fondo permanecen visibles. Las distribuciones guardadas recuperan mínimos adecuados para cada panel, evitando que el de salida quede recortado a la derecha.
+En pantalla admite un ancho mínimo de 220 DIP. Al estrecharlo, el título y las acciones se ajustan manteniendo el video en 16:9. Si falta altura, desplaza los controles secundarios para acceder también a Logo y Negro. La imagen crece al ampliar el panel y cada control de reproducción puede mostrarse completo mediante el desplazamiento.
 
-La distribución inicial sitúa los monitores arriba, el orden y Medios/Secuencia debajo, y las fuentes a la derecha. Usa gris carbón, acentos verdes, botones redondos, Lexend y transiciones breves que respetan la preferencia de animaciones de Windows.
+La distribución Principal sitúa las fuentes a la izquierda y los monitores y el orden a la derecha. Compacta conserva las fuentes agrupadas para ventanas pequeñas. Las tres usan gris carbón, acentos verdes, botones redondos, Lexend y transiciones breves que respetan la preferencia de animaciones de Windows.
 
 Desde 0.8.1, el tamaño de los paneles y sus monitores se actualiza continuamente al arrastrar los separadores horizontales o verticales. El ajuste respeta sus tamaños mínimos y se conserva en la distribución guardada.
 

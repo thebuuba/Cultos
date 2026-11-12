@@ -16,33 +16,39 @@ public partial class MainWindow
     private void InitializeYouTube()
     {
         _youTubeTimer.Tick += YouTubeTimerTick;
-        ContentTabs.SelectionChanged += YouTubeTabChanged;
+        YouTubePanel.IsVisibleChanged += YouTubePanelVisibilityChanged;
+        WorkspaceDock.ActiveContentChanged += YouTubeActiveContentChanged;
         RefreshYouTube();
-        if (YouTubeTab.IsSelected) _youTubeTimer.Start();
+        if (YouTubePanel.IsVisible) _youTubeTimer.Start();
     }
 
     private void DisposeYouTube()
     {
         _youTubeTimer.Stop();
         _youTubeTimer.Tick -= YouTubeTimerTick;
-        ContentTabs.SelectionChanged -= YouTubeTabChanged;
+        YouTubePanel.IsVisibleChanged -= YouTubePanelVisibilityChanged;
+        WorkspaceDock.ActiveContentChanged -= YouTubeActiveContentChanged;
     }
 
-    private void YouTubeTimerTick(object? sender, EventArgs e) => RefreshYouTube();
-
-    private void YouTubeTabChanged(object sender, SelectionChangedEventArgs e)
+    private void YouTubeTimerTick(object? sender, EventArgs e)
     {
-        if (!_ready || !ReferenceEquals(e.Source, ContentTabs)) return;
-        if (YouTubeTab.IsSelected) { RefreshYouTube(); _youTubeTimer.Start(); }
+        if (YouTubePanel.IsVisible) RefreshYouTube();
         else _youTubeTimer.Stop();
     }
 
-    private void OpenYouTubeClick(object sender, RoutedEventArgs e)
+    private void YouTubePanelVisibilityChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
-        ActivateWorkspacePanel("sources");
-        ContentTabs.SelectedItem = YouTubeTab;
-        YouTubeList.Focus();
+        if (!_ready) return;
+        if (YouTubePanel.IsVisible) { RefreshYouTube(); _youTubeTimer.Start(); }
+        else _youTubeTimer.Stop();
     }
+
+    private void YouTubeActiveContentChanged(object? sender, EventArgs e)
+    {
+        if (ReferenceEquals(WorkspaceDock.ActiveContent, YouTubePanel)) RefreshYouTube();
+    }
+
+    private void OpenYouTubeClick(object sender, RoutedEventArgs e) => SelectContentSource(3);
 
     private void RefreshYouTubeClick(object sender, RoutedEventArgs e) => RefreshYouTube();
 

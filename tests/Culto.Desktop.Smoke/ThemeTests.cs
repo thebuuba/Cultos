@@ -60,7 +60,7 @@ internal static partial class Program
                 Call(window, "ActivateWorkspacePanel", "media");
                 foreach (var size in new[] { new Size(1480, 900), new Size(1280, 680) })
                 {
-                    window.Width = size.Width; window.Height = size.Height; window.UpdateLayout();
+                    window.Width = size.Width; window.Height = size.Height; window.UpdateLayout(); PumpFor(80);
                     var viewport = window.FindName("PreviewViewport") as FrameworkElement;
                     Check(viewport is not null, "Widescreen preview frame is missing");
                     Check(viewport!.ActualHeight >= 80 && Math.Abs(viewport.ActualWidth / viewport.ActualHeight - 16d / 9) < .04,
@@ -69,7 +69,8 @@ internal static partial class Program
                     var mediaList = (FrameworkElement)window.FindName("MediaList");
                     var stageBounds = BoundsWithin(viewport, window);
                     var mediaBounds = BoundsWithin(media, window);
-                    Check(media.IsVisible && mediaList.IsVisible && mediaList.ActualHeight >= 48 && mediaBounds.Top >= stageBounds.Bottom,
+                    Check(media.IsVisible && mediaList.IsVisible && mediaList.ActualHeight >= 48
+                        && (mediaBounds.Top >= stageBounds.Bottom || mediaBounds.Right <= stageBounds.Left),
                         "Media browser is hidden, has no usable file area, or overlaps the preview");
                     CheckWithin(mediaList, media, new Rect(media.RenderSize), "Media file area");
                     foreach (var control in Descendants(media).OfType<FrameworkElement>().Where(e => e is Button or TextBox && e.IsVisible))
@@ -97,35 +98,35 @@ internal static partial class Program
 
         Test("Rapid tab changes finish visible without changing live content", () =>
         {
-            var tabs = (TabControl)window.FindName("ContentTabs");
+
             var session = Field<PresentationSession>(window, "_session");
             var live = session.Live;
-            var original = tabs.SelectedIndex;
-            for (var i = 0; i < 15; i++) tabs.SelectedIndex = i % 3;
-            tabs.SelectedIndex = original;
+            var original = Field<int>(window, "_activeContentSource");
+            for (var i = 0; i < 15; i++) Call(window, "SelectContentSource", i % 4);
+            Call(window, "SelectContentSource", original);
             PumpFor(300);
             Check(ReferenceEquals(live, session.Live), "Navigation changed projected content");
-            foreach (var tab in tabs.Items.Cast<TabItem>())
+            foreach (var name in new[] { "SourcesPanel", "BiblePanel", "TextPanel", "YouTubePanel" })
             {
-                var content = (FrameworkElement)tab.Content;
+                var content = (FrameworkElement)window.FindName(name);
                 Check(content.Opacity == 1, "A tab was left faded after interrupted transitions");
                 Check(content.RenderTransform is not TranslateTransform move || move.Y == 0, "A tab was left displaced");
             }
-            Check(((FrameworkElement)((TabItem)tabs.SelectedItem).Content).IsVisible, "Selected tab is hidden");
+            Check(((FrameworkElement)window.FindName(new[] { "SourcesPanel", "BiblePanel", "TextPanel", "YouTubePanel" }[original])).IsVisible, "Selected source is hidden");
         });
 
         Test("Selected tab colors do not make Bible content unreadable", () =>
         {
-            var tabs = (TabControl)window.FindName("ContentTabs");
-            var original = tabs.SelectedIndex;
+
+            var original = Field<int>(window, "_activeContentSource");
             try
             {
-                tabs.SelectedIndex = 1;
+                Call(window, "SelectContentSource", 1);
                 var title = (TextBlock)window.FindName("BibleNameText");
                 Check(((SolidColorBrush)title.Foreground).Color == ((SolidColorBrush)window.FindResource("TextBrush")).Color,
                     "Selected header foreground leaked into Bible content");
             }
-            finally { tabs.SelectedIndex = original; window.UpdateLayout(); }
+            finally { Call(window, "SelectContentSource", original); window.UpdateLayout(); }
         });
 
         Test("Themed media slider retains native commands and value binding", () =>

@@ -12,7 +12,10 @@ public partial class MainWindow
         if (OutputTransportGrid is null) return;
         // Keep the picture visible even when only the controls need scrolling.
         var compact = LivePanel.ActualWidth < 320;
-        LiveScroll.MaxHeight = Math.Max(44, LivePanel.ActualHeight - 240);
+        var available = Math.Max(0, LivePanel.ActualHeight - LivePanel.Padding.Top - LivePanel.Padding.Bottom
+            - Math.Max(24, LiveHeaderGrid.ActualHeight));
+        var picture = Math.Max(102, Math.Min((LivePanel.ActualWidth - LivePanel.Padding.Left - LivePanel.Padding.Right) * 9 / 16 + 22, available * .7));
+        LiveScroll.MaxHeight = Math.Max(44, available - picture);
         if (_compactOutput == compact) return;
         _compactOutput = compact;
 

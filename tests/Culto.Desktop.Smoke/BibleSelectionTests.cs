@@ -20,8 +20,7 @@ internal static partial class Program
         var oldPreparedReading = Field<IReadOnlyList<Cue>?>(window, "_preparedReading");
         var plan = Field<ObservableCollection<Cue>>(window, "_plan");
         var oldPlan = plan.ToArray();
-        var tabs = (TabControl)window.FindName("ContentTabs");
-        var oldTab = tabs.SelectedIndex;
+        var oldSource = Field<int>(window, "_activeContentSource");
         var query = (TextBox)window.FindName("BibleQuery");
         var oldQuery = query.Text;
         var results = (ListBox)window.FindName("BibleResults");
@@ -57,7 +56,7 @@ internal static partial class Program
         }
         try
         {
-            tabs.SelectedIndex = 1;
+            Call(window, "SelectContentSource", 1);
             Call(window, "CloseOutput");
             Call(window, "InstallBibleCatalog", catalog);
 
@@ -151,7 +150,7 @@ internal static partial class Program
             query.Text = oldQuery;
             Field<DispatcherTimer?>(window, "_bibleSearchTimer")?.Stop();
             if (oldPrepared is not null) Call(window, "PrepareCue", oldPrepared, oldPreparedReading);
-            tabs.SelectedIndex = oldTab;
+            Call(window, "SelectContentSource", oldSource);
         }
     }
 }

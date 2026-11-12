@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using AvalonDock;
 using Culto.Core;
 using Culto.Desktop;
 using Culto.Desktop.Services;
@@ -15,7 +16,6 @@ internal static partial class Program
     {
         var session = Field<PresentationSession>(window, "_session");
         var workspace = Field<WorkspaceData>(window, "_workspace");
-        var tabs = (TabControl)window.FindName("ContentTabs");
         var search = (TextBox)window.FindName("LibrarySearch");
         var filter = (ListBox)window.FindName("LibraryFilter");
         var library = (ListBox)window.FindName("LibraryList");
@@ -27,7 +27,7 @@ internal static partial class Program
         var oldPlan = plan.ToList();
         var oldQuery = search.Text;
         var oldFilter = filter.SelectedIndex;
-        var oldTab = tabs.SelectedIndex;
+        var oldSource = Field<int>(window, "_activeContentSource");
         var oldLive = session.Live;
         var oldPrepared = session.Prepared;
         var oldPreparedReading = Field<IReadOnlyList<Cue>?>(window, "_preparedReading");
@@ -44,7 +44,7 @@ internal static partial class Program
         try
         {
             workspace.Library = [hymn13, hymn113, title13];
-            tabs.SelectedIndex = 0; filter.SelectedIndex = 0; search.Clear();
+            Call(window, "SelectContentSource", 0); filter.SelectedIndex = 0; search.Clear();
             Call(window, "RefreshLibrary");
             Test("Numeric hymn search matches 13 exactly instead of 113 or title substrings", () =>
             {
@@ -80,7 +80,7 @@ internal static partial class Program
             });
             KeyBinding BindingFor(Key key) => window.InputBindings.OfType<KeyBinding>()
                 .Single(binding => binding.Key == key && binding.Modifiers == ModifierKeys.Control);
-            Test("Ctrl 1 2 3 changes source and Ctrl F selects the active source query", () =>
+            Test("Ctrl 1 2 3 4 changes source and Ctrl F selects the active source query", () =>
             {
                 var live = session.Live;
                 var bible = (TextBox)window.FindName("BibleQuery");
@@ -89,22 +89,48 @@ internal static partial class Program
                 {
                     entry.Item3.Text = "Consulta sintética";
                     BindingFor(entry.Item1).Command.Execute(null);
-                    Until(() => tabs.SelectedIndex == entry.Item2 && entry.Item3.IsKeyboardFocusWithin, "Source shortcut did not select and focus its source");
+                    Until(() => Field<int>(window, "_activeContentSource") == entry.Item2 && entry.Item3.IsKeyboardFocusWithin, "Source shortcut did not select and focus its source");
                     entry.Item3.Select(0, 0);
                     BindingFor(Key.F).Command.Execute(null);
                     Until(() => entry.Item3.SelectionLength == entry.Item3.Text.Length && entry.Item3.IsKeyboardFocusWithin, "Ctrl F did not select the active query/text");
                 }
+                BindingFor(Key.D4).Command.Execute(null);
+                Until(() => Field<int>(window, "_activeContentSource") == 3 && ((ListBox)window.FindName("YouTubeList")).IsKeyboardFocusWithin,
+                    "Ctrl 4 did not activate and focus YouTube");
                 Check(ReferenceEquals(live, session.Live), "Source shortcuts changed the live snapshot");
+            });
+            Test("Native source activation synchronizes Ctrl F and preserves the last source outside the browsers", () =>
+            {
+                var manager = (DockingManager)window.FindName("WorkspaceDock");
+                var live = session.Live;
+                foreach (var entry in new[] { ("sources", 0, "LibrarySearch"), ("bible", 1, "BibleQuery"), ("text", 2, "TextBodyBox"), ("youtube", 3, "YouTubeList") })
+                {
+                    Call(window, "ActivateWorkspacePanel", entry.Item1);
+                    Until(() => Field<int>(window, "_activeContentSource") == entry.Item2, "Native panel activation left source shortcuts stale");
+                    var target = (UIElement)window.FindName(entry.Item3);
+                    BindingFor(Key.F).Command.Execute(null);
+                    Until(() => target.IsKeyboardFocusWithin, "Ctrl F did not follow the active native source");
+                }
+                Call(window, "ActivateWorkspacePanel", "order");
+                BindingFor(Key.F).Command.Execute(null);
+                Until(() => ReferenceEquals(manager.ActiveContent, window.FindName("YouTubePanel")) && ((ListBox)window.FindName("YouTubeList")).IsKeyboardFocusWithin,
+                    "Ctrl F did not return to the last content source");
+                Call(window, "ActivateWorkspacePanel", "media");
+                BindingFor(Key.F).Command.Execute(null);
+                Until(() => ((TextBox)window.FindName("MediaSearch")).IsKeyboardFocusWithin, "Ctrl F did not focus the native media browser");
+                Check(ReferenceEquals(manager.ActiveContent, window.FindName("MediaPanel")) && Field<int>(window, "_activeContentSource") == 3,
+                    "Media search replaced the remembered content source");
+                Check(ReferenceEquals(live, session.Live), "Native source navigation changed the live snapshot");
             });
             Test("Search and source shortcuts ignore input before initialization is ready", () =>
             {
-                var selected = tabs.SelectedIndex; var prepared = session.Prepared;
+                var selected = Field<int>(window, "_activeContentSource"); var prepared = session.Prepared;
                 SetField(window, "_ready", false);
                 try
                 {
                     BindingFor(Key.D1).Command.Execute(null);
                     Call(window, "LibrarySearchKeyDown", search, new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(window)!, Environment.TickCount, Key.Enter));
-                    Check(tabs.SelectedIndex == selected && ReferenceEquals(prepared, session.Prepared), "An initialization shortcut changed source or prepared state");
+                    Check(Field<int>(window, "_activeContentSource") == selected && ReferenceEquals(prepared, session.Prepared), "An initialization shortcut changed source or prepared state");
                 }
                 finally { SetField(window, "_ready", true); }
             });
@@ -179,7 +205,7 @@ internal static partial class Program
             File.Delete(logoPath);
             workspace.Library = oldLibrary;
             plan.Clear(); foreach (var cue in oldPlan) plan.Add(cue); Call(window, "UpdatePlanCount");
-            search.Text = oldQuery; filter.SelectedIndex = oldFilter; Call(window, "RefreshLibrary"); tabs.SelectedIndex = oldTab;
+            search.Text = oldQuery; filter.SelectedIndex = oldFilter; Call(window, "RefreshLibrary"); Call(window, "SelectContentSource", oldSource);
             if (originalOutput is not null) Call(window, "OpenOutput", DisplayService.GetDisplays().First(), true);
             if (oldLive is not null) { Call(window, "PrepareCue", oldLive, oldLiveReading); Call(window, "ProjectPrepared"); }
             if (oldPrepared is not null) Call(window, "PrepareCue", oldPrepared, oldPreparedReading);

@@ -166,6 +166,11 @@ public partial class MainWindow
     private void MediaPanelSizeChanged(object sender, SizeChangedEventArgs e)
     {
         if (MediaList is null) return;
+        var narrow = e.NewSize.Width < 300;
+        Grid.SetColumnSpan(MediaSearch, narrow ? 4 : 1);
+        Grid.SetColumnSpan(MediaSearchHint, narrow ? 4 : 1);
+        foreach (var button in new[] { MediaListViewButton, MediaTilesViewButton, MediaRefreshButton })
+            Grid.SetRow(button, narrow ? 1 : 0);
         var compact = e.NewSize.Height < 290;
         var height = compact ? 108d : 160d;
         if (MediaList.Resources["MediaTileHeight"] is double previous && previous == height) return;

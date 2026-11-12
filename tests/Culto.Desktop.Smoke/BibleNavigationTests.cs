@@ -12,7 +12,7 @@ internal static partial class Program
         var previousCatalog = Field<BibleCatalog?>(window, "_bible");
         var previousPrepared = session.Prepared;
         var previousPreparedReading = Field<IReadOnlyList<Cue>?>(window, "_preparedReading");
-        var previousTab = ((TabControl)window.FindName("ContentTabs")).SelectedIndex;
+        var previousSource = Field<int>(window, "_activeContentSource");
         var query = (TextBox)window.FindName("BibleQuery");
         var previousQuery = query.Text;
         var book = (ComboBox)window.FindName("BibleBookPicker");
@@ -46,7 +46,7 @@ internal static partial class Program
         void Search(string text) { query.Text = text; Call(window, "SearchBible"); window.UpdateLayout(); }
         try
         {
-            ((TabControl)window.FindName("ContentTabs")).SelectedIndex = 1;
+            Call(window, "SelectContentSource", 1);
             Test("Installing a Bible populates existing canonical books without replacing prepared or live", () =>
             {
                 var prepared = session.Prepared;
@@ -172,7 +172,7 @@ internal static partial class Program
             if (previousPrepared is not null) Call(window, "PrepareCue", previousPrepared, previousPreparedReading);
             query.Text = previousQuery;
             Field<System.Windows.Threading.DispatcherTimer?>(window, "_bibleSearchTimer")?.Stop();
-            ((TabControl)window.FindName("ContentTabs")).SelectedIndex = previousTab;
+            Call(window, "SelectContentSource", previousSource);
         }
     }
 }
