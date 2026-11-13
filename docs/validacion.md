@@ -1,8 +1,12 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 12 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.32.1`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 12 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.32.2`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### Paneles neutros — versión 0.32.2
+
+Por petición del usuario se retiran los tonos rojo y amarillo de YouTube y del Himnario. Sus superficies, cabeceras y contenedores usan el mismo gris `#2A2B2F` que los demás paneles. Se conservan las pestañas superiores y la tarjeta compartida de los monitores. Evidencias en `.tools/worktrees/culto-polymet/.tools/neutral-panels-visual.log` y `neutral-panels-publish.log`.
 
 ### Pestañas superiores y tarjeta de monitores — versión 0.32.1
 

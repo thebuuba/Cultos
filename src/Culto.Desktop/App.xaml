@@ -9,8 +9,8 @@
         <!-- Shared surfaces and states for the operator console and dialogs. -->
         <SolidColorBrush x:Key="CanvasBrush" Color="#1F2023" />
         <SolidColorBrush x:Key="PanelBrush" Color="#2A2B2F" />
-        <SolidColorBrush x:Key="YouTubePanelBrush" Color="#3B2B30" />
-        <SolidColorBrush x:Key="HymnPanelBrush" Color="#393529" />
+        <SolidColorBrush x:Key="YouTubePanelBrush" Color="#2A2B2F" />
+        <SolidColorBrush x:Key="HymnPanelBrush" Color="#2A2B2F" />
         <SolidColorBrush x:Key="RaisedBrush" Color="#3A3B40" />
         <SolidColorBrush x:Key="BorderBrush" Color="#858893" />
         <SolidColorBrush x:Key="PanelBorderBrush" Color="#35363B" />
