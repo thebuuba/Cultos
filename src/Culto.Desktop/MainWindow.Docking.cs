@@ -278,8 +278,7 @@ public partial class MainWindow
         foreach (var pane in WorkspaceDock.Layout.Descendents().OfType<LayoutAnchorable>())
         {
             pane.Title = WorkspaceLayouts.Title(pane.ContentId);
-            pane.CanClose = false; pane.CanHide = false; pane.CanAutoHide = false; pane.CanDockAsTabbedDocument = false;
-            if (pane.IsHidden) pane.Show();
+            pane.CanClose = false; pane.CanHide = true; pane.CanAutoHide = false; pane.CanDockAsTabbedDocument = false;
             if (pane.IsAutoHidden) pane.ToggleAutoHide();
         }
         WorkspaceDock.UpdateLayout(); LiveMonitor.Refresh();
@@ -392,12 +391,42 @@ public partial class MainWindow
         }
     }
     private void ShowWorkspacePanelClick(object sender, RoutedEventArgs e)
-    { if (sender is MenuItem { Tag: string id }) ActivateWorkspacePanel(id); }
+    { if (sender is MenuItem { Tag: string id } item) SetWorkspacePanelVisible(id, item.IsChecked); }
+
+    private void WorkspacePanelsMenuOpened(object sender, RoutedEventArgs e)
+    {
+        if (sender is not ContextMenu menu) return;
+        foreach (var item in menu.Items.OfType<MenuItem>().Where(item => item.Tag is string id && _dockContents.ContainsKey(id)))
+        {
+            var pane = WorkspaceDock.Layout.Descendents().OfType<LayoutAnchorable>().FirstOrDefault(p => p.ContentId == (string)item.Tag);
+            item.IsChecked = pane is not null && !pane.IsHidden;
+        }
+    }
+
+    private bool SetWorkspacePanelVisible(string id, bool visible)
+    {
+        var pane = WorkspaceDock.Layout.Descendents().OfType<LayoutAnchorable>().FirstOrDefault(p => p.ContentId == id);
+        if (pane is null) return false;
+        _adaptPrincipalWorkspace = false;
+        if (visible) { pane.Show(); pane.IsSelected = true; pane.IsActive = true; }
+        else if (!pane.IsHidden) pane.Hide();
+        WorkspaceDock.UpdateLayout(); LiveMonitor.Refresh();
+        return SaveDockLayout();
+    }
+
+    private void ShowAllWorkspacePanelsClick(object sender, RoutedEventArgs e)
+    {
+        _adaptPrincipalWorkspace = false;
+        foreach (var pane in WorkspaceDock.Layout.Descendents().OfType<LayoutAnchorable>().Where(p => p.IsHidden).ToArray()) pane.Show();
+        WorkspaceDock.UpdateLayout(); LiveMonitor.Refresh(); SaveDockLayout();
+    }
     private void ActivateWorkspacePanel(string id)
     {
         var pane = WorkspaceDock.Layout.Descendents().OfType<LayoutAnchorable>().FirstOrDefault(p => p.ContentId == id);
         if (pane is null) return;
+        var hidden = pane.IsHidden;
         pane.Show(); pane.IsActive = true; pane.IsSelected = true;
+        if (hidden) { _adaptPrincipalWorkspace = false; SaveDockLayout(); }
         var floating = WorkspaceDock.FloatingWindows.FirstOrDefault(w => w.Model.Descendents().Contains(pane));
         if (floating is not null) floating.Activate(); else Activate();
     }

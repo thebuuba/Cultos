@@ -297,16 +297,17 @@
           </ContextMenu></Button.ContextMenu>
         </Button>
         <Button x:Name="WorkspaceMenuButton" Content="Espacio de trabajo" Style="{StaticResource MenuBarButton}" Click="OpenActionsClick">
-          <Button.ContextMenu><ContextMenu>
-            <MenuItem Header="Vista previa" Tag="preview" Click="ShowWorkspacePanelClick"/>
-            <MenuItem Header="En pantalla" Tag="output" Click="ShowWorkspacePanelClick"/>
-            <MenuItem Header="Orden del culto" Tag="order" Click="ShowWorkspacePanelClick"/>
-            <MenuItem Header="Himnario" Tag="sources" Click="ShowWorkspacePanelClick"/>
-            <MenuItem Header="Biblia" Tag="bible" Click="ShowWorkspacePanelClick"/>
-            <MenuItem Header="Texto" Tag="text" Click="ShowWorkspacePanelClick"/>
-            <MenuItem Header="YouTube" Tag="youtube" Click="ShowWorkspacePanelClick"/>
-            <MenuItem Header="Secuencia" Tag="sequence" Click="ShowWorkspacePanelClick"/>
-            <MenuItem Header="Medios" Tag="media" Click="ShowWorkspacePanelClick"/>
+          <Button.ContextMenu><ContextMenu Opened="WorkspacePanelsMenuOpened">
+            <MenuItem Header="Vista previa" Tag="preview" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
+            <MenuItem Header="En pantalla" Tag="output" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
+            <MenuItem Header="Orden del culto" Tag="order" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
+            <MenuItem Header="Himnario" Tag="sources" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
+            <MenuItem Header="Biblia" Tag="bible" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
+            <MenuItem Header="Texto" Tag="text" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
+            <MenuItem Header="YouTube" Tag="youtube" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
+            <MenuItem Header="Secuencia" Tag="sequence" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
+            <MenuItem Header="Medios" Tag="media" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
+            <MenuItem Header="Mostrar todos los paneles" Click="ShowAllWorkspacePanelsClick"/>
             <Separator/>
             <MenuItem Header="Principal" Tag="principal" Click="WorkspacePresetClick"/>
             <MenuItem Header="Compacta" Tag="compacta" Click="WorkspacePresetClick"/>
@@ -365,7 +366,7 @@
           <ad:LayoutPanel Orientation="Vertical" DockWidth="2.4*">
             <ad:LayoutPanel Orientation="Horizontal" DockHeight="1.5*">
 <ad:LayoutAnchorablePane DockWidth="*" DockHeight="*" DockMinWidth="280" DockMinHeight="260">
-<ad:LayoutAnchorable Title="Vista previa" ContentId="preview" CanClose="False" CanHide="False" CanAutoHide="False" CanDockAsTabbedDocument="False">
+<ad:LayoutAnchorable Title="Vista previa" ContentId="preview" CanClose="False" CanHide="True" CanAutoHide="False" CanDockAsTabbedDocument="False">
 <Border x:Name="PreviewPanel" Background="{StaticResource PanelBrush}" CornerRadius="0" Padding="14">
           <Grid>
             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
@@ -397,7 +398,7 @@
         </Border>
 </ad:LayoutAnchorable>
 </ad:LayoutAnchorablePane><ad:LayoutAnchorablePane DockWidth="*" DockHeight="*" DockMinWidth="220" DockMinHeight="260">
-<ad:LayoutAnchorable Title="En pantalla" ContentId="output" CanClose="False" CanHide="False" CanAutoHide="False" CanDockAsTabbedDocument="False">
+<ad:LayoutAnchorable Title="En pantalla" ContentId="output" CanClose="False" CanHide="True" CanAutoHide="False" CanDockAsTabbedDocument="False">
 <Border x:Name="LivePanel" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="0" CornerRadius="0" Padding="10,5" SizeChanged="OutputPanelSizeChanged">
           <Grid>
             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition MinHeight="102"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
@@ -481,7 +482,7 @@
             </ad:LayoutPanel>
             <ad:LayoutPanel Orientation="Horizontal" DockHeight="1.2*">
 <ad:LayoutAnchorablePane DockWidth="0.8*" DockHeight="*" DockMinWidth="240" DockMinHeight="160">
-<ad:LayoutAnchorable Title="Orden del culto" ContentId="order" CanClose="False" CanHide="False" CanAutoHide="False" CanDockAsTabbedDocument="False">
+<ad:LayoutAnchorable Title="Orden del culto" ContentId="order" CanClose="False" CanHide="True" CanAutoHide="False" CanDockAsTabbedDocument="False">
 <Border x:Name="OrderPanel" Background="{StaticResource PanelBrush}" CornerRadius="0" Padding="12">
         <Grid>
           <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
@@ -539,7 +540,7 @@
       </Border>
 </ad:LayoutAnchorable>
 </ad:LayoutAnchorablePane><ad:LayoutAnchorablePane DockWidth="1.3*" DockHeight="*" DockMinWidth="320" DockMinHeight="260" SelectedContentIndex="1">
-<ad:LayoutAnchorable Title="Secuencia" ContentId="sequence" CanClose="False" CanHide="False" CanAutoHide="False" CanDockAsTabbedDocument="False">
+<ad:LayoutAnchorable Title="Secuencia" ContentId="sequence" CanClose="False" CanHide="True" CanAutoHide="False" CanDockAsTabbedDocument="False">
 <Border x:Name="SequencePanel" Background="{StaticResource PanelBrush}" CornerRadius="0" Padding="5,5,3,2" >
           <local:OrderListBox x:Name="SequenceList" ItemsSource="{Binding ItemsSource, ElementName=PlanList}"
               SelectedItem="{Binding SelectedItem, ElementName=PlanList, Mode=TwoWay}"
@@ -551,7 +552,7 @@
           </local:OrderListBox>
         </Border>
 </ad:LayoutAnchorable>
-<ad:LayoutAnchorable Title="Medios" ContentId="media" IsSelected="True" CanClose="False" CanHide="False" CanAutoHide="False" CanDockAsTabbedDocument="False">
+<ad:LayoutAnchorable Title="Medios" ContentId="media" IsSelected="True" CanClose="False" CanHide="True" CanAutoHide="False" CanDockAsTabbedDocument="False">
   <Border x:Name="MediaPanel" Background="{StaticResource PanelBrush}" CornerRadius="0" Padding="10" SizeChanged="MediaPanelSizeChanged">
     <Grid>
       <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
@@ -598,7 +599,7 @@
             </ad:LayoutPanel>
           </ad:LayoutPanel>
 <ad:LayoutAnchorablePane DockWidth="*" DockHeight="*" DockMinWidth="390" DockMinHeight="400">
-<ad:LayoutAnchorable Title="Himnario" ContentId="sources" CanClose="False" CanHide="False" CanAutoHide="False" CanDockAsTabbedDocument="False">
+<ad:LayoutAnchorable Title="Himnario" ContentId="sources" CanClose="False" CanHide="True" CanAutoHide="False" CanDockAsTabbedDocument="False">
 <Border x:Name="SourcesPanel" Background="{StaticResource HymnPanelBrush}" CornerRadius="0" Padding="14,4,14,14">
             <Grid>
               <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
@@ -633,7 +634,7 @@
             </Grid>
           </Border>
 </ad:LayoutAnchorable>
-<ad:LayoutAnchorable Title="Biblia" ContentId="bible" CanClose="False" CanHide="False" CanAutoHide="False" CanDockAsTabbedDocument="False">
+<ad:LayoutAnchorable Title="Biblia" ContentId="bible" CanClose="False" CanHide="True" CanAutoHide="False" CanDockAsTabbedDocument="False">
 <Border x:Name="BiblePanel" Background="{StaticResource PanelBrush}" CornerRadius="0" Padding="14,4,14,14">
             <Grid>
               <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
@@ -689,7 +690,7 @@
             </Grid>
           </Border>
 </ad:LayoutAnchorable>
-<ad:LayoutAnchorable Title="Texto" ContentId="text" CanClose="False" CanHide="False" CanAutoHide="False" CanDockAsTabbedDocument="False">
+<ad:LayoutAnchorable Title="Texto" ContentId="text" CanClose="False" CanHide="True" CanAutoHide="False" CanDockAsTabbedDocument="False">
 <Border x:Name="TextPanel" Background="{StaticResource PanelBrush}" CornerRadius="0" Padding="14,4,14,14">
             <Grid>
               <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
@@ -706,7 +707,7 @@
             </Grid>
           </Border>
 </ad:LayoutAnchorable>
-<ad:LayoutAnchorable Title="YouTube" ContentId="youtube" CanClose="False" CanHide="False" CanAutoHide="False" CanDockAsTabbedDocument="False">
+<ad:LayoutAnchorable Title="YouTube" ContentId="youtube" CanClose="False" CanHide="True" CanAutoHide="False" CanDockAsTabbedDocument="False">
 <Border x:Name="YouTubePanel" Background="{StaticResource YouTubePanelBrush}" CornerRadius="0" Padding="14,4,14,14">
             <Grid>
               <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>

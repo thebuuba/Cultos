@@ -59,7 +59,7 @@ internal static class WorkspaceLayouts
 
     private static XElement Content(string id, bool selected) => new("LayoutAnchorable",
         new XAttribute("Title", Title(id)), new XAttribute("ContentId", id), new XAttribute("IsSelected", selected),
-        new XAttribute("CanClose", false), new XAttribute("CanHide", false), new XAttribute("CanAutoHide", false),
+        new XAttribute("CanClose", false), new XAttribute("CanHide", true), new XAttribute("CanAutoHide", false),
         new XAttribute("CanDockAsTabbedDocument", false));
 
     internal static bool ExpandLegacySources(XDocument document)

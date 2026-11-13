@@ -1,8 +1,16 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 12 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.32.4`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 12 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.33.0`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### Ocultar y mostrar paneles — versión 0.33.0
+
+Espacio de trabajo permite marcar o desmarcar los nueve paneles. La marca indica que el panel pertenece al espacio mostrado, aunque su pestaña esté inactiva. El menú contextual de la cabecera añade Ocultar panel y el menú principal ofrece Mostrar todos los paneles. Se usa Hide/Show de AvalonDock y se mantienen las mismas instancias de contenido; CanClose y el autoocultado siguen deshabilitados. Se excluyen los paneles ocultos de los destinos de colocación.
+
+La visibilidad se guarda en `paneles-v3.xml`. La restauración deja de forzar Show sobre los paneles ocultos, y cambiar visibilidad convierte la distribución en personalizada para que el ajuste por anchura no los vuelva a abrir. La activación explícita de una fuente oculta desde un atajo la recupera y guarda. Ocultar la tarjeta En pantalla no elimina el reproductor ni cambia el contenido de la sesión.
+
+Las cinco pruebas específicas y la comprobación inicial pasan: ocultar/mostrar todos los identificadores conservando los controles, restaurar XML con paneles ocultos, redimensionar sin restablecerlos, marcas correctas para pestañas inactivas, recuperación tras ocultar todo y conservación de video en marcha al ocultar/mostrar la salida. Pasaron también las 138 comprobaciones generales y los nueve escenarios de distribuciones. Evidencias: `.tools/worktrees/culto-polymet/.tools/panel-visibility-red.log`, `panel-visibility-final.log`, `panel-visibility-desktop.log`, `panel-visibility-presets.log` y `panel-visibility-publish.log`.
 
 ### Legibilidad del texto — versión 0.32.4
 
