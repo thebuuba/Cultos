@@ -4,7 +4,11 @@ Consola nativa para Windows destinada a preparar y proyectar cultos. Reúne el o
 
 ## Abrir el programa
 
-Ejecuta **Abrir Culto Studio.cmd** en esta carpeta, o abre `artifacts/CultoStudio-0.30.0/CultoStudio.exe`. Cierra la versión anterior primero. La distribución publicada incluye .NET y el reproductor nativo; conserva todos los archivos de esa carpeta junto al ejecutable. Windows x64.
+Ejecuta **Abrir Culto Studio.cmd** en esta carpeta, o abre `artifacts/CultoStudio-0.31.0/CultoStudio.exe`. Cierra la versión anterior primero. La distribución publicada incluye .NET y el reproductor nativo; conserva todos los archivos de esa carpeta junto al ejecutable. Windows x64.
+
+En **0.31.0**, el mando permite buscar **Biblia, Himnario y Videos** del equipo en **Contenido de la PC** y proyectar cada resultado. Los videos incluyen la biblioteca y las carpetas Videos, Descargas y la carpeta personalizada. Logo puede iniciar la salida desde el teléfono. Cierra la versión anterior, abre esta y recarga la página del mando.
+
+Los paneles continúan unidos: arrastra los separadores para ajustar ancho y alto mientras se mueve el contenido; el clic derecho sobre el título permite colocarlos encima, debajo, a los lados o agruparlos en pestañas. Las fuentes pueden apilarse en paneles más bajos; sus controles se alcanzan desplazando el contenido. Guarda tu distribución en Espacio de trabajo; las tres distribuciones y el reset siguen disponibles.
 
 En **0.30.0** el cambio incluye la estructura: tarjetas con un solo contorno, sombras discretas, controles cápsula y cabecera con el culto, su posición en el orden y **Control remoto**. Himnario, Biblia, Texto y YouTube son paneles independientes. El programa abre maximizado; puedes restaurar el tamaño de la ventana.
 

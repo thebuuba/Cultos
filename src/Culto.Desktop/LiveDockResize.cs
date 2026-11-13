@@ -43,18 +43,35 @@ public static class LiveDockResize
 
     private sealed class Resize(Grid grid, FrameworkElement before, FrameworkElement after, bool horizontal, Length a, Length b)
     {
-        private readonly GridLength _originalA = a.Read(), _originalB = b.Read();
+        private readonly (FrameworkElement Element, Length Length, GridLength Original)[] _siblings = grid.Children
+            .OfType<FrameworkElement>().Where(element => element.IsVisible)
+            .Select(element => (Element: element, Length: Access(element, horizontal)))
+            .Where(item => item.Length is not null)
+            .Select(item => (item.Element, item.Length!, item.Length!.Read())).ToArray();
+        private bool _normalized;
+        private double Size(FrameworkElement element) => horizontal
+            ? grid.ColumnDefinitions[Grid.GetColumn(element)].ActualWidth
+            : grid.RowDefinitions[Grid.GetRow(element)].ActualHeight;
         public void Move(double movement)
         {
-            var first = horizontal ? before.ActualWidth : before.ActualHeight;
-            var second = horizontal ? after.ActualWidth : after.ActualHeight;
+            var first = Size(before);
+            var second = Size(after);
             if (first <= 0 || second <= 0 || !double.IsFinite(movement)) return;
             var minA = horizontal ? grid.ColumnDefinitions[Grid.GetColumn(before)].MinWidth : grid.RowDefinitions[Grid.GetRow(before)].MinHeight;
             var minB = horizontal ? grid.ColumnDefinitions[Grid.GetColumn(after)].MinWidth : grid.RowDefinitions[Grid.GetRow(after)].MinHeight;
             var delta = Math.Clamp(movement, Math.Min(0, minA - first), Math.Max(0, second - minB));
-            static GridLength Adjust(GridLength length, double actual, double change) => length.IsStar
-                ? new GridLength(Math.Max(.0001, length.Value * (actual + change) / actual), GridUnitType.Star)
-                : new GridLength(Math.Max(0, actual + change));
+            if (Math.Abs(delta) < .001) return;
+            if (!_normalized)
+            {
+                // A group at its minimum can be much wider than its star weight.
+                // Normalize the whole row so this pair trades actual space only.
+                var measured = _siblings.Select(item => (item.Length, Size: Size(item.Element))).ToArray();
+                foreach (var item in measured)
+                    if (item.Length.Read().IsStar) item.Length.Write(new GridLength(Math.Max(.0001, item.Size), GridUnitType.Star));
+                _normalized = true;
+            }
+            static GridLength Adjust(GridLength length, double actual, double change) =>
+                new(Math.Max(.0001, actual + change), length.IsStar ? GridUnitType.Star : GridUnitType.Pixel);
             var nextA = Adjust(a.Read(), first, delta); var nextB = Adjust(b.Read(), second, -delta);
             a.Write(nextA); b.Write(nextB);
             // Update the native video bounds too; the next Thumb delta is relative
@@ -62,7 +79,11 @@ public static class LiveDockResize
             grid.UpdateLayout();
         }
         public bool Horizontal => horizontal;
-        public void Cancel() { a.Write(_originalA); b.Write(_originalB); grid.UpdateLayout(); }
+        public void Cancel()
+        {
+            foreach (var item in _siblings) item.Length.Write(item.Original);
+            grid.UpdateLayout();
+        }
     }
 
     private static void Start(object sender, DragStartedEventArgs e)

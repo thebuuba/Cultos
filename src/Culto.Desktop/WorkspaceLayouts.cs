@@ -17,14 +17,12 @@ internal static class WorkspaceLayouts
 
     internal static double MinimumWidth(string? id) => id switch
     {
-        "sources" or "text" or "media" => 180, "youtube" => 190,
-        "bible" or "preview" or "output" or "order" or "sequence" => 220, _ => 180
+        "bible" => 200, "preview" or "output" => 220, _ => 180
     };
 
     internal static double MinimumHeight(string? id) => id switch
     {
-        "sources" or "bible" => 400, "youtube" => 320, "text" => 280,
-        "preview" or "output" => 240, "media" => 260, "sequence" => 150, _ => 160
+        "preview" or "output" => 240, "sequence" => 120, "order" => 160, _ => 180
     };
 
     internal static XDocument Create(string preset)
@@ -73,6 +71,47 @@ internal static class WorkspaceLayouts
         if (sources.Name != "LayoutAnchorable" || sources.Parent is not { Name.LocalName: "LayoutAnchorablePane" } pane) return false;
         sources.SetAttributeValue("Title", Title("sources"));
         foreach (var id in SourceIds.Skip(1)) pane.Add(Content(id, false));
+        return true;
+    }
+
+    internal static bool PlacePanel(XDocument document, string sourceId, string targetId, string position)
+    {
+        var source = document.Descendants("LayoutAnchorable").SingleOrDefault(e => (string?)e.Attribute("ContentId") == sourceId);
+        var target = document.Descendants("LayoutAnchorable").SingleOrDefault(e => (string?)e.Attribute("ContentId") == targetId);
+        if (source is null || target is null || source == target || position is not ("top" or "bottom" or "left" or "right" or "tab")) return false;
+        var oldPane = source.Parent!;
+        var targetPane = target.Parent!;
+        source.Remove();
+        oldPane.Attribute("SelectedContentIndex")?.Remove();
+        if (!oldPane.Elements("LayoutAnchorable").Any(e => (bool?)e.Attribute("IsSelected") == true))
+            oldPane.Elements("LayoutAnchorable").FirstOrDefault()?.SetAttributeValue("IsSelected", true);
+        if (position == "tab")
+        {
+            foreach (var sibling in targetPane.Elements("LayoutAnchorable")) sibling.SetAttributeValue("IsSelected", false);
+            targetPane.Attribute("SelectedContentIndex")?.Remove();
+            targetPane.Add(source);
+        }
+        else
+        {
+            var pane = new XElement("LayoutAnchorablePane", new XAttribute("DockWidth", "*"), new XAttribute("DockHeight", "*"), source);
+            var horizontal = position is "left" or "right";
+            var orientation = horizontal ? "Horizontal" : "Vertical";
+            var parent = targetPane.Parent!;
+            // Keep the target's share of the outer layout, splitting just its
+            // rectangle. This works inside docked and floating pane groups.
+            var group = new XElement(parent.Name.LocalName == "LayoutAnchorablePaneGroup" ? "LayoutAnchorablePaneGroup" : "LayoutPanel",
+                new XAttribute("Orientation", orientation),
+                new XAttribute("DockWidth", (string?)targetPane.Attribute("DockWidth") ?? "*"),
+                new XAttribute("DockHeight", (string?)targetPane.Attribute("DockHeight") ?? "*"));
+            targetPane.ReplaceWith(group);
+            targetPane.SetAttributeValue("DockWidth", "*"); targetPane.SetAttributeValue("DockHeight", "*");
+            if (position is "top" or "left") group.Add(pane, targetPane); else group.Add(targetPane, pane);
+        }
+        source.SetAttributeValue("IsSelected", true);
+        foreach (var node in document.Descendants().Reverse().ToArray())
+            if (node.Name.LocalName is "LayoutAnchorablePane" or "LayoutPanel" or "LayoutAnchorablePaneGroup" or "LayoutAnchorableFloatingWindow"
+                && !node.Descendants("LayoutAnchorable").Any()) node.Remove();
+        document.Root!.Attribute("WorkspacePreset")?.Remove();
         return true;
     }
 

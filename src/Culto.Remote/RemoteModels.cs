@@ -1,7 +1,7 @@
 namespace Culto.Remote;
 
 public sealed record DeckButton(string Id, string Label, string Color, string Action, string? CueId = null);
-public sealed record RemoteCue(string Id, string Title, string Kind);
+public sealed record RemoteCue(string Id, string Title, string Kind, [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string? Body = null);
 public sealed record RemoteClientInfo(string Id, string Name, DateTimeOffset LastSeen, bool IsConnected);
 public sealed record RemoteSnapshot(string PlanName, string PreparedTitle, string LiveTitle,
     bool IsBlackout, bool IsPaused, int Volume, double Position, double Duration, IReadOnlyList<DeckButton> Buttons,

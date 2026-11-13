@@ -116,6 +116,10 @@ noscript{display:block;padding:20px;color:var(--amber)}
 </section>
 </div>
 <aside class="support-column" aria-label="Orden y contenido preparado">
+<section class="panel" aria-labelledby="catalog-label"><h2 id="catalog-label">Contenido de la PC</h2>
+<form id="catalog-form"><div class="row" style="gap:8px;margin:16px 0"><select id="catalog-source" aria-label="Apartado" style="min-width:0;flex:1;padding:12px;border-radius:22px;background:#343539;color:#fff;border:0;font:inherit"><option value="bible">Biblia</option><option value="hymns">Himnario</option><option value="videos">Videos</option></select><button type="submit">Buscar</button></div>
+<input id="catalog-query" maxlength="200" placeholder="Ej. Juan 3:16 o una frase" aria-label="Buscar contenido en la PC" style="width:100%;box-sizing:border-box;border:0;border-radius:22px;background:#343539;color:#fff;padding:14px;font:inherit"/></form>
+<p id="catalog-status" class="detail" role="status"></p><div id="catalog-results" style="display:grid;gap:8px;margin-top:12px"></div></section>
 <section aria-labelledby="order-label"><div class="row section-head"><h2 id="order-label">Orden del culto</h2><span id="order-count" class="count">—</span></div><ol id="order" aria-label="Elementos para proyectar"></ol><p id="order-empty" class="empty">Esperando el orden del equipo.</p></section>
 <section class="panel" aria-labelledby="prepared-label"><span id="prepared-label" class="eyebrow">Preparado en el equipo</span><div id="prepared-title" class="title prepared-title">—</div><button class="primary" data-action="project" disabled>Proyectar preparado<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 5 10 7-10 7Z"/></svg></button></section>
 </aside>
@@ -335,6 +339,32 @@ async function send(action, extra = {}) {
   } finally { pending = false; enableControls(); }
 }
 document.querySelectorAll('button[data-action]').forEach(button => button.addEventListener('click', () => send(button.dataset.action)));
+
+let catalogGeneration = 0;
+async function searchCatalog() {
+  if (!connected) return;
+  const generation = ++catalogGeneration;
+  $('catalog-status').textContent = 'Buscando…'; $('catalog-results').replaceChildren();
+  try {
+    const items = await request('/api/catalog?source=' + encodeURIComponent($('catalog-source').value) + '&q=' + encodeURIComponent($('catalog-query').value));
+    if (generation !== catalogGeneration) return;
+    $('catalog-status').textContent = items.length ? items.length + (items.length === 100 ? ' resultados · afina la búsqueda' : ' resultados') : 'Sin resultados. Comprueba el contenido cargado en la PC.';
+    items.forEach(item => {
+      const row = document.createElement('div'), title = document.createElement('strong'), body = document.createElement('p'), play = document.createElement('button');
+      row.className = 'panel'; row.style.padding = '14px'; title.textContent = item.title; body.textContent = item.body || ''; body.className = 'detail';
+      play.textContent = 'Proyectar'; play.dataset.action = 'library'; play.style.marginTop = '10px';
+      play.addEventListener('click', () => send('library', { cueId: item.id }));
+      row.append(title); if (item.body) row.append(body); row.append(play); $('catalog-results').append(row);
+    }); enableControls();
+  } catch (error) { if (generation === catalogGeneration) $('catalog-status').textContent = error.message; }
+}
+$('catalog-form').addEventListener('submit', event => { event.preventDefault(); searchCatalog(); });
+$('catalog-source').addEventListener('change', () => {
+  catalogGeneration++; $('catalog-results').replaceChildren(); $('catalog-query').value = '';
+  $('catalog-query').placeholder = $('catalog-source').value === 'bible' ? 'Ej. Juan 3:16 o una frase' : 'Número o título';
+  if ($('catalog-source').value !== 'bible') searchCatalog();
+});
+
 $('volume').addEventListener('change', event => send('volume', { value: Number(event.target.value) }));
 $('position').addEventListener('change', event => send('seek', { value: Number(event.target.value) / 1000 }));
 $('retry').addEventListener('click', () => refresh(true));

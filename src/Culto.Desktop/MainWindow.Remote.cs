@@ -32,6 +32,14 @@ public partial class MainWindow
         try
         {
             var action = command.Action;
+            if (action == "library")
+            {
+                if (!Guid.TryParse(command.CueId, out var id) || !_remoteCatalog.TryGetValue(id, out var selected))
+                    return new(false, "Busca de nuevo este contenido en el teléfono.");
+                if (!CheckMedia(selected)) return new(false, "El archivo no está disponible en la PC.");
+                PrepareCue(selected, selected.Kind == CueKind.Bible ? _bibleReading : null); ProjectPrepared();
+                return new(_output is not null && _session.Live?.Id == selected.Id, "Contenido enviado a pantalla.");
+            }
             if (action == "cue")
             {
                 var cue = Guid.TryParse(command.CueId, out var cueId) ? _plan.FirstOrDefault(c => c.Id == cueId) : null;
@@ -56,7 +64,7 @@ public partial class MainWindow
                     return new(_output is not null && _session.Live?.Id == cue.Id, "Contenido enviado.");
                 }
             }
-            if (action is not ("project" or "volume") && _output is null)
+            if (action is not ("project" or "volume" or "background" or "blackout") && _output is null)
                 return new(false, "La salida de proyección está cerrada.");
             if (action is "pause" or "restart" or "seek")
             {
@@ -87,7 +95,7 @@ public partial class MainWindow
                     }
                     var before = _session.Live?.Id; AdvancePresentation(action == "next" ? 1 : -1);
                     return new(before != _session.Live?.Id, before != _session.Live?.Id ? "Contenido actualizado." : "No hay otro elemento en esa dirección.");
-                case "blackout": ToggleBlackout(); break;
+                case "blackout": ShowBlackBackdrop(); break;
                 case "background":
                     return new(ShowLogo(), _logoSlides.IsRunning ? "Logo en pantalla." : "Logo no tiene imágenes disponibles.");
                 case "pause": TogglePause(); break;
@@ -111,7 +119,7 @@ public partial class MainWindow
             var host = new RemoteHost();
             try
             {
-                await host.StartAsync(18765, GetRemoteState, HandleRemote);
+                await host.StartAsync(18765, GetRemoteState, HandleRemote, catalog: SearchRemoteCatalog);
                 _remote = host; RemoteButton.Header = "Mando móvil activo…";
                 SetStatus("Mando local activado.");
                 return host;

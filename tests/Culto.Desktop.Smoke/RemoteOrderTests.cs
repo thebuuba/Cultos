@@ -136,6 +136,26 @@ internal static partial class Program
                 finally { workspace.Deck = oldDeck; }
             });
 
+            Test("Remote catalog searches PC hymns and Bible without preparing until projection", () =>
+            {
+                ResetPlan();
+                var hymn = new Cue { Title = "014 Himno de prueba", HymnNumber = 14, Kind = CueKind.Text, Body = "Himno" };
+                workspace.Library.Add(hymn);
+                var task = (Task<IReadOnlyList<RemoteCue>>)Call(window, "SearchRemoteCatalog", "hymns", "014")!;
+                Wait(task); var result = task.Result.Single(item => item.Id == hymn.Id.ToString());
+                Check(session.Live?.Id != hymn.Id, "Searching projected an item");
+                Check(Command("library", result.Id).Success && session.Live?.Id == hymn.Id, "Catalog result did not project");
+                var live = session.Live;
+                Check(!Command("library", Guid.NewGuid().ToString()).Success && ReferenceEquals(live, session.Live), "Unknown catalog ID replaced output");
+                JsonFileStore.Save(Path.Combine(Field<WorkspaceStore>(window, "_store").DirectoryPath, "biblia.json"), new BibleDocument
+                { Name = "Prueba", Attribution = "Sintético", Verses = [new BibleVerse("Juan", 3, 16, "Texto sintético para el mando")] });
+                Call(window, "LoadSavedBible");
+                var bible = (Task<IReadOnlyList<RemoteCue>>)Call(window, "SearchRemoteCatalog", "bible", "Juan 3:16")!; Wait(bible);
+                Check(bible.Result.Single().Body == "Texto sintético para el mando", "Bible search has no readable verse");
+                Check(Command("library", bible.Result.Single().Id).Success && session.Live?.Kind == CueKind.Bible, "Remote Bible failed to project");
+                workspace.Library.Remove(hymn);
+            });
+
             Test("Remote background blackout and closed-output states match the console", () =>
             {
                 var oldImages = workspace.BackgroundImages; var oldImage = workspace.BackgroundImagePath;
@@ -147,6 +167,7 @@ internal static partial class Program
                 try
                 {
                 ResetPlan();
+                Check(Command("background").Success && State().HasOutput && State().IsBackground, "Logo cannot start from closed output");
                 Check(Command("cue", first.Id.ToString()).Success, "Could not activate fixture");
                 Check(Command("background").Success, "Background command failed");
                 var state = State();
@@ -163,6 +184,7 @@ internal static partial class Program
             Test("Authenticated HTTP commands dispatch to local video playback and publish native state", () =>
             {
                 ResetPlan();
+                ((CheckBox)window.FindName("LoopCheck")).IsChecked = true;
                 var video = new Cue { Title = "Video remoto de prueba", Kind = CueKind.Video,
                     FilePath = Path.Combine(AppContext.BaseDirectory, "fixtures", "test.mkv") };
                 plan.Insert(1, video);

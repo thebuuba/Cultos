@@ -41,6 +41,7 @@ public partial class MainWindow
         resources[AvalonDock.Themes.Arc.Themes.ResourceKeys.PanelBorderBrush] = Brushes.Transparent;
         foreach (var pane in WorkspaceDock.Layout.Descendents().OfType<LayoutAnchorable>())
             _dockContents[pane.ContentId] = pane.Content;
+        InitializePanelSizing();
         ApplyPaneMinimums();
         WorkspaceDock.LayoutUpdated += WorkspaceDockLayoutUpdated;
         Closed += (_, _) => WorkspaceDock.LayoutUpdated -= WorkspaceDockLayoutUpdated;
@@ -100,6 +101,7 @@ public partial class MainWindow
             title.Background = _dockPanelBrush;
             title.Foreground = _dockTextBrush;
             title.BorderThickness = new Thickness(0);
+            InitializePanelPlacementMenu(title);
             // Arc 5.0.1 hardcodes this margin rather than binding Padding.
             // Adjust the existing visual; retain its template and drag handlers.
             if (VisualTreeHelper.GetChildrenCount(title) > 0
@@ -187,7 +189,9 @@ public partial class MainWindow
             if (_dockContents.TryGetValue(args.Model.ContentId, out var content)) args.Content = content;
             else args.Cancel = true;
         };
+        LiveMonitor.SetNativeSource(IntPtr.Zero);
         serializer.Deserialize(new StringReader(document.ToString()));
+        RoutePowerPointOutput();
         _adaptPrincipalWorkspace = false;
         _appliedWorkspacePreset = null;
         _presetArrangement = null;

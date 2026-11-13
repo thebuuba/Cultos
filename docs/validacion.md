@@ -1,8 +1,20 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 12 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.30.0`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 12 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.31.0`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### Paneles unidos y contenido remoto — versión 0.31.0
+
+Los separadores convierten los pesos proporcionales a los tamaños reales de todas las celdas antes de intercambiar espacio entre dos vecinos. La regresión inicial reprodujo un grupo inmóvil (626 DIP) y el desplazamiento de un tercer panel; despu?s el grupo recibe los 20 DIP solicitados sin mover al tercero. Cancelar restaura todos los pesos. Las alturas mínimas permiten apilar las fuentes; su contenido conserva un tama?o finito y desplazamiento cuando hace falta. Los monitores mantienen sus ?reas de imagen y controles existentes. El men? contextual de los títulos coloca un panel encima, debajo, a los lados o como pesta?a de otro. Se conservan los controles y la sesión. El guardado personalizado elimina la adaptaci?n automática del preset. Antes de restaurar se separa la ventana nativa incrustada para conservarla al cerrar contenedores flotantes.
+
+Logo y Fondo negro remotos usan las mismas acciones de salida que la PC y pueden iniciarla cerrada. La prueba de Logo falló antes del arreglo. El mando incorpora Contenido de la PC con Biblia, Himnario y Videos. El endpoint autenticado `/api/catalog` limita consulta a 200 caracteres y resultados a 100; no publica rutas ni notas privadas. Los resultados bíblicos incluyen el texto y los dem?s solo res?menes. Los comandos usan identificadores previamente resueltos en la PC, nunca rutas recibidas del teléfono. Se conservan autenticación, origen e idempotencia. Las carpetas de video se enumeran fuera del hilo de interfaz.
+
+Comprobaciones específicas: `--panel-sizing` cubre arrastre restringido, cancelación, apilado, accesibilidad de controles, cinco posiciones, persistencia, pestañas, flotación y conservación del reproductor durante un video. `--remote-order` cubre búsqueda de himnos y Biblia, proyección por ID, rechazo de ID desconocido, Logo con salida cerrada y comandos HTTP. Las pruebas del servidor cubren autenticación del cat?logo, validación, l?mite de consulta y comando de biblioteca idempotente. Se comprobó la sintaxis JavaScript con Node. Evidencias: `.tools/worktrees/culto-polymet/.tools/panels-final.log`, `remote-deck-final.log`, `presets-final.log`, `deck-visual-final.log`, `deck-desktop-full.log` y `deck-publish.log`.
+
+Release sin errores ni advertencias: 232 Core, 64 Remote y 138 comprobaciones de escritorio general correctas; paneles 8, presets 9, mando 12 y tema visual 12 correctas.
+
+Las pruebas usan datos temporales. No se sustituyen los datos del usuario ni se cierra su programa en ejecución. No se ha probado este cambio desde un teléfono físico; el render del navegador móvil, HDMI y PowerPoint físico siguen pendientes. La versión 0.30.0 se conserva en su carpeta e iniciador expl?cito.
 
 ### Tarjetas, distribuciones y mando — versión 0.30.0
 

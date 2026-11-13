@@ -11,6 +11,26 @@ namespace Culto.Remote.Tests;
 public sealed class RemoteTests
 {
     [Fact]
+    public async Task CatalogRequiresAuthenticationValidatesQueriesAndDispatchesLibraryIdsOnce()
+    {
+        await using var host = new RemoteHost();
+        var id = Guid.NewGuid().ToString(); var calls = 0;
+        await host.StartAsync(0, () => Snapshot(), command => { calls++; return Task.FromResult(new CommandResult(true, command.CueId!)); }, true,
+            (source, query) => Task.FromResult<IReadOnlyList<RemoteCue>>([new(id, source + query, "Bible", "Texto de prueba")]));
+        using var http = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{host.Port}") };
+        Assert.Equal(HttpStatusCode.Unauthorized, (await http.GetAsync("/api/catalog?source=bible&q=Juan")).StatusCode);
+        http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", host.Token);
+        var items = await http.GetFromJsonAsync<RemoteCue[]>("/api/catalog?source=bible&q=Juan");
+        Assert.Equal(id, Assert.Single(items!).Id);
+        Assert.Equal(HttpStatusCode.BadRequest, (await http.GetAsync("/api/catalog?source=files")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await http.GetAsync("/api/catalog?source=bible&q=" + new string('a', 201))).StatusCode);
+        var command = new RemoteCommand("library", "library-once", CueId: id);
+        Assert.True((await (await http.PostAsJsonAsync("/api/command", command)).Content.ReadFromJsonAsync<CommandResult>())!.Success);
+        await http.PostAsJsonAsync("/api/command", command); Assert.Equal(1, calls);
+        Assert.Equal(HttpStatusCode.BadRequest, (await http.PostAsJsonAsync("/api/command", command with { RequestId = "invalid", CueId = "C:/file" })).StatusCode);
+    }
+
+    [Fact]
     public async Task OnlyAuthenticatedSameOriginClientsAppearInConnectionStatus()
     {
         var (host, client) = await Start();

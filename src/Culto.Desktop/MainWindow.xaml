@@ -357,7 +357,7 @@
       </Grid>
     </Grid>
 
-    <ad:DockingManager x:Name="WorkspaceDock" local:LiveDockResize.IsEnabled="True" Grid.Row="2" BorderThickness="0" Background="{StaticResource CanvasBrush}" AllowMixedOrientation="True">
+    <ad:DockingManager x:Name="WorkspaceDock" local:LiveDockResize.IsEnabled="True" GridSplitterWidth="10" GridSplitterHeight="10" Grid.Row="2" BorderThickness="0" Background="{StaticResource CanvasBrush}" AllowMixedOrientation="True">
       <ad:DockingManager.Theme><themes:ArcDarkTheme/></ad:DockingManager.Theme>
       <ad:LayoutRoot>
         <ad:LayoutPanel Orientation="Horizontal">
@@ -731,8 +731,8 @@
               </Grid>
               <Grid Grid.Row="4" Margin="0,10,0,0">
                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
-                <Button x:Name="ProjectYouTubeButton" Content="Proyectar" Click="ProjectYouTubeClick" Style="{StaticResource PrimaryButton}" IsEnabled="False" MinHeight="36" Padding="8,5" Margin="0,0,3,0" AutomationProperties.Name="Proyectar ventana de YouTube"/>
-                <Button x:Name="AddYouTubeButton" Grid.Column="1" Content="+ Al orden" Click="AddYouTubeToPlanClick" IsEnabled="False" MinHeight="36" Padding="8,5" Margin="3,0,0,0" AutomationProperties.Name="Añadir captura de YouTube al orden"/>
+                <Button x:Name="ProjectYouTubeButton" Content="Proyectar" Click="ProjectYouTubeClick" Style="{StaticResource PrimaryButton}" IsEnabled="False" MinHeight="36" FontSize="11" Padding="6,5" Margin="0,0,3,0" AutomationProperties.Name="Proyectar ventana de YouTube"/>
+                <Button x:Name="AddYouTubeButton" Grid.Column="1" Content="+ Al orden" Click="AddYouTubeToPlanClick" IsEnabled="False" MinHeight="36" FontSize="11" Padding="6,5" Margin="3,0,0,0" AutomationProperties.Name="Añadir captura de YouTube al orden"/>
               </Grid>
               <Grid Grid.Row="5" Margin="0,6,0,0">
                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
