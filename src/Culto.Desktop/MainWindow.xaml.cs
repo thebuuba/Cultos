@@ -22,6 +22,7 @@ public partial class MainWindow : Window
     private readonly PresentationSession _session = new();
     private ProjectionSurface _preview = null!;
     private ProjectionSurface? _output;
+    private ProjectionSurface? _standbyOutput;
     private ProjectionWindow? _outputWindow;
     private DisplayInfo? _outputDisplay;
     private bool _outputIsTest;
@@ -106,6 +107,10 @@ public partial class MainWindow : Window
         if (_plan.Count > 0 && _plan[0].Kind != CueKind.WindowCapture) PlanList.SelectedIndex = 0;
         _timer.Tick += TimerTick;
         _timer.Start();
+        // Prepare native codecs before the operator's first projection, while
+        // keeping the output closed and silent until explicitly requested.
+        _standbyOutput = new ProjectionSurface(smoothTransitions: true);
+        _standbyOutput.PreparePlaybackEngine();
         if (recoveryMessage is not null) SetStatus(recoveryMessage, true);
     }
 

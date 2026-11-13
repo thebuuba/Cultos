@@ -147,6 +147,18 @@ internal sealed class ProjectionMixer : Grid, IDisposable
     public void TransitionTo(Cue cue) => Enqueue(Capture(cue, false, false, false));
     public void TransitionToBackdrop(Cue? cue, bool blackout, bool hidden) => Enqueue(Capture(cue, blackout, hidden, true));
 
+    public void PreparePlaybackEngine()
+    {
+        if (_disposed || _vlc is not null) return;
+        // An unsuccessful speculative warmup must not consume the first real command.
+        if (_initialization is { IsFaulted: true })
+        {
+            _ = _initialization.Exception;
+            _initialization = null;
+        }
+        _initialization ??= Task.Run(_engineFactory);
+    }
+
     private void Enqueue(Request request)
     {
         if (_disposed) return;
@@ -171,7 +183,7 @@ internal sealed class ProjectionMixer : Grid, IDisposable
         Load(request);
     }
 
-    private async void Load(Request request)
+    private async void Load(Request request, bool retryEngine = true)
     {
         _desiredPause = request.PauseAfter; _pauseImmediately = false;
         _blackout = request.Blackout; _hidden = request.Hidden;
@@ -179,13 +191,14 @@ internal sealed class ProjectionMixer : Grid, IDisposable
         // A capture can run for an entire service before the first local file.
         // Warm the engine now, without opening a decoder or changing its audio.
         if (_vlc is null && request.Cue?.Kind == CueKind.WindowCapture && !request.Blackout && !request.Hidden)
-            _initialization ??= Task.Run(_engineFactory);
+            PreparePlaybackEngine();
         if (_vlc is null && request.Cue?.Kind is CueKind.Video or CueKind.Audio && !request.Blackout && !request.Hidden)
         {
             // libvlc_new may scan/load hundreds of native plugins on a cold install.
             // Keep that disk/native initialization off the WPF dispatcher.
             _loading = request;
-            var initialization = _initialization ??= Task.Run(_engineFactory);
+            PreparePlaybackEngine();
+            var initialization = _initialization!;
             try
             {
                 var engine = await initialization;
@@ -199,6 +212,14 @@ internal sealed class ProjectionMixer : Grid, IDisposable
             {
                 if (ReferenceEquals(_initialization, initialization)) _initialization = null;
                 if (_disposed || !ReferenceEquals(_loading, request)) return;
+                // Keep the first command if native initialization fails transiently,
+                // including a warmup that fails after the operator has requested play.
+                // Retry the engine once; invalid files never enter this path.
+                if (retryEngine)
+                {
+                    Load(request with { PauseAfter = _desiredPause }, retryEngine: false);
+                    return;
+                }
                 _loading = null; _desiredPause = ActiveSurface.IsPaused;
                 _blackout = DisplayedBlackout; _hidden = DisplayedHidden;
                 PlaybackError?.Invoke("No se pudo preparar el reproductor. " + error.Message + " La salida anterior se conserva.");

@@ -64,9 +64,14 @@ public partial class MainWindow
         if (_output is not null) return true;
         try
         {
-            _output = new ProjectionSurface(smoothTransitions: true) { Volume = (int)VolumeSlider.Value, Loop = LoopCheck.IsChecked == true,
-                KeepMediaAudio = _workspace.KeepMediaAudio,
-                BackgroundImagePath = _workspace.BackgroundImagePath, BibleStyle = _workspace.BibleStyle.Normalize(), Transitions = _workspace.Transitions.Normalize() };
+            _output = _standbyOutput ?? new ProjectionSurface(smoothTransitions: true);
+            _standbyOutput = null;
+            _output.Volume = (int)VolumeSlider.Value;
+            _output.Loop = LoopCheck.IsChecked == true;
+            _output.KeepMediaAudio = _workspace.KeepMediaAudio;
+            _output.BackgroundImagePath = _workspace.BackgroundImagePath;
+            _output.BibleStyle = _workspace.BibleStyle.Normalize();
+            _output.Transitions = _workspace.Transitions.Normalize();
             _output.PlaybackError += OnOutputPlaybackError;
             var initialCue = WithYouTubeLayout(_session.Live);
             _output.ShowCue(initialCue, blackout: true);
@@ -152,6 +157,7 @@ public partial class MainWindow
         PreviewLiveMonitor.SetLocalSource(null);
         _outputPlayerWindow?.Monitor.SetLocalSource(null);
         _output?.SetPaused(true); _output?.Dispose(); _output = null;
+        _standbyOutput?.Dispose(); _standbyOutput = null;
         _isPaused = true;
         if (_ready) UpdateSessionLabels();
     }

@@ -1,8 +1,20 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 13 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.33.2`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 13 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.33.3`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### Preparación de la primera reproducción — versión 0.33.3
+
+El usuario precisa que el problema aparece solamente la primera vez. Una ejecución inicial de `--cold-play` no llegó a la reproducción dentro de los ocho segundos; tras añadir diagnóstico y repetir, quince arranques independientes con un himno real y una copia temporal de la configuración sí reprodujeron con una única orden. Eso confirma la intermitencia, pero no identifica por sí solo la causa exacta del fallo observado en la interfaz del usuario.
+
+Antes el motor nativo se inicializaba al solicitar el primer archivo o una captura. Ahora un compositor de reserva prepara el motor al terminar de abrir la app; permanece sin contenido, reproductores de archivo ni ventana de salida. La primera proyección adopta esa misma instancia. Se conserva la petición mientras se espera al motor y se libera la reserva al cerrar. Además, una inicialización anticipada fallida se descarta al recibir la primera orden real. Si falla mientras la orden ya está pendiente, se vuelve a inicializar una sola vez conservando esa orden y su estado de pausa; no se reintentan archivos incompatibles ni se sobreescribe una petición posterior.
+
+La prueba de preparación falló antes del cambio. La recuperación de una preparación fallida también se verificó en rojo retirando temporalmente su protección: la primera orden se perdía. Una prueba adicional reprodujo la pérdida cuando la inicialización fallaba después de pedir el video. Evidencias iniciales en `.tools/worktrees/culto-polymet/.tools/reliable-projection-cold.log`, `reliable-projection-red.log`, `reliable-warmup-failure-red.log`, `reliable-pending-failure-red.log` y `reliable-first-*.log`. Los ensayos usan un directorio temporal y no guardan cambios sobre el culto del usuario.
+
+La versión final pasa ocho comprobaciones de arranque y 41 del compositor/transiciones. El primer himno real alcanzó reproducción en movimiento con una sola orden y sin bloquear la interfaz; la prueba conserva la instancia preparada al abrir la app. Compilación sin errores ni advertencias, 232 Core y 64 Remote correctas. Evidencias finales en `reliable-projection-final-cold.log`, `reliable-projection-smooth.log` y `reliable-projection-publish.log`.
+
+Límite de la revisión general: una ejecución previa al último ajuste del reintento pasó sus 135 comprobaciones. En la versión final, una ejecución se detuvo después de 134 comprobaciones al cerrar por `ResourceReferenceKeyNotFoundException: PanelBorderBrush` y se terminó solamente el proceso de ensayo aislado. La repetición completó el cierre, con 127 comprobaciones correctas y ocho fallos ligados al foco de teclado (búsquedas, atajos y Delete); no es una validación general limpia. No se cambiaron los recursos del tema ni el foco en esta corrección. Evidencias en `reliable-projection-desktop.log`, `reliable-projection-desktop-retry.log` y el registro existente `errors.log`. Estas incidencias quedan pendientes de diagnóstico independiente.
 
 ### Botones compactos de la Biblia — versión 0.33.2
 

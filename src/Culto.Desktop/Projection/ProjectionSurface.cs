@@ -97,6 +97,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
     public bool IsPlaying => !_disposed && (_mixer?.IsPlaying ?? (_captureClient is not null
         ? _captureReady && !_pauseRequested && !_suppressed : _player?.IsPlaying == true));
     public bool IsPreparingPlaybackEngine => _mixer?.IsPreparingPlaybackEngine == true;
+    public void PreparePlaybackEngine() => _mixer?.PreparePlaybackEngine();
     internal bool HasVideoFrame => _captureClient is not null ? _captureReady : _compositedVideo.Source is not null;
     internal bool HasLoadedMedia => _media is not null || _captureClient is not null;
     public bool DisplayedBlackout => _mixer?.DisplayedBlackout ?? _suppressed;

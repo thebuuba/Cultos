@@ -4,9 +4,9 @@ Consola nativa para Windows destinada a preparar y proyectar cultos. Reúne el o
 
 ## Abrir el programa
 
-Ejecuta **Abrir Culto Studio.cmd** en esta carpeta, o abre `artifacts/CultoStudio-0.33.2/CultoStudio.exe`. Cierra la versión anterior primero. La distribución publicada incluye .NET y el reproductor nativo; conserva todos los archivos de esa carpeta junto al ejecutable. Windows x64.
+Ejecuta **Abrir Culto Studio.cmd** en esta carpeta, o abre `artifacts/CultoStudio-0.33.3/CultoStudio.exe`. Cierra la versión anterior primero. La distribución publicada incluye .NET y el reproductor nativo; conserva todos los archivos de esa carpeta junto al ejecutable. Windows x64.
 
-En **0.33.2** se corrigen los botones estrechos de la Biblia: estilo, limpiar búsqueda y navegación de capítulos tienen dimensiones circulares uniformes y quedan alineados. Se mantiene la retirada del panel Secuencia de 0.33.1 y la conversión de distribuciones anteriores.
+En **0.33.3** el motor de video se prepara en segundo plano al abrir la app, sin activar la salida ni reproducir contenido. La primera proyección reutiliza ese motor, conserva la orden durante la carga y recupera una preparación anticipada fallida. Se mantienen los botones corregidos de la Biblia y la retirada de Secuencia.
 
 En **0.33.0**, marca o desmarca cada panel en **Espacio de trabajo** para mostrarlo u ocultarlo. El clic derecho en la cabecera ofrece **Ocultar panel**; **Mostrar todos los paneles** recupera el conjunto. La visibilidad se guarda con la distribución. Ocultar En pantalla conserva la reproducción y la salida HDMI.
 
