@@ -27,6 +27,20 @@ internal static partial class Program
             output.SetPaused(true);
             PumpFor(100);
 
+            Test("Inline player is one compact neutral row without a live border", () =>
+            {
+                Call(window,"PlacePlaybackOverlay",window.FindName("LiveOverlayHost"));
+                Call(window,"ShowPlaybackOverlay",true);window.UpdateLayout();PumpFor(180);
+                var panel=(FrameworkElement)window.FindName("MediaPlaybackPanel");
+                var viewport=(Border)window.FindName("OutputViewport");
+                Check(viewport.BorderThickness==new Thickness(0),"Green live border remains");
+                Check(panel.ActualHeight<=36,"Inline player is taller than one compact row");
+                foreach(var name in new[]{"PauseButton","PositionSlider","TimeText","OutputDurationText","MuteButton","VolumeSlider"})
+                    CheckWithin((FrameworkElement)window.FindName(name),viewport,new Rect(viewport.RenderSize),name);
+                Check(((Button)window.FindName("PauseButton")).Background is System.Windows.Media.SolidColorBrush {Color.A:0},"Large colored play button remains");
+                CaptureDesignWindow(window,Path.Combine(Environment.CurrentDirectory,".tools","minimal-player.png"));
+            });
+
             Test("Player scrubbing preserves the selected position and paused output", () =>
             {
                 var slider = (Slider)window.FindName("PositionSlider");

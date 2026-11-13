@@ -1,8 +1,14 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 13 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.35.3`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 13 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.35.4`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### Reproductor mínimo y sin borde verde ? 0.35.4
+
+OutputViewport pasa a BorderThickness 0. La barra superpuesta ocupa una fila de 32 DIP con pausa/reproducción de 28 DIP, tiempos, progreso y volumen. Fondo semitransparente y controles neutros; desaparecen el botón verde grande, la segunda fila y los iconos secundarios de la barra. Se conservan las instancias de reinicio/avance/repetición para las acciones existentes y el reproductor ampliado. La barra mantiene su comportamiento de entrada/salida con el ratón y queda fuera del contenido HDMI.
+
+El ensayo --fixed-monitors pasa con borde cero, altura máxima 36 DIP, controles dentro de la imagen y pruebas reales de pausa, posición, avance y volumen. Captura revisada .tools/minimal-player.png y registro .tools/minimal-monitor.log del worktree. Dos intentos aislados de --player no alcanzaron la reproducción inicial dentro del tiempo de espera; el mismo grupo de pruebas completo en --fixed-monitors sí pasó. No se afirma resuelta esa intermitencia de arranque por este cambio visual.
 
 ### Cola directa de reproducción ? 0.35.3
 
