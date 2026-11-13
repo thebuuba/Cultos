@@ -6,7 +6,19 @@ public sealed class WindowCaptureOptionsTests
 {
     private static WindowCaptureOptions Source() => new() { WindowHandle = 123456789, ProcessId = 123,
         WindowTitle = "Video #1: culto — YouTube", WindowClass = "Chrome_WidgetWin_1", Executable = "chrome.exe",
-        CropTop = 110, CropBottom = 40, ControlAudio = true };
+        CropTop = 110, CropBottom = 40, ControlAudio = true, YouTubeOnly = true };
+
+    [Theory]
+    [InlineData("Song - YouTube - Google Chrome", true)]
+    [InlineData("youtube", true)]
+    [InlineData("WhatsApp - Google Chrome", false)]
+    [InlineData("", false)]
+    [InlineData(null, false)]
+    public void YouTubeRestrictionRequiresTheSelectedTabTitle(string? title, bool allowed)
+    {
+        Assert.Equal(allowed, Source().AllowsWindowTitle(title));
+        Assert.True((Source() with {YouTubeOnly=false}).AllowsWindowTitle(title));
+    }
 
     [Fact]
     public void ProtocolPreservesExactWindowIdentityAndCaptureChoices()

@@ -1,8 +1,20 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 13 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.35.6`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 13 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.36.0`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### YouTube en vivo y negro al terminar medios - 0.36.0
+
+YouTube muestra solo ventanas actuales de Chrome cuyo título contiene YouTube. No muestra ni crea capturas guardadas por video; conserva el recorte compartido y las entradas existentes del orden. La primera ventana disponible queda seleccionada automáticamente y el descubrimiento se actualiza cada segundo con el panel visible. Detectar YouTube sustituye al selector manual.
+
+YouTubeOnly viaja con la identidad de la captura hasta el motor nativo. Si el título deja de indicar YouTube, el motor libera la captura WGC y entrega negro; el receptor comprueba también el título antes de mostrar cada imagen y silencia su audio. Volver a YouTube reabre WGC en la misma ventana y conserva el proceso de captura. No depende de que Culto Studio pierda el foco. La detección usa el título de Chrome, no inspecciona la URL ni el contenido interno de la página.
+
+La cola de captura conserva un solo fotograma pendiente y su entrega a WPF usa prioridad de renderizado. Esto reduce acumulación; no hay medición del retraso real de YouTube modificado en esta entrega.
+
+Al terminar cualquier video local en pantalla se aplica negro con la transición configurada. Si hay un siguiente video de la lista activa o una continuación explícita, se reproduce primero. La repetición sigue evitando un fin natural.
+
+Pruebas --youtube-sources y --video-lists fallan antes y pasan después. --youtube-gate usa una ventana animada propia en otro proceso y el motor OBS/WGC real: imagen inicial, negro y audio silenciado durante 16 segundos fuera de YouTube, reanudación con la misma captura. No controla ventanas del usuario. Registros .tools/live-youtube-final.log, media-end-final.log y youtube-gate-final.log del worktree. Los ensayos anteriores de fuentes guardadas se sustituyen por las nuevas reglas; se conservan las pruebas de migración y recortes.
 
 ### Controles de video fuera del logo - 0.35.6
 

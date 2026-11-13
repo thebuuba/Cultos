@@ -29,7 +29,7 @@ internal static partial class Program
         using var tone = new ProjectionSurface { Volume = 60, Loop = true,
             Transitions = new TransitionOptions { Kind = "Cut", AudioFadeInMilliseconds = 0, AudioFadeOutMilliseconds = 0 } };
         var panel = new Border { Background = Brushes.Blue };
-        var source = new Window { Title = "Culto capture integration source " + Environment.ProcessId,
+        var source = new Window { Title = Environment.GetEnvironmentVariable("CULTO_CAPTURE_SOURCE_TITLE") ?? "Culto capture integration source " + Environment.ProcessId,
             Left = 40, Top = 40, Width = 520, Height = 330, Content = panel };
         var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(180) };
         bool blue = true;

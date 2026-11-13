@@ -12,6 +12,9 @@ public sealed record WindowCaptureOptions
     public string Executable { get; set; } = "";
     public bool CaptureCursor { get; set; }
     public bool ControlAudio { get; set; } = true;
+    public bool YouTubeOnly { get; set; }
+    public bool AllowsWindowTitle(string? title) => !YouTubeOnly
+        || title?.Contains("YouTube", StringComparison.OrdinalIgnoreCase) == true;
     public int CropLeft { get; set; }
     public int CropTop { get; set; }
     public int CropRight { get; set; }

@@ -27,6 +27,7 @@ internal static partial class Program
         {
             try { if (args.Contains("--audio-isolation")) await RunAudioIsolationChecks();
                 else if (args.Contains("--audio-crossfade")) await RunAudioCrossfadeCaptureChecks();
+                else if (args.Contains("--youtube-gate")) await RunYouTubeGateChecks();
                 else if (args.Contains("--capture-recovery")) await RunWindowCaptureRecoveryChecks();
                 else if (args.Contains("--capture-local")) await RunLocalCaptureChecks();
                 else if (args.Contains("--capture-to-file")) await RunLocalCaptureChecks(switchToFile: true);

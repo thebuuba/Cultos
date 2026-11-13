@@ -10,7 +10,7 @@ namespace Culto.Desktop;
 
 public partial class MainWindow
 {
-    private readonly DispatcherTimer _youTubeTimer = new() { Interval = TimeSpan.FromSeconds(2.5) };
+    private readonly DispatcherTimer _youTubeTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     private bool _refreshingYouTube;
 
     private void InitializeYouTube()
@@ -66,11 +66,11 @@ public partial class MainWindow
             try
             {
                 YouTubeList.ItemsSource = sources;
-                YouTubeList.SelectedItem = sources.FirstOrDefault(source => source.Key == selectedKey);
+                YouTubeList.SelectedItem = sources.FirstOrDefault(source => source.Key == selectedKey) ?? sources.FirstOrDefault(source=>source.IsAvailable);
             }
             finally { _refreshingYouTube = false; }
             var available = sources.Count(source => source.IsAvailable);
-            YouTubeCountText.Text = $"{available} disponibles · {_workspace.YouTubeSources.Count} guardadas";
+            YouTubeCountText.Text = $"{available} ventanas de YouTube";
             YouTubeEmpty.Visibility = sources.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             UpdateYouTubeActions();
         }
@@ -93,7 +93,7 @@ public partial class MainWindow
     {
         var source = SceneYouTubeSource();
         SceneYouTubeButton.DataContext = source;
-        SceneYouTubeButton.ToolTip = source is null ? "Elegir ventana para YouTube" : source.Title + "\n" + source.Detail;
+        SceneYouTubeButton.ToolTip = source is null ? "Abre YouTube en Chrome" : source.Title + "\n" + source.Detail;
     }
 
     private void SceneYouTubeClick(object sender, RoutedEventArgs e)
@@ -101,7 +101,7 @@ public partial class MainWindow
         if (!_ready) return;
         RefreshYouTube();
         if (SceneYouTubeSource() is { } source) ProjectSceneYouTube(source);
-        else ChooseSceneYouTubeClick(sender, e);
+        else { SelectContentSource(3); SetStatus("Abre YouTube en una ventana de Chrome."); }
     }
 
     private void SceneYouTubeMenuOpened(object sender, RoutedEventArgs e)
@@ -117,7 +117,7 @@ public partial class MainWindow
             menu.Items.Add(item);
         }
         if (menu.Items.Count > 0) menu.Items.Add(new Separator());
-        var choose = new MenuItem { Header = "Elegir otra ventana…" };
+        var choose = new MenuItem { Header = "Actualizar YouTube" };
         choose.Click += ChooseSceneYouTubeClick;
         menu.Items.Add(choose);
     }
@@ -139,20 +139,8 @@ public partial class MainWindow
 
     private void ChooseSceneYouTubeClick(object sender, RoutedEventArgs e)
     {
-        var dialog = new WindowCaptureDialog(youTubeLayout: _workspace.YouTubeLayout, confirmCaption: "Usar en escena") { Owner = this };
-        if (dialog.ShowDialog() != true || dialog.SelectedCue is not { } cue || !CheckMedia(cue)) return;
-        var previousLayout = _workspace.YouTubeLayout;
-        var saved = CopyCue(cue);
-        RememberYouTubeLayout(cue);
-        _workspace.YouTubeSources.Add(saved);
-        if (!SaveWorkspace())
-        {
-            _workspace.YouTubeSources.Remove(saved);
-            _workspace.YouTubeLayout = previousLayout;
-            return;
-        }
-        RefreshYouTube("saved:" + cue.Id);
-        if (YouTubeList.SelectedItem is YouTubeSource { IsAvailable: true } source) ProjectSceneYouTube(source);
+        SelectContentSource(3);
+        RefreshYouTube();
     }
 
     private void YouTubeSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -194,49 +182,29 @@ public partial class MainWindow
         if (YouTubeList.SelectedItem is not YouTubeSource source) return;
         var dialog = new WindowCaptureDialog(CopyCue(source.Cue), _workspace.YouTubeLayout) { Owner = this };
         if (dialog.ShowDialog() != true || dialog.SelectedCue is not { } edited) return;
-        var index = _workspace.YouTubeSources.FindIndex(cue => cue.Id == edited.Id);
-        var previous = index >= 0 ? _workspace.YouTubeSources[index] : null;
-        var saved = CopyCue(edited);
-        var previousLayout = _workspace.YouTubeLayout;
-        RememberYouTubeLayout(saved);
-        if (index >= 0) _workspace.YouTubeSources[index] = saved;
-        else _workspace.YouTubeSources.Add(saved);
-        if (!SaveWorkspace())
-        {
-            if (index >= 0) _workspace.YouTubeSources[index] = previous!;
-            else _workspace.YouTubeSources.Remove(saved);
-            _workspace.YouTubeLayout = previousLayout;
-            return;
-        }
-        RefreshYouTube("saved:" + saved.Id);
-        PrepareCue(edited);
-        SetStatus("Captura guardada en YouTube.");
+        if(edited.Capture is not {} capture || !YouTubeDiscovery.IsYouTube(capture))
+        {SetStatus("Selecciona YouTube en Chrome.",true);return;}
+        var previousLayout=_workspace.YouTubeLayout;
+        RememberYouTubeLayout(edited);
+        if(!SaveWorkspace()){_workspace.YouTubeLayout=previousLayout;return;}
+        RefreshYouTube(source.Key);
+        PrepareCue(WithYouTubeLayout(edited)!);
+        SetStatus("Recorte de YouTube guardado.");
     }
 
     private void AddCaptureToPlan(Cue cue)
     {
-        var previousLayout = _workspace.YouTubeLayout;
+        var previousLayout=_workspace.YouTubeLayout;
         RememberYouTubeLayout(cue);
-        var saved = _workspace.YouTubeSources.FirstOrDefault(source => source.Id == cue.Id);
-        var added = saved is null;
-        if (added) { saved = CopyCue(cue); _workspace.YouTubeSources.Add(saved); }
-        var item = CopyCue(cue, true);
-        _plan.Add(item);
-        UpdatePlanCount();
-        if (!SaveWorkspace())
+        var item=CopyCue(WithYouTubeLayout(cue)!,true);
+        _plan.Add(item);UpdatePlanCount();
+        if(!SaveWorkspace())
         {
-            if (added) _workspace.YouTubeSources.Remove(saved!);
-            _plan.Remove(item);
-            _workspace.Plan.Items = _plan.ToList();
-            _workspace.YouTubeLayout = previousLayout;
-            UpdatePlanCount();
-            return;
+            _plan.Remove(item);_workspace.Plan.Items=_plan.ToList();
+            _workspace.YouTubeLayout=previousLayout;UpdatePlanCount();return;
         }
-        RefreshYouTube("saved:" + cue.Id);
-        PlanList.SelectedItem = item;
-        PlanList.ScrollIntoView(item);
-        PrepareCue(item);
-        SetStatus("Captura añadida al orden y guardada en YouTube.");
+        RefreshYouTube();PlanList.SelectedItem=item;PlanList.ScrollIntoView(item);PrepareCue(item);
+        SetStatus("YouTube agregado al orden.");
     }
 
     private void RememberYouTubeLayout(Cue cue)

@@ -66,6 +66,18 @@ internal sealed class ObsWindowCaptureEngine : IDisposable
             try
             {
                 ValidateWindow(_source, checkExecutable: false);
+                if(_source.YouTubeOnly)
+                {
+                    var title=new StringBuilder(4096);
+                    GetWindowText((nint)_source.WindowHandle,title,title.Capacity);
+                    if(!_source.AllowsWindowTitle(title.ToString()))
+                    {
+                        if(_capture!=0){ObsWinrtNative.winrt_capture_free(_capture);_capture=0;}
+                        // Keep sending black frames, so returning to YouTube needs no reconnect.
+                        if(_firstRenderedAt==0)_firstRenderedAt=ObsNative.obs_get_video_frame_time();
+                        return;
+                    }
+                }
                 if (!IsWindowVisible((nint)_source.WindowHandle) || IsIconic((nint)_source.WindowHandle))
                 {
                     _firstRenderedAt = 0;
@@ -165,4 +177,5 @@ internal sealed class ObsWindowCaptureEngine : IDisposable
     [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool IsIconic(nint window);
     [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(nint window, out uint processId);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetClassName(nint window, StringBuilder buffer, int count);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowText(nint window, StringBuilder buffer, int count);
 }

@@ -9,9 +9,7 @@ internal sealed class ObsFramePump : IDisposable
 {
     internal sealed record Frame(byte[] Buffer, int Length, ulong Timestamp, float Progress) : IDisposable
     { public void Dispose() => ArrayPool<byte>.Shared.Return(Buffer); }
-    private readonly Channel<Frame> _frames = Channel.CreateBounded<Frame>(
-        new BoundedChannelOptions(2) { SingleReader = true, SingleWriter = true, FullMode = BoundedChannelFullMode.DropOldest },
-        itemDropped: frame => frame.Dispose());
+    private readonly Channel<Frame> _frames;
     private readonly object _callbackGate = new();
     private readonly nint _video, _transition;
     private readonly int _width, _height, _byteCount;
@@ -21,6 +19,9 @@ internal sealed class ObsFramePump : IDisposable
 
     public ObsFramePump(nint transition, int width, int height, bool activateOutput = false)
     {
+        _frames=Channel.CreateBounded<Frame>(
+            new BoundedChannelOptions(activateOutput ? 1 : 2) {SingleReader=true,SingleWriter=true,FullMode=BoundedChannelFullMode.DropOldest},
+            itemDropped: frame=>frame.Dispose());
         _transition = transition; _width = width; _height = height;
         _byteCount = ObsMoveProtocol.FrameByteCount(width, height);
         _video = ObsNative.obs_get_video();

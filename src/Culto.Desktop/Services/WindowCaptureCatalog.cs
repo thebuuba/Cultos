@@ -17,6 +17,13 @@ public sealed record WindowCaptureTarget(WindowCaptureOptions Options, bool IsMi
 
 public static class WindowCaptureCatalog
 {
+    public static bool IsContentSelected(WindowCaptureOptions source)
+    {
+        if(!source.YouTubeOnly)return true;
+        var title=new StringBuilder(4096);
+        return GetWindowText((nint)source.WindowHandle,title,title.Capacity)>0 && source.AllowsWindowTitle(title.ToString());
+    }
+
     public static (int Width, int Height)? GetSourceSize(long handle) =>
         IsWindow((nint)handle) && GetClientRect((nint)handle, out var bounds)
             && bounds.Right > 0 && bounds.Bottom > 0 ? (bounds.Right, bounds.Bottom) : null;

@@ -85,15 +85,15 @@ internal static partial class Program
                 "Appending to the queue cancelled the explicit continuation");
             output.Seek(.9);Until(()=>session.Live?.Id==b.Id,"Explicit continuation after external video did not run");
         });
-        Test("Ending an unrelated video does not trigger the list blackout",()=>
+        Test("A standalone media video also transitions to black at its end",()=>
         {
             var unrelated=Video("Unrelated ending");
             Call(window,"PrepareCue",unrelated,null);Call(window,"ProjectPrepared");
             var output=Field<ProjectionSurface>(window,"_output");
             Until(()=>output.DisplayedCue?.Id==unrelated.Id && output.IsPlaying && !output.IsTransitioning,"Unrelated video did not start");
             output.Seek(.9);Until(()=>output.HasEnded,"Unrelated video did not finish");
-            Call(window,"AdvanceVideoListIfEnded");PumpFor(350);
-            Check(!session.IsBlackout && !output.DisplayedBlackout,"Inactive list blacked out an unrelated video");
+            Call(window,"AdvanceVideoListIfEnded");
+            Until(()=>session.IsBlackout && output.DisplayedBlackout && !output.IsTransitioning,"Standalone video kept its last frame");
         });
         Call(window,"CloseOutput");
         Call(window,"ActivateWorkspacePanel","playlists");window.UpdateLayout();

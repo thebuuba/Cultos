@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using Culto.Core;
 using Culto.Desktop.Services;
 
@@ -17,6 +18,7 @@ public sealed partial class ProjectionSurface
     private CapturedApplicationAudio.Lease? _captureAudio;
     private string? _captureKey;
     private bool _captureReady;
+    private bool _captureContentAllowed = true;
     private int _captureGeneration, _captureFrameQueued;
     private sealed record CaptureFrame(int Generation, ObsWindowCaptureClient Client, byte[] Pixels);
     private CaptureFrame? _captureLatest;
@@ -74,12 +76,14 @@ public sealed partial class ProjectionSurface
                         if (cancellation.IsCancellationRequested || !ReferenceEquals(attempt, _captureClient)) return;
                         Interlocked.Exchange(ref _captureLatest, new CaptureFrame(generation, attempt, pixels));
                         if (Interlocked.Exchange(ref _captureFrameQueued, 1) != 0) return;
-                        Dispatcher.BeginInvoke(new Action(() =>
+                        Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(() =>
                         {
                             var frame = Interlocked.Exchange(ref _captureLatest, null);
                             Interlocked.Exchange(ref _captureFrameQueued, 0);
                             if (_disposed || frame?.Generation != _captureGeneration || !ReferenceEquals(frame.Client, _captureClient)) return;
                             failures = 0;
+                            _captureContentAllowed=WindowCaptureCatalog.IsContentSelected(source);
+                            if(!_captureContentAllowed)Array.Clear(frame.Pixels);
                             // Keep one frame available for a paused restore, then freeze image only.
                             if (_captureReady && (_pauseRequested || _suppressed)) return;
                             _captureBitmap ??= new WriteableBitmap(CaptureWidth, CaptureHeight, 96, 96, PixelFormats.Bgra32, null);
@@ -126,7 +130,7 @@ public sealed partial class ProjectionSurface
     private void ApplyCapturedAudioVolume()
     {
         if (_captureAudio is null) return;
-        var silent = _disposed || _preview || !_captureReady || _suppressed || _pauseRequested;
+        var silent = _disposed || _preview || !_captureReady || !_captureContentAllowed || _suppressed || _pauseRequested;
         // The mixer supplies VLC's native percentage so video and capture share
         // the same master volume. Session volume itself is linear amplitude.
         _captureAudio.SetGain(silent ? 0 : Math.Pow(_volume / 100d, 3) * _audioGain);
@@ -147,6 +151,7 @@ public sealed partial class ProjectionSurface
         _captureClient?.Dispose(); _captureClient = null;
         _captureAudio?.Dispose(); _captureAudio = null;
         _captureKey = null; _captureReady = false; _captureBitmap = null;
+        _captureContentAllowed = true;
         _captureAudioError = null;
         Interlocked.Exchange(ref _captureLatest, null);
     }
