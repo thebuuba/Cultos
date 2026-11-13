@@ -1,8 +1,14 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 13 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.35.4`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 13 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.35.5`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### Negro al terminar la lista - 0.35.5
+
+Al terminar el último video de la lista activa, la salida pasa a negro usando la transición global. Se comprueba que el video terminado pertenece a la reproducción activa de esa lista; terminar un video externo no activa negro. La cola queda detenida y las comprobaciones posteriores no restauran la imagen.
+
+El ensayo --video-lists falla antes del cambio y pasa después: avance automático, negro final con la transición configurada, estabilidad ante comprobaciones repetidas y video ajeno sin negro. Registros .tools/playlist-end-black-red.log y playlist-end-black-final.log del worktree.
 
 ### Reproductor mínimo y sin borde verde ? 0.35.4
 

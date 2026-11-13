@@ -145,8 +145,18 @@ public partial class MainWindow
     {
         if(_output is null || !_output.HasEnded || _output.IsTransitioning || _session.IsBlackout || _session.IsTextHidden
             || _session.Live is not {Kind:CueKind.Video} live || _output.DisplayedCue?.Id!=live.Id)return;
-        var next=_videoListPlayback.Complete(live.Id,_workspace.VideoCollections.FirstOrDefault(s=>s.Id==_videoListPlayback.ListId));
-        if(next is null)return;
+        var list=_workspace.VideoCollections.FirstOrDefault(s=>s.Id==_videoListPlayback.ListId);
+        var listWasPlaying=list is not null && _videoListPlayback.ExpectedId==live.Id;
+        var next=_videoListPlayback.Complete(live.Id,list);
+        if(next is null)
+        {
+            if(listWasPlaying)
+            {
+                _session.ShowBlackout();
+                ApplyBackdropTransition();
+            }
+            return;
+        }
         // Clearing the one-shot option must not cancel the newly armed list.
         var listId=_videoListPlayback.ListId!.Value;
         _videoListAfter.IsChecked=false; _videoListPlayback.Start(listId,next.Id);

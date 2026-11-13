@@ -66,6 +66,10 @@ internal static partial class Program
             Until(()=>session.Live?.Id==b.Id && output.IsPlaying && !output.IsTransitioning,"List did not advance to B");
             output.Seek(.9);Until(()=>output.HasEnded,"List B did not end");
             Call(window,"AdvanceVideoListIfEnded");Check(session.Live?.Id==b.Id,"List restarted after its last video");
+            Until(()=>session.IsBlackout && output.DisplayedBlackout && !output.IsTransitioning,"Last list video did not transition to black");
+            Check(output.PresentedTransitions.Kind==workspace.Transitions.Normalize().Kind,"End of list ignored configured transition");
+            Call(window,"AdvanceVideoListIfEnded");
+            Check(session.IsBlackout,"Repeated end check restored the picture");
         });
         Test("External projection cancels the list until explicitly enabled for its ending",()=>
         {
@@ -80,6 +84,16 @@ internal static partial class Program
             Check(after.IsChecked==true && Field<VideoListPlayback>(window,"_videoListPlayback").ExpectedId==external.Id,
                 "Appending to the queue cancelled the explicit continuation");
             output.Seek(.9);Until(()=>session.Live?.Id==b.Id,"Explicit continuation after external video did not run");
+        });
+        Test("Ending an unrelated video does not trigger the list blackout",()=>
+        {
+            var unrelated=Video("Unrelated ending");
+            Call(window,"PrepareCue",unrelated,null);Call(window,"ProjectPrepared");
+            var output=Field<ProjectionSurface>(window,"_output");
+            Until(()=>output.DisplayedCue?.Id==unrelated.Id && output.IsPlaying && !output.IsTransitioning,"Unrelated video did not start");
+            output.Seek(.9);Until(()=>output.HasEnded,"Unrelated video did not finish");
+            Call(window,"AdvanceVideoListIfEnded");PumpFor(350);
+            Check(!session.IsBlackout && !output.DisplayedBlackout,"Inactive list blacked out an unrelated video");
         });
         Call(window,"CloseOutput");
         Call(window,"ActivateWorkspacePanel","playlists");window.UpdateLayout();
