@@ -30,9 +30,6 @@ public partial class MainWindow
         NextLiveText.Margin = compact ? new Thickness(0, 0, 0, 5) : new Thickness(0);
         Grid.SetRow(ChooseOutputButton, compact ? 1 : 0);
         Grid.SetRow(ToggleOutputButton, compact ? 1 : 0);
-        ScreenNavigationPanel.Columns = 2;
-        foreach (FrameworkElement button in ScreenNavigationPanel.Children)
-            button.Margin = new Thickness(0, 0, 5, compact ? 4 : 0);
 
         // The player keeps a full-width timeline and centered round controls at
         // every width. Only the surrounding output actions need to wrap.

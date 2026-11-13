@@ -139,7 +139,7 @@ internal static partial class Program
                 Call(window, "CloseOutput");
                 var mediaPanel = (FrameworkElement)window.FindName("MediaPlaybackPanel");
                 Check(window.FindName("PreviewPauseButton") is null, "Preview still has a second transport");
-                var navigation = (FrameworkElement)window.FindName("ScreenNavigationPanel");
+                Check(window.FindName("ScreenNavigationPanel") is null, "Removed output navigation is still present");
                 var outputMode = (TextBlock)window.FindName("OutputModeText");
                 Check(outputMode.Text == "SIN SALIDA", "Closed output retained a live mode indicator");
                 Call(window, "PrepareCue", new Cue { Title = "Texto sintético", Kind = CueKind.Text }, null);
@@ -162,7 +162,7 @@ internal static partial class Program
                 Call(window, "ToggleBlackout");
                 Check(outputMode.Text == "LOGO", "Restoring blackout lost the retained Logo indicator");
                 Check(Field<LogoSlideshow>(window, "_logoSlides").IsRunning, "Restoring blackout did not resume Logo cycling");
-                Check(navigation.Visibility == Visibility.Visible, "Screen navigation disappeared with contextual controls");
+                Check(window.FindName("ScreenNavigationPanel") is null, "Contextual controls recreated output navigation");
                 Call(window, "ProjectPrepared");
                 Check(mediaPanel.Visibility == Visibility.Collapsed, "Live text retained video playback controls");
                 Check(outputMode.Text == "ENSAYO" && !session.IsBlackout && !session.IsTextHidden, "Explicit Project did not restore the normal output mode");

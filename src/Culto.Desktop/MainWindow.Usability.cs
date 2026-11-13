@@ -73,8 +73,6 @@ public partial class MainWindow
         PowerPointPlaybackPanel.Visibility = _output is not null && _session.Live?.Kind == CueKind.PowerPoint ? Visibility.Visible : Visibility.Collapsed;
         if (FindName("MediaPlaybackPanel") is FrameworkElement mediaPanel)
             mediaPanel.Visibility = liveMedia || _output?.HasBackgroundMedia == true ? Visibility.Visible : Visibility.Collapsed;
-        if (FindName("ScreenNavigationPanel") is FrameworkElement navigation)
-            navigation.Visibility = Visibility.Visible;
         PlanList.LiveCueId = _output is not null ? _session.Live?.Id : null;
         if (FindName("NextLiveText") is TextBlock next)
             next.Text = NextLiveHint();

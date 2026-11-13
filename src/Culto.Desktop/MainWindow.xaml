@@ -415,10 +415,6 @@
             </local:AspectRatioBox>
             <ScrollViewer Grid.Row="2" x:Name="LiveScroll" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" CanContentScroll="False" MaxHeight="200">
             <StackPanel>
-            <UniformGrid x:Name="ScreenNavigationPanel" Columns="2">
-              <Button Content="Anterior" Click="PreviousClick" Margin="0,0,5,0" MinHeight="30" Padding="4,5" FontSize="11"/>
-              <Button Content="Siguiente" Click="NextClick" Margin="0,0,5,0" MinHeight="30" Padding="4,5" FontSize="11"/>
-            </UniformGrid>
             <Grid>
             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <StackPanel Margin="0,5,0,0">

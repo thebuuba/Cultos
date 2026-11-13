@@ -58,6 +58,7 @@ internal static partial class Program
         RunThemeTests(window);
         Test("Source strip is above its content and monitor pair has one shared card", () =>
         {
+            Check(window.FindName("ScreenNavigationPanel") is null, "Removed Previous/Next row remains in the output card");
             var dock = (AvalonDock.DockingManager)window.FindName("WorkspaceDock");
             var source = (FrameworkElement)window.FindName("SourcesPanel");
             Call(window, "ActivateWorkspacePanel", "sources"); window.UpdateLayout();

@@ -1,8 +1,12 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 12 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.32.2`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 12 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.32.3`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### Salida sin fila Anterior/Siguiente — versión 0.32.3
+
+Se retiró la fila de botones Anterior y Siguiente de la tarjeta de salida y el código que ajustaba su disposición. La comprobación visual exige que el control ya no exista. Se conserva la navegación del resto del sistema. Evidencias en `.tools/worktrees/culto-polymet/.tools/remove-navigation-visual.log` y `remove-navigation-publish.log`.
 
 ### Paneles neutros — versión 0.32.2
 
