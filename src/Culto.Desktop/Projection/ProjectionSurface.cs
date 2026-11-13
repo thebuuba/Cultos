@@ -96,6 +96,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
     public double Duration => _mixer?.Duration ?? (_player is null || _disposed ? 0 : Math.Max(0, _player.Length / 1000d));
     public bool IsPlaying => !_disposed && (_mixer?.IsPlaying ?? (_captureClient is not null
         ? _captureReady && !_pauseRequested && !_suppressed : _player?.IsPlaying == true));
+    public bool HasEnded => _mixer is not null ? !_mixer.IsTransitioning && _mixer.ActiveSurface.HasEnded : _ended;
     public bool IsPreparingPlaybackEngine => _mixer?.IsPreparingPlaybackEngine == true;
     public void PreparePlaybackEngine() => _mixer?.PreparePlaybackEngine();
     internal bool HasVideoFrame => _captureClient is not null ? _captureReady : _compositedVideo.Source is not null;

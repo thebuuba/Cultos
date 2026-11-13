@@ -6,13 +6,16 @@ namespace Culto.Desktop;
 
 public partial class MainWindow
 {
-    private void VideoCollectionsClick(object sender, RoutedEventArgs e) => ShowSavedSets(videosOnly: true);
+    private void VideoCollectionsClick(object sender, RoutedEventArgs e) { RefreshVideoLists(); ActivateWorkspacePanel("playlists"); }
     private void SavedServicesClick(object sender, RoutedEventArgs e) => ShowSavedSets(videosOnly: false);
     private void AddVideoToCollectionClick(object sender, RoutedEventArgs e)
     {
         if (LibraryList.SelectedItem is not Cue { Kind: CueKind.Video } cue)
         { SetStatus("Selecciona un video de la biblioteca."); return; }
-        ShowSavedSets(videosOnly: true, cue);
+        if (SelectedVideoList is not {} list) { VideoCollectionsClick(sender,e); SetStatus("Crea una lista de videos primero."); return; }
+        var added = CopyCue(cue,true); list.Items.Add(added);
+        if(!SaveWorkspace())list.Items.Remove(added);
+        RefreshVideoLists(list); ActivateWorkspacePanel("playlists");
     }
 
     private void ShowSavedSets(bool videosOnly, Cue? selectedVideo = null)

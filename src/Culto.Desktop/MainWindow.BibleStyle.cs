@@ -32,7 +32,10 @@ public partial class MainWindow
     }
 
     private void ShowLiveCue()
-        => QueueLiveCue();
+    {
+        ObserveVideoListProjection();
+        QueueLiveCue();
+    }
 
     private void ShowLiveCueCore(TransitionOptions transitions, BibleVisualStyle bibleStyle)
     {

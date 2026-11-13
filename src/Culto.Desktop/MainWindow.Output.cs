@@ -150,6 +150,7 @@ public partial class MainWindow
     }
     private void CloseOutput()
     {
+        _videoListPlayback.Cancel();
         StopLogo();
         StopPowerPointOutput();
         CloseExternalOutput();
@@ -323,6 +324,7 @@ public partial class MainWindow
                 if (_session.Live?.Kind == CueKind.WindowCapture) UpdateCapturePlayButton();
             }
         }
+        AdvanceVideoListIfEnded();
         UpdateOutputPlayer();
         UpdateBackgroundAudioState();
         if (++_displayTick < 10) return;

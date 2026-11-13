@@ -1,8 +1,16 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 13 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.34.2`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 13 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.35.0`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### Lista de videos ? 0.35.0
+
+Las colecciones existentes se muestran en una pestaña adicional de las fuentes, denominada Lista de videos. Conservan sus elementos; se pueden crear listas, agregar archivos de video, eliminar con el botón o Delete y reordenar con las flechas. Las modificaciones se guardan con rollback ante error. La reproducción por doble clic, Enter o botón activa una continuación ligada a la identidad de la lista y del video.
+
+El avance usa el final natural del reproductor real, sin comparar posiciones aproximadas. Al proyectar otro contenido se cancela la continuación. La opción explícita para continuar tras un video externo toma el elemento seleccionado de la lista como punto de entrada y se consume una vez. Otro cambio de proyección la cancela. Iniciar la lista desactiva la repetición individual para permitir el avance. El último elemento deja de avanzar; archivos no disponibles detienen la lista con el error habitual.
+
+Pruebas: 234 Core correctas y ensayo nativo --video-lists con guardado, orden, eliminación, reproducción real A a B, fin de lista, cancelación por video externo y continuación explícita. Se mantiene --fixed-monitors para el reproductor compartido. Evidencias en .tools/video-lists-*.log del worktree; captura .tools/video-list.png. Los ensayos usan datos temporales. No se declara validada la antigua suite que enumera los paneles anteriores sin la pestaña nueva.
 
 ### Altura natural de los monitores ? 0.34.2
 

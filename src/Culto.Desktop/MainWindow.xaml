@@ -285,7 +285,7 @@
             <MenuItem Header="Añadir archivos…" Click="ImportFilesClick"/>
             <MenuItem Header="Importar carpeta de himnos…" Click="ImportFolderClick"/>
             <MenuItem Header="Importar Biblia…" Click="ImportBibleClick"/>
-            <MenuItem Header="Colecciones de videos…" Click="VideoCollectionsClick"/>
+            <MenuItem Header="Lista de videos…" Click="VideoCollectionsClick"/>
             <MenuItem Header="Añadir video a una colección…" Click="AddVideoToCollectionClick"/>
             <Separator/>
             <MenuItem Header="Captura de imagen de una pantalla…" Click="CaptureClick"/>
@@ -316,6 +316,7 @@
             <MenuItem Header="Texto" Tag="text" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
             <MenuItem Header="YouTube" Tag="youtube" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
             <MenuItem Header="Medios" Tag="media" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
+            <MenuItem Header="Lista de videos" Tag="playlists" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
             <MenuItem Header="Mostrar todos los paneles" Click="ShowAllWorkspacePanelsClick"/>
             <Separator/>
             <MenuItem Header="Principal" Tag="principal" Click="WorkspacePresetClick"/>
@@ -660,7 +661,7 @@
               <Grid Grid.Row="4" Margin="0,10,0,0">
                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <Button Content="+ Al orden" Click="AddLibraryToPlanClick" Background="{StaticResource SelectedBrush}" BorderBrush="{StaticResource SelectedBrush}" MinHeight="36" FontSize="12" Padding="8,5"/>
-                <Button Grid.Column="1" Content="⋯" ToolTip="Colecciones de videos" Click="VideoCollectionsClick" Margin="6,0,0,0" Padding="10,6" MinHeight="40"/>
+                <Button Grid.Column="1" Content="⋯" ToolTip="Lista de videos" Click="VideoCollectionsClick" Margin="6,0,0,0" Padding="10,6" MinHeight="40"/>
               </Grid>
             </Grid>
           </Border>

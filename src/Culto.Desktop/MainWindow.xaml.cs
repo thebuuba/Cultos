@@ -95,9 +95,11 @@ public partial class MainWindow : Window
         _preview = new ProjectionSurface(preview: true);
         _preview.PlaybackError += message => Dispatcher.BeginInvoke(() => SetStatus(message, true));
         PreviewHost.Content = _preview;
+        InitializeVideoListsPanel();
         InitializeDocking();
         _session.Changed += UpdateSessionLabels;
         _ready = true;
+        RefreshVideoLists();
         InitializeYouTube();
         InitializeScenes();
         InitializeMediaBrowser();
