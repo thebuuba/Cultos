@@ -26,13 +26,12 @@ internal static partial class Program
                 doc.Descendants("LayoutAnchorable").Remove();
                 doc.Root!.Element("FloatingWindows")?.RemoveNodes();
                 doc.Root.Element("Hidden")?.RemoveNodes();
-                panes["sequence"].Add(panes["media"].Element("LayoutAnchorable"));
                 foreach (var id in new[] { "bible", "text", "youtube" }) panes["sources"].Add(panes[id].Element("LayoutAnchorable"));
                 foreach (var entry in panes.Values) entry.SetAttributeValue("DockWidth", "*");
                 panes["order"].SetAttributeValue("DockMinWidth", "390");
                 panes["output"].SetAttributeValue("DockMinWidth", "360");
                 var root = doc.Root!.Element("RootPanel")!; root.RemoveNodes(); root.SetAttributeValue("Orientation", "Vertical");
-                root.Add(new XElement("LayoutPanel", new XAttribute("Orientation", "Horizontal"), panes["sources"], panes["order"], panes["preview"], panes["output"]), panes["sequence"]);
+                root.Add(new XElement("LayoutPanel", new XAttribute("Orientation", "Horizontal"), panes["sources"], panes["order"], panes["preview"], panes["output"]), panes["media"]);
                 window.Width = 1280;
                 Call(window, "RestoreDockLayout", doc.ToString()); window.UpdateLayout();
                 var panel = (FrameworkElement)window.FindName("LivePanel");

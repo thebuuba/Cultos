@@ -29,12 +29,12 @@ internal static partial class Program
             });
             Test("Hidden panels persist through serialization and window resizing", () =>
             {
-                Visible("sequence", false); Visible("youtube", false);
+                Visible("text", false); Visible("youtube", false);
                 Call(window, "SaveDockLayout"); var saved = (string)Call(window, "SerializeDockLayout")!;
                 Call(window, "RestoreDockLayout", initial); Call(window, "RestoreDockLayout", saved); window.UpdateLayout();
-                Check(Panel("sequence").IsHidden && Panel("youtube").IsHidden, "Restore forced hidden panels open");
+                Check(Panel("text").IsHidden && Panel("youtube").IsHidden, "Restore forced hidden panels open");
                 var width = window.Width; window.Width = 1250; PumpFor(80); window.Width = width; PumpFor(80);
-                Check(Panel("sequence").IsHidden && Panel("youtube").IsHidden, "Resizing reset visibility");
+                Check(Panel("text").IsHidden && Panel("youtube").IsHidden, "Resizing reset visibility");
                 foreach (var entry in original) Check(ReferenceEquals(Panel(entry.Key).Content, entry.Value), "Restoring replaced panel content");
             });
             Test("Workspace checks distinguish inactive tabs from hidden panels", () =>

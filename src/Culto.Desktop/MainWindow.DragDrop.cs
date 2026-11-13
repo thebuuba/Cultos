@@ -29,13 +29,12 @@ public partial class MainWindow
             list.AddHandler(PreviewMouseLeftButtonDownEvent, new MouseButtonEventHandler(ContentMouseDown), true);
             list.AddHandler(PreviewMouseMoveEvent, new MouseEventHandler(ContentMouseMove), true);
         }
-        foreach (var list in new ListBox[] { LibraryList, BibleResults, PlanList, SequenceList, MediaList, YouTubeList })
+        foreach (var list in new ListBox[] { LibraryList, BibleResults, PlanList, MediaList, YouTubeList })
         {
             list.AddHandler(PreviewMouseLeftButtonUpEvent, new MouseButtonEventHandler(ContentMouseUp), true);
             list.AddHandler(QueryContinueDragEvent, new QueryContinueDragEventHandler(ContentQueryContinueDrag), true);
         }
-        SequenceList.AddHandler(PreviewMouseLeftButtonDownEvent, new MouseButtonEventHandler(PlanMouseDown), true);
-        foreach (var list in new ListBox[] { PlanList, SequenceList })
+        foreach (var list in new ListBox[] { PlanList })
         {
             list.AllowDrop = true;
             list.AddHandler(PreviewMouseMoveEvent, new MouseEventHandler(PlanMouseMove), true);
@@ -67,7 +66,7 @@ public partial class MainWindow
         _orderDragCue = IsOrderDragSource(_contentDragSource) ? _contentDragCue : null;
     }
 
-    private bool IsOrderDragSource(ListBox? source) => source == PlanList || source == SequenceList;
+    private bool IsOrderDragSource(ListBox? source) => source == PlanList;
 
     private static Cue? ContentCue(object? item) => item switch
     {
@@ -221,7 +220,7 @@ public partial class MainWindow
         var target = (ListBox)sender;
         var point = e.GetPosition(target);
         ScrollPlanDuringDrag(target, point);
-        ShowOrderInsertion(target, target == SequenceList ? SequenceInsertionIndex(point) : PlanInsertionIndex(point));
+        ShowOrderInsertion(target, PlanInsertionIndex(point));
     }
 
     private void PlanDragLeave(object sender, DragEventArgs e) => ClearPlanInsertion();
@@ -236,37 +235,13 @@ public partial class MainWindow
         return index + (point.Y >= top + row.ActualHeight / 2 ? 1 : 0);
     }
 
-    private int SequenceInsertionIndex(Point point)
-    {
-        // A wrapped strip has horizontal slots within each row. Include the gaps
-        // between cards and the blank area after the final row in the hit test.
-        ListBoxItem? nearest = null;
-        var distance = double.MaxValue;
-        var bottom = 0d;
-        for (var i = 0; i < _plan.Count; i++)
-        {
-            if (SequenceList.ItemContainerGenerator.ContainerFromIndex(i) is not ListBoxItem row) continue;
-            var bounds = new Rect(row.TranslatePoint(new Point(), SequenceList), row.RenderSize);
-            bottom = Math.Max(bottom, bounds.Bottom);
-            var dx = point.X - Math.Clamp(point.X, bounds.Left, bounds.Right);
-            var dy = point.Y - Math.Clamp(point.Y, bounds.Top, bounds.Bottom);
-            var d = dx * dx + dy * dy;
-            if (d < distance) { distance = d; nearest = row; }
-        }
-        if (nearest is null || point.Y >= bottom) return _plan.Count;
-        var topLeft = nearest.TranslatePoint(new Point(), SequenceList);
-        var index = SequenceList.ItemContainerGenerator.IndexFromContainer(nearest);
-        if (point.Y < topLeft.Y) return index;
-        return index + (point.X >= topLeft.X + nearest.ActualWidth / 2 ? 1 : 0);
-    }
-
     private void PlanDrop(object sender, DragEventArgs e)
     {
         var effect = ContentDropEffect(e.Data) & e.AllowedEffects;
         var target = (ListBox)sender;
         var point = e.GetPosition(target);
         e.Effects = effect == DragDropEffects.None ? effect : ApplyContentDrop(e.Data,
-            target == SequenceList ? SequenceInsertionIndex(point) : PlanInsertionIndex(point));
+            PlanInsertionIndex(point));
         e.Handled = true;
         ClearPlanInsertion();
     }
@@ -323,18 +298,14 @@ public partial class MainWindow
     private void ShowOrderInsertion(ListBox target, int index)
     {
         if (_planInsertionAdorner is not null && _planInsertionAdorner.AdornedElement != target) ClearPlanInsertion();
-        var sequence = target == SequenceList;
         var point = new Point(8, 8);
-        var height = 80d;
         if (target.ItemContainerGenerator.ContainerFromIndex(index) is ListBoxItem next)
         {
             point = next.TranslatePoint(new Point(), target);
-            height = next.ActualHeight;
         }
         else if (index > 0 && target.ItemContainerGenerator.ContainerFromIndex(index - 1) is ListBoxItem previous)
         {
-            point = previous.TranslatePoint(sequence ? new Point(previous.ActualWidth, 0) : new Point(0, previous.ActualHeight), target);
-            height = previous.ActualHeight;
+            point = previous.TranslatePoint(new Point(0, previous.ActualHeight), target);
         }
         else if (_plan.Count > 0) point.Y = target.ActualHeight - 5;
         _planInsertionLayer ??= AdornerLayer.GetAdornerLayer(target);
@@ -344,18 +315,9 @@ public partial class MainWindow
             _planInsertionAdorner = new PlanInsertionAdorner(target, (Brush)FindResource("AccentBrush"));
             _planInsertionLayer.Add(_planInsertionAdorner);
         }
-        if (sequence)
-        {
-            var x = Math.Clamp(point.X, 3, Math.Max(3, target.ActualWidth - 3));
-            _planInsertionAdorner.Start = new Point(x, Math.Max(3, point.Y + 3));
-            _planInsertionAdorner.End = new Point(x, Math.Min(target.ActualHeight - 3, point.Y + height - 3));
-        }
-        else
-        {
-            var y = Math.Clamp(point.Y, 3, Math.Max(3, target.ActualHeight - 3));
-            _planInsertionAdorner.Start = new Point(8, y);
-            _planInsertionAdorner.End = new Point(Math.Max(8, target.ActualWidth - 8), y);
-        }
+        var y = Math.Clamp(point.Y, 3, Math.Max(3, target.ActualHeight - 3));
+        _planInsertionAdorner.Start = new Point(8, y);
+        _planInsertionAdorner.End = new Point(Math.Max(8, target.ActualWidth - 8), y);
         _planInsertionAdorner.InvalidateVisual();
     }
 

@@ -1,8 +1,16 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 12 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.33.0`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 12 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.33.1`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### Retirada de Secuencia — versión 0.33.1
+
+Se eliminan el panel Secuencia, su menú, controles, plantilla y eventos exclusivos. Se conserva el estilo compartido por las tarjetas de Medios con un nombre propio. El orden del culto mantiene el arrastre vertical, la selección, los clics y su contenido; ocupa el espacio liberado en Principal y Compacta. Los ocho paneles restantes siguen disponibles para mostrar, ocultar, agrupar y mover.
+
+Antes de validar una distribución antigua completa, se retira el identificador `sequence`, esté acoplado, oculto o flotante. Se eliminan sus contenedores vacíos salvo los referenciados por otros paneles ocultos. La conversión ocurre después de las migraciones de cinco/seis paneles; los IDs desconocidos o duplicados siguen rechazándose. Las pruebas verifican que los controles conservados mantienen su identidad y que un guardado posterior no vuelve a introducir Secuencia.
+
+Pasaron tres comprobaciones de retirada, 135 generales, nueve de distribuciones, 14 visuales y seis de visibilidad. Se retiraron tres escenarios exclusivos de Secuencia y se mantienen las pruebas de arrastre/reordenación del orden. Compilación sin errores ni advertencias, 232 Core y 64 Remote correctas. Evidencias en `.tools/worktrees/culto-polymet/.tools/remove-sequence-*.log`. Los datos reales del usuario permanecen sin modificaciones durante las pruebas.
 
 ### Ocultar y mostrar paneles — versión 0.33.0
 

@@ -13,7 +13,7 @@ internal static class WorkspaceLayouts
     {
         "sources" => "Himnario", "bible" => "Biblia", "text" => "Texto", "youtube" => "YouTube",
         "preview" => "Vista previa", "output" => "En pantalla", "order" => "Orden del culto",
-        "sequence" => "Secuencia", "media" => "Medios", _ => id
+        "media" => "Medios", _ => id
     };
 
     internal static double MinimumWidth(string? id) => id switch
@@ -23,7 +23,7 @@ internal static class WorkspaceLayouts
 
     internal static double MinimumHeight(string? id) => id switch
     {
-        "preview" or "output" => 240, "sequence" => 120, "order" => 160, _ => 180
+        "preview" or "output" => 240, "order" => 160, _ => 180
     };
 
     internal static XDocument Create(string preset)
@@ -34,14 +34,14 @@ internal static class WorkspaceLayouts
             "principal" => Group("Horizontal", "*", "*",
                 Pane("1.1*", TabbedSourceIds),
                 Group("Vertical", "2.8*", "*", monitors,
-                    Group("Horizontal", "*", "*", Pane("*", "order"), Pane("*", "sequence")))),
+                    Pane("*", "order"))),
             "compacta" => Group("Horizontal", "*", "*",
                 Pane("1.1*", TabbedSourceIds),
                 Group("Vertical", "2.2*", "*", monitors,
-                    Group("Horizontal", "*", "1.2*", Pane("0.9*", "order"), Pane("1.3*", "sequence")))),
+                    Pane("*", "order"))),
             "proyeccion" => Group("Horizontal", "*", "*", Pane("0.85*", SourceIds),
                 Group("Vertical", "2.8*", "*", monitors,
-                    Group("Horizontal", "*", "*", Pane("*", "media", "sequence"), Pane("*", "order")))),
+                    Group("Horizontal", "*", "*", Pane("*", "media"), Pane("*", "order")))),
             _ => throw new ArgumentException("Distribución de paneles desconocida.", nameof(preset))
         };
         root.Name = "RootPanel";
@@ -124,6 +124,30 @@ internal static class WorkspaceLayouts
         }
         document.Root!.Attribute("WorkspacePreset")?.Remove();
         return true;
+    }
+
+    internal static void RemoveRetiredSequence(XDocument document)
+    {
+        string[] oldIds = ["bible", "media", "order", "output", "preview", "sequence", "sources", "text", "youtube"];
+        var contents = document.Descendants().Where(e => e.Attribute("ContentId") is not null).ToArray();
+        // Only migrate a complete former layout; malformed/duplicate IDs still
+        // fail validation before replacing the user's current workspace.
+        if (!contents.Select(e => (string)e.Attribute("ContentId")!).Order().SequenceEqual(oldIds)) return;
+        contents.Single(e => (string?)e.Attribute("ContentId") == "sequence").Remove();
+        var previousContainers = document.Descendants().Attributes("PreviousContainerId").Select(a => a.Value).ToHashSet();
+        foreach (var node in document.Descendants().Reverse().ToArray())
+        {
+            if (node.Name.LocalName is "LayoutAnchorablePane" or "LayoutPanel" or "LayoutAnchorablePaneGroup" or "LayoutAnchorableFloatingWindow"
+                && !node.Descendants("LayoutAnchorable").Any()
+                && !node.DescendantsAndSelf().Any(e => e.Attribute("Id") is { } id && previousContainers.Contains(id.Value)))
+            { node.Remove(); continue; }
+            if (node.Name == "LayoutAnchorablePane")
+            {
+                node.Attribute("SelectedContentIndex")?.Remove();
+                if (!node.Elements().Any(e => (bool?)e.Attribute("IsSelected") == true)) node.Elements().FirstOrDefault()?.SetAttributeValue("IsSelected", true);
+            }
+        }
+        document.Root?.Attribute("WorkspacePreset")?.Remove();
     }
 
     internal static string Arrangement(XDocument document)

@@ -16,7 +16,6 @@ internal static partial class Program
     {
         var plan = Field<ObservableCollection<Cue>>(window, "_plan");
         var list = (ListBox)window.FindName("PlanList");
-        var sequence = (ListBox)window.FindName("SequenceList");
         var library = (ListBox)window.FindName("LibraryList");
         var bible = (ListBox)window.FindName("BibleResults");
         var session = Field<PresentationSession>(window, "_session");
@@ -50,51 +49,7 @@ internal static partial class Program
             library.ItemsSource = new[] { hymn, other, video };
             SetField(window, "_bible", null);
             bible.ItemsSource = new[] { result };
-            Test("Sequence cards can be grabbed and moved through the same persisted order without projecting", () =>
-            {
-                Call(window, "ActivateWorkspacePanel", "sequence");
-                var a = new Cue { Title = "Primero" }; var b = new Cue { Title = "Segundo" }; var c = new Cue { Title = "Tercero" };
-                ResetPlan(a, b, c);
-                var live = session.Live;
-                Press(sequence, Row(sequence, b));
-                Check(ReferenceEquals(Field<Cue?>(window, "_contentDragCue"), b), "Sequence press did not arm its card for dragging");
-                Check(Drop(Data(sequence, b), 0) == DragDropEffects.Move && plan.SequenceEqual(new[] { b, a, c }), "Sequence did not move the original card before its neighbour");
-                Drop(Data(sequence, b), plan.Count);
-                Check(plan.SequenceEqual(new[] { a, c, b }) && sequence.Items.Cast<Cue>().SequenceEqual(plan), "Sequence and order disagree after a tail move");
-                Check(ReferenceEquals(live, session.Live), "Reordering changed the live output");
-                SetField(window, "_orderDragPerformed", true);
-                var prepared = session.Prepared;
-                sequence.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
-                    { RoutedEvent = UIElement.PreviewMouseLeftButtonUpEvent, Source = Row(sequence, a) });
-                sequence.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
-                    { RoutedEvent = Control.MouseDoubleClickEvent, Source = Row(sequence, a) });
-                Check(ReferenceEquals(prepared, session.Prepared) && ReferenceEquals(live, session.Live), "Drag release triggered preview or projection");
-                SetField(window, "_orderDragPerformed", false);
-                var persisted = Field<WorkspaceStore>(window, "_store").Load().Plan.Items;
-                Check(persisted.Select(cue => cue.Id).SequenceEqual(plan.Select(cue => cue.Id)), "Sequence reorder was not saved with original IDs");
-                Call(window, "ClearContentDrag");
-            });
-            Test("Sequence drop slots follow card halves and wrapped rows, including blank space", () =>
-            {
-                ResetPlan(Enumerable.Range(1, 12).Select(i => new Cue { Title = "Tarjeta " + i }).ToArray());
-                window.UpdateLayout();
-                var rows = plan.Select(cue => Row(sequence, cue)).ToArray();
-                sequence.ScrollIntoView(plan[0]); window.UpdateLayout();
-                for (var i = 0; i < rows.Length; i++)
-                {
-                    var row = rows[i];
-                    var left = row.TranslatePoint(new Point(), sequence);
-                    Check((int)Call(window, "SequenceInsertionIndex", new Point(left.X + row.ActualWidth * .25, left.Y + row.ActualHeight / 2))! == i,
-                        "Left half did not insert before card " + i);
-                    Check((int)Call(window, "SequenceInsertionIndex", new Point(left.X + row.ActualWidth * .75, left.Y + row.ActualHeight / 2))! == i + 1,
-                        "Right half did not insert after card " + i);
-                }
-                var last = rows[^1];
-                var bottom = last.TranslatePoint(new Point(0, last.ActualHeight + 8), sequence);
-                Check((int)Call(window, "SequenceInsertionIndex", bottom)! == plan.Count, "Blank area after wrapped cards did not append");
-                ResetPlan();
-                Check((int)Call(window, "SequenceInsertionIndex", new Point(20, 20))! == 0, "Empty sequence did not accept its first card");
-            });
+
             Test("Drag card identifies the grabbed content and closes on Escape without changing the order", () =>
             {
                 Call(window, "SelectContentSource", 0);

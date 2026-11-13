@@ -12,7 +12,7 @@ public partial class MainWindow
         {
             // Native monitor thumbnails keep their own clipping and transport
             // scroll areas. Lists/editors can scroll their chrome when stacked.
-            if (id is "preview" or "output" or "sequence" || content is not Border { Child: Grid body } panel) continue;
+            if (id is "preview" or "output" || content is not Border { Child: Grid body } panel) continue;
             var scroll = new ScrollViewer
             {
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,

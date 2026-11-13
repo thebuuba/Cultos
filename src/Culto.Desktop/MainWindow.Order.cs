@@ -40,30 +40,6 @@ public partial class MainWindow
         ProjectPrepared();
     }
 
-    private Cue? SequenceCueAt(object source)
-    {
-        var element = source as DependencyObject;
-        while (element is FrameworkContentElement content) element = content.Parent;
-        return element is not null && ItemsControl.ContainerFromElement(SequenceList, element) is ListBoxItem { DataContext: Cue cue }
-            && _plan.Contains(cue) ? cue : null;
-    }
-
-    private void SequenceMouseUp(object sender, MouseButtonEventArgs e)
-    {
-        if (!_ready || e.ChangedButton != MouseButton.Left || _orderDragPerformed || SequenceCueAt(e.OriginalSource) is not Cue cue) return;
-        PlanList.SelectedItem = cue;
-        if (_session.Prepared?.Id != cue.Id) PrepareCue(cue);
-    }
-
-    private void SequenceDoubleClick(object sender, MouseButtonEventArgs e)
-    {
-        if (!_ready || e.ChangedButton != MouseButton.Left || _orderDragPerformed || SequenceCueAt(e.OriginalSource) is not Cue cue) return;
-        e.Handled = true;
-        PlanList.SelectedItem = cue;
-        if (_session.Prepared?.Id != cue.Id) PrepareCue(cue);
-        ProjectPrepared();
-    }
-
     private void AddOrderSourceClick(object sender, RoutedEventArgs e)
     {
         if (sender is not MenuItem item || !int.TryParse(item.Tag?.ToString(), out var source)) return;
