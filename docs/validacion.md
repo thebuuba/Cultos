@@ -1,8 +1,12 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 13 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.34.1`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 13 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.34.2`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### Altura natural de los monitores ? 0.34.2
+
+La tarjeta y sus dos monitores se alinean arriba; las filas de imagen usan altura automática en lugar de llenar el espacio vertical disponible. El contenedor nativo deja de pintar un fondo largo detrás de la tarjeta. Se conserva libre el espacio inferior. Se revisó `.tools/compact-monitors.png` y pasaron las comprobaciones `--fixed-monitors`, incluyendo altura acotada, pie junto a la imagen y controles de reproducción. Evidencias en `.tools/compact-card-final.log` y `.tools/compact-card-publish.log` del worktree.
 
 ### Monitores unidos de verdad ? 0.34.1
 

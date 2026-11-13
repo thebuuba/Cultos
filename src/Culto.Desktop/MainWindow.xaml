@@ -413,9 +413,9 @@
 </ad:LayoutAnchorablePane>
 <ad:LayoutAnchorablePane DockWidth="*" DockHeight="*" DockMinWidth="280" DockMinHeight="260">
 <ad:LayoutAnchorable Title="Vista previa" ContentId="preview" CanClose="False" CanHide="True" CanAutoHide="False" CanDockAsTabbedDocument="False">
-<Border x:Name="ProductionPanel" Background="{StaticResource PanelBrush}" CornerRadius="22" Padding="4"><Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="140"/><ColumnDefinition/></Grid.ColumnDefinitions><Border x:Name="PreviewPanel" Background="{StaticResource PanelBrush}" CornerRadius="0" Padding="10,10">
+<Border x:Name="ProductionPanel" VerticalAlignment="Top" Background="{StaticResource PanelBrush}" CornerRadius="22" Padding="4"><Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="140"/><ColumnDefinition/></Grid.ColumnDefinitions><Border x:Name="PreviewPanel" VerticalAlignment="Top" Background="{StaticResource PanelBrush}" CornerRadius="0" Padding="10,10">
           <Grid>
-            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <Grid>
               <TextBlock Text="Vista previa" FontWeight="SemiBold" FontSize="14"/>
               <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" MinHeight="32">
@@ -445,9 +445,9 @@
               </Button><TextBlock Text="Transición" FontSize="12" Margin="3,14,0,5"/>      <ComboBox x:Name="SceneTransitionPicker" SelectionChanged="SceneTransitionsChanged" AutomationProperties.Name="Transición entre escenas" Margin="3,0,3,6" MinHeight="30" Padding="8,4">
         <ComboBoxItem Tag="Cut">Corte</ComboBoxItem><ComboBoxItem Tag="Dissolve">Fundido</ComboBoxItem><ComboBoxItem Tag="Slide">Deslizar</ComboBoxItem><ComboBoxItem Tag="Zoom">Zoom</ComboBoxItem><ComboBoxItem Tag="Move">Move</ComboBoxItem>
       </ComboBox>
-<Button Content="Ajustes" Click="TransitionSettingsClick" FontSize="12" MinHeight="30" Padding="5"/></StackPanel><Border Grid.Column="2" x:Name="LivePanel" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="0" CornerRadius="0" Padding="10,10" SizeChanged="OutputPanelSizeChanged">
+<Button Content="Ajustes" Click="TransitionSettingsClick" FontSize="12" MinHeight="30" Padding="5"/></StackPanel><Border Grid.Column="2" x:Name="LivePanel" VerticalAlignment="Top" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="0" CornerRadius="0" Padding="10,10" SizeChanged="OutputPanelSizeChanged">
           <Grid>
-            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition MinHeight="102"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto" MinHeight="102"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <Grid x:Name="LiveHeaderGrid" MinHeight="32">
               <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
               <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>

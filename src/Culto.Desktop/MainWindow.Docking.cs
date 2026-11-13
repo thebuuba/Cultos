@@ -120,6 +120,11 @@ public partial class MainWindow
                 DockPaneOutlineChanged(pane, new RoutedEventArgs());
             }
             pane.Background = DockCardBrush((pane.Model as LayoutAnchorablePane)?.SelectedContent?.ContentId);
+            if (pane.Model is LayoutAnchorablePane fixedPane && fixedPane.Children.Any(p => p.ContentId == "preview"))
+            {
+                pane.Background = Brushes.Transparent; pane.Effect = null; pane.Clip = null;
+                StyleWorkspaceTabs(pane); StyleDockCaption(pane); return;
+            }
             var joined = IsMonitorPair(pane.Model.Parent);
             pane.Margin = new Thickness(joined ? 0 : 4);
             if (joined) pane.Effect = null;

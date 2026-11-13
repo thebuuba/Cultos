@@ -28,6 +28,11 @@ internal static partial class Program
             Call(window,"RestoreDockLayout",old.ToString()); window.UpdateLayout();
             Check(!dock.Layout.Descendents().OfType<LayoutAnchorable>().Any(p=>p.ContentId=="output"),"Saved layout separated the monitors again");
             Check(card.IsAncestorOf(output) && card.IsAncestorOf(preview),"Migration replaced the combined card");
+            card.Height = double.NaN;
+            window.Height = 1000; window.UpdateLayout();
+            Check(card.ActualHeight < 450, "Monitor card stretches through empty vertical space");
+            CaptureDesignWindow(window, System.IO.Path.Combine(Environment.CurrentDirectory,".tools","compact-monitors.png"));
+            Check(BoundsWithin(output,card).Bottom - BoundsWithin((FrameworkElement)window.FindName("OutputViewport"),card).Bottom < 125, "Output footer is far below the picture");
             CaptureDesignWindow(window, System.IO.Path.Combine(Environment.CurrentDirectory,".tools","fixed-monitors.png"));
         });
         RunPlayerControlsTests(window);
