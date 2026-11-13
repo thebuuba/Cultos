@@ -24,12 +24,17 @@ public partial class MainWindow
     private string? _appliedWorkspacePreset;
     private string? _presetArrangement;
     private Brush _dockPanelBrush = Brushes.Transparent, _dockTextBrush = Brushes.White;
+    private Brush _youtubePanelBrush = Brushes.Transparent, _hymnPanelBrush = Brushes.Transparent;
+    private Brush DockCardBrush(string? id) => id switch
+    { "youtube" => _youtubePanelBrush, "sources" => _hymnPanelBrush, _ => _dockPanelBrush };
     private double _dockPanelRadius = 22;
     private string DockLayoutPath => Path.Combine(_store.DirectoryPath, "paneles-v2.xml");
 
     private void InitializeDocking()
     {
         _dockPanelBrush = (Brush)FindResource("PanelBrush");
+        _youtubePanelBrush = (Brush)FindResource("YouTubePanelBrush");
+        _hymnPanelBrush = (Brush)FindResource("HymnPanelBrush");
         _dockTextBrush = (Brush)FindResource("TextBrush");
         _dockPanelRadius = ((CornerRadius)FindResource("PanelRadius")).TopLeft;
         var resources = WorkspaceDock.Resources;
@@ -83,6 +88,7 @@ public partial class MainWindow
                 pane.SizeChanged += DockPaneOutlineChanged;
                 DockPaneOutlineChanged(pane, new RoutedEventArgs());
             }
+            pane.Background = DockCardBrush((pane.Model as LayoutAnchorablePane)?.SelectedContent?.ContentId);
             StyleDockCaption(pane);
             return;
         }
@@ -98,7 +104,7 @@ public partial class MainWindow
             title.FontSize = 14;
             title.FontWeight = FontWeights.SemiBold;
             title.Padding = new Thickness(14, 10, 14, 10);
-            title.Background = _dockPanelBrush;
+            title.Background = DockCardBrush(title.Model?.ContentId);
             title.Foreground = _dockTextBrush;
             title.BorderThickness = new Thickness(0);
             InitializePanelPlacementMenu(title);

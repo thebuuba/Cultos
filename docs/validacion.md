@@ -4,6 +4,10 @@ Comprobación actualizada el 12 de noviembre de 2026 en esta PC Windows. Entrega
 
 ## Compilación y pruebas
 
+### Color de fuentes — versión 0.31.2
+
+YouTube usa un fondo rojo tenue `#3B2B30` y el Himnario un amarillo tenue `#393529`, tanto en el cuerpo como en el título y contenedor. El contenedor toma el color del panel seleccionado al agrupar pestañas. Se revisó la captura 1900×1000 y pasaron las 12 comprobaciones de `--visual-theme`, incluidas ventanas compactas y contraste de controles existentes. Evidencias: `.tools/worktrees/culto-polymet/.tools/card-tints-visual.log` y `card-tints-publish.log`. No cambia el contenido proyectado.
+
 ### Arrastre directo de cabeceras — versión 0.31.1
 
 La corrección anterior verificaba colocación mediante menú, pero no solucionaba el gesto que pidió el usuario. Las cabeceras ahora capturan el arrastre y muestran una zona verde sobre el panel de destino. Los bordes dividen arriba, abajo o a los lados; el centro agrupa en pestañas. La ventana flotante no se crea durante este gesto. Soltar aplica la colocación existente y guarda la distribución; Esc o perder la captura cancela sin cambios. Los botones de la cabecera conservan su menú.
