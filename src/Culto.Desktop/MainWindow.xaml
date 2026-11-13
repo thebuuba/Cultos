@@ -130,8 +130,8 @@
         <StackPanel Grid.Column="1">
           <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
           <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
-            <TextBlock x:Name="OrderKind" Text="{Binding Kind, Converter={StaticResource CueKindConverter}}" FontSize="10" Foreground="{StaticResource MutedBrush}"/>
-            <TextBlock Text="EN VIVO" FontSize="10" FontWeight="Bold" Foreground="{StaticResource OnActionBrush}" Margin="10,0,0,0"
+            <TextBlock x:Name="OrderKind" Text="{Binding Kind, Converter={StaticResource CueKindConverter}}" FontSize="12" Foreground="{StaticResource MutedBrush}"/>
+            <TextBlock Text="EN VIVO" FontSize="12" FontWeight="Bold" Foreground="{StaticResource OnActionBrush}" Margin="10,0,0,0"
                        Visibility="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(local:OrderListBox.IsLive), Converter={StaticResource BoolToVisibility}}"/>
           </StackPanel>
         </StackPanel>
@@ -152,7 +152,7 @@
         </Border>
         <StackPanel Grid.Column="1" VerticalAlignment="Center">
           <TextBlock Text="{Binding Title}" FontSize="12" FontWeight="Medium" TextTrimming="CharacterEllipsis"/>
-          <TextBlock Text="{Binding Kind, Converter={StaticResource CueKindConverter}}" FontSize="9" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
+          <TextBlock Text="{Binding Kind, Converter={StaticResource CueKindConverter}}" FontSize="12" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
         </StackPanel>
       </Grid>
       <DataTemplate.Triggers>
@@ -191,12 +191,12 @@
         <Grid Height="70">
           <local:CueThumbnail Cue="{Binding}"/>
           <Border Background="#CC1F2023" CornerRadius="3" Padding="4,1" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="3">
-            <TextBlock Text="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(local:OrderListBox.AbsoluteIndex), Converter={StaticResource OrderNumberConverter}}" Foreground="{StaticResource MutedBrush}" FontSize="9"/>
+            <TextBlock Text="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(local:OrderListBox.AbsoluteIndex), Converter={StaticResource OrderNumberConverter}}" Foreground="{StaticResource MutedBrush}" FontSize="12"/>
           </Border>
           <Ellipse Width="6" Height="6" Fill="{StaticResource LiveBrush}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6"
                    Visibility="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(local:OrderListBox.IsLive), Converter={StaticResource BoolToVisibility}}"/>
         </Grid>
-        <TextBlock Text="{Binding Title}" FontSize="10" Margin="2,3,2,0" TextTrimming="CharacterEllipsis" Foreground="{StaticResource TextBrush}"/>
+        <TextBlock Text="{Binding Title}" FontSize="12" Margin="2,3,2,0" TextTrimming="CharacterEllipsis" Foreground="{StaticResource TextBrush}"/>
       </StackPanel>
     </DataTemplate>
     <local:MediaPathConverter x:Key="MediaPathConverter"/>
@@ -214,8 +214,8 @@
         <Border Background="Black" CornerRadius="18" SizeChanged="MonitorFrameSizeChanged"><local:MediaThumbnail Cue="{Binding}" Height="{DynamicResource MediaThumbnailHeight}"/></Border>
         <TextBlock Grid.Row="1" Text="{Binding Title}" FontSize="12" FontWeight="SemiBold" Margin="1,6,1,2" TextTrimming="CharacterEllipsis"/>
         <DockPanel Grid.Row="2">
-          <TextBlock DockPanel.Dock="Right" Text="{Binding FilePath, Converter={StaticResource MediaPathConverter}, ConverterParameter=Extension}" FontSize="10" Foreground="{StaticResource MutedBrush}"/>
-          <TextBlock Text="{Binding Kind, Converter={StaticResource CueKindConverter}}" FontSize="10" Foreground="{StaticResource MutedBrush}"/>
+          <TextBlock DockPanel.Dock="Right" Text="{Binding FilePath, Converter={StaticResource MediaPathConverter}, ConverterParameter=Extension}" FontSize="12" Foreground="{StaticResource MutedBrush}"/>
+          <TextBlock Text="{Binding Kind, Converter={StaticResource CueKindConverter}}" FontSize="12" Foreground="{StaticResource MutedBrush}"/>
         </DockPanel>
       </Grid>
     </DataTemplate>
@@ -225,9 +225,9 @@
         <TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource AccentTextBrush}" VerticalAlignment="Center" FontSize="17"/>
         <StackPanel Grid.Column="1" Margin="0,0,10,0">
           <TextBlock Text="{Binding FilePath, Converter={StaticResource MediaPathConverter}, ConverterParameter=FileName}" FontSize="12" TextTrimming="CharacterEllipsis"/>
-          <TextBlock Text="{Binding Kind, Converter={StaticResource CueKindConverter}}" FontSize="10" Foreground="{StaticResource MutedBrush}" Margin="0,2,0,0"/>
+          <TextBlock Text="{Binding Kind, Converter={StaticResource CueKindConverter}}" FontSize="12" Foreground="{StaticResource MutedBrush}" Margin="0,2,0,0"/>
         </StackPanel>
-        <TextBlock Grid.Column="2" Text="{Binding FilePath, Converter={StaticResource MediaPathConverter}, ConverterParameter=Extension}" FontSize="11" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+        <TextBlock Grid.Column="2" Text="{Binding FilePath, Converter={StaticResource MediaPathConverter}, ConverterParameter=Extension}" FontSize="12" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" HorizontalAlignment="Right"/>
       </Grid>
     </DataTemplate>
     <Style x:Key="OrderRow" TargetType="ListBoxItem">
@@ -322,21 +322,21 @@
         <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
         <StackPanel VerticalAlignment="Center">
           <TextBlock Text="Consola" FontSize="25" FontWeight="SemiBold"/>
-          <TextBlock x:Name="ConsoleDateText" FontSize="11" Foreground="{StaticResource MutedBrush}" Margin="0,3,0,0"/>
+          <TextBlock x:Name="ConsoleDateText" FontSize="12" Foreground="{StaticResource MutedBrush}" Margin="0,3,0,0"/>
         </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
           <Border Background="{StaticResource PanelBrush}" CornerRadius="22" Padding="14,3" Margin="0,0,10,0">
             <StackPanel Orientation="Horizontal">
-              <TextBlock Text="Culto actual" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center" Margin="0,0,8,0"/>
+              <TextBlock Text="Culto actual" Foreground="{StaticResource MutedBrush}" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0"/>
               <TextBox x:Name="PlanNameBox" Text="Culto del sábado" Width="166" FontSize="12" FontWeight="SemiBold" Background="Transparent" BorderThickness="0" Padding="2,5" MinHeight="32" LostFocus="PlanNameChanged" AutomationProperties.Name="Nombre del culto"/>
-              <Border Background="{StaticResource InputBrush}" CornerRadius="14" Padding="8,4" Margin="8,0,0,0" VerticalAlignment="Center"><TextBlock x:Name="HeaderSaveState" Text="Local" FontSize="10" Foreground="{StaticResource MutedBrush}"/></Border>
+              <Border Background="{StaticResource InputBrush}" CornerRadius="14" Padding="8,4" Margin="8,0,0,0" VerticalAlignment="Center"><TextBlock x:Name="HeaderSaveState" Text="Local" FontSize="12" Foreground="{StaticResource MutedBrush}"/></Border>
             </StackPanel>
           </Border>
           <Border Background="{StaticResource PanelBrush}" CornerRadius="22" Padding="14,10" Margin="0,0,12,0">
-            <StackPanel Orientation="Horizontal"><TextBlock Text="Progreso" FontSize="10" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/><TextBlock x:Name="HeaderProgressText" Text="0/0" FontSize="12" FontWeight="SemiBold" Margin="10,0"/><ProgressBar x:Name="HeaderProgress" Width="60" Height="5" Minimum="0" Maximum="1" Value="0" Foreground="{StaticResource AccentBrush}" Background="{StaticResource RaisedBrush}" VerticalAlignment="Center" BorderThickness="0"/></StackPanel>
+            <StackPanel Orientation="Horizontal"><TextBlock Text="Progreso" FontSize="12" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/><TextBlock x:Name="HeaderProgressText" Text="0/0" FontSize="12" FontWeight="SemiBold" Margin="10,0"/><ProgressBar x:Name="HeaderProgress" Width="60" Height="5" Minimum="0" Maximum="1" Value="0" Foreground="{StaticResource AccentBrush}" Background="{StaticResource RaisedBrush}" VerticalAlignment="Center" BorderThickness="0"/></StackPanel>
           </Border>
           <Button x:Name="RemoteTopButton" Click="RemoteClick" Background="{StaticResource TextBrush}" Foreground="{StaticResource OnActionBrush}" BorderThickness="0" Padding="14,7" MinHeight="40" AutomationProperties.Name="Control remoto">
-            <StackPanel Orientation="Horizontal"><Path Data="M 3,1 L 11,1 Q 13,1 13,3 L 13,19 Q 13,21 11,21 L 3,21 Q 1,21 1,19 L 1,3 Q 1,1 3,1 M 5,18 L 9,18" Width="12" Height="18" Stretch="Uniform" Stroke="{StaticResource OnActionBrush}" StrokeThickness="1.5" Margin="0,0,9,0"/><TextBlock Text="Control remoto" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/><Border Background="#E2E3E5" CornerRadius="14" Padding="8,5" Margin="9,0,-5,0"><StackPanel Orientation="Horizontal"><Ellipse x:Name="RemoteConnectionDot" Fill="{StaticResource MutedBrush}" Width="5" Height="5" Margin="0,0,5,0" VerticalAlignment="Center"/><TextBlock x:Name="RemoteConnectionText" Text="Desactivado" FontSize="10"/></StackPanel></Border></StackPanel>
+            <StackPanel Orientation="Horizontal"><Path Data="M 3,1 L 11,1 Q 13,1 13,3 L 13,19 Q 13,21 11,21 L 3,21 Q 1,21 1,19 L 1,3 Q 1,1 3,1 M 5,18 L 9,18" Width="12" Height="18" Stretch="Uniform" Stroke="{StaticResource OnActionBrush}" StrokeThickness="1.5" Margin="0,0,9,0"/><TextBlock Text="Control remoto" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/><Border Background="#E2E3E5" CornerRadius="14" Padding="8,5" Margin="9,0,-5,0"><StackPanel Orientation="Horizontal"><Ellipse x:Name="RemoteConnectionDot" Fill="{StaticResource MutedBrush}" Width="5" Height="5" Margin="0,0,5,0" VerticalAlignment="Center"/><TextBlock x:Name="RemoteConnectionText" Text="Desactivado" FontSize="12"/></StackPanel></Border></StackPanel>
           </Button>
           <Border Background="{StaticResource LiveSurfaceBrush}" CornerRadius="22" Padding="13,10" Margin="12,0,0,0"><StackPanel Orientation="Horizontal">
             <Ellipse x:Name="OutputIndicator" Width="7" Height="7" Margin="0,0,7,0" VerticalAlignment="Center">
@@ -350,7 +350,7 @@
                 </Style.Triggers>
               </Style></Ellipse.Style>
             </Ellipse>
-            <TextBlock Text="{Binding Text, ElementName=OutputModeText}" Foreground="{Binding Fill, ElementName=OutputIndicator}" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            <TextBlock Text="{Binding Text, ElementName=OutputModeText}" Foreground="{Binding Fill, ElementName=OutputIndicator}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
 
           </StackPanel></Border>
         </StackPanel>
@@ -372,8 +372,8 @@
             <Grid>
 
               <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                <Button x:Name="FollowLiveButton" Content="Ver salida" Click="FollowLivePreviewClick" Visibility="Collapsed" FontSize="10" MinHeight="24" Padding="8,3" Margin="0,0,8,0" AutomationProperties.Name="Volver a ver la salida"/>
-                <TextBlock x:Name="PreviewModeText" Text="PREPARADO" Foreground="{StaticResource MutedBrush}" FontSize="9" VerticalAlignment="Center"/>
+                <Button x:Name="FollowLiveButton" Content="Ver salida" Click="FollowLivePreviewClick" Visibility="Collapsed" FontSize="12" MinHeight="24" Padding="8,3" Margin="0,0,8,0" AutomationProperties.Name="Volver a ver la salida"/>
+                <TextBlock x:Name="PreviewModeText" Text="PREPARADO" Foreground="{StaticResource MutedBrush}" FontSize="12" VerticalAlignment="Center"/>
               </StackPanel>
             </Grid>
             <local:AspectRatioBox Grid.Row="1" Margin="0,10,0,12" VerticalAlignment="Top">
@@ -389,7 +389,7 @@
               <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
               <TextBlock x:Name="PreparedTitleText" Text="Sin contenido" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,10,0" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
               <Button x:Name="ProjectButton" Grid.Column="1" Style="{StaticResource PrimaryButton}" Click="ProjectClick" MinHeight="34" Padding="14,7" AutomationProperties.Name="Proyectar contenido preparado">
-                <StackPanel Orientation="Horizontal"><TextBlock Text="Proyectar" FontSize="12"/><TextBlock Text="F5" FontSize="10" Margin="14,0,0,0" VerticalAlignment="Center"/></StackPanel>
+                <StackPanel Orientation="Horizontal"><TextBlock Text="Proyectar" FontSize="12"/><TextBlock Text="F5" FontSize="12" Margin="14,0,0,0" VerticalAlignment="Center"/></StackPanel>
               </Button>
             </Grid>
 
@@ -404,9 +404,9 @@
             <Grid x:Name="LiveHeaderGrid">
               <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
               <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-              <Border Background="{StaticResource LiveSurfaceBrush}" CornerRadius="9" Padding="7,3" Margin="0,0,9,0"><TextBlock Text="En pantalla" Foreground="{StaticResource TextBrush}" FontSize="10" FontWeight="SemiBold"/></Border>
+              <Border Background="{StaticResource LiveSurfaceBrush}" CornerRadius="9" Padding="7,3" Margin="0,0,9,0"><TextBlock Text="En pantalla" Foreground="{StaticResource TextBrush}" FontSize="12" FontWeight="SemiBold"/></Border>
               <TextBlock Grid.Column="1" x:Name="LiveTitleText" Text="Sin contenido" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
-              <TextBlock Grid.Column="2" x:Name="OutputModeText" Text="SIN SALIDA" Foreground="{StaticResource MutedBrush}" FontSize="9" VerticalAlignment="Center" Margin="8,0,0,0" ToolTip="{Binding Text, ElementName=OutputStatusText}"/>
+              <TextBlock Grid.Column="2" x:Name="OutputModeText" Text="SIN SALIDA" Foreground="{StaticResource MutedBrush}" FontSize="12" VerticalAlignment="Center" Margin="8,0,0,0" ToolTip="{Binding Text, ElementName=OutputStatusText}"/>
             </Grid>
             <local:AspectRatioBox Grid.Row="1" Margin="0,10,0,12" VerticalAlignment="Top">
               <Border x:Name="OutputViewport" CornerRadius="22" SizeChanged="MonitorFrameSizeChanged" BorderBrush="{StaticResource LiveBrush}" BorderThickness="2" Background="#000000">
@@ -421,15 +421,15 @@
               <TextBlock x:Name="LiveBodyText" Text="La salida está cerrada." Foreground="{StaticResource MutedBrush}" FontSize="12" TextWrapping="Wrap" MaxHeight="18" TextTrimming="CharacterEllipsis">
                 <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><DataTrigger Binding="{Binding Visibility, ElementName=MediaPlaybackPanel}" Value="Visible"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
               </TextBlock>
-              <TextBlock x:Name="LiveReferenceText" Foreground="{StaticResource MutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis"/>
+              <TextBlock x:Name="LiveReferenceText" Foreground="{StaticResource MutedBrush}" FontSize="12" TextTrimming="CharacterEllipsis"/>
               <TextBlock x:Name="OutputStatusText" Text="Una salida HDMI · tres pantallas iguales" Visibility="Collapsed"/>
             </StackPanel>
             <Grid Grid.Row="1" x:Name="OutputActionsGrid" Margin="0,4,0,6">
               <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
               <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-              <TextBlock x:Name="NextLiveText" Text="Sin contenido en salida" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
-              <Button Grid.Column="1" x:Name="ChooseOutputButton" Content="Pantalla…" Click="DisplayClick" FontSize="10" MinHeight="28" Padding="8,4" Margin="5,0"/>
-              <Button Grid.Column="2" x:Name="ToggleOutputButton" Content="Activar HDMI" Click="ToggleOutputClick" FontSize="10" MinHeight="28" Padding="8,4"/>
+              <TextBlock x:Name="NextLiveText" Text="Sin contenido en salida" Foreground="{StaticResource MutedBrush}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+              <Button Grid.Column="1" x:Name="ChooseOutputButton" Content="Pantalla…" Click="DisplayClick" FontSize="12" MinHeight="28" Padding="8,4" Margin="5,0"/>
+              <Button Grid.Column="2" x:Name="ToggleOutputButton" Content="Activar HDMI" Click="ToggleOutputClick" FontSize="12" MinHeight="28" Padding="8,4"/>
             </Grid>
             <UniformGrid Grid.Row="2" x:Name="PowerPointPlaybackPanel" Columns="2" Visibility="Collapsed" Margin="0,5,0,0">
               <Button x:Name="PowerPointPauseButton" Content="Pausar" Click="PauseClick" Margin="0,0,5,0"/>
@@ -463,14 +463,14 @@
             </Grid>
             <StackPanel Margin="0,8,0,0">
               <WrapPanel VerticalAlignment="Center">
-                <CheckBox x:Name="KeepMediaAudioCheck" Content="Mantener audio" Checked="KeepMediaAudioChanged" Unchecked="KeepMediaAudioChanged" FontSize="11" VerticalAlignment="Center" Margin="0,4,10,4" AutomationProperties.Name="Mantener audio al cambiar de contenido"/>
-                <Button x:Name="ReturnToMediaButton" Content="Volver al video" Click="ReturnToMediaClick" Visibility="Collapsed" FontSize="11" Padding="10,5" MinHeight="30" ToolTip="Volver al video · F9"/>
+                <CheckBox x:Name="KeepMediaAudioCheck" Content="Mantener audio" Checked="KeepMediaAudioChanged" Unchecked="KeepMediaAudioChanged" FontSize="12" VerticalAlignment="Center" Margin="0,4,10,4" AutomationProperties.Name="Mantener audio al cambiar de contenido"/>
+                <Button x:Name="ReturnToMediaButton" Content="Volver al video" Click="ReturnToMediaClick" Visibility="Collapsed" FontSize="12" Padding="10,5" MinHeight="30" ToolTip="Volver al video · F9"/>
               </WrapPanel>
-              <TextBlock x:Name="BackgroundMediaText" Visibility="Collapsed" Foreground="{StaticResource MutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis" Margin="0,3,0,0"/>
+              <TextBlock x:Name="BackgroundMediaText" Visibility="Collapsed" Foreground="{StaticResource MutedBrush}" FontSize="12" TextTrimming="CharacterEllipsis" Margin="0,3,0,0"/>
             </StackPanel>
             <UniformGrid x:Name="OutputBackdropsPanel" Columns="2" Margin="0,8,0,0">
-              <Button x:Name="ChurchBackgroundButton" Content="Logo" Click="ChurchBackgroundClick" PreviewMouseRightButtonUp="LogoRightClick" Margin="0,0,5,0" MinHeight="42" Padding="4,7" FontSize="10" AutomationProperties.Name="Logo"/>
-              <Button x:Name="BlackoutButton" Content="Fondo negro" Click="BlackBackgroundClick" MinHeight="42" Padding="4,7" FontSize="10" AutomationProperties.Name="Fondo negro"/>
+              <Button x:Name="ChurchBackgroundButton" Content="Logo" Click="ChurchBackgroundClick" PreviewMouseRightButtonUp="LogoRightClick" Margin="0,0,5,0" MinHeight="42" Padding="4,7" FontSize="12" AutomationProperties.Name="Logo"/>
+              <Button x:Name="BlackoutButton" Content="Fondo negro" Click="BlackBackgroundClick" MinHeight="42" Padding="4,7" FontSize="12" AutomationProperties.Name="Fondo negro"/>
             </UniformGrid>
             </StackPanel>
             </ScrollViewer>
@@ -487,7 +487,7 @@
           <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
           <Grid Margin="0,0,0,12">
             <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-            <TextBlock Text="Elementos del culto" FontSize="11" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/>
+            <TextBlock Text="Elementos del culto" FontSize="12" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/>
             <TextBlock Grid.Column="1" x:Name="PlanCountText" Text="0" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="8,0"/>
             <Button Grid.Column="2" Content="⋯" Click="OpenActionsClick" Padding="8,2" MinHeight="30" FontSize="18" AutomationProperties.Name="Organizar el orden">
               <Button.ContextMenu><ContextMenu>
@@ -578,7 +578,7 @@
         </Button>
         <Button x:Name="MediaRefreshButton" Grid.Column="3" Content="&#xE72C;" Click="RefreshFolderClick" Style="{StaticResource PlayerButton}" ToolTip="Actualizar carpeta" AutomationProperties.Name="Actualizar medios"/>
       </Grid>
-      <TextBlock Grid.Row="2" x:Name="MediaFolderPathText" FontSize="10" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis" Margin="2,0,0,7" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+      <TextBlock Grid.Row="2" x:Name="MediaFolderPathText" FontSize="12" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis" Margin="2,0,0,7" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
       <Grid Grid.Row="3">
         <ListBox x:Name="MediaList" SelectionChanged="MediaSelectionChanged" MouseDoubleClick="MediaDoubleClick" PreviewKeyDown="MediaListKeyDown"
                  ItemsPanel="{StaticResource MediaTilesPanel}" ItemTemplate="{StaticResource MediaTileTemplate}" ItemContainerStyle="{StaticResource MediaTileItem}"
@@ -587,7 +587,7 @@
       </Grid>
       <Grid Grid.Row="4" Margin="0,7,0,0">
         <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-        <TextBlock x:Name="MediaCountText" FontSize="11" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,6,0"/>
+        <TextBlock x:Name="MediaCountText" FontSize="12" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,6,0"/>
         <Button Grid.Column="1" x:Name="MediaSortButton" Content="A–Z" Click="MediaSortClick" Padding="9,5" MinHeight="32" ToolTip="Cambiar orden por nombre" AutomationProperties.Name="Ordenar medios por nombre"/>
         <Button Grid.Column="2" x:Name="AddMediaToPlanButton" Content="+ Al orden" Click="AddMediaToPlanClick" Padding="12,5" MinHeight="32" Margin="6,0,0,0" IsEnabled="False"/>
       </Grid>
@@ -606,7 +606,7 @@
                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <Grid>
                   <TextBox x:Name="LibrarySearch" TextChanged="LibrarySearchChanged" KeyDown="LibrarySearchKeyDown" AutomationProperties.Name="Buscar en biblioteca" MinHeight="36" FontSize="13" ToolTip="Número o título"/>
-                  <TextBlock Text="Número o título" FontSize="11" Foreground="{StaticResource MutedBrush}" Margin="13,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False">
+                  <TextBlock Text="Número o título" FontSize="12" Foreground="{StaticResource MutedBrush}" Margin="13,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False">
                     <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Text, ElementName=LibrarySearch}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                   </TextBlock>
                 </Grid>
@@ -627,7 +627,7 @@
               </Grid>
               <Grid Grid.Row="4" Margin="0,10,0,0">
                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                <Button Content="+ Al orden" Click="AddLibraryToPlanClick" Background="{StaticResource SelectedBrush}" BorderBrush="{StaticResource SelectedBrush}" MinHeight="36" FontSize="11" Padding="8,5"/>
+                <Button Content="+ Al orden" Click="AddLibraryToPlanClick" Background="{StaticResource SelectedBrush}" BorderBrush="{StaticResource SelectedBrush}" MinHeight="36" FontSize="12" Padding="8,5"/>
                 <Button Grid.Column="1" Content="⋯" ToolTip="Colecciones de videos" Click="VideoCollectionsClick" Margin="6,0,0,0" Padding="10,6" MinHeight="40"/>
               </Grid>
             </Grid>
@@ -641,7 +641,7 @@
                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <StackPanel VerticalAlignment="Center" Margin="0,0,8,0">
                   <TextBlock x:Name="BibleNameText" Text="Biblia" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                  <TextBlock x:Name="BibleStatusText" Text="Sin Biblia cargada" Style="{StaticResource MutedText}" FontSize="11" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Margin="0,3,0,0"/>
+                  <TextBlock x:Name="BibleStatusText" Text="Sin Biblia cargada" Style="{StaticResource MutedText}" FontSize="12" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Margin="0,3,0,0"/>
                 </StackPanel>
                 <Button Grid.Column="1" Content="⋯" ToolTip="Estilo de la Biblia" Click="BibleStyleClick" AutomationProperties.Name="Editar estilo de la Biblia" Padding="10,5" VerticalAlignment="Center"/>
               </Grid>
@@ -660,7 +660,7 @@
 
                 <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                   <TextBox x:Name="BibleQuery" TextChanged="BibleQueryChanged" PreviewKeyDown="BibleQueryKeyDown" AutomationProperties.Name="Cita o palabras de la Biblia" FontSize="13" MinHeight="40" ToolTip="Génesis 1:1-5 · Jn 3 16 · una frase"/>
-                  <TextBlock Text="Ej. Juan 3:16" FontSize="11" Foreground="{StaticResource MutedBrush}" Margin="13,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False">
+                  <TextBlock Text="Ej. Juan 3:16" FontSize="12" Foreground="{StaticResource MutedBrush}" Margin="13,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False">
                     <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Text, ElementName=BibleQuery}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                   </TextBlock>
                   <Button Grid.Column="1" Content="×" Click="ClearBibleQueryClick" Margin="4,0,0,0" Padding="9,5" ToolTip="Limpiar búsqueda (Esc)" AutomationProperties.Name="Limpiar búsqueda de la Biblia"/>
@@ -674,9 +674,9 @@
               <ListBox Grid.Row="4" x:Name="BibleResults" SelectionMode="Extended" SelectionChanged="BibleSelectionChanged" MouseDoubleClick="BibleResultsDoubleClick" PreviewKeyDown="BibleResultsKeyDown" AutomationProperties.Name="Resultados de Biblia">
                 <ListBox.ItemTemplate><DataTemplate><Grid ToolTip="{Binding Reference}">
                   <Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                  <Border Width="23" Height="23" CornerRadius="12" Background="{StaticResource RaisedBrush}" VerticalAlignment="Top"><TextBlock Text="{Binding Verse.Verse}" FontSize="10" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                  <Border Width="23" Height="23" CornerRadius="12" Background="{StaticResource RaisedBrush}" VerticalAlignment="Top"><TextBlock Text="{Binding Verse.Verse}" FontSize="12" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
                   <StackPanel Grid.Column="1" Margin="7,1,0,0">
-                    <TextBlock Text="{Binding Reference}" Visibility="{Binding ShowReference, Converter={StaticResource BoolToVisibility}}" Foreground="{StaticResource MutedBrush}" FontSize="10" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <TextBlock Text="{Binding Reference}" Visibility="{Binding ShowReference, Converter={StaticResource BoolToVisibility}}" Foreground="{StaticResource MutedBrush}" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
                     <TextBlock Text="{Binding Text}" TextWrapping="Wrap" FontSize="12"/>
                   </StackPanel>
                 </Grid></DataTemplate></ListBox.ItemTemplate>
@@ -715,26 +715,26 @@
                 <Button Content="Elegir ventana" Click="CaptureWindowClick" Padding="9,5" MinHeight="32" FontSize="12" AutomationProperties.Name="Elegir una ventana para capturar"/>
                 <Button Grid.Column="1" Content="↻" Click="RefreshYouTubeClick" Margin="6,0,0,0" Padding="9,5" MinHeight="32" FontSize="12" AutomationProperties.Name="Actualizar ventanas de YouTube"/>
               </Grid>
-              <TextBlock x:Name="YouTubeCountText" Grid.Row="2" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="2,0,0,8" TextTrimming="CharacterEllipsis"/>
+              <TextBlock x:Name="YouTubeCountText" Grid.Row="2" Foreground="{StaticResource MutedBrush}" FontSize="12" Margin="2,0,0,8" TextTrimming="CharacterEllipsis"/>
               <Grid Grid.Row="3">
                 <ListBox x:Name="YouTubeList" SelectionChanged="YouTubeSelectionChanged" MouseDoubleClick="YouTubeDoubleClick" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Ventanas de YouTube y capturas guardadas">
                   <ListBox.ItemTemplate><DataTemplate><StackPanel Margin="0,3">
                     <local:AspectRatioBox MaxWidth="260" HorizontalAlignment="Left" Margin="0,0,0,9"><Border CornerRadius="14" SizeChanged="MonitorFrameSizeChanged" Background="Black"><local:CueThumbnail Cue="{Binding Cue}"/></Border></local:AspectRatioBox>
                     <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" FontSize="13" FontWeight="SemiBold" ToolTip="{Binding Title}"/>
-                    <TextBlock Text="{Binding Detail}" TextTrimming="CharacterEllipsis" FontSize="10" Foreground="{StaticResource MutedBrush}" Margin="0,5,0,0" ToolTip="{Binding Detail}"/>
+                    <TextBlock Text="{Binding Detail}" TextTrimming="CharacterEllipsis" FontSize="12" Foreground="{StaticResource MutedBrush}" Margin="0,5,0,0" ToolTip="{Binding Detail}"/>
                   </StackPanel></DataTemplate></ListBox.ItemTemplate>
                 </ListBox>
                 <TextBlock x:Name="YouTubeEmpty" Text="No se detectó YouTube en Chrome. Abre un video o elige una ventana." TextWrapping="Wrap" TextAlignment="Center" Foreground="{StaticResource MutedBrush}" Margin="16,22" IsHitTestVisible="False"/>
               </Grid>
               <Grid Grid.Row="4" Margin="0,10,0,0">
                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
-                <Button x:Name="ProjectYouTubeButton" Content="Proyectar" Click="ProjectYouTubeClick" Style="{StaticResource PrimaryButton}" IsEnabled="False" MinHeight="36" FontSize="11" Padding="6,5" Margin="0,0,3,0" AutomationProperties.Name="Proyectar ventana de YouTube"/>
-                <Button x:Name="AddYouTubeButton" Grid.Column="1" Content="+ Al orden" Click="AddYouTubeToPlanClick" IsEnabled="False" MinHeight="36" FontSize="11" Padding="6,5" Margin="3,0,0,0" AutomationProperties.Name="Añadir captura de YouTube al orden"/>
+                <Button x:Name="ProjectYouTubeButton" Content="Proyectar" Click="ProjectYouTubeClick" Style="{StaticResource PrimaryButton}" IsEnabled="False" MinHeight="36" FontSize="12" Padding="6,5" Margin="0,0,3,0" AutomationProperties.Name="Proyectar ventana de YouTube"/>
+                <Button x:Name="AddYouTubeButton" Grid.Column="1" Content="+ Al orden" Click="AddYouTubeToPlanClick" IsEnabled="False" MinHeight="36" FontSize="12" Padding="6,5" Margin="3,0,0,0" AutomationProperties.Name="Añadir captura de YouTube al orden"/>
               </Grid>
               <Grid Grid.Row="5" Margin="0,6,0,0">
                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
-                <Button x:Name="EditYouTubeButton" Content="Recorte" ToolTip="Editar captura" Click="EditYouTubeClick" IsEnabled="False" MinHeight="32" Padding="5,5" Margin="0,0,3,0" FontSize="11" AutomationProperties.Name="Editar el recorte y la posición de la captura"/>
-                <Button Grid.Column="1" Content="Audio" Click="ReleaseCaptureAudioClick" MinHeight="32" Padding="5,5" Margin="3,0,0,0" FontSize="11" ToolTip="Devolver audio a las aplicaciones cuando no hay ninguna captura activa" AutomationProperties.Name="Devolver audio a las aplicaciones"/>
+                <Button x:Name="EditYouTubeButton" Content="Recorte" ToolTip="Editar captura" Click="EditYouTubeClick" IsEnabled="False" MinHeight="32" Padding="5,5" Margin="0,0,3,0" FontSize="12" AutomationProperties.Name="Editar el recorte y la posición de la captura"/>
+                <Button Grid.Column="1" Content="Audio" Click="ReleaseCaptureAudioClick" MinHeight="32" Padding="5,5" Margin="3,0,0,0" FontSize="12" ToolTip="Devolver audio a las aplicaciones cuando no hay ninguna captura activa" AutomationProperties.Name="Devolver audio a las aplicaciones"/>
               </Grid>
             </Grid>
           </Border>

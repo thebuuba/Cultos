@@ -1,8 +1,16 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 12 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.32.3`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 12 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.32.4`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### Legibilidad del texto — versión 0.32.4
+
+Se encontraron rótulos de 9–11 DIP en la consola y letras de miniatura dibujadas a 8/9 DIP antes de ampliarlas. Los rótulos pequeños de MainWindow pasan a 12 DIP. Las miniaturas dibujan los glifos a su tamaño final con formato Display, conservando el escalado uniforme de imágenes e iconos. Los monitores usan filtrado de alta calidad al reducir el contenido local. No cambia la tipografía elegida para la proyección.
+
+Se habilita la indicación ClearType en los cuerpos opacos de las tarjetas y sus cabeceras, después de los efectos y recortes exteriores. La fuente Lexend sigue incluida y comprobada. La referencia de Microsoft advierte que los efectos, recortes y VisualBrush pueden deshabilitar ClearType si el destino intermedio admite transparencia: https://learn.microsoft.com/en-us/dotnet/api/system.windows.media.renderoptions.cleartypehint .
+
+El usuario confirmó que el problema se notaba en menús/listas y monitores. Se revisaron capturas a 1900×1000, 1480×900, 1280×680 y 1200×680; pasaron las 14 comprobaciones visuales y 138 generales. Evidencias en `.tools/worktrees/culto-polymet/.tools/text-clarity-visual.log`, `text-clarity-desktop.log` y `text-clarity-publish.log`. La mejora percibida en el monitor físico y en otras escalas DPI queda para comprobación del usuario.
 
 ### Salida sin fila Anterior/Siguiente — versión 0.32.3
 

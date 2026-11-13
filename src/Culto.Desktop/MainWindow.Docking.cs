@@ -47,7 +47,16 @@ public partial class MainWindow
         resources[AvalonDock.Themes.Arc.Themes.ResourceKeys.ToolWindowCaptionInactiveText] = FindResource("TextBrush");
         resources[AvalonDock.Themes.Arc.Themes.ResourceKeys.PanelBorderBrush] = Brushes.Transparent;
         foreach (var pane in WorkspaceDock.Layout.Descendents().OfType<LayoutAnchorable>())
+        {
             _dockContents[pane.ContentId] = pane.Content;
+            if (pane.Content is Border body)
+            {
+                // These cards paint an opaque background after the outer clip/effect.
+                RenderOptions.SetClearTypeHint(body, ClearTypeHint.Enabled);
+                TextOptions.SetTextFormattingMode(body, TextFormattingMode.Display);
+                body.SnapsToDevicePixels = true;
+            }
+        }
         InitializePanelSizing();
         ApplyPaneMinimums();
         WorkspaceDock.LayoutUpdated += WorkspaceDockLayoutUpdated;
@@ -134,6 +143,7 @@ public partial class MainWindow
             title.FontWeight = FontWeights.SemiBold;
             title.Padding = new Thickness(14, 10, 14, 10);
             title.Background = DockCardBrush(title.Model?.ContentId);
+            RenderOptions.SetClearTypeHint(title, ClearTypeHint.Enabled);
             title.Foreground = _dockTextBrush;
             title.BorderThickness = new Thickness(0);
             InitializePanelPlacementMenu(title);

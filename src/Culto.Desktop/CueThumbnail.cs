@@ -69,16 +69,22 @@ public sealed class CueThumbnail : FrameworkElement
             var scale = Math.Min(128 / image.Width, 72 / image.Height);
             drawing.DrawImage(image, new Rect((128 - image.Width * scale) / 2, (72 - image.Height * scale) / 2, image.Width * scale, image.Height * scale));
         }
-        else if (Cue is { } cue)
+        else if (Cue?.Kind is CueKind.Video or CueKind.Audio)
+            drawing.DrawGeometry(null, new Pen(Accent, 1.5), Play);
+        drawing.Pop(); drawing.Pop(); drawing.Pop();
+        if (_image is null && Cue is { } cue)
         {
             var media = cue.Kind is CueKind.Video or CueKind.Audio;
-            if (media) drawing.DrawGeometry(null, new Pen(Accent, 1.5), Play);
             var message = media || string.IsNullOrWhiteSpace(cue.Body) ? cue.Title : cue.Body;
+            // Shape glyphs at their final display size, instead of magnifying
+            // text hinted for an 8/9 DIP miniature canvas.
             var words = new FormattedText(message, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, Face,
-                media ? 8 : 9, Brushes.White, VisualTreeHelper.GetDpi(this).PixelsPerDip)
-            { MaxTextWidth = 110, MaxTextHeight = media ? 21 : 51, TextAlignment = TextAlignment.Center, Trimming = TextTrimming.CharacterEllipsis };
-            drawing.DrawText(words, new Point(9, media ? 46 : Math.Max(8, (72 - words.Height) / 2)));
+                (media ? 8 : 9) * fittedScale, Brushes.White, null, TextFormattingMode.Display, VisualTreeHelper.GetDpi(this).PixelsPerDip)
+            { MaxTextWidth = 110 * fittedScale, MaxTextHeight = (media ? 21 : 51) * fittedScale,
+                TextAlignment = TextAlignment.Center, Trimming = TextTrimming.CharacterEllipsis };
+            var x = (ActualWidth - 128 * fittedScale) / 2 + 9 * fittedScale;
+            var y = (ActualHeight - 72 * fittedScale) / 2 + (media ? 46 * fittedScale : Math.Max(8 * fittedScale, (72 * fittedScale - words.Height) / 2));
+            drawing.DrawText(words, new Point(x, y));
         }
-        drawing.Pop(); drawing.Pop(); drawing.Pop();
     }
 }

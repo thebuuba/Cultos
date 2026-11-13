@@ -26,6 +26,7 @@ public sealed class OutputMonitor : FrameworkElement, IDisposable
 
     public OutputMonitor()
     {
+        RenderOptions.SetBitmapScalingMode(this, BitmapScalingMode.HighQuality);
         Loaded += (_, _) => Refresh();
         Unloaded += (_, _) => { DetachNative(); Release(); };
         LayoutUpdated += (_, _) => Refresh();
