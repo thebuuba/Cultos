@@ -62,9 +62,8 @@ public partial class MainWindow
     {
         if (!_ready) return;
         var capture = _output is not null && _session.Live?.Kind == CueKind.WindowCapture;
-        var liveMedia = _output is not null && _session.Live?.Kind is CueKind.Video or CueKind.Audio or CueKind.WindowCapture;
         OutputTransportGrid.Visibility = capture || _session.Live?.Kind is not (CueKind.Video or CueKind.Audio) ? Visibility.Collapsed : Visibility.Visible;
-        PauseButton.IsEnabled = !capture;
+        PauseButton.IsEnabled = HasVisibleMediaOutput && !capture;
         PauseButton.Visibility = capture ? Visibility.Collapsed : Visibility.Visible;
         foreach (var control in new FrameworkElement[] { PositionSlider, TimeText, OutputDurationText,
             RestartOutputButton, OutputSkipBackButton, OutputSkipForwardButton, LoopCheck })
@@ -72,7 +71,7 @@ public partial class MainWindow
         if (capture) UpdateCapturePlayButton();
         PowerPointPlaybackPanel.Visibility = _output is not null && _session.Live?.Kind == CueKind.PowerPoint ? Visibility.Visible : Visibility.Collapsed;
         if (FindName("MediaPlaybackPanel") is FrameworkElement mediaPanel)
-            mediaPanel.Visibility = liveMedia || _output?.HasBackgroundMedia == true ? Visibility.Visible : Visibility.Collapsed;
+            mediaPanel.Visibility = HasVisibleMediaOutput ? Visibility.Visible : Visibility.Collapsed;
         PlanList.LiveCueId = _output is not null ? _session.Live?.Id : null;
         if (FindName("NextLiveText") is TextBlock next)
             next.Text = NextLiveHint();

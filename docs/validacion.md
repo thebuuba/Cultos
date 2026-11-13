@@ -1,8 +1,14 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 13 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.35.5`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 13 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.35.6`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### Controles de video fuera del logo - 0.35.6
+
+La referencia al video retenido no debe mantener visible el reproductor sobre Logo o Fondo negro. Los dos caminos de refresco usan ahora la misma disponibilidad de contenido visible, y la barra tampoco acepta entrada de ratón cuando el video está oculto. Se conserva la opción Mantener audio.
+
+El ensayo --fixed-monitors reproduce un video real, muestra Logo y Negro con Mantener audio activado y desactivado, comprueba que la barra desaparece y no acepta entrada, y restaura el video con sus controles. Sin Mantener audio, verifica también que el video oculto queda pausado. Falla antes del cambio y pasa después junto con las pruebas existentes de pausa, volumen, avance y posición. Registros .tools/logo-player-red.log y logo-player-final.log del worktree.
 
 ### Negro al terminar la lista - 0.35.5
 

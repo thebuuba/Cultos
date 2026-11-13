@@ -4,6 +4,10 @@ namespace Culto.Desktop;
 
 public partial class MainWindow
 {
+    private bool HasVisibleMediaOutput => _output is not null && !_session.IsBlackout && !_session.IsTextHidden
+        && (_output.HasBackgroundMedia
+            || _session.Live?.Kind is Culto.Core.CueKind.Video or Culto.Core.CueKind.Audio or Culto.Core.CueKind.WindowCapture);
+
     private void KeepMediaAudioChanged(object sender, RoutedEventArgs e)
     {
         if (!_ready) return;
@@ -28,8 +32,7 @@ public partial class MainWindow
         BackgroundMediaText.Visibility = background ? Visibility.Visible : Visibility.Collapsed;
         BackgroundMediaText.Text = background ? "Audio: " + _output!.RetainedMediaCue?.Title : "";
         BackgroundMediaText.ToolTip = BackgroundMediaText.Text;
-        MediaPlaybackPanel.Visibility = _output is not null && (background
-            || _session.Live?.Kind is Culto.Core.CueKind.Video or Culto.Core.CueKind.Audio or Culto.Core.CueKind.WindowCapture)
+        MediaPlaybackPanel.Visibility = HasVisibleMediaOutput
             ? Visibility.Visible : Visibility.Collapsed;
     }
 }

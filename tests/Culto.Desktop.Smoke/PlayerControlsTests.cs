@@ -7,6 +7,7 @@ using System.Windows.Input;
 using Culto.Core;
 using Culto.Desktop;
 using Culto.Desktop.Projection;
+using Culto.Desktop.Services;
 
 internal static partial class Program
 {
@@ -87,6 +88,48 @@ internal static partial class Program
                 Check(AutomationProperties.GetName(pause) == "Pausar salida", "Running playback has no accessible pause label");
                 pause.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 Until(() => !output.IsPlaying, "Pause control did not pause output");
+            });
+
+            Test("Logo and black hide and deactivate the retained video controls", () =>
+            {
+                var session=Field<PresentationSession>(window,"_session");
+                var workspace=Field<WorkspaceData>(window,"_workspace");
+                var oldBackground=workspace.BackgroundImagePath;
+                var keepAudio=(CheckBox)window.FindName("KeepMediaAudioCheck");
+                var oldKeepAudio=keepAudio.IsChecked;
+                var imagePath=Path.Combine(Path.GetTempPath(),"CultoPlayerLogo-"+Guid.NewGuid().ToString("N")+".png");
+                var encoder=new System.Windows.Media.Imaging.PngBitmapEncoder();
+                encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(
+                    System.Windows.Media.Imaging.BitmapSource.Create(1,1,96,96,System.Windows.Media.PixelFormats.Bgr32,null,new byte[]{0,0,0,255},4)));
+                using(var stream=File.Create(imagePath))encoder.Save(stream);
+                try
+                {
+                    workspace.BackgroundImagePath=imagePath;
+                    foreach(var keep in new[]{false,true})
+                    {
+                        keepAudio.IsChecked=keep;
+                        output.Seek(0);output.SetPaused(false);
+                        Check((bool)Call(window,"ShowLogo")!,"Logo did not activate");
+                        Until(()=>output.DisplayedHidden && !output.IsTransitioning,"Logo did not finish its transition");
+                        foreach(var update in new[]{"UpdateUsabilityState","UpdateBackgroundAudioState"})
+                        {
+                            Call(window,update);Call(window,"ShowPlaybackOverlay",true);
+                            var panel=(FrameworkElement)window.FindName("MediaPlaybackPanel");
+                            Check(panel.Visibility==Visibility.Collapsed && !panel.IsHitTestVisible,"Logo retained active video controls after "+update);
+                        }
+                        if(!keep)Check(!output.IsPlaying,"Logo left the hidden video playing without Keep audio");
+                        Call(window,"ShowBlackBackdrop");
+                        Until(()=>output.DisplayedBlackout && !output.IsTransitioning,"Black transition did not finish");
+                        Call(window,"TimerTick",null,EventArgs.Empty);
+                        Check(((FrameworkElement)window.FindName("MediaPlaybackPanel")).Visibility==Visibility.Collapsed,"Black restored the video bar");
+                        session.RestoreContent();Call(window,"ApplyBackdropTransition");
+                        Until(()=>!output.DisplayedBlackout && !output.DisplayedHidden && !output.IsTransitioning,"Video did not restore");
+                        Call(window,"UpdateBackgroundAudioState");
+                        Check(((FrameworkElement)window.FindName("MediaPlaybackPanel")).Visibility==Visibility.Visible,"Restored video lost its controls");
+                        output.SetPaused(true);
+                    }
+                }
+                finally { keepAudio.IsChecked=oldKeepAudio;workspace.BackgroundImagePath=oldBackground;File.Delete(imagePath); }
             });
         }
         finally { Call(window, "CloseOutput"); volume.Value = oldVolume; }

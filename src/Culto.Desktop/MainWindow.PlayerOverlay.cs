@@ -45,6 +45,7 @@ public partial class MainWindow
     private void ShowPlaybackOverlay(bool visible)
     {
         if (MediaPlaybackPanel is null) return;
+        visible &= HasVisibleMediaOutput;
         MediaPlaybackPanel.IsHitTestVisible = visible;
         if (_playbackOverlayVisible == visible) return;
         _playbackOverlayVisible = visible;
