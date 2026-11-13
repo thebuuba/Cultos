@@ -1,8 +1,14 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 12 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.31.0`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 12 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.31.3`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### Destino inferior y grupos redundantes — versión 0.31.3
+
+El destino del arrastre usa la tarjeta completa, con cabecera, pestañas y margen inferior. Antes se medía solo el cuerpo y las esquinas podían seleccionar el lateral por sus distancias proporcionales. Ahora las bandas superior e inferior tienen prioridad en las esquinas y una altura máxima de 64 DIP; los laterales usan hasta 48 DIP. Soltar recalcula el destino con la posición final del ratón.
+
+Después de colocar un panel se eliminan los grupos de un solo hijo conservando sus proporciones exteriores. Esto evita acumular divisiones dentro de divisiones al mover repetidamente los mismos paneles. Se conserva la distribución personalizada, sin aplicar un preset nuevo. Dos regresiones fallaron antes y pasaron después: detección inferior en esquinas/pestañas y seis reorganizaciones verticales sin grupos redundantes ni desbordamiento. Las diez comprobaciones de paneles pasan. Evidencias: `.tools/worktrees/culto-polymet/.tools/drop-fit-red.log`, `drop-fit-final.log`, `drop-fit-presets.log`, `drop-fit-desktop.log` y `drop-fit-publish.log`.
 
 ### Color de fuentes — versión 0.31.2
 

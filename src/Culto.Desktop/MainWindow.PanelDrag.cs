@@ -42,6 +42,7 @@ public partial class MainWindow
         title.PreviewMouseLeftButtonUp += (_, e) =>
         {
             if (_dragPanelTitle != title) return;
+            if (_panelDragMoved) UpdatePanelDrag(title.PointToScreen(e.GetPosition(title)));
             e.Handled = true; FinishPanelDrag(_panelDragMoved);
         };
         title.PreviewKeyDown += (_, e) =>
@@ -66,15 +67,19 @@ public partial class MainWindow
             var target = pane.SelectedContent;
             if (target is null || target.ContentId == _dragPanelId || target.IsFloating
                 || target.Content is not FrameworkElement { IsVisible: true } body) continue;
-            var point = body.PointFromScreen(screenPoint);
-            var size = body.RenderSize;
-            // Include the caption above the body in the top drop area.
-            if (point.X < 0 || point.X > size.Width || point.Y < -45 || point.Y > size.Height) continue;
-            var x = point.X / size.Width; var y = point.Y / size.Height;
-            var side = "tab";
-            if (Math.Min(x, 1 - x) < .25 || Math.Min(y, 1 - y) < .25)
-                side = Math.Min(y, 1 - y) <= Math.Min(x, 1 - x) ? y < .5 ? "top" : "bottom" : x < .5 ? "left" : "right";
-            var bounds = body.TransformToAncestor(WorkspaceDock).TransformBounds(new Rect(size));
+            DependencyObject? ancestor = body;
+            while (ancestor is not null && ancestor is not LayoutAnchorablePaneControl) ancestor = VisualTreeHelper.GetParent(ancestor);
+            if (ancestor is not LayoutAnchorablePaneControl card) continue;
+            var point = card.PointFromScreen(screenPoint);
+            var size = card.RenderSize;
+            // Use the complete card, including caption, tabs and bottom gutter.
+            // Vertical edge bands win at corners, so "below" never becomes a column.
+            if (point.X < -8 || point.X > size.Width + 8 || point.Y < -8 || point.Y > size.Height + 8) continue;
+            var verticalEdge = Math.Min(64, size.Height * .25);
+            var horizontalEdge = Math.Min(48, size.Width * .25);
+            var side = point.Y >= size.Height - verticalEdge ? "bottom" : point.Y <= verticalEdge ? "top"
+                : point.X <= horizontalEdge ? "left" : point.X >= size.Width - horizontalEdge ? "right" : "tab";
+            var bounds = card.TransformToAncestor(WorkspaceDock).TransformBounds(new Rect(size));
             var rect = side switch
             {
                 "top" => new Rect(bounds.Left, bounds.Top, bounds.Width, bounds.Height / 2),

@@ -111,6 +111,16 @@ internal static class WorkspaceLayouts
         foreach (var node in document.Descendants().Reverse().ToArray())
             if (node.Name.LocalName is "LayoutAnchorablePane" or "LayoutPanel" or "LayoutAnchorablePaneGroup" or "LayoutAnchorableFloatingWindow"
                 && !node.Descendants("LayoutAnchorable").Any()) node.Remove();
+        // Moving between the same two panels must not keep nesting halves of
+        // halves. Collapse redundant groups, retaining their outer proportions.
+        foreach (var group in document.Descendants("LayoutPanel").Reverse().ToArray())
+        {
+            if (group.Elements().Count() != 1) continue;
+            var child = group.Elements().Single(); child.Remove();
+            foreach (var name in new[] { "DockWidth", "DockHeight" })
+                child.SetAttributeValue(name, (string?)group.Attribute(name) ?? "*");
+            group.ReplaceWith(child);
+        }
         document.Root!.Attribute("WorkspacePreset")?.Remove();
         return true;
     }

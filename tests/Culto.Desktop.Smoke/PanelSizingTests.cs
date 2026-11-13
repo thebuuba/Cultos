@@ -37,6 +37,35 @@ internal static partial class Program
         { LayoutPanel group => group.DockWidth, LayoutAnchorablePane pane => pane.DockWidth, _ => throw new InvalidOperationException() };
         try
         {
+            Test("Bottom corners and the tab strip select a bottom dock destination", () =>
+            {
+                window.Width = 1600; window.Height = 900;
+                Call(window, "RestoreDockLayout", initial); window.UpdateLayout(); PumpFor(80);
+                var content = (FrameworkElement)Panel("sources").Content;
+                var pane = Descendants(manager).OfType<LayoutAnchorablePaneControl>().Single(p => ReferenceEquals(p.Model, Panel("sources").Parent));
+                foreach (var point in new[] { new Point(12, pane.ActualHeight - 3), new Point(pane.ActualWidth - 12, pane.ActualHeight - 3) })
+                {
+                    Call(window, "BeginPanelDrag", "youtube");
+                    Call(window, "UpdatePanelDrag", pane.PointToScreen(point));
+                    Check(Field<string?>(window, "_dropPanelSide") == "bottom", "Bottom edge selected a lateral zone or no zone");
+                    Call(window, "FinishPanelDrag", false);
+                }
+            });
+            Test("Repeated vertical rearrangement keeps a flat stack and stays in the workspace", () =>
+            {
+                Call(window, "RestoreDockLayout", initial);
+                Call(window, "PlaceWorkspacePanel", "youtube", "bible", "bottom");
+                for (var i = 0; i < 6; i++)
+                {
+                    Call(window, "PlaceWorkspacePanel", "youtube", "bible", i % 2 == 0 ? "top" : "bottom");
+                    window.UpdateLayout();
+                    var document = XDocument.Parse((string)Call(window, "SerializeDockLayout")!);
+                    Check(!document.Descendants("LayoutPanel").Any(e => e.Elements().Count() == 1), "Rearranging accumulated single-child layout groups");
+                    foreach (var id in new[] { "youtube", "bible" })
+                        CheckWithin((FrameworkElement)Panel(id).Content, manager, new Rect(manager.RenderSize), id);
+                }
+                AssertSession();
+            });
             Test("Header drag highlights and drops above and below a panel without floating", () =>
             {
                 window.Width = 1600; window.Height = 900;
