@@ -15,6 +15,7 @@ public partial class MainWindow
     {
         if (_placementMenus.TryGetValue(title, out _)) return;
         _placementMenus.Add(title, new object());
+        InitializePanelDrag(title);
         var menu = new ContextMenu();
         title.ContextMenu = menu;
         menu.Opened += (_, _) =>

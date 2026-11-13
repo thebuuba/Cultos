@@ -357,7 +357,8 @@
       </Grid>
     </Grid>
 
-    <ad:DockingManager x:Name="WorkspaceDock" local:LiveDockResize.IsEnabled="True" GridSplitterWidth="10" GridSplitterHeight="10" Grid.Row="2" BorderThickness="0" Background="{StaticResource CanvasBrush}" AllowMixedOrientation="True">
+    <AdornerDecorator Grid.Row="2">
+    <ad:DockingManager x:Name="WorkspaceDock" local:LiveDockResize.IsEnabled="True" GridSplitterWidth="10" GridSplitterHeight="10" BorderThickness="0" Background="{StaticResource CanvasBrush}" AllowMixedOrientation="True">
       <ad:DockingManager.Theme><themes:ArcDarkTheme/></ad:DockingManager.Theme>
       <ad:LayoutRoot>
         <ad:LayoutPanel Orientation="Horizontal">
@@ -746,6 +747,7 @@
         </ad:LayoutPanel>
       </ad:LayoutRoot>
     </ad:DockingManager>
+    </AdornerDecorator>
     <Grid Grid.Row="3" Margin="2,8,2,0">
       <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
       <TextBlock x:Name="StatusText" Text="Listo" Foreground="{StaticResource MutedBrush}" FontSize="12" TextTrimming="CharacterEllipsis"/>

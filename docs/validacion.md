@@ -4,6 +4,14 @@ Comprobación actualizada el 12 de noviembre de 2026 en esta PC Windows. Entrega
 
 ## Compilación y pruebas
 
+### Arrastre directo de cabeceras — versión 0.31.1
+
+La corrección anterior verificaba colocación mediante menú, pero no solucionaba el gesto que pidió el usuario. Las cabeceras ahora capturan el arrastre y muestran una zona verde sobre el panel de destino. Los bordes dividen arriba, abajo o a los lados; el centro agrupa en pestañas. La ventana flotante no se crea durante este gesto. Soltar aplica la colocación existente y guarda la distribución; Esc o perder la captura cancela sin cambios. Los botones de la cabecera conservan su menú.
+
+Prueba con ratón mediante CUA sobre una consola de ensayo y datos temporales: se arrastró Himnario desde su título hasta la parte inferior de Biblia; la captura confirmó Biblia arriba e Himnario debajo. Después se arrastró el separador horizontal hacia arriba y se observó el cambio de altura de ambos paneles. No se modificó la consola real abierta del usuario. El modo `--panel-drag-demo` permite repetir este ensayo durante 55 segundos.
+
+La regresión automatizada falló antes del cambio y pasó después: verifica destino resaltado, colocación superior/inferior sin flotación y cancelación. Pasaron las ocho comprobaciones de `--panel-sizing`, nueve de `--workspace-layouts` y tres de `--compact-output`. Publicación Release sin errores ni advertencias, 232 Core y 64 Remote correctas. Evidencias en `.tools/worktrees/culto-polymet/.tools/panel-drag-*.log`. Se conserva 0.31.0; entrega en `artifacts/CultoStudio-0.31.1`.
+
 ### Paneles unidos y contenido remoto — versión 0.31.0
 
 Los separadores convierten los pesos proporcionales a los tamaños reales de todas las celdas antes de intercambiar espacio entre dos vecinos. La regresión inicial reprodujo un grupo inmóvil (626 DIP) y el desplazamiento de un tercer panel; despu?s el grupo recibe los 20 DIP solicitados sin mover al tercero. Cancelar restaura todos los pesos. Las alturas mínimas permiten apilar las fuentes; su contenido conserva un tama?o finito y desplazamiento cuando hace falta. Los monitores mantienen sus ?reas de imagen y controles existentes. El men? contextual de los títulos coloca un panel encima, debajo, a los lados o como pesta?a de otro. Se conservan los controles y la sesión. El guardado personalizado elimina la adaptaci?n automática del preset. Antes de restaurar se separa la ventana nativa incrustada para conservarla al cerrar contenedores flotantes.

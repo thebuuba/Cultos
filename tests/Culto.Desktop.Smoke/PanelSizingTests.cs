@@ -37,6 +37,32 @@ internal static partial class Program
         { LayoutPanel group => group.DockWidth, LayoutAnchorablePane pane => pane.DockWidth, _ => throw new InvalidOperationException() };
         try
         {
+            Test("Header drag highlights and drops above and below a panel without floating", () =>
+            {
+                window.Width = 1600; window.Height = 900;
+                foreach (var bottom in new[] { false, true })
+                {
+                    Call(window, "RestoreDockLayout", initial); window.UpdateLayout(); PumpFor(80);
+                    var target = (FrameworkElement)Panel("bible").Content;
+                    var point = target.PointToScreen(new Point(target.ActualWidth / 2, bottom ? target.ActualHeight - 5 : 5));
+                    Call(window, "BeginPanelDrag", "sources");
+                    Call(window, "UpdatePanelDrag", point);
+                    Check(Field<object?>(window, "_panelDropHint") is not null, "Dragging shows no destination highlight");
+                    Call(window, "FinishPanelDrag", true); window.UpdateLayout();
+                    var a = BoundsWithin((FrameworkElement)Panel("sources").Content, manager);
+                    var b = BoundsWithin((FrameworkElement)Panel("bible").Content, manager);
+                    Check(bottom ? a.Top >= b.Bottom : a.Bottom <= b.Top, "Pointer drop did not split vertically");
+                    Check(!Panel("sources").IsFloating && !manager.FloatingWindows.Any(), "Dragging created a floating window");
+                    AssertSession();
+                }
+                var before = (string)Call(window, "SerializeDockLayout")!;
+                Call(window, "BeginPanelDrag", "sources");
+                var bible = (FrameworkElement)Panel("bible").Content;
+                Call(window, "UpdatePanelDrag", bible.PointToScreen(new Point(5, 10)));
+                Call(window, "FinishPanelDrag", false);
+                Check(before == (string)Call(window, "SerializeDockLayout")! && Field<object?>(window, "_panelDropHint") is null,
+                    "Cancel changed layout or left a highlight behind");
+            });
             Test("A constrained star group resizes immediately without taking space from a third neighbour", () =>
             {
                 window.Width = 1450; window.Height = 900; window.UpdateLayout();
