@@ -1,8 +1,14 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 12 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.33.1`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 13 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.33.2`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### Botones compactos de la Biblia — versión 0.33.2
+
+Los botones de estilo, limpiar búsqueda y capítulo anterior/siguiente dejan de heredar la altura de 38 DIP con anchuras automáticas estrechas. Usan 32 × 32 DIP, sin relleno interior, y conservan la plantilla circular, foco, accesibilidad y eventos existentes. El selector de capítulo comparte el borde derecho con las flechas; el espacio entre ambas sigue siendo de 4 DIP.
+
+Pasaron 15 comprobaciones visuales y 17 de herramientas bíblicas, sin fallos. Se comprobaron dimensiones, contención y alineación de los cuatro botones y se revisó la captura `bible-card.png`. Compilación sin errores ni advertencias, 232 pruebas Core y 64 Remote correctas y publicación local completada. Evidencias en `.tools/worktrees/culto-polymet/.tools/bible-buttons-visual.log`, `bible-buttons-bible.log` y `bible-buttons-publish.log`. Las pruebas usan datos sintéticos y no modifican la Biblia ni el culto del usuario.
 
 ### Retirada de Secuencia — versión 0.33.1
 

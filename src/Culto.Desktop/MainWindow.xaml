@@ -12,6 +12,12 @@
   <Window.Resources>
     <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
     <local:OrderNumberConverter x:Key="OrderNumberConverter"/>
+    <Style x:Key="CompactIconButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+      <Setter Property="Width" Value="32"/><Setter Property="Height" Value="32"/>
+      <Setter Property="MinWidth" Value="32"/><Setter Property="MinHeight" Value="32"/>
+      <Setter Property="Padding" Value="0"/><Setter Property="FontSize" Value="16"/>
+      <Setter Property="FontWeight" Value="Normal"/><Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
     <Style x:Key="PlayerButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
       <Setter Property="Width" Value="32"/><Setter Property="Height" Value="32"/>
       <Setter Property="MinHeight" Value="32"/><Setter Property="Padding" Value="0"/>
@@ -620,17 +626,17 @@
                   <TextBlock x:Name="BibleNameText" Text="Biblia" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
                   <TextBlock x:Name="BibleStatusText" Text="Sin Biblia cargada" Style="{StaticResource MutedText}" FontSize="12" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Margin="0,3,0,0"/>
                 </StackPanel>
-                <Button Grid.Column="1" Content="⋯" ToolTip="Estilo de la Biblia" Click="BibleStyleClick" AutomationProperties.Name="Editar estilo de la Biblia" Padding="10,5" VerticalAlignment="Center"/>
+                <Button Grid.Column="1" Content="⋯" Style="{StaticResource CompactIconButton}" ToolTip="Estilo de la Biblia" Click="BibleStyleClick" AutomationProperties.Name="Editar estilo de la Biblia"/>
               </Grid>
               <Grid Grid.Row="2" Margin="0,0,0,10">
                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="68"/></Grid.ColumnDefinitions>
                 <StackPanel Margin="0,0,6,0"><TextBlock Text="Libro" Style="{StaticResource MutedText}" Margin="0,0,0,4"/><ComboBox x:Name="BibleBookPicker" Background="{StaticResource TextBrush}" Foreground="{StaticResource OnActionBrush}" SelectionChanged="BibleBookChanged" MaxDropDownHeight="360" IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True" AutomationProperties.Name="Libro de la Biblia"/></StackPanel>
-                <StackPanel Grid.Column="1" Margin="0,0,6,0"><TextBlock Text="Cap." Style="{StaticResource MutedText}" Margin="0,0,0,4"/><ComboBox x:Name="BibleChapterPicker" SelectionChanged="BibleChapterChanged" MaxDropDownHeight="300" AutomationProperties.Name="Capítulo de la Biblia"/></StackPanel>
+                <StackPanel Grid.Column="1"><TextBlock Text="Cap." Style="{StaticResource MutedText}" Margin="0,0,0,4"/><ComboBox x:Name="BibleChapterPicker" SelectionChanged="BibleChapterChanged" MaxDropDownHeight="300" AutomationProperties.Name="Capítulo de la Biblia"/></StackPanel>
                 <StackPanel Grid.Row="1" Margin="0,6,6,0"><TextBlock Text="Vers." Style="{StaticResource MutedText}" Margin="0,0,0,4"/><ComboBox x:Name="BibleVersePicker" SelectionChanged="BibleVerseChanged" MaxDropDownHeight="300" AutomationProperties.Name="Versículo de la Biblia"/></StackPanel>
                 <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Bottom">
-                  <Button x:Name="PreviousBibleChapterButton" Content="‹" Click="PreviousBibleChapterClick" IsEnabled="False" Padding="8,3" ToolTip="Capítulo anterior" AutomationProperties.Name="Capítulo anterior"/>
-                  <Button x:Name="NextBibleChapterButton" Content="›" Click="NextBibleChapterClick" IsEnabled="False" Padding="8,3" Margin="4,0,0,0" ToolTip="Capítulo siguiente" AutomationProperties.Name="Capítulo siguiente"/>
+                  <Button x:Name="PreviousBibleChapterButton" Content="‹" Style="{StaticResource CompactIconButton}" Click="PreviousBibleChapterClick" IsEnabled="False" ToolTip="Capítulo anterior" AutomationProperties.Name="Capítulo anterior"/>
+                  <Button x:Name="NextBibleChapterButton" Content="›" Style="{StaticResource CompactIconButton}" Click="NextBibleChapterClick" IsEnabled="False" Margin="4,0,0,0" ToolTip="Capítulo siguiente" AutomationProperties.Name="Capítulo siguiente"/>
                 </StackPanel>
               </Grid>
               <StackPanel Grid.Row="1" Margin="0,0,0,10">
@@ -640,7 +646,7 @@
                   <TextBlock Text="Ej. Juan 3:16" FontSize="12" Foreground="{StaticResource MutedBrush}" Margin="13,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False">
                     <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Text, ElementName=BibleQuery}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                   </TextBlock>
-                  <Button Grid.Column="1" Content="×" Click="ClearBibleQueryClick" Margin="4,0,0,0" Padding="9,5" ToolTip="Limpiar búsqueda (Esc)" AutomationProperties.Name="Limpiar búsqueda de la Biblia"/>
+                  <Button Grid.Column="1" Content="×" Style="{StaticResource CompactIconButton}" Click="ClearBibleQueryClick" Margin="4,0,0,0" ToolTip="Limpiar búsqueda (Esc)" AutomationProperties.Name="Limpiar búsqueda de la Biblia"/>
                   <Button Grid.Column="2" Content="Buscar" Visibility="Collapsed" Click="SearchBibleClick" Margin="4,0,0,0" Padding="10,5"/>
                 </Grid>
               </StackPanel>

@@ -71,6 +71,21 @@ internal static partial class Program
             foreach (var child in Descendants(shared).OfType<AvalonDock.Controls.LayoutAnchorablePaneControl>())
                 Check(child.Margin == new Thickness(0) && child.Effect is null && child.Clip is null, "Monitor kept a separate rounded card");
         });
+        Test("Bible utility buttons stay circular and aligned within their panel", () =>
+        {
+            Call(window, "ActivateWorkspacePanel", "bible"); window.UpdateLayout();
+            var panel = (FrameworkElement)window.FindName("BiblePanel");
+            foreach (var name in new[] { "Editar estilo de la Biblia", "Limpiar búsqueda de la Biblia", "Capítulo anterior", "Capítulo siguiente" })
+            {
+                var button = Descendants(panel).OfType<Button>().Single(b => System.Windows.Automation.AutomationProperties.GetName(b) == name);
+                Check(Math.Abs(button.ActualWidth - 32) < .25 && Math.Abs(button.ActualHeight - 32) < .25, name + " is stretched");
+                CheckWithin(button, panel, new Rect(panel.RenderSize), name);
+            }
+            var chapter = (FrameworkElement)window.FindName("BibleChapterPicker");
+            var next = (FrameworkElement)window.FindName("NextBibleChapterButton");
+            Check(Math.Abs(BoundsWithin(chapter, panel).Right - BoundsWithin(next, panel).Right) < 1, "Chapter selector and navigation have different right edges");
+            CaptureDesignWindow(window, Path.Combine(folder, "bible-card.png"));
+        });
         Test("YouTube source cards retain 16 by 9 thumbnails with long titles", () =>
         {
             Call(window, "ActivateWorkspacePanel", "youtube");
