@@ -28,7 +28,7 @@ public partial class MainWindow
     private Brush DockCardBrush(string? id) => id switch
     { "youtube" => _youtubePanelBrush, "sources" => _hymnPanelBrush, _ => _dockPanelBrush };
     private double _dockPanelRadius = 22;
-    private string DockLayoutPath => Path.Combine(_store.DirectoryPath, "paneles-v2.xml");
+    private string DockLayoutPath => Path.Combine(_store.DirectoryPath, "paneles-v3.xml");
 
     private void InitializeDocking()
     {
@@ -246,7 +246,8 @@ public partial class MainWindow
     { if (SaveDockLayout()) SetStatus("Distribución guardada."); }
     private void RestoreLegacyWorkspaceClick(object sender, RoutedEventArgs e)
     {
-        var path = Path.Combine(_store.DirectoryPath, "paneles.xml");
+        var path = Path.Combine(_store.DirectoryPath, "paneles-v2.xml");
+        if (!File.Exists(path)) path = Path.Combine(_store.DirectoryPath, "paneles.xml");
         if (!File.Exists(path)) { SetStatus("No hay una distribución anterior guardada."); return; }
         try
         {
@@ -309,7 +310,13 @@ public partial class MainWindow
             return;
         }
         var preset = WorkspaceWindowWidth >= WorkspaceLayouts.PrincipalWindowWidth ? "principal" : "compacta";
-        if (preset != _appliedWorkspacePreset) ApplyWorkspacePreset(preset, adaptPrincipal: true);
+        if (preset != _appliedWorkspacePreset)
+        {
+            var activeId = _dockContents.FirstOrDefault(item => ReferenceEquals(item.Value, WorkspaceDock.ActiveContent)).Key;
+            ApplyWorkspacePreset(preset, adaptPrincipal: true);
+            if (activeId is not null && WorkspaceDock.Layout.Descendents().OfType<LayoutAnchorable>().FirstOrDefault(p => p.ContentId == activeId) is { } active)
+            { active.IsSelected = true; active.IsActive = true; }
+        }
     }
     private void ShowWorkspacePanelClick(object sender, RoutedEventArgs e)
     { if (sender is MenuItem { Tag: string id }) ActivateWorkspacePanel(id); }

@@ -97,7 +97,7 @@ internal static partial class Program
                 ((LayoutAnchorablePane)order.Parent).Children.Remove(order); target.Children.Add(order); order.IsSelected = true;
                 Check(ReferenceEquals(order.Parent, Panel("sequence").Parent), "Panel grouping failed");
                 Call(window, "SaveDockLayout");
-                var saved = File.ReadAllText(Path.Combine(directory, "paneles-v2.xml"));
+                var saved = File.ReadAllText(Path.Combine(directory, "paneles-v3.xml"));
                 Call(window, "RestoreDockLayout", initial);
                 Call(window, "RestoreDockLayout", saved);
                 Check(ReferenceEquals(Panel("order").Parent, Panel("sequence").Parent), "Saved grouping was lost");

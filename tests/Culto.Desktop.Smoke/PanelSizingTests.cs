@@ -15,6 +15,9 @@ internal static partial class Program
     private static void RunPanelSizingTests(MainWindow window)
     {
         var manager = (DockingManager)window.FindName("WorkspaceDock");
+        // Exercise rearrangement with separate source cards as well as tabs.
+        Call(window, "PlaceWorkspacePanel", "bible", "sources", "right");
+        Call(window, "PlaceWorkspacePanel", "youtube", "bible", "right");
         var initial = (string)Call(window, "SerializeDockLayout")!;
         var width = window.Width; var height = window.Height;
         var session = Field<PresentationSession>(window, "_session");
@@ -245,6 +248,11 @@ internal static partial class Program
                     Console.WriteLine($"VIDEO status={((TextBlock)window.FindName("StatusText")).Text} playing={output.IsPlaying} paused={output.IsPaused} transition={output.IsTransitioning} live={session.Live?.Kind} blackout={session.IsBlackout} hidden={session.IsTextHidden} duration={output.Duration}");
                     throw;
                 }
+                var search = (TextBox)window.FindName("LibrarySearch");
+                search.Text = "014";
+                foreach (var id in new[] { "sources", "bible", "youtube", "media", "text", "sources" })
+                { Call(window, "ActivateWorkspacePanel", id); window.UpdateLayout(); }
+                Check(search.Text == "014" && output.IsPlaying, "Switching source tabs lost the search or interrupted playback");
                 output.Seek(.2); PumpFor(150);
                 var position = output.Position; var current = session.Live;
                 var player = Field<LibVLCSharp.Shared.MediaPlayer?>(output, "_player");

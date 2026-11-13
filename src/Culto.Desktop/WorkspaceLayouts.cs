@@ -7,6 +7,7 @@ internal static class WorkspaceLayouts
     internal const double PrincipalWindowWidth = 1420;
     private static readonly string[] LegacyIds = ["media", "order", "output", "preview", "sequence", "sources"];
     private static readonly string[] SourceIds = ["sources", "bible", "text", "youtube"];
+    private static readonly string[] TabbedSourceIds = ["sources", "bible", "youtube", "media", "text"];
 
     internal static string Title(string id) => id switch
     {
@@ -31,13 +32,13 @@ internal static class WorkspaceLayouts
         XElement root = preset switch
         {
             "principal" => Group("Horizontal", "*", "*",
-                Pane("220*", "media"), Pane("240*", "sources", "text"), Pane("240*", "bible"), Pane("220*", "youtube"),
-                Group("Vertical", "800*", "*", monitors,
+                Pane("1.1*", TabbedSourceIds),
+                Group("Vertical", "2.8*", "*", monitors,
                     Group("Horizontal", "*", "*", Pane("*", "order"), Pane("*", "sequence")))),
             "compacta" => Group("Horizontal", "*", "*",
+                Pane("1.1*", TabbedSourceIds),
                 Group("Vertical", "2.2*", "*", monitors,
-                    Group("Horizontal", "*", "1.2*", Pane("0.9*", "order"), Pane("1.3*", "media", "sequence"))),
-                Pane("1.1*", SourceIds)),
+                    Group("Horizontal", "*", "1.2*", Pane("0.9*", "order"), Pane("1.3*", "sequence")))),
             "proyeccion" => Group("Horizontal", "*", "*", Pane("0.85*", SourceIds),
                 Group("Vertical", "2.8*", "*", monitors,
                     Group("Horizontal", "*", "*", Pane("*", "media", "sequence"), Pane("*", "order")))),

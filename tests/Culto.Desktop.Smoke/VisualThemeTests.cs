@@ -44,6 +44,7 @@ internal static partial class Program
             if (size.Height == 680)
                 Test($"Compact {size.Width} window keeps order and media actions visible with a usable output picture", () =>
                 {
+                    Call(window, "ActivateWorkspacePanel", "media"); window.UpdateLayout();
                     var client = (FrameworkElement)window.Content;
                     var dock = (FrameworkElement)window.FindName("WorkspaceDock");
                     foreach (var name in new[] { "AddOrderButton", "AddMediaToPlanButton" })

@@ -24,7 +24,7 @@ internal static partial class Program
         var originalLeft = window.Left; var originalTop = window.Top; var originalState = window.WindowState;
         var originalLive = session.Live; var originalPrepared = session.Prepared;
         var originalBlackout = session.IsBlackout; var originalHidden = session.IsTextHidden;
-        var layoutPath = Path.Combine(directory, "paneles-v2.xml");
+        var layoutPath = Path.Combine(directory, "paneles-v3.xml");
         var legacyPath = Path.Combine(directory, "paneles.xml");
         var originalSavedLayout = File.Exists(layoutPath) ? File.ReadAllBytes(layoutPath) : null;
         var originalLegacyLayout = File.Exists(legacyPath) ? File.ReadAllBytes(legacyPath) : null;
@@ -63,19 +63,20 @@ internal static partial class Program
                 Check(session.Live!.Body == liveBody && session.Prepared!.Body == preparedBody, context + ": mutated presentation content");
             }
 
-            void CheckSourceTabs(string context)
+            void CheckSourceTabs(string context, bool includeMedia = false)
             {
+                var expected = includeMedia ? sourceIds.Append("media").ToArray() : sourceIds;
                 var pane = (LayoutAnchorablePane)Panel("sources").Parent;
-                Check(sourceIds.All(id => ReferenceEquals(Panel(id).Parent, pane)), context + ": sources do not share one pane");
-                Check(pane.Children.Select(p => p.ContentId).Order().SequenceEqual(sourceIds.Order()), context + ": unexpected source tabs");
+                Check(expected.All(id => ReferenceEquals(Panel(id).Parent, pane)), context + ": sources do not share one pane");
+                Check(pane.Children.Select(p => p.ContentId).Order().SequenceEqual(expected.Order()), context + ": unexpected source tabs");
                 var nativePane = Descendants(manager).OfType<LayoutAnchorablePaneControl>().Single(control => ReferenceEquals(control.Model, pane));
                 var tabs = Descendants(nativePane).OfType<LayoutAnchorableTabItem>().Where(tab => tab.IsVisible).ToArray();
-                Check(tabs.Select(tab => tab.Model.ContentId).Order().SequenceEqual(sourceIds.Order()), context + ": missing native AvalonDock tabs");
+                Check(tabs.Select(tab => tab.Model.ContentId).Order().SequenceEqual(expected.Order()), context + ": missing native AvalonDock tabs");
             }
 
             void CheckPrincipalCards()
             {
-                string[] visibleIds = ["media", "sources", "bible", "youtube", "preview", "output", "order", "sequence"];
+                string[] visibleIds = ["sources", "preview", "output", "order", "sequence"];
                 var cards = visibleIds.Select(id => (Id: id, Element: Content(id))).ToArray();
                 foreach (var card in cards) CheckWithin(card.Element, manager, new Rect(manager.RenderSize), "Principal " + card.Id);
                 for (var first = 0; first < cards.Length; first++)
@@ -85,9 +86,15 @@ internal static partial class Program
                         Check(overlap.IsEmpty || overlap.Width <= 1 || overlap.Height <= 1,
                             "Principal cards overlap: " + cards[first].Id + " and " + cards[second].Id);
                     }
-                Check(new[] { "media", "sources", "bible", "youtube" }.Select(id => Panel(id).Parent).Distinct().Count() == 4,
-                    "Principal source cards are grouped into tabs");
-                Check(ReferenceEquals(Panel("text").Parent, Panel("sources").Parent), "Principal text tab is not beside Himnario");
+                CheckSourceTabs("Principal", includeMedia: true);
+                foreach (var id in new[] { "sources", "bible", "youtube", "media", "text" })
+                {
+                    Call(window, "ActivateWorkspacePanel", id); Settle();
+                    Check(Panel(id).IsSelected, "Source tab is not selected: " + id);
+                    foreach (var other in new[] { "preview", "output", "order" })
+                        Check(Content(other).IsVisible, "Changing tabs hid " + other);
+                }
+                Call(window, "ActivateWorkspacePanel", "sources"); Settle();
             }
 
             Test("Workspace presets retain all nine IDs, controls and presentation snapshots across repeated switches", () =>
@@ -99,20 +106,20 @@ internal static partial class Program
                 }
             });
 
-            Test("Principal shows Medios, Himnario, Biblia and YouTube together without overlap at 1900 DIP", () =>
+            Test("Principal groups five sources while order and both monitors remain visible", () =>
             {
                 Preset("principal");
                 CheckPrincipalCards();
                 CheckWorkspace("Principal geometry");
             });
 
-            Test("Compacta groups four sources into native tabs to the right of both monitors", () =>
+            Test("Compacta keeps five source tabs to the left of both monitors", () =>
             {
                 Preset("compacta");
-                CheckSourceTabs("Compacta");
+                CheckSourceTabs("Compacta", includeMedia: true);
                 var sources = BoundsWithin(Content("sources"), manager);
-                Check(sources.Left >= BoundsWithin(Content("preview"), manager).Right - 1
-                    && sources.Left >= BoundsWithin(Content("output"), manager).Right - 1, "Compacta sources are not on the right");
+                Check(sources.Right <= BoundsWithin(Content("preview"), manager).Left + 1
+                    && sources.Right <= BoundsWithin(Content("output"), manager).Left + 1, "Compacta sources are not on the left");
                 foreach (var id in sourceIds)
                 {
                     Call(window, "ActivateWorkspacePanel", id); Settle();
@@ -183,14 +190,14 @@ internal static partial class Program
                 order.Parent!.SetAttributeValue("DockWidth", "0.83*");
                 Check(legacy.Descendants().Attributes("ContentId").Count() == 6, "Legacy fixture is not a complete six-panel layout");
                 Call(window, "RestoreDockLayout", legacy.ToString()); Settle();
-                CheckSourceTabs("Migrated legacy layout");
+                CheckSourceTabs("Migrated legacy layout", includeMedia: true);
                 var migratedSources = (LayoutAnchorablePane)Panel("sources").Parent;
                 Check(migratedSources.DockWidth == new GridLength(1.37, GridUnitType.Star)
                     && migratedSources.DockHeight == new GridLength(.91, GridUnitType.Star), "Migration reset source group geometry");
                 Check(((LayoutAnchorablePane)Panel("order").Parent).DockWidth == new GridLength(.83, GridUnitType.Star), "Migration reset unrelated order geometry");
                 CheckWorkspace("Six-panel migration");
                 Call(window, "RestoreDockLayout", (string)Call(window, "SerializeDockLayout")!); Settle();
-                CheckSourceTabs("Second legacy restore");
+                CheckSourceTabs("Second legacy restore", includeMedia: true);
                 CheckWorkspace("Idempotent migration");
             });
 

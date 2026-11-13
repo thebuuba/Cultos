@@ -1,8 +1,16 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 12 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.31.3`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 12 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.32.0`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### Fuentes en pestañas — versión 0.32.0
+
+Principal agrupa Himnario, Biblia, YouTube, Medios y Texto en un mismo panel. El orden del culto, la vista previa, la salida y Secuencia permanecen separados y visibles. Compacta conserva las cinco fuentes a la izquierda, ajustando sus proporciones para ventanas pequeñas. La adaptación por tamaño conserva la pestaña activa. Proyección continúa como alternativa con más espacio para los monitores. Las pestañas conservan los controles existentes, el arrastre de cabeceras, los colores del Himnario y YouTube y las búsquedas.
+
+El nuevo diseño se guarda en `paneles-v3.xml`, por lo que la primera apertura adopta la distribución aprobada. `paneles-v2.xml` permanece intacto para volver al diseño anterior con Recuperar distribución anterior; si no existe se ofrece `paneles.xml`. No se modifica biblioteca, Biblia ni orden. Las pruebas de restauración y guardado usan el nuevo archivo.
+
+Se verificaron los nueve paneles y sus instancias a través de presets, las cinco pestañas y la visibilidad de orden/monitores al cambiar entre ellas. Las diez pruebas de paneles comprueban también que recorrer las fuentes conserva la búsqueda y el reproductor en marcha. Pasaron las 138 comprobaciones generales y las 12 de tema visual; después del último ajuste de Compacta se repitieron los nueve escenarios de distribuciones y las 12 comprobaciones visuales. Se revisaron las capturas a 1900×1000 y 1200×680. Evidencias en `.tools/worktrees/culto-polymet/.tools/tabbed-*.log` y `.tools/visual-theme/`. La publicación incluye 232 Core y 64 Remote correctas, sin errores ni advertencias.
 
 ### Destino inferior y grupos redundantes — versión 0.31.3
 

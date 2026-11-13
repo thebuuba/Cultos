@@ -61,6 +61,7 @@ internal static partial class Program
                 foreach (var size in new[] { new Size(1480, 900), new Size(1280, 680) })
                 {
                     window.Width = size.Width; window.Height = size.Height; window.UpdateLayout(); PumpFor(80);
+                    Call(window, "ActivateWorkspacePanel", "media"); window.UpdateLayout();
                     var viewport = window.FindName("PreviewViewport") as FrameworkElement;
                     Check(viewport is not null, "Widescreen preview frame is missing");
                     Check(viewport!.ActualHeight >= 80 && Math.Abs(viewport.ActualWidth / viewport.ActualHeight - 16d / 9) < .04,
@@ -70,7 +71,7 @@ internal static partial class Program
                     var stageBounds = BoundsWithin(viewport, window);
                     var mediaBounds = BoundsWithin(media, window);
                     Check(media.IsVisible && mediaList.IsVisible && mediaList.ActualHeight >= 48
-                        && (mediaBounds.Top >= stageBounds.Bottom || mediaBounds.Right <= stageBounds.Left),
+                        && (mediaBounds.Top >= stageBounds.Bottom || mediaBounds.Right <= stageBounds.Left || mediaBounds.Left >= stageBounds.Right),
                         "Media browser is hidden, has no usable file area, or overlaps the preview");
                     CheckWithin(mediaList, media, new Rect(media.RenderSize), "Media file area");
                     foreach (var control in Descendants(media).OfType<FrameworkElement>().Where(e => e is Button or TextBox && e.IsVisible))
