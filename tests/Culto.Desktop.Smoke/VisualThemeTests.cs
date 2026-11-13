@@ -56,6 +56,32 @@ internal static partial class Program
         }
         window.Width = 1480; window.Height = 900; window.UpdateLayout();
         RunThemeTests(window);
+        Test("Source strip is above its content and monitor pair has one shared card", () =>
+        {
+            var dock = (AvalonDock.DockingManager)window.FindName("WorkspaceDock");
+            var source = (FrameworkElement)window.FindName("SourcesPanel");
+            Call(window, "ActivateWorkspacePanel", "sources"); window.UpdateLayout();
+            var pane = Descendants(dock).OfType<AvalonDock.Controls.LayoutAnchorablePaneControl>().Single(p => p.IsAncestorOf(source));
+            var strip = Descendants(pane).OfType<AvalonDock.Controls.AnchorablePaneTabPanel>().Single();
+            Check(BoundsWithin(strip, dock).Bottom <= BoundsWithin(source, dock).Top && pane.Clip is null, "Source tabs are below the body or have curved top clipping");
+            var preview = (FrameworkElement)window.FindName("PreviewPanel"); var output = (FrameworkElement)window.FindName("LivePanel");
+            var shared = Descendants(dock).OfType<AvalonDock.Controls.LayoutPanelControl>().Last(p => p.IsAncestorOf(preview) && p.IsAncestorOf(output));
+            Check(shared.Background is SolidColorBrush && shared.Effect is not null && shared.Clip is not null, "Monitors have no shared card");
+            foreach (var child in Descendants(shared).OfType<AvalonDock.Controls.LayoutAnchorablePaneControl>())
+                Check(child.Margin == new Thickness(0) && child.Effect is null && child.Clip is null, "Monitor kept a separate rounded card");
+        });
+        Test("YouTube source cards retain 16 by 9 thumbnails with long titles", () =>
+        {
+            Call(window, "ActivateWorkspacePanel", "youtube");
+            var list = (ListBox)window.FindName("YouTubeList");
+            list.ItemsSource = new[] { new YouTubeSource("test", new Cue { Kind = CueKind.WindowCapture, Title = "En Otro Tiempo Mas - Primera Fe (en canal Nuevo Tiempo Chile) - YouTube - Google Chrome" }, null, true) };
+            ((TextBlock)window.FindName("YouTubeEmpty")).Visibility = Visibility.Collapsed;
+            window.UpdateLayout(); PumpFor(80);
+            var thumbnail = Descendants(list).OfType<CueThumbnail>().Single();
+            Check(thumbnail.ActualWidth <= 260 && Math.Abs(thumbnail.ActualWidth / thumbnail.ActualHeight - 16d / 9) < .04, "YouTube thumbnail stretches with its panel width");
+            CaptureDesignWindow(window, Path.Combine(folder, "youtube-card.png"));
+        });
+
         Test("Primary controls and live order text retain readable contrast", () =>
         {
             var project = (Button)window.FindName("ProjectButton");

@@ -58,7 +58,10 @@ public sealed class CueThumbnail : FrameworkElement
     {
         base.OnRender(drawing);
         if (ActualWidth <= 0 || ActualHeight <= 0) return;
-        drawing.PushTransform(new ScaleTransform(ActualWidth / 128, ActualHeight / 72));
+        drawing.DrawRectangle(Back, null, new Rect(RenderSize));
+        var fittedScale = Math.Min(ActualWidth / 128, ActualHeight / 72);
+        drawing.PushTransform(new TranslateTransform((ActualWidth - 128 * fittedScale) / 2, (ActualHeight - 72 * fittedScale) / 2));
+        drawing.PushTransform(new ScaleTransform(fittedScale, fittedScale));
         drawing.PushClip(new RectangleGeometry(new Rect(0, 0, 128, 72), 5, 5));
         drawing.DrawRectangle(Back, null, new Rect(0, 0, 128, 72));
         if (_image is { Width: > 0, Height: > 0 } image)
@@ -76,6 +79,6 @@ public sealed class CueThumbnail : FrameworkElement
             { MaxTextWidth = 110, MaxTextHeight = media ? 21 : 51, TextAlignment = TextAlignment.Center, Trimming = TextTrimming.CharacterEllipsis };
             drawing.DrawText(words, new Point(9, media ? 46 : Math.Max(8, (72 - words.Height) / 2)));
         }
-        drawing.Pop(); drawing.Pop();
+        drawing.Pop(); drawing.Pop(); drawing.Pop();
     }
 }

@@ -18,6 +18,8 @@ public partial class MainWindow
     private string _defaultDockLayout = "";
     private readonly ConditionalWeakTable<LayoutAnchorablePaneControl, object> _roundedDockPanes = new();
     private readonly ConditionalWeakTable<LayoutAnchorableTabItem, object> _roundedDockTabs = new();
+    private readonly ConditionalWeakTable<LayoutPanelControl, object> _joinedMonitorCards = new();
+    private bool _stylingWorkspace;
     private bool _adaptPrincipalWorkspace;
     private bool _changingWorkspacePreset;
     private bool _workspaceResizeQueued;
@@ -66,14 +68,35 @@ public partial class MainWindow
 
     private void WorkspaceDockLayoutUpdated(object? sender, EventArgs e)
     {
-        if (_closing || !WorkspaceDock.IsLoaded || Dispatcher.HasShutdownStarted) return;
-        ApplyPaneMinimums();
-        RoundDockPanes(WorkspaceDock);
-        foreach (var floating in WorkspaceDock.FloatingWindows) RoundDockPanes(floating);
+        if (_closing || _stylingWorkspace || !WorkspaceDock.IsLoaded || Dispatcher.HasShutdownStarted) return;
+        _stylingWorkspace = true;
+        try
+        {
+            ApplyPaneMinimums();
+            RoundDockPanes(WorkspaceDock);
+            foreach (var floating in WorkspaceDock.FloatingWindows) RoundDockPanes(floating);
+        }
+        finally { _stylingWorkspace = false; }
     }
 
     private void RoundDockPanes(DependencyObject root)
     {
+        if (root is LayoutPanelControl group && IsMonitorPair(group.Model))
+        {
+            if (!_joinedMonitorCards.TryGetValue(group, out _))
+            {
+                _joinedMonitorCards.Add(group, new object());
+                group.Margin = new Thickness(4); group.Background = _dockPanelBrush;
+                group.Effect = CardShadow(); group.SizeChanged += DockPaneOutlineChanged;
+                DockPaneOutlineChanged(group, new RoutedEventArgs());
+            }
+        }
+        else if (root is LayoutPanelControl former && _joinedMonitorCards.TryGetValue(former, out _))
+        {
+            _joinedMonitorCards.Remove(former); former.Margin = new Thickness(0);
+            former.Background = Brushes.Transparent; former.Effect = null; former.Clip = null;
+            former.SizeChanged -= DockPaneOutlineChanged;
+        }
         if (root is LayoutAnchorablePaneControl pane)
         {
             if (!_roundedDockPanes.TryGetValue(pane, out _))
@@ -83,12 +106,18 @@ public partial class MainWindow
                 pane.Margin = new Thickness(4);
                 pane.Background = _dockPanelBrush;
                 pane.BorderThickness = new Thickness(0);
-                pane.Effect = new System.Windows.Media.Effects.DropShadowEffect
-                { Color = Colors.Black, BlurRadius = 12, ShadowDepth = 2, Opacity = .14, RenderingBias = System.Windows.Media.Effects.RenderingBias.Performance };
+                pane.Effect = CardShadow();
                 pane.SizeChanged += DockPaneOutlineChanged;
                 DockPaneOutlineChanged(pane, new RoutedEventArgs());
             }
             pane.Background = DockCardBrush((pane.Model as LayoutAnchorablePane)?.SelectedContent?.ContentId);
+            var joined = IsMonitorPair(pane.Model.Parent);
+            pane.Margin = new Thickness(joined ? 0 : 4);
+            if (joined) pane.Effect = null;
+            else if (pane.Effect is null) pane.Effect = CardShadow();
+            var shouldClip = !joined && pane.Model is LayoutAnchorablePane { Children.Count: 1 };
+            if (shouldClip != (pane.Clip is not null)) DockPaneOutlineChanged(pane, new RoutedEventArgs());
+            StyleWorkspaceTabs(pane);
             StyleDockCaption(pane);
             return;
         }
@@ -134,8 +163,42 @@ public partial class MainWindow
     private void DockPaneOutlineChanged(object sender, RoutedEventArgs e)
     {
         if (sender is not FrameworkElement pane || pane.ActualWidth <= 0 || pane.ActualHeight <= 0) return;
+        if (pane is LayoutAnchorablePaneControl native && (IsMonitorPair(native.Model.Parent)
+            || native.Model is LayoutAnchorablePane sources && sources.Children.Count > 1))
+        { pane.Clip = null; return; }
         var radius = _dockPanelRadius;
         pane.Clip = new RectangleGeometry(new Rect(0, 0, pane.ActualWidth, pane.ActualHeight), radius, radius);
+    }
+
+    private static bool IsMonitorPair(ILayoutElement? element) => element is LayoutPanel group
+        && group.Children.Count == 2 && group.Children.All(child => child is LayoutAnchorablePane)
+        && group.Descendents().OfType<LayoutAnchorable>().Select(p => p.ContentId).Order().SequenceEqual(new[] { "output", "preview" });
+
+    private static System.Windows.Media.Effects.DropShadowEffect CardShadow() => new()
+    { Color = Colors.Black, BlurRadius = 12, ShadowDepth = 2, Opacity = .14, RenderingBias = System.Windows.Media.Effects.RenderingBias.Performance };
+
+    private void StyleWorkspaceTabs(LayoutAnchorablePaneControl pane)
+    {
+        // Move the native tab strip, retaining AvalonDock's header presenters,
+        // selection and drag handlers rather than replacing the pane template.
+        if (VisualTreeHelper.GetChildrenCount(pane) == 0 || VisualTreeHelper.GetChild(pane, 0) is not Grid grid) return;
+        var tabs = grid.Children.OfType<AnchorablePaneTabPanel>().FirstOrDefault();
+        if (tabs is null || grid.RowDefinitions.Count != 2) return;
+        foreach (var border in grid.Children.OfType<Border>()) border.CornerRadius = new CornerRadius(0);
+        if (Grid.GetRow(tabs) != 0)
+        {
+            grid.RowDefinitions[0].Height = GridLength.Auto; grid.RowDefinitions[1].Height = new GridLength(1, GridUnitType.Star);
+            foreach (UIElement child in grid.Children) Grid.SetRow(child, child == tabs ? 0 : 1);
+        }
+        foreach (var tab in tabs.Children.OfType<TabItem>())
+        {
+            tab.FontSize = 13; tab.MinHeight = 34; tab.Padding = new Thickness(10, 8, 10, 8);
+            if (!tab.Resources.Contains(SystemColors.HighlightBrushKey))
+            {
+                tab.Resources[SystemColors.HighlightBrushKey] = FindResource("SelectedBrush");
+                tab.Resources[SystemColors.HighlightTextBrushKey] = _dockTextBrush;
+            }
+        }
     }
 
     private string SerializeDockLayout()

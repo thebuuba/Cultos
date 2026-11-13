@@ -1,8 +1,14 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 12 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.32.0`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 12 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.32.1`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### Pestañas superiores y tarjeta de monitores — versión 0.32.1
+
+La franja nativa de pestañas pasa a la fila superior y se elimina la curva del borde superior de las fuentes. Se conserva la plantilla de AvalonDock, incluidos los presentadores de contenido, la selección y el arrastre. La tarjeta compartida de Vista previa y En pantalla se dibuja en su grupo contenedor, con un solo contorno y sombra; los paneles internos conservan sus controles y separador, sin márgenes ni contornos individuales. Si se separan, recuperan sus tarjetas individuales.
+
+`CueThumbnail` escala uniformemente en ambos ejes y centra el contenido. YouTube usa una caja 16:9 de hasta 260 DIP de ancho en vez de ocupar todo el ancho con una altura fija. Se revisó `youtube-card.png` con un título largo de prueba y las capturas de consola. Pasaron las 14 comprobaciones visuales, incluidas dos nuevas sobre pestañas superiores/tarjeta compartida y miniatura proporcional; también pasaron las 138 comprobaciones generales. Evidencias en `.tools/worktrees/culto-polymet/.tools/card-refinement-final.log`, `card-refinement-desktop.log`, `card-refinement-presets.log`, `card-refinement-panels.log` y `card-refinement-publish.log`.
 
 ### Fuentes en pestañas — versión 0.32.0
 

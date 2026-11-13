@@ -723,7 +723,7 @@
               <Grid Grid.Row="3">
                 <ListBox x:Name="YouTubeList" SelectionChanged="YouTubeSelectionChanged" MouseDoubleClick="YouTubeDoubleClick" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Ventanas de YouTube y capturas guardadas">
                   <ListBox.ItemTemplate><DataTemplate><StackPanel Margin="0,3">
-                    <Border CornerRadius="18" SizeChanged="MonitorFrameSizeChanged" Background="Black" Margin="0,0,0,9"><local:CueThumbnail Cue="{Binding Cue}" Height="100"/></Border>
+                    <local:AspectRatioBox MaxWidth="260" HorizontalAlignment="Left" Margin="0,0,0,9"><Border CornerRadius="14" SizeChanged="MonitorFrameSizeChanged" Background="Black"><local:CueThumbnail Cue="{Binding Cue}"/></Border></local:AspectRatioBox>
                     <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" FontSize="13" FontWeight="SemiBold" ToolTip="{Binding Title}"/>
                     <TextBlock Text="{Binding Detail}" TextTrimming="CharacterEllipsis" FontSize="10" Foreground="{StaticResource MutedBrush}" Margin="0,5,0,0" ToolTip="{Binding Detail}"/>
                   </StackPanel></DataTemplate></ListBox.ItemTemplate>
