@@ -15,6 +15,36 @@ public partial class MainWindow
     private readonly ListBox _videoListItems = new() { DisplayMemberPath = "Title" };
     private readonly CheckBox _videoListAfter = new() { Content = "Después de este video, iniciar la lista", Margin = new Thickness(0,8,0,8) };
     private SavedSet? SelectedVideoList => _videoLists.SelectedItem as SavedSet;
+    private ContextMenu BuildMediaPlaylistMenu(Cue cue)
+    {
+        var menu = new ContextMenu();
+        var add = new MenuItem { Header = "Añadir a lista de reproducción", IsEnabled = cue.Kind == CueKind.Video };
+        menu.Items.Add(add);
+        void Append(SavedSet list)
+        {
+            if (!CheckMedia(cue)) return;
+            var copy = CopyCue(cue,true); list.Items.Add(copy);
+            if (!SaveWorkspace()) { list.Items.Remove(copy); return; }
+            RefreshVideoLists(list); SetStatus("Añadido a " + list.Name + ": " + cue.Title);
+        }
+        foreach (var list in _workspace.VideoCollections)
+        {
+            var item = new MenuItem { Header = list.Name };
+            item.Click += (_,_)=>Append(list); add.Items.Add(item);
+        }
+        if (add.Items.Count > 0) add.Items.Add(new Separator());
+        var create = new MenuItem { Header = "Nueva lista…" };
+        create.Click += (_,_)=>
+        {
+            var name = PromptDialog.Ask(this,"Nueva lista de videos","Nombre","");
+            if (string.IsNullOrWhiteSpace(name) || !CheckMedia(cue)) return;
+            var list = SavedSet.Capture(name,[cue]); _workspace.VideoCollections.Add(list);
+            if (!SaveWorkspace()) { _workspace.VideoCollections.Remove(list); return; }
+            RefreshVideoLists(list); SetStatus("Añadido a " + list.Name + ": " + cue.Title);
+        };
+        add.Items.Add(create);
+        return menu;
+    }
     private void InitializeVideoListsPanel()
     {
         var grid = new Grid();

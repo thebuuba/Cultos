@@ -30,6 +30,20 @@ internal static partial class Program
             Call(window,"EditVideoList",0,true);
             Check(set.Items.Count==2 && new WorkspaceStore().Load().VideoCollections.Single(s=>s.Id==set.Id).Items.Count==2,"Remove was not persisted");
         });
+        Test("Media context menu adds the clicked video to the chosen playlist without projecting",()=>
+        {
+            var before=session.Live;var prepared=session.Prepared;
+            var menu=(ContextMenu)Call(window,"BuildMediaPlaylistMenu",external)!;
+            var add=menu.Items.OfType<MenuItem>().Single();
+            Check(add.Header?.ToString()=="Añadir a lista de reproducción","Missing media playlist action");
+            var choice=add.Items.OfType<MenuItem>().Single(m=>m.Header?.ToString()==set.Name);
+            choice.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            Check(set.Items.Count==3 && set.Items.Last().FilePath==external.FilePath && set.Items.Last().Id!=external.Id,"Wrong file or shared identity added");
+            Check(ReferenceEquals(before,session.Live) && ReferenceEquals(prepared,session.Prepared),"Adding media changed playback or preview");
+            Check(new WorkspaceStore().Load().VideoCollections.Single(s=>s.Id==set.Id).Items.Count==3,"Context addition was not saved");
+            Check(((MenuItem)((ContextMenu)Call(window,"BuildMediaPlaylistMenu",new Cue{Kind=CueKind.Image})!).Items[0]).IsEnabled==false,"Nonvideo can enter playlist");
+            set.Items.RemoveAt(2);Call(window,"SaveWorkspace");Call(window,"RefreshVideoListItems");
+        });
         Test("Playlist advances once at natural video end and stops at its last video",()=>
         {
             items.SelectedItem=a;Call(window,"PlaySelectedVideoListItem");

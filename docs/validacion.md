@@ -1,8 +1,12 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 13 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.35.0`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 13 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.35.1`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### Medios a lista de reproducción ? 0.35.1
+
+El clic derecho sobre una fila o miniatura de Medios ofrece Añadir a lista de reproducción, con las listas guardadas y Nueva lista. Usa la fila pulsada, valida que sea video y guarda una copia independiente sin proyectarla. El fallo de guardado revierte la adición. La prueba --video-lists comprueba el menú, la copia, persistencia, exclusión de imágenes y conservación del contenido preparado/en pantalla. Evidencias: .tools/media-playlist-final.log y media-playlist-publish.log del worktree.
 
 ### Lista de videos ? 0.35.0
 

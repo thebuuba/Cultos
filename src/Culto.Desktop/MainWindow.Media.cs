@@ -17,6 +17,13 @@ public partial class MainWindow
     private void InitializeMediaBrowser()
     {
         MediaList.ItemsSource = _mediaView;
+        MediaList.PreviewMouseRightButtonUp += (_, e) =>
+        {
+            if (ContentRowAt(MediaList,e.OriginalSource)?.DataContext is not Cue cue) return;
+            var menu = BuildMediaPlaylistMenu(cue);
+            menu.PlacementTarget = ContentRowAt(MediaList,e.OriginalSource);
+            menu.IsOpen = true; e.Handled = true;
+        };
         if (!string.IsNullOrWhiteSpace(_workspace.MediaCustomFolderPath))
         {
             _folderPaths[8] = _workspace.MediaCustomFolderPath;
