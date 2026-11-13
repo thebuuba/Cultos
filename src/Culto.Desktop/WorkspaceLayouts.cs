@@ -12,13 +12,13 @@ internal static class WorkspaceLayouts
     internal static string Title(string id) => id switch
     {
         "sources" => "Himnario", "bible" => "Biblia", "text" => "Texto", "youtube" => "YouTube",
-        "preview" => "Vista previa", "output" => "En pantalla", "order" => "Orden del culto",
+        "preview" => "Monitores", "output" => "En pantalla", "order" => "Orden del culto",
         "media" => "Medios", "scenes" => "Escenas", _ => id
     };
 
     internal static double MinimumWidth(string? id) => id switch
     {
-        "scenes" => 156, "bible" => 200, "preview" or "output" => 220, _ => 180
+        "scenes" => 156, "bible" => 200, "preview" => 620, "output" => 220, _ => 180
     };
 
     internal static double MinimumHeight(string? id) => id switch
@@ -28,7 +28,7 @@ internal static class WorkspaceLayouts
 
     internal static XDocument Create(string preset)
     {
-        var monitors = Group("Horizontal", "*", preset == "proyeccion" ? "1.8*" : "1.15*", Pane("0.4*", "scenes"), Pane("*", "preview"), Pane("*", "output"));
+        var monitors = Group("Horizontal", "*", preset == "proyeccion" ? "1.8*" : "1.15*", Pane("0.4*", "scenes"), Pane("2*", "preview"));
         XElement root = preset switch
         {
             "principal" => Group("Horizontal", "*", "*",
@@ -161,6 +161,16 @@ internal static class WorkspaceLayouts
         var scenes = Pane("0.4*", "scenes");
         if (target is not null) target.AddBeforeSelf(scenes);
         else document.Root?.Element("RootPanel")?.Add(scenes);
+    }
+
+    internal static void MergeMonitors(XDocument document)
+    {
+        var output = document.Descendants("LayoutAnchorable").SingleOrDefault(e => (string?)e.Attribute("ContentId") == "output");
+        if (output is null) return;
+        output.Remove();
+        foreach (var node in document.Descendants().Reverse().ToArray())
+            if (node.Name.LocalName is "LayoutAnchorablePane" or "LayoutPanel" or "LayoutAnchorablePaneGroup" or "LayoutAnchorableFloatingWindow"
+                && !node.Descendants("LayoutAnchorable").Any()) node.Remove();
     }
 
     internal static string Arrangement(XDocument document)

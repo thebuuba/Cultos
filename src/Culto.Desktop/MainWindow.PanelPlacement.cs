@@ -50,6 +50,7 @@ public partial class MainWindow
 
     private bool PlaceWorkspacePanel(string sourceId, string targetId, string position)
     {
+        if (sourceId is "preview" or "output" || targetId is "preview" or "output") return false;
         if (WorkspaceDock.Layout.Descendents().OfType<LayoutAnchorable>().Any(p => (p.ContentId == sourceId || p.ContentId == targetId) && p.IsHidden)) return false;
         var document = XDocument.Parse(SerializeDockLayout());
         if (!WorkspaceLayouts.PlacePanel(document, sourceId, targetId, position)) return false;

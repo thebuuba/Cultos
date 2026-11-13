@@ -1,8 +1,15 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 13 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.34.0`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 13 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.34.1`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### Monitores unidos de verdad ? 0.34.1
+
+Vista previa y En pantalla son hijos del mismo ProductionPanel y un solo contenido acoplado, identificado como preview. Se elimina el contenido acoplable output, se oculta la cabecera nativa de Monitores y se deshabilitan flotado, ocultado y colocaci?n del conjunto. Los r?tulos internos no tienen botones de cierre ni asas de arrastre. Proyectar, selector de transici?n y ajustes est?n entre ambos monitores. Las escenas mantienen su panel lateral.
+
+Los dise?os antiguos se convierten retirando output sin recrear los controles del reproductor. La prueba --fixed-monitors fall? antes del cambio y pasa despu?s: contenedor ?nico, orden izquierda-centro-derecha, bloqueo de colocaci?n, migraci?n de salida antigua y controles reales de pausa, avance, posici?n y volumen. Se revis? .tools/fixed-monitors.png. Compilaci?n/publicaci?n correctas, 232 Core y 64 Remote. No se declara la antigua suite general de acoplamiento como validada: sus expectativas de dos monitores separables corresponden al dise?o retirado. Evidencias: .tools/fixed-monitor-red.log, fixed-monitor-final.log y fixed-monitor-publish.log en el worktree.
+
 
 ### Tarjeta de producción, escenas y transporte local — versión 0.34.0
 

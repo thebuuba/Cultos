@@ -139,6 +139,7 @@ public partial class MainWindow
     {
         if (root is AnchorablePaneTitle title)
         {
+            if (title.Model?.ContentId == "preview") { title.Visibility = Visibility.Collapsed; return; }
             title.FontSize = 14;
             title.FontWeight = FontWeights.SemiBold;
             title.Padding = new Thickness(14, 10, 14, 10);
@@ -231,6 +232,7 @@ public partial class MainWindow
         if (new[] { "bible", "text", "youtube" }.All(_dockContents.ContainsKey)) WorkspaceLayouts.ExpandLegacySources(document);
         WorkspaceLayouts.RemoveRetiredSequence(document);
         WorkspaceLayouts.AddScenesPanel(document);
+        WorkspaceLayouts.MergeMonitors(document);
         var ids = document.Descendants().Attributes("ContentId").Select(a => a.Value).ToArray();
         if (document.Root?.Name != "LayoutRoot" || ids.Length != _dockContents.Count || !ids.Order().SequenceEqual(_dockContents.Keys.Order())
             || document.Descendants().Any(e => e.Attribute("ContentId") is not null && e.Name != "LayoutAnchorable"))
@@ -280,7 +282,8 @@ public partial class MainWindow
         foreach (var pane in WorkspaceDock.Layout.Descendents().OfType<LayoutAnchorable>())
         {
             pane.Title = WorkspaceLayouts.Title(pane.ContentId);
-            pane.CanClose = false; pane.CanHide = true; pane.CanAutoHide = false; pane.CanDockAsTabbedDocument = false;
+            pane.CanFloat = pane.ContentId != "preview";
+            pane.CanClose = false; pane.CanHide = pane.ContentId != "preview"; pane.CanAutoHide = false; pane.CanDockAsTabbedDocument = false;
             if (pane.IsAutoHidden) pane.ToggleAutoHide();
         }
         WorkspaceDock.UpdateLayout(); LiveMonitor.Refresh();
@@ -407,6 +410,7 @@ public partial class MainWindow
 
     private bool SetWorkspacePanelVisible(string id, bool visible)
     {
+        if (id is "preview" or "output") return false;
         var pane = WorkspaceDock.Layout.Descendents().OfType<LayoutAnchorable>().FirstOrDefault(p => p.ContentId == id);
         if (pane is null) return false;
         _adaptPrincipalWorkspace = false;

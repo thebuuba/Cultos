@@ -308,8 +308,8 @@
         <Button x:Name="WorkspaceMenuButton" Content="Espacio de trabajo" Style="{StaticResource MenuBarButton}" Click="OpenActionsClick">
           <Button.ContextMenu><ContextMenu Opened="WorkspacePanelsMenuOpened">
             <MenuItem Header="Escenas" Tag="scenes" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
-            <MenuItem Header="Vista previa" Tag="preview" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
-            <MenuItem Header="En pantalla" Tag="output" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
+            <MenuItem Header="Monitores" Tag="preview" IsEnabled="False" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
+
             <MenuItem Header="Orden del culto" Tag="order" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
             <MenuItem Header="Himnario" Tag="sources" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
             <MenuItem Header="Biblia" Tag="bible" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
@@ -403,13 +403,6 @@
     </StackPanel>
   </ScrollViewer>
   <StackPanel Grid.Row="1">
-      <Grid Margin="3,8,3,4"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-        <TextBlock Text="Transición" FontSize="12" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/>
-        <Button Grid.Column="1" Content="&#xE713;" FontFamily="Segoe MDL2 Assets" Style="{StaticResource CompactIconButton}" Click="TransitionSettingsClick" ToolTip="Configurar transiciones" AutomationProperties.Name="Configurar transiciones"/>
-      </Grid>
-      <ComboBox x:Name="SceneTransitionPicker" SelectionChanged="SceneTransitionsChanged" AutomationProperties.Name="Transición entre escenas" Margin="3,0,3,6" MinHeight="30" Padding="8,4">
-        <ComboBoxItem Tag="Cut">Corte</ComboBoxItem><ComboBoxItem Tag="Dissolve">Fundido</ComboBoxItem><ComboBoxItem Tag="Slide">Deslizar</ComboBoxItem><ComboBoxItem Tag="Zoom">Zoom</ComboBoxItem><ComboBoxItem Tag="Move">Move</ComboBoxItem>
-      </ComboBox>
       <CheckBox x:Name="KeepMediaAudioCheck" Content="Mantener audio" Checked="KeepMediaAudioChanged" Unchecked="KeepMediaAudioChanged" FontSize="12" Margin="3,6" AutomationProperties.Name="Mantener audio al cambiar de contenido"/>
       <Button x:Name="ReturnToMediaButton" Content="Volver al video" Click="ReturnToMediaClick" Visibility="Collapsed" FontSize="12" Padding="8,5" MinHeight="30" ToolTip="Volver al video · F9"/>
       <TextBlock x:Name="BackgroundMediaText" Visibility="Collapsed" Foreground="{StaticResource MutedBrush}" FontSize="12" TextTrimming="CharacterEllipsis" Margin="3,3"/>
@@ -420,11 +413,11 @@
 </ad:LayoutAnchorablePane>
 <ad:LayoutAnchorablePane DockWidth="*" DockHeight="*" DockMinWidth="280" DockMinHeight="260">
 <ad:LayoutAnchorable Title="Vista previa" ContentId="preview" CanClose="False" CanHide="True" CanAutoHide="False" CanDockAsTabbedDocument="False">
-<Border x:Name="PreviewPanel" Background="{StaticResource PanelBrush}" CornerRadius="0" Padding="10,5">
+<Border x:Name="ProductionPanel" Background="{StaticResource PanelBrush}" CornerRadius="22" Padding="4"><Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="140"/><ColumnDefinition/></Grid.ColumnDefinitions><Border x:Name="PreviewPanel" Background="{StaticResource PanelBrush}" CornerRadius="0" Padding="10,10">
           <Grid>
             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <Grid>
-
+              <TextBlock Text="Vista previa" FontWeight="SemiBold" FontSize="14"/>
               <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" MinHeight="32">
                 <Button x:Name="FollowLiveButton" Content="Ver salida" Click="FollowLivePreviewClick" Visibility="Collapsed" FontSize="12" MinHeight="24" Padding="8,3" Margin="0,0,8,0" AutomationProperties.Name="Volver a ver la salida"/>
                 <TextBlock x:Name="PreviewModeText" Text="PREPARADO" Foreground="{StaticResource MutedBrush}" FontSize="12" VerticalAlignment="Center"/>
@@ -443,17 +436,16 @@
             <Grid Grid.Row="2">
               <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
               <TextBlock x:Name="PreparedTitleText" Text="Sin contenido" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,10,0" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
-              <Button x:Name="ProjectButton" Grid.Column="1" Style="{StaticResource PrimaryButton}" Click="ProjectClick" MinHeight="34" Padding="14,7" AutomationProperties.Name="Proyectar contenido preparado">
-                <StackPanel Orientation="Horizontal"><TextBlock Text="Proyectar" FontSize="12"/><TextBlock Text="F5" FontSize="12" Margin="14,0,0,0" VerticalAlignment="Center"/></StackPanel>
-              </Button>
+
             </Grid>
 
           </Grid>
-        </Border>
-</ad:LayoutAnchorable>
-</ad:LayoutAnchorablePane><ad:LayoutAnchorablePane DockWidth="*" DockHeight="*" DockMinWidth="220" DockMinHeight="260">
-<ad:LayoutAnchorable Title="En pantalla" ContentId="output" CanClose="False" CanHide="True" CanAutoHide="False" CanDockAsTabbedDocument="False">
-<Border x:Name="LivePanel" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="0" CornerRadius="0" Padding="10,5" SizeChanged="OutputPanelSizeChanged">
+        </Border><StackPanel x:Name="TransitionCenter" Grid.Column="1" VerticalAlignment="Center" Margin="6">              <Button x:Name="ProjectButton"  Style="{StaticResource PrimaryButton}" Click="ProjectClick" MinHeight="36" Padding="14,7" AutomationProperties.Name="Proyectar contenido preparado">
+                <StackPanel Orientation="Horizontal"><TextBlock Text="Proyectar" FontSize="12"/><TextBlock Text="F5" FontSize="12" Margin="5,0,0,0" VerticalAlignment="Center"/></StackPanel>
+              </Button><TextBlock Text="Transición" FontSize="12" Margin="3,14,0,5"/>      <ComboBox x:Name="SceneTransitionPicker" SelectionChanged="SceneTransitionsChanged" AutomationProperties.Name="Transición entre escenas" Margin="3,0,3,6" MinHeight="30" Padding="8,4">
+        <ComboBoxItem Tag="Cut">Corte</ComboBoxItem><ComboBoxItem Tag="Dissolve">Fundido</ComboBoxItem><ComboBoxItem Tag="Slide">Deslizar</ComboBoxItem><ComboBoxItem Tag="Zoom">Zoom</ComboBoxItem><ComboBoxItem Tag="Move">Move</ComboBoxItem>
+      </ComboBox>
+<Button Content="Ajustes" Click="TransitionSettingsClick" FontSize="12" MinHeight="30" Padding="5"/></StackPanel><Border Grid.Column="2" x:Name="LivePanel" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="0" CornerRadius="0" Padding="10,10" SizeChanged="OutputPanelSizeChanged">
           <Grid>
             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition MinHeight="102"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <Grid x:Name="LiveHeaderGrid" MinHeight="32">
@@ -526,7 +518,7 @@
             </StackPanel>
             </ScrollViewer>
           </Grid>
-        </Border>
+        </Border></Grid></Border>
 </ad:LayoutAnchorable>
 </ad:LayoutAnchorablePane>
             </ad:LayoutPanel>
