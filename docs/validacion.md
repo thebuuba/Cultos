@@ -12,7 +12,7 @@ Logo y Fondo negro remotos usan las mismas acciones de salida que la PC y pueden
 
 Comprobaciones específicas: `--panel-sizing` cubre arrastre restringido, cancelación, apilado, accesibilidad de controles, cinco posiciones, persistencia, pestañas, flotación y conservación del reproductor durante un video. `--remote-order` cubre búsqueda de himnos y Biblia, proyección por ID, rechazo de ID desconocido, Logo con salida cerrada y comandos HTTP. Las pruebas del servidor cubren autenticación del cat?logo, validación, l?mite de consulta y comando de biblioteca idempotente. Se comprobó la sintaxis JavaScript con Node. Evidencias: `.tools/worktrees/culto-polymet/.tools/panels-final.log`, `remote-deck-final.log`, `presets-final.log`, `deck-visual-final.log`, `deck-desktop-full.log` y `deck-publish.log`.
 
-Release sin errores ni advertencias: 232 Core, 64 Remote y 138 comprobaciones de escritorio general correctas; paneles 8, presets 9, mando 12 y tema visual 12 correctas.
+Release sin errores ni advertencias: 232 Core, 64 Remote y 138 comprobaciones de escritorio general correctas; paneles 7, presets 9, mando 12 y tema visual 12 correctas.
 
 Las pruebas usan datos temporales. No se sustituyen los datos del usuario ni se cierra su programa en ejecución. No se ha probado este cambio desde un teléfono físico; el render del navegador móvil, HDMI y PowerPoint físico siguen pendientes. La versión 0.30.0 se conserva en su carpeta e iniciador expl?cito.
 
