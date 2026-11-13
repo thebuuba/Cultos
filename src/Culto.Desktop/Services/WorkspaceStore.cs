@@ -11,6 +11,7 @@ public sealed class WorkspaceData
     public Cue? QuickSceneImage { get; set; }
     public Cue? QuickSceneVideo { get; set; }
     public WindowCaptureLayout? YouTubeLayout { get; set; }
+    public Guid? ActiveVideoListId { get; set; }
     public List<SavedSet> VideoCollections { get; set; } = [];
     public List<SavedSet> SavedServices { get; set; } = [];
     public bool PresenterEnabled { get; set; }

@@ -1,8 +1,14 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 13 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.35.2`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 13 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.35.3`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### Cola directa de reproducción ? 0.35.3
+
+Añadir a lista de reproducción pasa a ser una acción directa sin submenú: agrega al final de la cola actual sin preguntar nombres ni crear una lista cada vez. Si no existe una cola, la crea automáticamente y la reutiliza. + Videos y la acción desde Himnario comparten este flujo. El selector y Nueva lista desaparecen del panel; las colecciones anteriores se conservan y pueden recuperarse opcionalmente en Listas guardadas. ActiveVideoListId persiste la cola elegida.
+
+Actualizar los elementos tras agregar no cancela la continuación armada después de un video externo. Se mantienen la validación de archivos, copias independientes, rollback al fallar guardado, eliminación, orden y reglas de avance. La prueba --video-lists exige acción directa sin hijos y verifica que dos adiciones sin listas previas crean una sola cola guardada; también conserva los escenarios de reproducción real y cancelación. Evidencias .tools/direct-queue-red.log y direct-queue-final.log del worktree. Captura .tools/video-list.png.
 
 ### Submenús visibles ? 0.35.2
 

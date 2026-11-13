@@ -2,13 +2,13 @@
 
 Consola nativa para Windows destinada a preparar y proyectar cultos. Reúne el orden del culto, colecciones de videos, imágenes, textos, Biblia importable, presentaciones de PowerPoint y controles desde el teléfono o un presentador USB. No depende de OBS.
 
-En **Medios**, clic derecho en un video → **Añadir a lista de reproducción** permite elegir una lista o crear una nueva.
+En **Medios**, clic derecho en un video → **Añadir a lista de reproducción** agrega directamente al final de la cola actual, sin elegir ni crear listas. La primera cola se crea automáticamente. Las colecciones anteriores permanecen accesibles en Listas guardadas.
 
-La pestaña **Lista de videos** permite crear listas, agregar videos, eliminar y cambiar el orden con las flechas. Doble clic o Reproducir inicia la continuación automática hasta el final. Proyectar otro contenido cancela la lista; para continuar tras un video externo, selecciona el video de entrada en la lista y marca **Después de este video, iniciar la lista**.
+La pestaña **Lista de videos** permite agregar videos, eliminar y cambiar el orden con las flechas. Doble clic o Reproducir inicia la continuación automática hasta el final. Proyectar otro contenido cancela la lista; para continuar tras un video externo, selecciona el video de entrada en la lista y marca **Después de este video, iniciar la lista**.
 
 ## Abrir el programa
 
-Ejecuta **Abrir Culto Studio.cmd** en esta carpeta, o abre `artifacts/CultoStudio-0.35.2/CultoStudio.exe`. Cierra la versión anterior primero. La distribución publicada incluye .NET y el reproductor nativo; conserva todos los archivos de esa carpeta junto al ejecutable. Windows x64.
+Ejecuta **Abrir Culto Studio.cmd** en esta carpeta, o abre `artifacts/CultoStudio-0.35.3/CultoStudio.exe`. Cierra la versión anterior primero. La distribución publicada incluye .NET y el reproductor nativo; conserva todos los archivos de esa carpeta junto al ejecutable. Windows x64.
 
 En **0.34.1**, Vista previa y En pantalla forman un solo panel fijo, sin cierres ni arrastre independientes, con Proyectar y la transici?n en el centro. Escenas, Vista previa y En pantalla comparten una tarjeta. Las escenas incluyen Logo, Fondo negro, Imagen, Video y YouTube; imagen y video recuerdan la elección y el menú derecho permite cambiarla. La transición se elige en la misma tarjeta. Los controles semitransparentes aparecen sobre el monitor local al pasar el ratón y también en Vista previa cuando sigue la salida. Usan el mismo reproductor y no aparecen en HDMI. Se conservan las distribuciones acoplables, el orden del culto y el arranque anticipado del motor.
 

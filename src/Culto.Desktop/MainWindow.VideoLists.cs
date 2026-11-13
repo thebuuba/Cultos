@@ -14,35 +14,14 @@ public partial class MainWindow
     private readonly ComboBox _videoLists = new() { DisplayMemberPath = "Name", Margin = new Thickness(0,0,0,10) };
     private readonly ListBox _videoListItems = new() { DisplayMemberPath = "Title" };
     private readonly CheckBox _videoListAfter = new() { Content = "Después de este video, iniciar la lista", Margin = new Thickness(0,8,0,8) };
+    private bool _refreshingVideoLists;
     private SavedSet? SelectedVideoList => _videoLists.SelectedItem as SavedSet;
     private ContextMenu BuildMediaPlaylistMenu(Cue cue)
     {
         var menu = new ContextMenu();
         var add = new MenuItem { Header = "Añadir a lista de reproducción", IsEnabled = cue.Kind == CueKind.Video };
         menu.Items.Add(add);
-        void Append(SavedSet list)
-        {
-            if (!CheckMedia(cue)) return;
-            var copy = CopyCue(cue,true); list.Items.Add(copy);
-            if (!SaveWorkspace()) { list.Items.Remove(copy); return; }
-            RefreshVideoLists(list); SetStatus("Añadido a " + list.Name + ": " + cue.Title);
-        }
-        foreach (var list in _workspace.VideoCollections)
-        {
-            var item = new MenuItem { Header = list.Name };
-            item.Click += (_,_)=>Append(list); add.Items.Add(item);
-        }
-        if (add.Items.Count > 0) add.Items.Add(new Separator());
-        var create = new MenuItem { Header = "Nueva lista…" };
-        create.Click += (_,_)=>
-        {
-            var name = PromptDialog.Ask(this,"Nueva lista de videos","Nombre","");
-            if (string.IsNullOrWhiteSpace(name) || !CheckMedia(cue)) return;
-            var list = SavedSet.Capture(name,[cue]); _workspace.VideoCollections.Add(list);
-            if (!SaveWorkspace()) { _workspace.VideoCollections.Remove(list); return; }
-            RefreshVideoLists(list); SetStatus("Añadido a " + list.Name + ": " + cue.Title);
-        };
-        add.Items.Add(create);
+        add.Click += (_,_)=>AppendToVideoQueue(cue);
         return menu;
     }
     private void InitializeVideoListsPanel()
@@ -56,13 +35,17 @@ public partial class MainWindow
             var button = new Button { Content = label, Padding = new Thickness(8,5,8,5), MinHeight = 30, Margin = new Thickness(0,2,4,2) };
             button.Click += (_,_)=>click(); actions.Children.Add(button);
         }
-        Action("Nueva lista",()=>
+        Action("Listas guardadas",()=>
         {
-            var name = PromptDialog.Ask(this,"Nueva lista de videos","Nombre","");
-            if (string.IsNullOrWhiteSpace(name)) return;
-            var list = SavedSet.Capture(name,[]); _workspace.VideoCollections.Add(list);
-            if (!SaveWorkspace()) { _workspace.VideoCollections.Remove(list); return; }
-            RefreshVideoLists(list);
+            var menu = new ContextMenu();
+            foreach (var saved in _workspace.VideoCollections)
+            {
+                var item = new MenuItem { Header = saved.Name, IsCheckable = true, IsChecked = saved.Id == SelectedVideoList?.Id };
+                item.Click += (_,_)=> { _videoListAfter.IsChecked = false; RefreshVideoLists(saved); SaveWorkspace(); };
+                menu.Items.Add(item);
+            }
+            if (menu.Items.Count == 0) menu.Items.Add(new MenuItem { Header = "No hay listas guardadas", IsEnabled = false });
+            menu.PlacementTarget = _videoListItems; menu.IsOpen = true;
         });
         Action("+ Videos", AddPlaylistFiles);
         Action("Eliminar",()=>EditVideoList(remove:true));
@@ -80,11 +63,11 @@ public partial class MainWindow
             hint.Text = "Al terminar: " + next.Title;
         };
         _videoListAfter.Unchecked += (_,_)=> { _videoListPlayback.Cancel(); hint.Text = ""; };
-        _videoLists.SelectionChanged += (_,_)=> { _videoListAfter.IsChecked = false; RefreshVideoListItems(); };
-        _videoListItems.SelectionChanged += (_,_)=> { if (_videoListAfter.IsChecked == true) _videoListAfter.IsChecked = false; };
+        _videoLists.SelectionChanged += (_,_)=> { if (_refreshingVideoLists) return; _videoListAfter.IsChecked = false; RefreshVideoListItems(); };
+        _videoListItems.SelectionChanged += (_,_)=> { if (!_refreshingVideoLists && _videoListAfter.IsChecked == true) _videoListAfter.IsChecked = false; };
         _videoListItems.MouseDoubleClick += (_,e)=> { if(e.ChangedButton==MouseButton.Left) PlaySelectedVideoListItem(); };
         _videoListItems.PreviewKeyDown += (_,e)=> { if(e.Key==Key.Delete){EditVideoList(remove:true);e.Handled=true;} else if(e.Key==Key.Enter){PlaySelectedVideoListItem();e.Handled=true;} };
-        grid.Children.Add(_videoLists); Grid.SetRow(actions,1); grid.Children.Add(actions);
+        grid.Children.Add(new TextBlock { Text = "Lista de reproducci\u00f3n", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0,0,0,10) }); Grid.SetRow(actions,1); grid.Children.Add(actions);
         Grid.SetRow(_videoListItems,2); grid.Children.Add(_videoListItems); Grid.SetRow(footer,3); grid.Children.Add(footer);
         var body = new Border { Background = (System.Windows.Media.Brush)FindResource("PanelBrush"), Padding = new Thickness(14), Child = grid };
         var source = WorkspaceDock.Layout.Descendents().OfType<LayoutAnchorable>().Single(p=>p.ContentId=="sources");
@@ -92,25 +75,51 @@ public partial class MainWindow
     }
     private void RefreshVideoLists(SavedSet? selected = null)
     {
-        selected ??= SelectedVideoList;
-        _videoLists.ItemsSource = null; _videoLists.ItemsSource = _workspace.VideoCollections;
-        _videoLists.SelectedItem = _workspace.VideoCollections.FirstOrDefault(s=>s.Id==selected?.Id) ?? _workspace.VideoCollections.FirstOrDefault();
-        RefreshVideoListItems();
+        selected ??= SelectedVideoList ?? _workspace.VideoCollections.FirstOrDefault(s=>s.Id==_workspace.ActiveVideoListId);
+        _refreshingVideoLists = true;
+        try
+        {
+            _videoLists.ItemsSource = null; _videoLists.ItemsSource = _workspace.VideoCollections;
+            _videoLists.SelectedItem = _workspace.VideoCollections.FirstOrDefault(s=>s.Id==selected?.Id) ?? _workspace.VideoCollections.FirstOrDefault();
+            _workspace.ActiveVideoListId = SelectedVideoList?.Id;
+            RefreshVideoListItems();
+        }
+        finally { _refreshingVideoLists = false; }
+    }
+    private bool AppendToVideoQueue(Cue cue)
+    {
+        if (cue.Kind != CueKind.Video || !CheckMedia(cue)) return false;
+        var list = SelectedVideoList ?? _workspace.VideoCollections.FirstOrDefault(s=>s.Id==_workspace.ActiveVideoListId)
+            ?? _workspace.VideoCollections.FirstOrDefault();
+        var created = list is null;
+        list ??= SavedSet.Capture("Lista de reproducci\u00f3n",[]);
+        if (created) _workspace.VideoCollections.Add(list);
+        var copy = CopyCue(cue,true); list.Items.Add(copy);
+        var previousId = _workspace.ActiveVideoListId;
+        _workspace.ActiveVideoListId = list.Id;
+        if (!SaveWorkspace())
+        {
+            list.Items.Remove(copy); if(created)_workspace.VideoCollections.Remove(list);
+            _workspace.ActiveVideoListId = previousId; return false;
+        }
+        RefreshVideoLists(list); SetStatus("A\u00f1adido a la cola: " + cue.Title); return true;
     }
     private void RefreshVideoListItems()
     {
-        var id = (_videoListItems.SelectedItem as Cue)?.Id;
-        _videoListItems.ItemsSource = null; _videoListItems.ItemsSource = SelectedVideoList?.Items;
-        _videoListItems.SelectedItem = SelectedVideoList?.Items.FirstOrDefault(c=>c.Id==id) ?? SelectedVideoList?.Items.FirstOrDefault();
+        var refreshing = _refreshingVideoLists; _refreshingVideoLists = true;
+        try
+        {
+            var id = (_videoListItems.SelectedItem as Cue)?.Id;
+            _videoListItems.ItemsSource = null; _videoListItems.ItemsSource = SelectedVideoList?.Items;
+            _videoListItems.SelectedItem = SelectedVideoList?.Items.FirstOrDefault(c=>c.Id==id) ?? SelectedVideoList?.Items.FirstOrDefault();
+        }
+        finally { _refreshingVideoLists = refreshing; }
     }
     private void AddPlaylistFiles()
     {
-        if (SelectedVideoList is not { } list) { SetStatus("Crea o selecciona una lista."); return; }
         var dialog = new OpenFileDialog { Multiselect=true, Filter="Videos|*.mkv;*.mp4;*.mov;*.webm;*.avi;*.wmv" };
         if(dialog.ShowDialog(this)!=true)return;
-        var old = list.Items.ToList();
-        foreach(var path in dialog.FileNames) { var cue=MediaLibrary.FromFile(path); if(cue.Kind==CueKind.Video)list.Items.Add(cue); }
-        if(!SaveWorkspace())list.Items=old; RefreshVideoListItems();
+        foreach(var path in dialog.FileNames) { var cue=MediaLibrary.FromFile(path); if(cue.Kind==CueKind.Video) AppendToVideoQueue(cue); }
     }
     private void EditVideoList(int delta = 0, bool remove = false)
     {

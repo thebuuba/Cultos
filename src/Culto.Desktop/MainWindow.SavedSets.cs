@@ -12,10 +12,7 @@ public partial class MainWindow
     {
         if (LibraryList.SelectedItem is not Cue { Kind: CueKind.Video } cue)
         { SetStatus("Selecciona un video de la biblioteca."); return; }
-        if (SelectedVideoList is not {} list) { VideoCollectionsClick(sender,e); SetStatus("Crea una lista de videos primero."); return; }
-        var added = CopyCue(cue,true); list.Items.Add(added);
-        if(!SaveWorkspace())list.Items.Remove(added);
-        RefreshVideoLists(list); ActivateWorkspacePanel("playlists");
+        if (AppendToVideoQueue(cue)) ActivateWorkspacePanel("playlists");
     }
 
     private void ShowSavedSets(bool videosOnly, Cue? selectedVideo = null)

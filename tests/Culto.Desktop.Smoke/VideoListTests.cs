@@ -30,24 +30,32 @@ internal static partial class Program
             Call(window,"EditVideoList",0,true);
             Check(set.Items.Count==2 && new WorkspaceStore().Load().VideoCollections.Single(s=>s.Id==set.Id).Items.Count==2,"Remove was not persisted");
         });
-        Test("Media context menu adds the clicked video to the chosen playlist without projecting",()=>
+        Test("Media context menu directly appends the clicked video without choosing a list",()=>
         {
             var before=session.Live;var prepared=session.Prepared;
             var menu=(ContextMenu)Call(window,"BuildMediaPlaylistMenu",external)!;
             var add=menu.Items.OfType<MenuItem>().Single();
             Check(add.Header?.ToString()=="Añadir a lista de reproducción","Missing media playlist action");
             menu.PlacementTarget=window;menu.IsOpen=true;menu.UpdateLayout();
-            add.IsSubmenuOpen=true;PumpFor(150);add.ApplyTemplate();
-            Check(add.Template.FindName("PART_Popup",add) is System.Windows.Controls.Primitives.Popup {IsOpen:true},"Playlist submenu has no visible popup");
-            var choice=add.Items.OfType<MenuItem>().Single(m=>m.Header?.ToString()==set.Name);
-            Check(choice.IsVisible && choice.ActualWidth>0,"Playlist choice is hidden");
-            choice.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            Check(!add.HasItems,"Adding to the queue still requires choosing or creating a list");
+            add.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
             menu.IsOpen=false;
             Check(set.Items.Count==3 && set.Items.Last().FilePath==external.FilePath && set.Items.Last().Id!=external.Id,"Wrong file or shared identity added");
             Check(ReferenceEquals(before,session.Live) && ReferenceEquals(prepared,session.Prepared),"Adding media changed playback or preview");
             Check(new WorkspaceStore().Load().VideoCollections.Single(s=>s.Id==set.Id).Items.Count==3,"Context addition was not saved");
             Check(((MenuItem)((ContextMenu)Call(window,"BuildMediaPlaylistMenu",new Cue{Kind=CueKind.Image})!).Items[0]).IsEnabled==false,"Nonvideo can enter playlist");
             set.Items.RemoveAt(2);Call(window,"SaveWorkspace");Call(window,"RefreshVideoListItems");
+        });
+        Test("Empty library automatically gets one reusable queue without a name prompt",()=>
+        {
+            var saved=workspace.VideoCollections.ToList();
+            workspace.VideoCollections.Clear();Call(window,"RefreshVideoLists",new object?[]{null});
+            var menu=(ContextMenu)Call(window,"BuildMediaPlaylistMenu",external)!;
+            ((MenuItem)menu.Items[0]).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            ((MenuItem)menu.Items[0]).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            Check(workspace.VideoCollections.Count==1 && workspace.VideoCollections[0].Items.Count==2,"Queue was not automatically created and reused");
+            Check(new WorkspaceStore().Load().VideoCollections.Single().Items.Count==2,"Automatic queue was not persisted");
+            workspace.VideoCollections=saved;Call(window,"RefreshVideoLists",set);Call(window,"SaveWorkspace");
         });
         Test("Playlist advances once at natural video end and stops at its last video",()=>
         {
@@ -68,6 +76,9 @@ internal static partial class Program
             Check(Field<VideoListPlayback>(window,"_videoListPlayback").ListId is null,"External video did not cancel continuation");
             items.SelectedItem=b;after.IsChecked=true;
             Check(after.IsChecked==true,"After-current option could not arm");
+            Call(window,"AppendToVideoQueue",Video("Queued while waiting"));
+            Check(after.IsChecked==true && Field<VideoListPlayback>(window,"_videoListPlayback").ExpectedId==external.Id,
+                "Appending to the queue cancelled the explicit continuation");
             output.Seek(.9);Until(()=>session.Live?.Id==b.Id,"Explicit continuation after external video did not run");
         });
         Call(window,"CloseOutput");
