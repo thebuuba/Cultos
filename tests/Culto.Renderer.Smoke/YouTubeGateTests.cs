@@ -49,6 +49,10 @@ internal static partial class Program
             var client=Field(surface,"_captureClient")!;
             var worker=(Process)Field(client,"_worker")!;
             var lease=(CapturedApplicationAudio.Lease)Field(surface,"_captureAudio")!;
+            surface.RefreshWindowCapture();
+            await Until(()=>(int)Field(client,"_refreshCount")!>0,"Native capture acknowledges a refreshed session");
+            Check(ReferenceEquals(lease,Field(surface,"_captureAudio")) && !worker.HasExited && lease.Gain>0,
+                "Refreshing capture preserves the worker and active audio lease");
             GateSetTitle((nint)selected.WindowHandle,"WhatsApp - Google Chrome");
             await Until(()=>Pixel()==0 && lease.Gain==0,"Leaving YouTube blacks picture and silences capture audio");
             await Task.Delay(16000);

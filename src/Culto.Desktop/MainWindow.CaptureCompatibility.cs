@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows.Interop;
+using System.Windows.Threading;
 using Culto.Core;
 
 namespace Culto.Desktop;
@@ -10,6 +11,21 @@ public partial class MainWindow
     private const int BrowserCapturePaintStyle = 0x20; // WS_EX_TRANSPARENT, without WS_EX_LAYERED.
     private nint _captureCompatibilityWindow;
     private bool _captureHadPaintStyle, _captureCompatibilityWarning;
+    private readonly DispatcherTimer _browserCaptureResizeTimer=new(){Interval=TimeSpan.FromMilliseconds(250)};
+
+    private void BrowserCaptureLayoutChanged()
+    {
+        UpdateBrowserCaptureCompatibility();
+        if(_closing || _captureCompatibilityWindow==0)return;
+        _browserCaptureResizeTimer.Stop();_browserCaptureResizeTimer.Start();
+    }
+
+    private void RefreshBrowserCaptureAfterResize(object? sender,EventArgs e)
+    {
+        _browserCaptureResizeTimer.Stop();
+        if(_closing || _captureCompatibilityWindow==0)return;
+        _output?.RefreshWindowCapture();_preview?.RefreshWindowCapture();
+    }
 
     private static bool IsChromiumCapture(Cue? cue) => cue?.Kind == CueKind.WindowCapture
         && cue.Capture is { } source && (source.WindowClass?.StartsWith("Chrome_WidgetWin_", StringComparison.Ordinal) == true
@@ -54,7 +70,7 @@ public partial class MainWindow
             // Chromium recalculates even if it cached occlusion before capture.
             BrowserNotifyWinEvent(0x800A, handle, 0, 0); // EVENT_OBJECT_STATECHANGE, OBJID_WINDOW.
         }
-        if (!needed) { _captureCompatibilityWindow = 0; _captureCompatibilityWarning = false; }
+        if (!needed) { _browserCaptureResizeTimer.Stop(); _captureCompatibilityWindow = 0; _captureCompatibilityWarning = false; }
     }
 
     [DllImport("user32.dll", EntryPoint = "GetWindowLongW", SetLastError = true)]

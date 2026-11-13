@@ -51,8 +51,9 @@ public partial class MainWindow : Window
         _plan.CollectionChanged += (_, _) => UpdateUsabilityState();
         Loaded += (_, _) => InitializeWorkspace();
         Closing += OnWindowClosing;
-        SizeChanged += (_, _) => UpdateBrowserCaptureCompatibility();
-        StateChanged += (_, _) => UpdateBrowserCaptureCompatibility();
+        _browserCaptureResizeTimer.Tick+=RefreshBrowserCaptureAfterResize;
+        SizeChanged += (_, _) => BrowserCaptureLayoutChanged();
+        StateChanged += (_, _) => BrowserCaptureLayoutChanged();
         InputBindings.Add(new KeyBinding(new ActionCommand(ProjectPrepared), Key.F5, ModifierKeys.None));
         InputBindings.Add(new KeyBinding(new ActionCommand(() => AdvancePresentation(1)), Key.F6, ModifierKeys.None));
         InputBindings.Add(new KeyBinding(new ActionCommand(() => AdvancePresentation(-1)), Key.F7, ModifierKeys.None));

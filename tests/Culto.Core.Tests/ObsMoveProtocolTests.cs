@@ -6,6 +6,19 @@ namespace Culto.Core.Tests;
 
 public sealed class ObsMoveProtocolTests
 {
+    [Theory]
+    [InlineData(ObsMoveMessageType.RefreshCapture)]
+    [InlineData(ObsMoveMessageType.CaptureRefreshed)]
+    public async Task CaptureRefreshControlsRoundTripWithoutPayload(ObsMoveMessageType type)
+    {
+        using var stream=new MemoryStream();
+        var protocol=new ObsMoveProtocol(stream);
+        await protocol.WriteAsync(type,ReadOnlyMemory<byte>.Empty);
+        stream.Position=0;
+        Assert.Equal(type,(await protocol.ReadAsync())!.Type);
+        await Assert.ThrowsAsync<InvalidDataException>(async()=>await protocol.WriteAsync(type,new byte[]{1}));
+    }
+
     [Fact]
     public async Task WritesTheDocumentedByteAndLittleEndianHeader()
     {

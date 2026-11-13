@@ -16,6 +16,8 @@ internal sealed class ObsWindowCaptureEngine : IDisposable
     private Exception? _failure;
     private ulong _firstRenderedAt;
     private long _retryCaptureAt;
+    private readonly CancellationTokenSource _controls=new();
+    private int _refreshRequested, _refreshEpoch;
     private bool _attached, _disposed;
 
     public ObsWindowCaptureEngine(string runtimePath, int width, int height)
@@ -33,6 +35,8 @@ internal sealed class ObsWindowCaptureEngine : IDisposable
         _attached = true;
         using var frames = new ObsFramePump(0, _width, _height, activateOutput: true);
         var startup = Stopwatch.StartNew();
+        _=ReadRefreshRequests(protocol,_controls.Token);
+        var reportedEpoch=0;
         while (true)
         {
             // WGC creates its frame pool on OBS' graphics thread, which owns the
@@ -40,11 +44,12 @@ internal sealed class ObsWindowCaptureEngine : IDisposable
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
             timeout.CancelAfter(TimeSpan.FromSeconds(15));
             using var frame = await frames.ReadAsync(timeout.Token).ConfigureAwait(false);
-            ulong first;
+            ulong first; int epoch;
             lock (_gate)
             {
                 if (_failure is not null) throw new InvalidOperationException(_failure.Message, _failure);
                 first = _firstRenderedAt;
+                epoch=_refreshEpoch;
             }
             if (first == 0)
             {
@@ -54,8 +59,28 @@ internal sealed class ObsWindowCaptureEngine : IDisposable
             startup.Restart();
             // Do not expose OBS startup/queued blank frames as captured content.
             if (frame.Timestamp <= first) continue;
+            if(epoch!=reportedEpoch)
+            {
+                await protocol.WriteAsync(ObsMoveMessageType.CaptureRefreshed,ReadOnlyMemory<byte>.Empty,token).ConfigureAwait(false);
+                reportedEpoch=epoch;
+            }
             await protocol.WriteAsync(ObsMoveMessageType.Frame, frame.Buffer.AsMemory(0, frame.Length), token).ConfigureAwait(false);
         }
+    }
+
+    private async Task ReadRefreshRequests(ObsMoveProtocol protocol,CancellationToken token)
+    {
+        try
+        {
+            while(await protocol.ReadAsync(token).ConfigureAwait(false) is {} message)
+            {
+                if(message.Type!=ObsMoveMessageType.RefreshCapture)throw new InvalidDataException("Invalid capture control message.");
+                Interlocked.Exchange(ref _refreshRequested,1);
+            }
+        }
+        catch(OperationCanceledException) when(token.IsCancellationRequested) { }
+        catch(Exception error) when(error is IOException or ObjectDisposedException)
+        {lock(_gate){if(!_disposed)_failure=error;}}
     }
 
     private void Render(nint parameter, uint width, uint height)
@@ -66,6 +91,11 @@ internal sealed class ObsWindowCaptureEngine : IDisposable
             try
             {
                 ValidateWindow(_source, checkExecutable: false);
+                if(Interlocked.Exchange(ref _refreshRequested,0)!=0)
+                {
+                    if(_capture!=0){ObsWinrtNative.winrt_capture_free(_capture);_capture=0;}
+                    _firstRenderedAt=0;_retryCaptureAt=0;_refreshEpoch++;
+                }
                 if(_source.YouTubeOnly)
                 {
                     var title=new StringBuilder(4096);
@@ -164,6 +194,7 @@ internal sealed class ObsWindowCaptureEngine : IDisposable
 
     public void Dispose()
     {
+        _controls.Cancel();
         if (_attached) { _attached = false; ObsNative.obs_remove_main_render_callback(_render, 0); }
         nint capture;
         lock (_gate) { if (_disposed) return; _disposed = true; capture = _capture; _capture = 0; }

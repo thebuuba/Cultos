@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace Culto.Core;
 
-public enum ObsMoveMessageType : byte { Command = 1, Frame = 2, Complete = 3, Error = 4, Ready = 5 }
+public enum ObsMoveMessageType : byte { Command = 1, Frame = 2, Complete = 3, Error = 4, Ready = 5, RefreshCapture = 6, CaptureRefreshed = 7 }
 public sealed record ObsMoveCommand(string OutgoingPath, string IncomingPath, int DurationMilliseconds);
 public sealed record ObsMoveMessage(ObsMoveMessageType Type, byte[] Payload);
 
@@ -74,10 +74,10 @@ public sealed class ObsMoveProtocol(Stream stream)
 
     private static void ValidateFrame(ObsMoveMessageType type, int length)
     {
-        if (type is < ObsMoveMessageType.Command or > ObsMoveMessageType.Ready)
+        if (type is < ObsMoveMessageType.Command or > ObsMoveMessageType.CaptureRefreshed)
             throw new InvalidDataException("Unknown Move message type.");
         if (length is < 0 or > MaximumPayloadBytes) throw new InvalidDataException("Move payload length exceeds limit.");
-        if (type is ObsMoveMessageType.Ready or ObsMoveMessageType.Complete && length != 0)
+        if (type is ObsMoveMessageType.Ready or ObsMoveMessageType.Complete or ObsMoveMessageType.RefreshCapture or ObsMoveMessageType.CaptureRefreshed && length != 0)
             throw new InvalidDataException("Move control messages must have empty payloads.");
     }
 }

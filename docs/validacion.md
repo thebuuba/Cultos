@@ -1,8 +1,16 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 13 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.36.0`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 13 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.36.1`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### Recuperar captura al maximizar y restaurar - 0.36.1
+
+La consola agrupa los cambios de tamaño/estado durante 250 ms y solicita recrear la sesión WGC cuando hay compatibilidad de captura Chromium activa. La solicitud viaja por el canal privado del proceso existente: el motor libera y recrea la captura en el hilo gráfico de OBS, descarta fotogramas anteriores y confirma la recuperación tras recibir un fotograma de la nueva sesión. No se reemplazan el proceso, la identidad seleccionada, el recorte ni la concesión de audio. No se cambia la configuración de Chrome. La ventana principal conserva su opacidad y sus estilos existentes.
+
+--chrome-maximized abre un perfil de Chrome aislado y una página local con el video alternante incluido como fixture. Comprueba fotogramas en movimiento, confirmación nativa de recreación al maximizar, identidad del mismo cliente, restauración y segunda maximización. La comprobación de recreación falla antes del cambio y pasa después. Registros .tools/chrome-refresh-red.log y chrome-refresh-final.log; captura .tools/chrome-maximized.png del worktree.
+
+--youtube-gate añade una recreación explícita y comprueba el mismo proceso y concesión de audio, junto con silencio/negro fuera de YouTube y reanudación. No se ha confirmado la resolución del síntoma con el YouTube modificado del usuario: el acceso de control a Chrome fue bloqueado al no poder verificar la URL. La prueba con video H264 local ya avanzaba en algunos escenarios antes del cambio; esta entrega verifica el mecanismo de recuperación y no afirma haber aislado toda la causa del negro reportado. Se descartó el experimento de cambiar la opacidad nativa.
 
 ### YouTube en vivo y negro al terminar medios - 0.36.0
 

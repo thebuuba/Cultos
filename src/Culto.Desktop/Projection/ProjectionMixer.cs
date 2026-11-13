@@ -96,6 +96,8 @@ internal sealed class ProjectionMixer : Grid, IDisposable
     public TransitionOptions Transitions { get => _options with { }; set => _options = (value ?? new()).Normalize(); }
     public BibleVisualStyle BibleStyle { get => _style with { }; set => _style = (value ?? new()).Normalize(); }
 
+    public void RefreshWindowCapture() { foreach(var surface in Surfaces())surface.RefreshWindowCapture(); }
+
     private IEnumerable<ProjectionSurface> Surfaces() => new[] { _current, _incoming, _outgoing, _retained, _background }
         .OfType<ProjectionSurface>().Distinct();
     private ProjectionSurface CreateSurface()

@@ -20,6 +20,8 @@ internal sealed class ObsWindowCaptureClient : IDisposable
     private readonly object _gate = new();
     private Process? _worker;
     private NamedPipeServerStream? _pipe;
+    private ObsMoveProtocol? _protocol;
+    private int _refreshCount;
     private string? _lastWorkerError;
     private bool _disposed, _running;
 
@@ -75,12 +77,14 @@ internal sealed class ObsWindowCaptureClient : IDisposable
             ThrowWorkerError(ready);
             if (ready?.Type != ObsMoveMessageType.Ready) throw new IOException("El motor de captura no confirmó su inicio.");
             await protocol.WriteAsync(ObsMoveMessageType.Command, ObsCaptureCommand.Encode(new(source)), startup.Token).ConfigureAwait(false);
+            lock(_gate)_protocol=protocol;
             while (true)
             {
                 using var deadline = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
                 deadline.CancelAfter(TimeSpan.FromSeconds(15));
                 var message = await protocol.ReadAsync(deadline.Token).ConfigureAwait(false);
                 ThrowWorkerError(message);
+                if(message?.Type==ObsMoveMessageType.CaptureRefreshed){Interlocked.Increment(ref _refreshCount);continue;}
                 if (message is null) throw new IOException("La captura se cerró. " + _lastWorkerError);
                 if (message.Type != ObsMoveMessageType.Frame || message.Payload.Length != frameBytes)
                     throw new InvalidDataException("El motor de captura entregó una imagen incorrecta.");
@@ -99,6 +103,15 @@ internal sealed class ObsWindowCaptureClient : IDisposable
             throw new InvalidOperationException(Encoding.UTF8.GetString(message.Payload));
     }
 
+    public async Task RefreshAsync()
+    {
+        ObsMoveProtocol? protocol;
+        lock(_gate)protocol=_disposed ? null : _protocol;
+        if(protocol is null)return;
+        try { await protocol.WriteAsync(ObsMoveMessageType.RefreshCapture,ReadOnlyMemory<byte>.Empty,_lifetime.Token).ConfigureAwait(false); }
+        catch(Exception error) when(error is IOException or ObjectDisposedException or OperationCanceledException) { }
+    }
+
     private async Task DrainErrors(Process process)
     {
         try
@@ -112,7 +125,7 @@ internal sealed class ObsWindowCaptureClient : IDisposable
     private void StopWorker()
     {
         Process? process;
-        lock (_gate) { _pipe?.Dispose(); _pipe = null; process = _worker; _worker = null; }
+        lock (_gate) { _protocol=null; _pipe?.Dispose(); _pipe = null; process = _worker; _worker = null; }
         if (process is null) return;
         try { if (!process.HasExited) process.Kill(entireProcessTree: false); }
         catch (Exception error) when (error is InvalidOperationException or System.ComponentModel.Win32Exception) { }

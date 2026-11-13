@@ -26,6 +26,13 @@ public sealed partial class ProjectionSurface
     private string? _captureAudioError;
     private const int CaptureWidth = 1280, CaptureHeight = 720;
 
+    public void RefreshWindowCapture()
+    {
+        if(_disposed)return;
+        if(_mixer is not null)_mixer.RefreshWindowCapture();
+        else if(_captureClient is {} client)_=client.RefreshAsync();
+    }
+
     private void ShowWindowCapture(Cue cue, bool paused)
     {
         if (cue.Capture is null) throw new ArgumentException("La captura no tiene una ventana seleccionada.");

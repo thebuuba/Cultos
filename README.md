@@ -8,7 +8,7 @@ La pestaña **Lista de videos** permite agregar videos, eliminar y cambiar el or
 
 ## Abrir el programa
 
-Ejecuta **Abrir Culto Studio.cmd** en esta carpeta, o abre `artifacts/CultoStudio-0.36.0/CultoStudio.exe`. Cierra la versión anterior primero. La distribución publicada incluye .NET y el reproductor nativo; conserva todos los archivos de esa carpeta junto al ejecutable. Windows x64.
+Ejecuta **Abrir Culto Studio.cmd** en esta carpeta, o abre `artifacts/CultoStudio-0.36.1/CultoStudio.exe`. Cierra la versión anterior primero. La distribución publicada incluye .NET y el reproductor nativo; conserva todos los archivos de esa carpeta junto al ejecutable. Windows x64.
 
 En **0.34.1**, Vista previa y En pantalla forman un solo panel fijo, sin cierres ni arrastre independientes, con Proyectar y la transici?n en el centro. Escenas, Vista previa y En pantalla comparten una tarjeta. Las escenas incluyen Logo, Fondo negro, Imagen, Video y YouTube; imagen y video recuerdan la elección y el menú derecho permite cambiarla. La transición se elige en la misma tarjeta. Los controles semitransparentes aparecen sobre el monitor local al pasar el ratón y también en Vista previa cuando sigue la salida. Usan el mismo reproductor y no aparecen en HDMI. Se conservan las distribuciones acoplables, el orden del culto y el arranque anticipado del motor.
 
