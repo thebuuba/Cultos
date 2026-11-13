@@ -1,8 +1,12 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 13 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.35.1`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 13 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.35.2`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### Submenús visibles ? 0.35.2
+
+La plantilla global de MenuItem carecía de PART_Popup y ItemsPresenter para sus hijos. Los elementos internos existían y sus acciones funcionaban, pero no se mostraban al abrir Añadir a lista de reproducción. Se incorpora el popup enlazado a IsSubmenuOpen y una flecha para HasItems, manteniendo el tema. La prueba ampliada abre el menú real, exige popup abierto y elección visible con ancho positivo y verifica la persistencia al pulsarla. Falló antes del cambio y pasa después, junto con avance/cancelación de listas. Evidencias .tools/playlist-submenu-red.log y playlist-submenu-final.log del worktree.
 
 ### Medios a lista de reproducción ? 0.35.1
 

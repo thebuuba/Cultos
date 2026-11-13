@@ -36,8 +36,13 @@ internal static partial class Program
             var menu=(ContextMenu)Call(window,"BuildMediaPlaylistMenu",external)!;
             var add=menu.Items.OfType<MenuItem>().Single();
             Check(add.Header?.ToString()=="Añadir a lista de reproducción","Missing media playlist action");
+            menu.PlacementTarget=window;menu.IsOpen=true;menu.UpdateLayout();
+            add.IsSubmenuOpen=true;PumpFor(150);add.ApplyTemplate();
+            Check(add.Template.FindName("PART_Popup",add) is System.Windows.Controls.Primitives.Popup {IsOpen:true},"Playlist submenu has no visible popup");
             var choice=add.Items.OfType<MenuItem>().Single(m=>m.Header?.ToString()==set.Name);
+            Check(choice.IsVisible && choice.ActualWidth>0,"Playlist choice is hidden");
             choice.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            menu.IsOpen=false;
             Check(set.Items.Count==3 && set.Items.Last().FilePath==external.FilePath && set.Items.Last().Id!=external.Id,"Wrong file or shared identity added");
             Check(ReferenceEquals(before,session.Live) && ReferenceEquals(prepared,session.Prepared),"Adding media changed playback or preview");
             Check(new WorkspaceStore().Load().VideoCollections.Single(s=>s.Id==set.Id).Items.Count==3,"Context addition was not saved");

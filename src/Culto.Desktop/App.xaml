@@ -376,14 +376,26 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="MenuItem">
+                      <Grid>
                         <Border x:Name="MenuOption" Background="Transparent" BorderBrush="Transparent" BorderThickness="1" CornerRadius="{StaticResource ControlRadius}" Padding="{TemplateBinding Padding}">
                             <Grid>
-                                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                 <ContentPresenter ContentSource="Header" RecognizesAccessKey="True"/>
                                 <TextBlock Grid.Column="1" Text="{TemplateBinding InputGestureText}" Foreground="{StaticResource MutedBrush}" Margin="24,0,0,0"/>
+                                <TextBlock x:Name="SubmenuArrow" Grid.Column="2" Text="›" Margin="12,0,0,0" Visibility="Collapsed"/>
                             </Grid>
                         </Border>
+                        <Popup x:Name="PART_Popup" Placement="Right" PlacementTarget="{Binding ElementName=MenuOption}" HorizontalOffset="-1"
+                               IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
+                          <Border Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource ControlRadius}" Padding="6" MinWidth="200">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" MaxHeight="420" CanContentScroll="True">
+                              <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" KeyboardNavigation.TabNavigation="Cycle"/>
+                            </ScrollViewer>
+                          </Border>
+                        </Popup>
+                      </Grid>
                         <ControlTemplate.Triggers>
+                            <Trigger Property="HasItems" Value="True"><Setter TargetName="SubmenuArrow" Property="Visibility" Value="Visible"/></Trigger>
                             <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="MenuOption" Property="Background" Value="{StaticResource HoverBrush}"/></Trigger>
                             <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="MenuOption" Property="BorderBrush" Value="{StaticResource AmberBrush}"/></Trigger>
                             <Trigger Property="IsEnabled" Value="False"><Setter TargetName="MenuOption" Property="Opacity" Value="0.45"/></Trigger>
