@@ -17,9 +17,10 @@ public partial class MainWindow
     {
         _youTubeTimer.Tick += YouTubeTimerTick;
         YouTubePanel.IsVisibleChanged += YouTubePanelVisibilityChanged;
+        ScenesPanel.IsVisibleChanged += YouTubePanelVisibilityChanged;
         WorkspaceDock.ActiveContentChanged += YouTubeActiveContentChanged;
         RefreshYouTube();
-        if (YouTubePanel.IsVisible) _youTubeTimer.Start();
+        if (YouTubePanel.IsVisible || ScenesPanel.IsVisible) _youTubeTimer.Start();
     }
 
     private void DisposeYouTube()
@@ -27,25 +28,26 @@ public partial class MainWindow
         _youTubeTimer.Stop();
         _youTubeTimer.Tick -= YouTubeTimerTick;
         YouTubePanel.IsVisibleChanged -= YouTubePanelVisibilityChanged;
+        ScenesPanel.IsVisibleChanged -= YouTubePanelVisibilityChanged;
         WorkspaceDock.ActiveContentChanged -= YouTubeActiveContentChanged;
     }
 
     private void YouTubeTimerTick(object? sender, EventArgs e)
     {
-        if (YouTubePanel.IsVisible) RefreshYouTube();
+        if (YouTubePanel.IsVisible || ScenesPanel.IsVisible) RefreshYouTube();
         else _youTubeTimer.Stop();
     }
 
     private void YouTubePanelVisibilityChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
         if (!_ready) return;
-        if (YouTubePanel.IsVisible) { RefreshYouTube(); _youTubeTimer.Start(); }
+        if (YouTubePanel.IsVisible || ScenesPanel.IsVisible) { RefreshYouTube(); _youTubeTimer.Start(); }
         else _youTubeTimer.Stop();
     }
 
     private void YouTubeActiveContentChanged(object? sender, EventArgs e)
     {
-        if (ReferenceEquals(WorkspaceDock.ActiveContent, YouTubePanel)) RefreshYouTube();
+        if (ReferenceEquals(WorkspaceDock.ActiveContent, YouTubePanel) || ReferenceEquals(WorkspaceDock.ActiveContent, ScenesPanel)) RefreshYouTube();
     }
 
     private void OpenYouTubeClick(object sender, RoutedEventArgs e) => SelectContentSource(3);
@@ -81,6 +83,76 @@ public partial class MainWindow
         ProjectYouTubeButton.IsEnabled = source?.IsAvailable == true;
         AddYouTubeButton.IsEnabled = source?.IsAvailable == true;
         EditYouTubeButton.IsEnabled = source is not null;
+        RefreshSceneYouTube();
+    }
+
+    private YouTubeSource? SceneYouTubeSource() => YouTubeList.SelectedItem is YouTubeSource { IsAvailable: true } selected
+        ? selected : YouTubeList.Items.OfType<YouTubeSource>().FirstOrDefault(source => source.IsAvailable);
+
+    private void RefreshSceneYouTube()
+    {
+        var source = SceneYouTubeSource();
+        SceneYouTubeButton.DataContext = source;
+        SceneYouTubeButton.ToolTip = source is null ? "Elegir ventana para YouTube" : source.Title + "\n" + source.Detail;
+    }
+
+    private void SceneYouTubeClick(object sender, RoutedEventArgs e)
+    {
+        if (!_ready) return;
+        RefreshYouTube();
+        if (SceneYouTubeSource() is { } source) ProjectSceneYouTube(source);
+        else ChooseSceneYouTubeClick(sender, e);
+    }
+
+    private void SceneYouTubeMenuOpened(object sender, RoutedEventArgs e)
+    {
+        if (!_ready || sender is not ContextMenu menu) return;
+        RefreshYouTube();
+        menu.Items.Clear();
+        foreach (var source in YouTubeList.Items.OfType<YouTubeSource>().Where(source => source.IsAvailable))
+        {
+            var item = new MenuItem { Header = source.Title, ToolTip = source.Detail,
+                IsCheckable = true, IsChecked = source.Key == SceneYouTubeSource()?.Key };
+            item.Click += (_, _) => ProjectSceneYouTube(source);
+            menu.Items.Add(item);
+        }
+        if (menu.Items.Count > 0) menu.Items.Add(new Separator());
+        var choose = new MenuItem { Header = "Elegir otra ventana…" };
+        choose.Click += ChooseSceneYouTubeClick;
+        menu.Items.Add(choose);
+    }
+
+    private void ProjectSceneYouTube(YouTubeSource source)
+    {
+        // Discovery replaces the rows while a context menu can remain open.
+        var current = YouTubeList.Items.OfType<YouTubeSource>().FirstOrDefault(item => item.Key == source.Key);
+        if (current is not { IsAvailable: true }) { SetStatus("Esta ventana ya no está disponible.", true); return; }
+        source = current;
+        if (!CheckMedia(source.Cue)) return;
+        _refreshingYouTube = true;
+        try { YouTubeList.SelectedItem = source; }
+        finally { _refreshingYouTube = false; }
+        UpdateYouTubeActions();
+        PrepareCue(CopyCue(source.Cue));
+        ProjectPrepared();
+    }
+
+    private void ChooseSceneYouTubeClick(object sender, RoutedEventArgs e)
+    {
+        var dialog = new WindowCaptureDialog(youTubeLayout: _workspace.YouTubeLayout, confirmCaption: "Usar en escena") { Owner = this };
+        if (dialog.ShowDialog() != true || dialog.SelectedCue is not { } cue || !CheckMedia(cue)) return;
+        var previousLayout = _workspace.YouTubeLayout;
+        var saved = CopyCue(cue);
+        RememberYouTubeLayout(cue);
+        _workspace.YouTubeSources.Add(saved);
+        if (!SaveWorkspace())
+        {
+            _workspace.YouTubeSources.Remove(saved);
+            _workspace.YouTubeLayout = previousLayout;
+            return;
+        }
+        RefreshYouTube("saved:" + cue.Id);
+        if (YouTubeList.SelectedItem is YouTubeSource { IsAvailable: true } source) ProjectSceneYouTube(source);
     }
 
     private void YouTubeSelectionChanged(object sender, SelectionChangedEventArgs e)

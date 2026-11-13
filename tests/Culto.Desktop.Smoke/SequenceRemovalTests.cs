@@ -19,7 +19,7 @@ internal static partial class Program
                 {
                     Call(window, "ApplyWorkspacePreset", preset, false); window.UpdateLayout();
                     var panels = dock.Layout.Descendents().OfType<LayoutAnchorable>().ToArray();
-                    Check(panels.Length == 8 && panels.All(p => p.ContentId != "sequence"), "Preset still contains Sequence");
+                    Check(panels.Length == 9 && panels.All(p => p.ContentId != "sequence"), "Preset still contains Sequence");
                     Check(window.FindName("SequenceList") is null && window.FindName("SequencePanel") is null, "Retired Sequence controls still exist");
                     Check(!((Button)window.FindName("WorkspaceMenuButton")).ContextMenu.Items.OfType<MenuItem>().Any(p => (string?)p.Tag == "sequence"), "Menu still exposes Sequence");
                 }
@@ -37,7 +37,7 @@ internal static partial class Program
                     else if (placement == "floating") document.Root!.Element("FloatingWindows")!.Add(new XElement("LayoutAnchorableFloatingWindow", new XElement("LayoutAnchorablePaneGroup", new XElement("LayoutAnchorablePane", retired))));
                     else document.Descendants("LayoutAnchorable").Single(p => (string?)p.Attribute("ContentId") == "order").Parent!.Add(retired);
                     Call(window, "RestoreDockLayout", document.ToString()); window.UpdateLayout();
-                    Check(dock.Layout.Descendents().OfType<LayoutAnchorable>().Count() == 8, "Retired Sequence was not migrated");
+                    Check(dock.Layout.Descendents().OfType<LayoutAnchorable>().Count() == 9, "Retired Sequence was not migrated");
                     Check(!((string)Call(window, "SerializeDockLayout")!).Contains("ContentId=\"sequence\""), "Saved layout reintroduced Sequence");
                     foreach (var pane in dock.Layout.Descendents().OfType<LayoutAnchorable>()) Check(ReferenceEquals(controls[pane.ContentId], pane.Content), "Migration replaced a retained panel");
                 }

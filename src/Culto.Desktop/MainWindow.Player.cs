@@ -19,6 +19,7 @@ public partial class MainWindow
         PositionSlider.PreviewKeyUp += (_, e) => { if (IsSeekKey(e.Key)) SeekOutput(); };
         UpdatePlayButton(PauseButton, true, false);
         UpdateMuteButton();
+        InitializePlaybackOverlay();
     }
 
     private static bool IsSeekKey(Key key) => key is Key.Left or Key.Right or Key.Up or Key.Down
@@ -28,7 +29,12 @@ public partial class MainWindow
     {
         slider.IsMoveToPointEnabled = true;
         slider.SmallChange = .01; slider.LargeChange = .1;
-        void Scrubbing(bool value) => _outputScrubbing = value;
+        void Scrubbing(bool value)
+        {
+            _outputScrubbing = value;
+            if (value) UpdatePlaybackOverlay();
+            else DeferPlaybackOverlayUpdate();
+        }
         slider.AddHandler(PreviewMouseLeftButtonDownEvent, new MouseButtonEventHandler((_, e) =>
         {
             Scrubbing(true);

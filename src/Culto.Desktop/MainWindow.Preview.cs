@@ -61,5 +61,6 @@ public partial class MainWindow
             PreviewLiveMonitor.SetMirrorSource(null);
             PreviewLiveMonitor.SetNativeSource(IntPtr.Zero);
         }
+        UpdatePlaybackOverlay();
     }
 }

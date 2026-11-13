@@ -12,6 +12,21 @@
   <Window.Resources>
     <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
     <local:OrderNumberConverter x:Key="OrderNumberConverter"/>
+    <Style x:Key="SceneButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+      <Setter Property="MinWidth" Value="60"/><Setter Property="Height" Value="60"/>
+      <Setter Property="Padding" Value="5"/><Setter Property="Margin" Value="3"/>
+      <Setter Property="Background" Value="{StaticResource InputBrush}"/>
+      <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+        <Border x:Name="SceneSurface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="14" Padding="{TemplateBinding Padding}">
+          <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
+        </Border>
+        <ControlTemplate.Triggers>
+          <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="SceneSurface" Property="BorderBrush" Value="{StaticResource AccentBrush}"/></Trigger>
+          <Trigger Property="IsPressed" Value="True"><Setter TargetName="SceneSurface" Property="Opacity" Value="0.7"/></Trigger>
+          <Trigger Property="IsEnabled" Value="False"><Setter TargetName="SceneSurface" Property="Opacity" Value="0.45"/></Trigger>
+        </ControlTemplate.Triggers>
+      </ControlTemplate></Setter.Value></Setter>
+    </Style>
     <Style x:Key="CompactIconButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
       <Setter Property="Width" Value="32"/><Setter Property="Height" Value="32"/>
       <Setter Property="MinWidth" Value="32"/><Setter Property="MinHeight" Value="32"/>
@@ -292,6 +307,7 @@
         </Button>
         <Button x:Name="WorkspaceMenuButton" Content="Espacio de trabajo" Style="{StaticResource MenuBarButton}" Click="OpenActionsClick">
           <Button.ContextMenu><ContextMenu Opened="WorkspacePanelsMenuOpened">
+            <MenuItem Header="Escenas" Tag="scenes" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
             <MenuItem Header="Vista previa" Tag="preview" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
             <MenuItem Header="En pantalla" Tag="output" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
             <MenuItem Header="Orden del culto" Tag="order" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
@@ -358,24 +374,69 @@
         <ad:LayoutPanel Orientation="Horizontal">
           <ad:LayoutPanel Orientation="Vertical" DockWidth="2.4*">
             <ad:LayoutPanel Orientation="Horizontal" DockHeight="1.5*">
+<ad:LayoutAnchorablePane DockWidth="0.4*" DockMinWidth="156" DockMinHeight="240">
+<ad:LayoutAnchorable Title="Escenas" ContentId="scenes" CanClose="False" CanHide="True" CanAutoHide="False" CanDockAsTabbedDocument="False">
+<Border x:Name="ScenesPanel" Background="{StaticResource PanelBrush}" Padding="8,4,8,12">
+  <Grid><Grid.RowDefinitions><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+    <StackPanel>
+      <UniformGrid x:Name="OutputBackdropsPanel" Columns="2">
+        <Button x:Name="ChurchBackgroundButton" Style="{StaticResource SceneButton}" Click="ChurchBackgroundClick" PreviewMouseRightButtonUp="LogoRightClick" AutomationProperties.Name="Logo">
+          <StackPanel><TextBlock Text="&#xE80F;" FontFamily="Segoe MDL2 Assets" FontSize="23" Foreground="{StaticResource AccentTextBrush}" HorizontalAlignment="Center"/><TextBlock Text="Logo" FontSize="12" HorizontalAlignment="Center" Margin="0,4,0,0"/></StackPanel>
+        </Button>
+        <Button x:Name="BlackoutButton" Style="{StaticResource SceneButton}" Click="BlackBackgroundClick" AutomationProperties.Name="Fondo negro">
+          <StackPanel><Border Width="35" Height="18" CornerRadius="6" Background="Black"/><TextBlock Text="Fondo negro" FontSize="12" TextWrapping="Wrap" TextAlignment="Center" Margin="0,4,0,0"/></StackPanel>
+        </Button>
+        <Button x:Name="SceneImageButton" Style="{StaticResource SceneButton}" Tag="Image" Click="SceneMediaClick" AutomationProperties.Name="Escena de imagen">
+          <Button.ContextMenu><ContextMenu><MenuItem Header="Elegir imagen…" Tag="Image" Click="ChooseSceneMediaClick"/></ContextMenu></Button.ContextMenu>
+          <StackPanel><Border Height="28" Width="50" CornerRadius="6" Background="Black" ClipToBounds="True"><local:CueThumbnail x:Name="SceneImageThumb"/></Border><TextBlock x:Name="SceneImageTitle" Text="Imagen" FontSize="12" TextTrimming="CharacterEllipsis" MaxWidth="100" HorizontalAlignment="Center" Margin="0,4,0,0"/></StackPanel>
+        </Button>
+        <Button x:Name="SceneVideoButton" Style="{StaticResource SceneButton}" Tag="Video" Click="SceneMediaClick" AutomationProperties.Name="Escena de video">
+          <Button.ContextMenu><ContextMenu><MenuItem Header="Elegir video…" Tag="Video" Click="ChooseSceneMediaClick"/></ContextMenu></Button.ContextMenu>
+          <StackPanel><Border Height="28" Width="50" CornerRadius="6" Background="Black" ClipToBounds="True"><local:CueThumbnail x:Name="SceneVideoThumb"/></Border><TextBlock x:Name="SceneVideoTitle" Text="Video" FontSize="12" TextTrimming="CharacterEllipsis" MaxWidth="100" HorizontalAlignment="Center" Margin="0,4,0,0"/></StackPanel>
+        </Button>
+      <Button x:Name="SceneYouTubeButton" Style="{StaticResource SceneButton}" Click="SceneYouTubeClick" AutomationProperties.Name="Escena de YouTube">
+        <Button.ContextMenu><ContextMenu Opened="SceneYouTubeMenuOpened"/></Button.ContextMenu>
+        <StackPanel><Path Data="M 1,1 L 19,11 L 1,21 Z" Fill="{StaticResource TextBrush}" Width="21" Height="23" Stretch="Uniform" HorizontalAlignment="Center"/><TextBlock Text="YouTube" FontSize="12" TextAlignment="Center" Margin="0,4,0,0"/></StackPanel>
+      </Button>
+      </UniformGrid>
+    </StackPanel>
+  </ScrollViewer>
+  <StackPanel Grid.Row="1">
+      <Grid Margin="3,8,3,4"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <TextBlock Text="Transición" FontSize="12" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/>
+        <Button Grid.Column="1" Content="&#xE713;" FontFamily="Segoe MDL2 Assets" Style="{StaticResource CompactIconButton}" Click="TransitionSettingsClick" ToolTip="Configurar transiciones" AutomationProperties.Name="Configurar transiciones"/>
+      </Grid>
+      <ComboBox x:Name="SceneTransitionPicker" SelectionChanged="SceneTransitionsChanged" AutomationProperties.Name="Transición entre escenas" Margin="3,0,3,6" MinHeight="30" Padding="8,4">
+        <ComboBoxItem Tag="Cut">Corte</ComboBoxItem><ComboBoxItem Tag="Dissolve">Fundido</ComboBoxItem><ComboBoxItem Tag="Slide">Deslizar</ComboBoxItem><ComboBoxItem Tag="Zoom">Zoom</ComboBoxItem><ComboBoxItem Tag="Move">Move</ComboBoxItem>
+      </ComboBox>
+      <CheckBox x:Name="KeepMediaAudioCheck" Content="Mantener audio" Checked="KeepMediaAudioChanged" Unchecked="KeepMediaAudioChanged" FontSize="12" Margin="3,6" AutomationProperties.Name="Mantener audio al cambiar de contenido"/>
+      <Button x:Name="ReturnToMediaButton" Content="Volver al video" Click="ReturnToMediaClick" Visibility="Collapsed" FontSize="12" Padding="8,5" MinHeight="30" ToolTip="Volver al video · F9"/>
+      <TextBlock x:Name="BackgroundMediaText" Visibility="Collapsed" Foreground="{StaticResource MutedBrush}" FontSize="12" TextTrimming="CharacterEllipsis" Margin="3,3"/>
+  </StackPanel>
+  </Grid>
+</Border>
+</ad:LayoutAnchorable>
+</ad:LayoutAnchorablePane>
 <ad:LayoutAnchorablePane DockWidth="*" DockHeight="*" DockMinWidth="280" DockMinHeight="260">
 <ad:LayoutAnchorable Title="Vista previa" ContentId="preview" CanClose="False" CanHide="True" CanAutoHide="False" CanDockAsTabbedDocument="False">
-<Border x:Name="PreviewPanel" Background="{StaticResource PanelBrush}" CornerRadius="0" Padding="14">
+<Border x:Name="PreviewPanel" Background="{StaticResource PanelBrush}" CornerRadius="0" Padding="10,5">
           <Grid>
             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <Grid>
 
-              <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+              <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" MinHeight="32">
                 <Button x:Name="FollowLiveButton" Content="Ver salida" Click="FollowLivePreviewClick" Visibility="Collapsed" FontSize="12" MinHeight="24" Padding="8,3" Margin="0,0,8,0" AutomationProperties.Name="Volver a ver la salida"/>
                 <TextBlock x:Name="PreviewModeText" Text="PREPARADO" Foreground="{StaticResource MutedBrush}" FontSize="12" VerticalAlignment="Center"/>
               </StackPanel>
             </Grid>
             <local:AspectRatioBox Grid.Row="1" Margin="0,10,0,12" VerticalAlignment="Top">
-              <Border x:Name="PreviewViewport" CornerRadius="22" SizeChanged="MonitorFrameSizeChanged" BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="0" Background="#000000">
+              <Border x:Name="PreviewViewport" CornerRadius="22" SizeChanged="MonitorFrameSizeChanged" BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="0" Background="#000000" MouseEnter="PlaybackViewportMouseEnter" MouseLeave="PlaybackViewportMouseLeave" GotKeyboardFocus="PlaybackViewportGotKeyboardFocus" LostKeyboardFocus="PlaybackViewportLostKeyboardFocus">
                 <Grid MinHeight="80">
                   <ContentControl x:Name="PreviewHost" MinHeight="80"/>
                   <local:CueThumbnail x:Name="PreparedMediaCover" Visibility="Collapsed" IsHitTestVisible="False"/>
                   <projection:OutputMonitor x:Name="PreviewLiveMonitor" Visibility="Collapsed" IsHitTestVisible="False"/>
+                  <ContentControl x:Name="PreviewOverlayHost" VerticalAlignment="Bottom" Margin="4"/>
                 </Grid>
               </Border>
             </local:AspectRatioBox>
@@ -395,7 +456,7 @@
 <Border x:Name="LivePanel" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="0" CornerRadius="0" Padding="10,5" SizeChanged="OutputPanelSizeChanged">
           <Grid>
             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition MinHeight="102"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-            <Grid x:Name="LiveHeaderGrid">
+            <Grid x:Name="LiveHeaderGrid" MinHeight="32">
               <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
               <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
               <Border Background="{StaticResource LiveSurfaceBrush}" CornerRadius="9" Padding="7,3" Margin="0,0,9,0"><TextBlock Text="En pantalla" Foreground="{StaticResource TextBrush}" FontSize="12" FontWeight="SemiBold"/></Border>
@@ -403,8 +464,39 @@
               <TextBlock Grid.Column="2" x:Name="OutputModeText" Text="SIN SALIDA" Foreground="{StaticResource MutedBrush}" FontSize="12" VerticalAlignment="Center" Margin="8,0,0,0" ToolTip="{Binding Text, ElementName=OutputStatusText}"/>
             </Grid>
             <local:AspectRatioBox Grid.Row="1" Margin="0,10,0,12" VerticalAlignment="Top">
-              <Border x:Name="OutputViewport" CornerRadius="22" SizeChanged="MonitorFrameSizeChanged" BorderBrush="{StaticResource LiveBrush}" BorderThickness="2" Background="#000000">
-                <projection:OutputMonitor x:Name="LiveMonitor" MinHeight="80" MouseLeftButtonDown="OutputMonitorMouseDown" ToolTip="Abrir reproductor · doble clic" AutomationProperties.Name="Monitor de la salida real"/>
+              <Border x:Name="OutputViewport" CornerRadius="22" SizeChanged="MonitorFrameSizeChanged" BorderBrush="{StaticResource LiveBrush}" BorderThickness="2" Background="#000000" MouseEnter="PlaybackViewportMouseEnter" MouseLeave="PlaybackViewportMouseLeave" GotKeyboardFocus="PlaybackViewportGotKeyboardFocus" LostKeyboardFocus="PlaybackViewportLostKeyboardFocus">
+                <Grid>
+                  <projection:OutputMonitor x:Name="LiveMonitor" MinHeight="80" MouseLeftButtonDown="OutputMonitorMouseDown" ToolTip="Abrir reproductor · doble clic" AutomationProperties.Name="Monitor de la salida real"/>
+                  <ContentControl x:Name="LiveOverlayHost" VerticalAlignment="Bottom" Margin="4">
+            <Grid x:Name="MediaPlaybackPanel" Visibility="Collapsed" Opacity="0" IsHitTestVisible="False">
+              <Border Background="#DB16171A" CornerRadius="12" Padding="2">
+                <Grid>
+                  <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                  <Grid x:Name="OutputTransportGrid">
+                    <Grid.RowDefinitions><RowDefinition Height="24"/><RowDefinition Height="40"/></Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="32"/><ColumnDefinition/><ColumnDefinition Width="32"/><ColumnDefinition Width="2"/><ColumnDefinition Width="40"/><ColumnDefinition Width="2"/><ColumnDefinition Width="32"/><ColumnDefinition/><ColumnDefinition Width="32"/></Grid.ColumnDefinitions>
+                    <Grid Grid.ColumnSpan="9" Margin="4,0"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                      <TextBlock x:Name="TimeText" Text="00:00" Style="{StaticResource PlayerTime}" Margin="0,0,5,0"/>
+                      <Slider Grid.Column="1" x:Name="PositionSlider" Minimum="0" Maximum="1" Value="0" IsMoveToPointEnabled="True" PreviewMouseLeftButtonUp="PositionSeek" AutomationProperties.Name="Posición del video"/>
+                      <TextBlock Grid.Column="2" x:Name="OutputDurationText" Text="00:00" Style="{StaticResource PlayerTime}" Margin="5,0,0,0"/>
+                    </Grid>
+                    <Button x:Name="RestartOutputButton" Grid.Row="1" Content="&#xE72C;" Style="{StaticResource PlayerButton}" Click="RestartClick" ToolTip="Reiniciar reproducción" AutomationProperties.Name="Reiniciar reproducción"/>
+                    <Button x:Name="OutputSkipBackButton" Grid.Row="1" Grid.Column="2" Content="10" ContentTemplate="{StaticResource SkipBackIcon}" Style="{StaticResource PlayerButton}" Click="OutputSkipBackClick" ToolTip="Retroceder 10 segundos" AutomationProperties.Name="Retroceder 10 segundos"/>
+                    <Button x:Name="PauseButton" Grid.Row="1" Grid.Column="4" Content="&#xE769;" Style="{StaticResource PlayerPrimaryButton}" Click="PauseClick" ToolTip="Pausar reproducción" AutomationProperties.Name="Pausar reproducción"/>
+                    <Button x:Name="OutputSkipForwardButton" Grid.Row="1" Grid.Column="6" Content="10" ContentTemplate="{StaticResource SkipForwardIcon}" Style="{StaticResource PlayerButton}" Click="OutputSkipForwardClick" ToolTip="Avanzar 10 segundos" AutomationProperties.Name="Avanzar 10 segundos"/>
+                    <CheckBox x:Name="LoopCheck" Grid.Row="1" Grid.Column="8" Style="{StaticResource PlayerLoop}" Checked="LoopChanged" Unchecked="LoopChanged" ToolTip="Repetir reproducción" AutomationProperties.Name="Repetir reproducción"/>
+                  </Grid>
+                  <Grid Grid.Row="1" Margin="0,0,3,0">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="32"/><ColumnDefinition/><ColumnDefinition Width="34"/></Grid.ColumnDefinitions>
+                    <Button Height="26" MinHeight="26" x:Name="MuteButton" Content="&#xE767;" Style="{StaticResource PlayerButton}" Click="ToggleMuteClick" ToolTip="Silenciar salida" AutomationProperties.Name="Silenciar salida"/>
+                    <Slider Grid.Column="1" x:Name="VolumeSlider" Minimum="0" Maximum="100" Value="80" IsMoveToPointEnabled="True" ValueChanged="VolumeChanged" Margin="5,0,8,0" AutomationProperties.Name="Volumen de la proyección"/>
+                    <TextBlock Grid.Column="2" x:Name="VolumeText" Text="80 %" Style="{StaticResource PlayerTime}" HorizontalAlignment="Right"/>
+                  </Grid>
+                </Grid>
+              </Border>
+            </Grid>
+                  </ContentControl>
+                </Grid>
               </Border>
             </local:AspectRatioBox>
             <ScrollViewer Grid.Row="2" x:Name="LiveScroll" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" CanContentScroll="False" MaxHeight="200">
@@ -412,10 +504,10 @@
             <Grid>
             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <StackPanel Margin="0,5,0,0">
-              <TextBlock x:Name="LiveBodyText" Text="La salida está cerrada." Foreground="{StaticResource MutedBrush}" FontSize="12" TextWrapping="Wrap" MaxHeight="18" TextTrimming="CharacterEllipsis">
-                <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><DataTrigger Binding="{Binding Visibility, ElementName=MediaPlaybackPanel}" Value="Visible"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+              <TextBlock x:Name="LiveBodyText" Visibility="Collapsed"/>
+              <TextBlock x:Name="LiveReferenceText" Foreground="{StaticResource MutedBrush}" FontSize="12" TextTrimming="CharacterEllipsis">
+                <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed"/></Trigger></Style.Triggers></Style></TextBlock.Style>
               </TextBlock>
-              <TextBlock x:Name="LiveReferenceText" Foreground="{StaticResource MutedBrush}" FontSize="12" TextTrimming="CharacterEllipsis"/>
               <TextBlock x:Name="OutputStatusText" Text="Una salida HDMI · tres pantallas iguales" Visibility="Collapsed"/>
             </StackPanel>
             <Grid Grid.Row="1" x:Name="OutputActionsGrid" Margin="0,4,0,6">
@@ -429,43 +521,8 @@
               <Button x:Name="PowerPointPauseButton" Content="Pausar" Click="PauseClick" Margin="0,0,5,0"/>
               <Button Content="Reiniciar" Click="RestartClick"/>
             </UniformGrid>
-            <Grid Grid.Row="3" x:Name="MediaPlaybackPanel" Visibility="Collapsed" Margin="0,6,0,0">
-              <Border Background="{StaticResource InputBrush}" CornerRadius="16" Padding="0,3,0,5">
-                <Grid>
-                  <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                  <Grid x:Name="OutputTransportGrid">
-                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="44"/></Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="32"/><ColumnDefinition/><ColumnDefinition Width="32"/><ColumnDefinition Width="4"/><ColumnDefinition Width="40"/><ColumnDefinition Width="4"/><ColumnDefinition Width="32"/><ColumnDefinition/><ColumnDefinition Width="32"/></Grid.ColumnDefinitions>
-                    <Slider x:Name="PositionSlider" Grid.ColumnSpan="9" Minimum="0" Maximum="1" Value="0" IsMoveToPointEnabled="True" Margin="6,0" PreviewMouseLeftButtonUp="PositionSeek" AutomationProperties.Name="Posición del video"/>
-                    <TextBlock x:Name="TimeText" Grid.Row="1" Grid.ColumnSpan="4" Text="00:00" Style="{StaticResource PlayerTime}" Margin="8,0,0,5"/>
-                    <TextBlock x:Name="OutputDurationText" Grid.Row="1" Grid.Column="5" Grid.ColumnSpan="4" Text="00:00" Style="{StaticResource PlayerTime}" HorizontalAlignment="Right" Margin="0,0,8,5"/>
-                    <Button x:Name="RestartOutputButton" Grid.Row="2" Content="&#xE72C;" Style="{StaticResource PlayerButton}" Click="RestartClick" ToolTip="Reiniciar reproducción" AutomationProperties.Name="Reiniciar reproducción"/>
-                    <Button x:Name="OutputSkipBackButton" Grid.Row="2" Grid.Column="2" Content="10" ContentTemplate="{StaticResource SkipBackIcon}" Style="{StaticResource PlayerButton}" Click="OutputSkipBackClick" ToolTip="Retroceder 10 segundos" AutomationProperties.Name="Retroceder 10 segundos"/>
-                    <Button x:Name="PauseButton" Grid.Row="2" Grid.Column="4" Content="&#xE769;" Style="{StaticResource PlayerPrimaryButton}" Click="PauseClick" ToolTip="Pausar reproducción" AutomationProperties.Name="Pausar reproducción"/>
-                    <Button x:Name="OutputSkipForwardButton" Grid.Row="2" Grid.Column="6" Content="10" ContentTemplate="{StaticResource SkipForwardIcon}" Style="{StaticResource PlayerButton}" Click="OutputSkipForwardClick" ToolTip="Avanzar 10 segundos" AutomationProperties.Name="Avanzar 10 segundos"/>
-                    <CheckBox x:Name="LoopCheck" Grid.Row="2" Grid.Column="8" Style="{StaticResource PlayerLoop}" Checked="LoopChanged" Unchecked="LoopChanged" ToolTip="Repetir reproducción" AutomationProperties.Name="Repetir reproducción"/>
-                  </Grid>
-                  <Grid Grid.Row="1" Margin="0,5,6,0">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="32"/><ColumnDefinition/><ColumnDefinition Width="34"/></Grid.ColumnDefinitions>
-                    <Button x:Name="MuteButton" Content="&#xE767;" Style="{StaticResource PlayerButton}" Click="ToggleMuteClick" ToolTip="Silenciar salida" AutomationProperties.Name="Silenciar salida"/>
-                    <Slider Grid.Column="1" x:Name="VolumeSlider" Minimum="0" Maximum="100" Value="80" IsMoveToPointEnabled="True" ValueChanged="VolumeChanged" Margin="5,0,8,0" AutomationProperties.Name="Volumen de la proyección"/>
-                    <TextBlock Grid.Column="2" x:Name="VolumeText" Text="80 %" Style="{StaticResource PlayerTime}" HorizontalAlignment="Right"/>
-                  </Grid>
-                </Grid>
-              </Border>
+
             </Grid>
-            </Grid>
-            <StackPanel Margin="0,8,0,0">
-              <WrapPanel VerticalAlignment="Center">
-                <CheckBox x:Name="KeepMediaAudioCheck" Content="Mantener audio" Checked="KeepMediaAudioChanged" Unchecked="KeepMediaAudioChanged" FontSize="12" VerticalAlignment="Center" Margin="0,4,10,4" AutomationProperties.Name="Mantener audio al cambiar de contenido"/>
-                <Button x:Name="ReturnToMediaButton" Content="Volver al video" Click="ReturnToMediaClick" Visibility="Collapsed" FontSize="12" Padding="10,5" MinHeight="30" ToolTip="Volver al video · F9"/>
-              </WrapPanel>
-              <TextBlock x:Name="BackgroundMediaText" Visibility="Collapsed" Foreground="{StaticResource MutedBrush}" FontSize="12" TextTrimming="CharacterEllipsis" Margin="0,3,0,0"/>
-            </StackPanel>
-            <UniformGrid x:Name="OutputBackdropsPanel" Columns="2" Margin="0,8,0,0">
-              <Button x:Name="ChurchBackgroundButton" Content="Logo" Click="ChurchBackgroundClick" PreviewMouseRightButtonUp="LogoRightClick" Margin="0,0,5,0" MinHeight="42" Padding="4,7" FontSize="12" AutomationProperties.Name="Logo"/>
-              <Button x:Name="BlackoutButton" Content="Fondo negro" Click="BlackBackgroundClick" MinHeight="42" Padding="4,7" FontSize="12" AutomationProperties.Name="Fondo negro"/>
-            </UniformGrid>
             </StackPanel>
             </ScrollViewer>
           </Grid>

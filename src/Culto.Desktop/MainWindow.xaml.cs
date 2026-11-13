@@ -99,6 +99,7 @@ public partial class MainWindow : Window
         _session.Changed += UpdateSessionLabels;
         _ready = true;
         InitializeYouTube();
+        InitializeScenes();
         InitializeMediaBrowser();
         SetupPresenterHotkeys();
         RefreshLibrary();
@@ -124,6 +125,7 @@ public partial class MainWindow : Window
         SyncPreviewSource();
         UpdateBackgroundAudioState();
         UpdateBrowserCaptureCompatibility();
+        RefreshSceneChoices();
         SetStatus($"Vista previa: {cue.Title}");
     }
 
@@ -132,7 +134,7 @@ public partial class MainWindow : Window
         SyncLogoPlayback();
         PreparedTitleText.Text = _session.Prepared?.Title ?? "Sin contenido";
         var live = _output is null ? null : _session.Live;
-        ToggleOutputButton.Content = _outputWindow is null ? "Activar HDMI" : "Desactivar HDMI";
+        UpdateOutputSwitchLabel();
         if (_outputWindow is null) OutputStatusText.Text = _output is null ? "Salida desactivada" : "Reproducción local · HDMI desactivado";
         LiveTitleText.Text = _output is not null && _session.IsTextHidden && !_session.IsBlackout ? "Logo" : live?.Title ?? "Sin contenido";
         LiveReferenceText.Text = _session.IsTextHidden ? Path.GetFileNameWithoutExtension(CurrentBackgroundPath) ?? ""
@@ -149,7 +151,6 @@ public partial class MainWindow : Window
             : _session.IsTextHidden ? "LOGO"
             : _outputWindow is null ? "LOCAL" : _outputIsTest ? "ENSAYO" : "ACTIVA";
         OutputModeText.Foreground = (Brush)FindResource(_output is not null && (_session.IsBlackout || _session.IsTextHidden) ? "AmberBrush" : "MutedBrush");
-        BlackoutButton.Content = "Fondo negro";
         BlackoutButton.ToolTip = _session.IsBlackout ? "Restaurar contenido" : "Fondo negro";
         BlackoutButton.Background = (Brush)FindResource(_session.IsBlackout ? "AmberBrush" : "RaisedBrush");
         BlackoutButton.Foreground = _session.IsBlackout ? Brushes.Black : (Brush)FindResource("TextBrush");
@@ -157,6 +158,7 @@ public partial class MainWindow : Window
         ChurchBackgroundButton.Background = (Brush)FindResource(churchActive ? "SelectedBrush" : "RaisedBrush");
         ChurchBackgroundButton.Foreground = (Brush)FindResource(churchActive ? "AccentBrush" : "TextBrush");
         ChurchBackgroundButton.ToolTip = "Logo";
+        RefreshSceneChoices();
         UpdateUsabilityState();
         SyncPreviewSource();
         UpdateBrowserCaptureCompatibility();

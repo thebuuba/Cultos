@@ -200,7 +200,7 @@ internal static partial class Program
                         "right" => source.Left >= target.Right && Math.Abs(source.Top - target.Top) < 2,
                         _ => ReferenceEquals(Panel("sources").Parent, Panel("bible").Parent) && Panel("sources").IsSelected
                     }, "Incorrect relative rectangle for " + position);
-                    Check(manager.Layout.Descendents().OfType<LayoutAnchorable>().Count() == 8, "Placement lost a panel");
+                    Check(manager.Layout.Descendents().OfType<LayoutAnchorable>().Count() == 9, "Placement lost a panel");
                     var saved = (string)Call(window, "SerializeDockLayout")!;
                     Check(XDocument.Parse(saved).Root!.Attribute("WorkspacePreset") is null, "Custom placement still adapts as an untouched preset");
                     Call(window, "RestoreDockLayout", saved);
@@ -229,7 +229,7 @@ internal static partial class Program
                 Check((bool)Call(window, "PlaceWorkspacePanel", "sources", "bible", "top")!, "Could not move back from a floating group"); PumpFor(80);
                 Check(!Panel("sources").IsFloating && Panel("output").IsFloating, "Moving back undocked an unrelated panel");
                 Check((bool)Call(window, "PlaceWorkspacePanel", "output", "preview", "right")!, "Could not return the last floating panel"); PumpFor(80);
-                Check(!manager.FloatingWindows.Any() && manager.Layout.Descendents().OfType<LayoutAnchorable>().Count() == 8, "Empty floating window or missing content remained");
+                Check(!manager.FloatingWindows.Any() && manager.Layout.Descendents().OfType<LayoutAnchorable>().Count() == 9, "Empty floating window or missing content remained");
                 AssertSession();
             });
             Test("Moving and stacking the output keeps the active video playing from its current position", () =>

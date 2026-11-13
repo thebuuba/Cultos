@@ -14,7 +14,7 @@ internal static partial class Program
 {
     private static void RunWorkspacePresetTests(MainWindow window, string directory)
     {
-        string[] expectedIds = ["bible", "media", "order", "output", "preview", "sources", "text", "youtube"];
+        string[] expectedIds = ["bible", "media", "order", "output", "preview", "scenes", "sources", "text", "youtube"];
         string[] sourceIds = ["sources", "bible", "text", "youtube"];
         var manager = (DockingManager)window.FindName("WorkspaceDock");
         var session = Field<PresentationSession>(window, "_session");
@@ -55,7 +55,7 @@ internal static partial class Program
             void CheckWorkspace(string context)
             {
                 var panels = manager.Layout.Descendents().OfType<LayoutAnchorable>().ToArray();
-                Check(panels.Length == 8 && panels.Select(p => p.ContentId).Distinct().Count() == 8
+                Check(panels.Length == 9 && panels.Select(p => p.ContentId).Distinct().Count() == 9
                     && panels.Select(p => p.ContentId).Order().SequenceEqual(expectedIds), context + ": missing or duplicate panel IDs");
                 foreach (var panel in panels)
                     Check(ReferenceEquals(panel.Content, originalContents[panel.ContentId]), context + ": recreated " + panel.ContentId);
@@ -76,7 +76,7 @@ internal static partial class Program
 
             void CheckPrincipalCards()
             {
-                string[] visibleIds = ["sources", "preview", "output", "order"];
+                string[] visibleIds = ["sources", "scenes", "preview", "output", "order"];
                 var cards = visibleIds.Select(id => (Id: id, Element: Content(id))).ToArray();
                 foreach (var card in cards) CheckWithin(card.Element, manager, new Rect(manager.RenderSize), "Principal " + card.Id);
                 for (var first = 0; first < cards.Length; first++)
@@ -97,7 +97,7 @@ internal static partial class Program
                 Call(window, "ActivateWorkspacePanel", "sources"); Settle();
             }
 
-            Test("Workspace presets retain all eight IDs, controls and presentation snapshots across repeated switches", () =>
+            Test("Workspace presets retain all nine IDs, controls and presentation snapshots across repeated switches", () =>
             {
                 foreach (var preset in new[] { "principal", "compacta", "proyeccion", "principal", "proyeccion", "compacta" })
                 {
@@ -163,7 +163,7 @@ internal static partial class Program
                 Check(File.Exists(layoutPath), "Workspace was not saved to paneles-v2.xml");
                 Check(File.ReadAllText(legacyPath) == "Legacy layout must remain untouched.", "Saving replaced the legacy layout file");
                 var saved = File.ReadAllText(layoutPath);
-                Check(XDocument.Parse(saved).Descendants().Attributes("ContentId").Count() == 8, "Saved workspace lost panels");
+                Check(XDocument.Parse(saved).Descendants().Attributes("ContentId").Count() == 9, "Saved workspace lost panels");
                 Call(window, "RestoreDockLayout", originalLayout); Settle();
                 Call(window, "RestoreDockLayout", saved); Settle();
                 Check(ReferenceEquals(Panel("order").Parent, Panel("media").Parent), "Restoring lost customized grouping");
@@ -180,6 +180,7 @@ internal static partial class Program
             {
                 Preset("compacta");
                 var legacy = XDocument.Parse((string)Call(window, "SerializeDockLayout")!);
+                legacy.Descendants("LayoutAnchorable").Single(e => (string?)e.Attribute("ContentId") == "scenes").Parent!.Remove();
                 foreach (var id in new[] { "bible", "text", "youtube" })
                     legacy.Descendants("LayoutAnchorable").Single(element => (string?)element.Attribute("ContentId") == id).Remove();
                 var sources = legacy.Descendants("LayoutAnchorable").Single(element => (string?)element.Attribute("ContentId") == "sources");
@@ -219,7 +220,7 @@ internal static partial class Program
                 }
             });
 
-            Test("Reset returns all eight panels to Principal and closes floating hosts", () =>
+            Test("Reset returns all nine panels to Principal and closes floating hosts", () =>
             {
                 Preset("compacta"); Panel("text").Float(); Settle();
                 Check(Panel("text").IsFloating, "Reset fixture did not float a panel");

@@ -181,8 +181,8 @@ public partial class MainWindow
     }
 
     private static bool IsMonitorPair(ILayoutElement? element) => element is LayoutPanel group
-        && group.Children.Count == 2 && group.Children.All(child => child is LayoutAnchorablePane)
-        && group.Descendents().OfType<LayoutAnchorable>().Select(p => p.ContentId).Order().SequenceEqual(new[] { "output", "preview" });
+        && group.Children.Count is 2 or 3 && group.Children.All(child => child is LayoutAnchorablePane)
+        && group.Descendents().OfType<LayoutAnchorable>().Select(p => p.ContentId).Where(id => id != "scenes").Order().SequenceEqual(new[] { "output", "preview" });
 
     private static System.Windows.Media.Effects.DropShadowEffect CardShadow() => new()
     { Color = Colors.Black, BlurRadius = 12, ShadowDepth = 2, Opacity = .14, RenderingBias = System.Windows.Media.Effects.RenderingBias.Performance };
@@ -230,6 +230,7 @@ public partial class MainWindow
         if (_dockContents.ContainsKey("media")) DockLayoutMigration.AddMediaTab(document);
         if (new[] { "bible", "text", "youtube" }.All(_dockContents.ContainsKey)) WorkspaceLayouts.ExpandLegacySources(document);
         WorkspaceLayouts.RemoveRetiredSequence(document);
+        WorkspaceLayouts.AddScenesPanel(document);
         var ids = document.Descendants().Attributes("ContentId").Select(a => a.Value).ToArray();
         if (document.Root?.Name != "LayoutRoot" || ids.Length != _dockContents.Count || !ids.Order().SequenceEqual(_dockContents.Keys.Order())
             || document.Descendants().Any(e => e.Attribute("ContentId") is not null && e.Name != "LayoutAnchorable"))

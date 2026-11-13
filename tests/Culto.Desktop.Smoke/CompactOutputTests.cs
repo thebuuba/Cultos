@@ -31,7 +31,7 @@ internal static partial class Program
                 panes["order"].SetAttributeValue("DockMinWidth", "390");
                 panes["output"].SetAttributeValue("DockMinWidth", "360");
                 var root = doc.Root!.Element("RootPanel")!; root.RemoveNodes(); root.SetAttributeValue("Orientation", "Vertical");
-                root.Add(new XElement("LayoutPanel", new XAttribute("Orientation", "Horizontal"), panes["sources"], panes["order"], panes["preview"], panes["output"]), panes["media"]);
+                root.Add(new XElement("LayoutPanel", new XAttribute("Orientation", "Horizontal"), panes["sources"], panes["order"], panes["preview"], panes["output"]), new XElement("LayoutPanel", new XAttribute("Orientation", "Horizontal"), panes["media"], panes["scenes"]));
                 window.Width = 1280;
                 Call(window, "RestoreDockLayout", doc.ToString()); window.UpdateLayout();
                 var panel = (FrameworkElement)window.FindName("LivePanel");
@@ -69,13 +69,18 @@ internal static partial class Program
                 var panel = (FrameworkElement)window.FindName("LivePanel");
                 output.Float(); window.UpdateLayout(); PumpFor(80);
                 var floating = manager.FloatingWindows.Single(host => host.Model.Descendents().Contains(output));
-                floating.Width = 240; floating.Height = 260;
+                floating.Width = 230; floating.Height = 260;
                 floating.UpdateLayout(); PumpFor(80);
                 var client = (FrameworkElement)PresentationSource.FromVisual(panel).RootVisual;
                 Console.WriteLine($"COMPACT Floating host {floating.ActualWidth}x{floating.ActualHeight}; output panel {panel.ActualWidth}x{panel.ActualHeight}");
                 CheckWithin(panel, client, new Rect(client.RenderSize), "Small floating output panel");
                 CheckWithin((FrameworkElement)window.FindName("OutputViewport"), panel, new Rect(panel.RenderSize), "Output picture");
                 Check(((FrameworkElement)window.FindName("OutputViewport")).ActualHeight >= 80, "Small floating output picture is too small");
+                Call(window, "PlacePlaybackOverlay", window.FindName("LiveOverlayHost"));
+                Call(window, "ShowPlaybackOverlay", true); floating.UpdateLayout();
+                var picture = (FrameworkElement)window.FindName("OutputViewport");
+                foreach (var name in new[] { "PauseButton", "PositionSlider", "MuteButton", "VolumeSlider", "OutputSkipBackButton", "OutputSkipForwardButton" })
+                    CheckWithin((FrameworkElement)window.FindName(name), picture, new Rect(picture.RenderSize), "Floating monitor transport " + name);
                 var scroll = (ScrollViewer)window.FindName("LiveScroll");
                 foreach (var control in Descendants(scroll).OfType<FrameworkElement>()
                     .Where(control => control.IsVisible && control is Button or Slider or CheckBox))

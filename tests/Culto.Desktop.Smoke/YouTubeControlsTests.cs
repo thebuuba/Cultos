@@ -57,7 +57,7 @@ internal static partial class Program
                 Check(Field<object?>(Field<ProjectionSurface>(window, "_preview"), "_captureClient") is null,
                     "Opening YouTube started an unrequested capture");
             });
-            Test("YouTube discovery refreshes on native activation and runs only while its panel is visible", () =>
+            Test("YouTube discovery refreshes on native activation and runs while YouTube or Scenes is visible", () =>
             {
                 var panel = (FrameworkElement)window.FindName("YouTubePanel");
                 var timer = Field<DispatcherTimer>(window, "_youTubeTimer");
@@ -67,12 +67,16 @@ internal static partial class Program
                 Call(window, "ActivateWorkspacePanel", "youtube");
                 Check(count.Text != "Pending native activation refresh", "Activating an already visible YouTube panel did not rediscover windows");
                 var visibility = panel.Visibility;
+                var scenes = (FrameworkElement)window.FindName("ScenesPanel");
+                var scenesVisibility = scenes.Visibility;
                 try
                 {
                     panel.Visibility = Visibility.Collapsed;
+                    Check(timer.IsEnabled, "Scenes stopped discovering available YouTube windows");
+                    scenes.Visibility = Visibility.Collapsed;
                     Until(() => !timer.IsEnabled, "Hidden YouTube panel kept polling windows");
                 }
-                finally { panel.Visibility = visibility; }
+                finally { panel.Visibility = visibility; scenes.Visibility = scenesVisibility; }
                 Until(() => panel.IsVisible && timer.IsEnabled, "Showing YouTube did not resume discovery");
             });
             Test("Keep audio and one-way return work through the actual console actions", () =>

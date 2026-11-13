@@ -13,6 +13,7 @@ public partial class MainWindow
         _workspace.Transitions = dialog.Options;
         if (!SaveWorkspace()) { _workspace.Transitions = previous; return; }
         if (_output is not null) _output.Transitions = _workspace.Transitions;
+        RefreshSceneChoices();
         SetStatus("Transición del sistema guardada.");
     }
 }

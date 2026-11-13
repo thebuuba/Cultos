@@ -1,8 +1,24 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 13 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.33.3`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 13 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.34.0`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### Tarjeta de producción, escenas y transporte local — versión 0.34.0
+
+Escenas queda a la izquierda de Vista previa y En pantalla, dentro del mismo contorno y sombra. Los tres paneles conservan su acoplamiento, tamaño y visibilidad independientes. Principal, Compacta y Proyección incluyen el nuevo panel; los diseños anteriores completos de ocho paneles añaden Escenas sin reemplazar sus controles. La migración mantiene el marcador adaptativo de Principal y continúa retirando Secuencia. Los controles de transición permanecen debajo del área desplazable de escenas.
+
+Logo y Fondo negro reutilizan sus acciones anteriores. Imagen y Video pueden proyectar el medio preparado o recuperar su elección guardada; elegir un archivo desde el menú derecho lo valida, guarda y prepara sin proyectarlo todavía. Los errores de apertura o guardado conservan la elección anterior. YouTube comparte las fuentes y el selector de captura existentes, se actualiza mientras Escenas o su pestaña estén visibles y permite elegir otra ventana desde el menú. El selector de transición modifica la misma configuración global y conserva duración y fundidos de audio.
+
+El transporte existente se mueve entre los dos anfitriones locales, dentro de sus recuadros. Vista previa lo recibe solamente cuando está siguiendo la salida. Se mantiene un solo reproductor. `ProjectionSurface`, el contenido entregado a HDMI, no contiene los botones ni la barra. La barra se desvanece al salir con el ratón, se mantiene al arrastrar la posición y reaparece al usar el teclado. Se corrigió que el foco de un clic en Pausa la dejara fija. La captura de YouTube sigue sin pausa o avance locales que congelen solamente su imagen.
+
+Se confirmó mediante inventario nativo que el anfitrión de pruebas abría una segunda consola por `StartupUri`, interfiriendo con el foco y el cierre. El arranque ahora crea una consola únicamente si el anfitrión no ha proporcionado una. Una prueba global verificó el fallo antes del cambio y pasa con una sola ventana. La revisión general final completa 136 comprobaciones sin fallos, incluidas las búsquedas, atajos y protección de cambios al cerrar que habían fallado en ensayos anteriores.
+
+Pasaron nueve comprobaciones de producción, cuatro de tamaño compacto —incluido transporte dentro de un monitor de 220 DIP—, diez de distribuciones, once de colocación y tamaños, siete de visibilidad, seis de YouTube, 16 visuales y nueve de arranque. Se verificaron capturas amplias y compactas. En una consola aislada, con un himno real y volumen cero, se comprobó el gesto de entrada/salida con el ratón, Pausa y el traslado de la barra entre ambos monitores. La revisión de código final no dejó hallazgos pendientes en estos cambios. Las pruebas emplean datos temporales y no cambian el culto del usuario.
+
+Compilación y publicación sin errores ni advertencias; 232 Core y 64 Remote correctas. El ensayo `--native-startup`, que deja crear la ventana al arranque normal de App en vez de proporcionarla, también pasa con una sola consola visible y cierre correcto.
+
+Evidencias en `.tools/worktrees/culto-polymet/.tools/production-desktop-final.log`, `production-final-*.log`, `production-host-red.log`, `production-keyboard-red.log`, `production-demo-final.log`, `production-native-startup.log`, `production-publish.log` y `.tools/visual-theme/production-controls.png` / `production-preview-controls.png`.
 
 ### Preparación de la primera reproducción — versión 0.33.3
 

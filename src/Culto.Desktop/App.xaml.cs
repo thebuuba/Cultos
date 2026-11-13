@@ -36,6 +36,8 @@ public partial class App : Application
             args.Handled = true;
         };
         base.OnStartup(e);
+        // Native startup owns one console; an explicit host can supply its own.
+        if (MainWindow is null) new MainWindow().Show();
     }
 }
 

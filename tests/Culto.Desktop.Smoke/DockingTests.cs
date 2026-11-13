@@ -21,7 +21,8 @@ internal static partial class Program
             var preview = (FrameworkElement)window.FindName("PreviewPanel");
             var live = session.Live; var prepared = session.Prepared;
             var splitter = Descendants(manager).OfType<AvalonDock.Controls.LayoutGridResizerControl>()
-                .First(s => s.Parent is Grid grid && grid.ColumnDefinitions.Count == 3 && grid.IsAncestorOf(preview) && !grid.IsAncestorOf((FrameworkElement)window.FindName("SourcesPanel")));
+                .First(s => s.Parent is Grid grid && grid.ColumnDefinitions.Count >= 3 && grid.IsAncestorOf(preview) && !grid.IsAncestorOf((FrameworkElement)window.FindName("SourcesPanel"))
+                    && grid.Children.OfType<FrameworkElement>().Any(child => child.IsAncestorOf(preview) && Grid.GetColumn(child) + 1 == Grid.GetColumn(s)));
             var before = preview.ActualWidth;
             try
             {
@@ -77,13 +78,13 @@ internal static partial class Program
             Call(window, "OpenOutput", Culto.Desktop.Services.DisplayService.GetDisplays().First(), true);
             Call(window, "ProjectPrepared"); Until(() => monitor.IsConnected, "Reopened output did not reconnect");
         });
-        Test("All eight panels can float regroup and restore without replacing controls or session", () =>
+        Test("All nine panels can float regroup and restore without replacing controls or session", () =>
         {
             var live = session.Live; var prepared = session.Prepared;
             var original = manager.Layout.Descendents().OfType<LayoutAnchorable>().ToDictionary(p => p.ContentId, p => p.Content);
             try
             {
-                Check(original.Count == 8, "Missing dockable workspace panels");
+                Check(original.Count == 9, "Missing dockable workspace panels");
                 foreach (var id in original.Keys)
                 {
                     var pane = Panel(id);
@@ -111,12 +112,13 @@ internal static partial class Program
             try
             {
                 var document = System.Xml.Linq.XDocument.Parse(initial);
+                document.Descendants().Single(e => (string?)e.Attribute("ContentId") == "scenes").Parent!.Remove();
                 foreach (var id in new[] { "media", "bible", "text", "youtube" }) document.Descendants().Single(e => (string?)e.Attribute("ContentId") == id).Remove();
                 var order = document.Descendants().Single(e => (string?)e.Attribute("ContentId") == "order");
                 order.Parent!.SetAttributeValue("DockWidth", "1.25*");
                 order.Parent.Add(new System.Xml.Linq.XElement("LayoutAnchorable", new System.Xml.Linq.XAttribute("Title", "Retired"), new System.Xml.Linq.XAttribute("ContentId", "sequence")));
                 Call(window, "RestoreDockLayout", document.ToString());
-                Check(manager.Layout.Descendents().OfType<LayoutAnchorable>().Count() == 8, "Migration lost a panel or retained Sequence");
+                Check(manager.Layout.Descendents().OfType<LayoutAnchorable>().Count() == 9, "Migration lost a panel or retained Sequence");
                 Check(ReferenceEquals(Panel("media").Parent, Panel("order").Parent), "Migration reset the old media group");
                 Check(((LayoutAnchorablePane)Panel("order").Parent).DockWidth == new GridLength(1.25, GridUnitType.Star), "Migration reset saved width");
             }

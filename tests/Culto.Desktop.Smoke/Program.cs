@@ -112,6 +112,17 @@ internal static partial class Program
             var app = new App();
             app.InitializeComponent();
             app.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            if (args.Contains("--native-startup"))
+            {
+                app.Startup += (_, _) => app.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
+                {
+                    Test("Native startup creates one visible console without an explicit host window", () =>
+                        Check(app.Windows.OfType<MainWindow>().Count() == 1 && app.MainWindow is MainWindow { IsVisible: true }, "Native startup did not show exactly one console"));
+                    app.MainWindow?.Close();
+                }));
+                app.Run();
+                return failures == 0 ? 0 : 1;
+            }
             // Rendering/animation checks need a visible compositor surface even
             // when the user's normal console or Office is also open.
             var window = new MainWindow { Topmost = true, WindowState = WindowState.Normal };
@@ -120,7 +131,7 @@ internal static partial class Program
                 window.Show();
                 app.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
                 {
-                    try { if (args.Contains("--sequence-removal")) RunSequenceRemovalTests(window); else if (args.Contains("--panel-visibility")) RunPanelVisibilityTests(window); else if (args.Contains("--panel-drag-demo")) { window.Title = "Culto Studio - Ensayo de arrastre"; window.Width = 1600; window.Height = 900; Call(window, "ApplyWorkspacePreset", "principal", false); window.UpdateLayout(); Console.WriteLine("DRAG READY"); PumpFor(55000); } else if (args.Contains("--panel-sizing")) RunPanelSizingTests(window); else if (args.Contains("--workspace-layouts")) RunWorkspacePresetTests(window, directory); else if (args.Contains("--visual-theme")) RunVisualThemeTests(window); else if (args.Contains("--browser-capture-compat")) RunBrowserCaptureCompatibilityTests(window); else if (args.Contains("--content-drag")) RunContentDragDropTests(window); else if (args.Contains("--youtube-controls")) RunYouTubeControlsTests(window); else if (args.Contains("--first-play")) RunColdPlaybackTests(window, engineTests: false); else if (args.Contains("--cold-play")) RunColdPlaybackTests(window); else if (args.Contains("--order")) RunOrderInteractionTests(window); else if (args.Contains("--output-player")) RunOutputPlayerWindowTests(window); else if (args.Contains("--window-capture-picker")) RunWindowCapturePickerTests(window); else if (args.Contains("--transition-settings")) RunTransitionSettingsTests(window); else if (args.Contains("--powerpoint")) RunPowerPointTests(window, directory); else if (args.Contains("--presenter")) RunPresenterHotkeysTests(window); else if (args.Contains("--saved-sets")) RunSavedSetsTests(window); else if (args.Contains("--bible-tools")) { RunBibleSearchTests(window, directory); RunBibleSelectionTests(window); RunBibleStyleIntegrationTests(window); RunBibleEditorTests(window); } else if (args.Contains("--content-sources")) { RunLocalMediaFolderServiceTests(); RunFolderSourcesTests(window); RunContentDragDropTests(window); } else if (args.Contains("--local-output")) RunLocalOutputTests(window); else if (args.Contains("--compact-output")) RunCompactOutputTests(window); else if (args.Contains("--player")) RunPlayerControlsTests(window); else if (args.Contains("--backdrops")) RunBackdropControlsTests(window); else if (args.Contains("--remote-order")) { RunRemoteOrderTests(window); RunRemoteDialogTests(window); } else RunWindowTests(window, directory); }
+                    try { Test("Smoke host contains only its explicit console window", () => Check(app.Windows.OfType<MainWindow>().Count() == 1, "StartupUri opened a second console")); if (args.Contains("--production-demo")) RunProductionDemo(window); else if (args.Contains("--production-card")) RunProductionCardTests(window); else if (args.Contains("--sequence-removal")) RunSequenceRemovalTests(window); else if (args.Contains("--panel-visibility")) RunPanelVisibilityTests(window); else if (args.Contains("--panel-drag-demo")) { window.Title = "Culto Studio - Ensayo de arrastre"; window.Width = 1600; window.Height = 900; Call(window, "ApplyWorkspacePreset", "principal", false); window.UpdateLayout(); Console.WriteLine("DRAG READY"); PumpFor(55000); } else if (args.Contains("--panel-sizing")) RunPanelSizingTests(window); else if (args.Contains("--workspace-layouts")) RunWorkspacePresetTests(window, directory); else if (args.Contains("--visual-theme")) RunVisualThemeTests(window); else if (args.Contains("--browser-capture-compat")) RunBrowserCaptureCompatibilityTests(window); else if (args.Contains("--content-drag")) RunContentDragDropTests(window); else if (args.Contains("--youtube-controls")) RunYouTubeControlsTests(window); else if (args.Contains("--first-play")) RunColdPlaybackTests(window, engineTests: false); else if (args.Contains("--cold-play")) RunColdPlaybackTests(window); else if (args.Contains("--order")) RunOrderInteractionTests(window); else if (args.Contains("--output-player")) RunOutputPlayerWindowTests(window); else if (args.Contains("--window-capture-picker")) RunWindowCapturePickerTests(window); else if (args.Contains("--transition-settings")) RunTransitionSettingsTests(window); else if (args.Contains("--powerpoint")) RunPowerPointTests(window, directory); else if (args.Contains("--presenter")) RunPresenterHotkeysTests(window); else if (args.Contains("--saved-sets")) RunSavedSetsTests(window); else if (args.Contains("--bible-tools")) { RunBibleSearchTests(window, directory); RunBibleSelectionTests(window); RunBibleStyleIntegrationTests(window); RunBibleEditorTests(window); } else if (args.Contains("--content-sources")) { RunLocalMediaFolderServiceTests(); RunFolderSourcesTests(window); RunContentDragDropTests(window); } else if (args.Contains("--local-output")) RunLocalOutputTests(window); else if (args.Contains("--compact-output")) RunCompactOutputTests(window); else if (args.Contains("--player")) RunPlayerControlsTests(window); else if (args.Contains("--backdrops")) RunBackdropControlsTests(window); else if (args.Contains("--remote-order")) { RunRemoteOrderTests(window); RunRemoteDialogTests(window); } else RunWindowTests(window, directory); }
                     catch (Exception error) { failures++; Console.WriteLine("FAIL smoke callback: " + error); }
                     finally
                     {
@@ -588,7 +599,7 @@ internal static partial class Program
                     var outputStatus = (TextBlock)window.FindName("OutputStatusText");
                     var liveCard = Ancestors(liveBody).OfType<Border>().First(border => border.IsAncestorOf(outputStatus));
                     var liveViewport = BoundsWithin(liveCard, client);
-                    foreach (var name in new[] { "LiveBodyText", "LiveReferenceText", "LiveTitleText", "OutputModeText", "NextLiveText" })
+                    foreach (var name in new[] { "LiveReferenceText", "LiveTitleText", "OutputModeText", "NextLiveText" })
                     {
                         var element = (FrameworkElement)window.FindName(name);
                         var scroll = (ScrollViewer)window.FindName("LiveScroll");
@@ -599,7 +610,7 @@ internal static partial class Program
                         }
                         else CheckWithin(element, client, liveViewport, $"{name} at height {compactHeight}");
                     }
-                    Check(liveBody.ActualHeight >= liveBody.FontSize, "Compact layout hides every line of the live reading excerpt");
+                    Check(liveBody.Visibility == Visibility.Collapsed, "Duplicate live reading excerpt returned below the monitor");
                     for (var index = 0; index < 4; index++)
                     {
                         Call(window, "SelectContentSource", index); window.UpdateLayout(); PumpFor(25);

@@ -13,22 +13,22 @@ internal static class WorkspaceLayouts
     {
         "sources" => "Himnario", "bible" => "Biblia", "text" => "Texto", "youtube" => "YouTube",
         "preview" => "Vista previa", "output" => "En pantalla", "order" => "Orden del culto",
-        "media" => "Medios", _ => id
+        "media" => "Medios", "scenes" => "Escenas", _ => id
     };
 
     internal static double MinimumWidth(string? id) => id switch
     {
-        "bible" => 200, "preview" or "output" => 220, _ => 180
+        "scenes" => 156, "bible" => 200, "preview" or "output" => 220, _ => 180
     };
 
     internal static double MinimumHeight(string? id) => id switch
     {
-        "preview" or "output" => 240, "order" => 160, _ => 180
+        "scenes" or "preview" or "output" => 240, "order" => 160, _ => 180
     };
 
     internal static XDocument Create(string preset)
     {
-        var monitors = Group("Horizontal", "*", preset == "proyeccion" ? "1.8*" : "*", Pane("*", "preview"), Pane("*", "output"));
+        var monitors = Group("Horizontal", "*", preset == "proyeccion" ? "1.8*" : "1.15*", Pane("0.4*", "scenes"), Pane("*", "preview"), Pane("*", "output"));
         XElement root = preset switch
         {
             "principal" => Group("Horizontal", "*", "*",
@@ -39,7 +39,7 @@ internal static class WorkspaceLayouts
                 Pane("1.1*", TabbedSourceIds),
                 Group("Vertical", "2.2*", "*", monitors,
                     Pane("*", "order"))),
-            "proyeccion" => Group("Horizontal", "*", "*", Pane("0.85*", SourceIds),
+            "proyeccion" => Group("Horizontal", "*", "*", Pane("0.6*", SourceIds),
                 Group("Vertical", "2.8*", "*", monitors,
                     Group("Horizontal", "*", "*", Pane("*", "media"), Pane("*", "order")))),
             _ => throw new ArgumentException("Distribución de paneles desconocida.", nameof(preset))
@@ -132,7 +132,7 @@ internal static class WorkspaceLayouts
         var contents = document.Descendants().Where(e => e.Attribute("ContentId") is not null).ToArray();
         // Only migrate a complete former layout; malformed/duplicate IDs still
         // fail validation before replacing the user's current workspace.
-        if (!contents.Select(e => (string)e.Attribute("ContentId")!).Order().SequenceEqual(oldIds)) return;
+        if (!contents.Select(e => (string)e.Attribute("ContentId")!).Where(id => id != "scenes").Order().SequenceEqual(oldIds)) return;
         contents.Single(e => (string?)e.Attribute("ContentId") == "sequence").Remove();
         var previousContainers = document.Descendants().Attributes("PreviousContainerId").Select(a => a.Value).ToHashSet();
         foreach (var node in document.Descendants().Reverse().ToArray())
@@ -148,6 +148,19 @@ internal static class WorkspaceLayouts
             }
         }
         document.Root?.Attribute("WorkspacePreset")?.Remove();
+    }
+
+    internal static void AddScenesPanel(XDocument document)
+    {
+        string[] previousIds = ["bible", "media", "order", "output", "preview", "sources", "text", "youtube"];
+        var contents = document.Descendants().Where(e => e.Attribute("ContentId") is not null).ToArray();
+        if (!contents.Select(e => (string)e.Attribute("ContentId")!).Order().SequenceEqual(previousIds)) return;
+        var preview = contents.Single(e => (string?)e.Attribute("ContentId") == "preview");
+        var output = contents.Single(e => (string?)e.Attribute("ContentId") == "output");
+        var target = new[] { preview.Parent, output.Parent }.FirstOrDefault(e => e?.Name == "LayoutAnchorablePane");
+        var scenes = Pane("0.4*", "scenes");
+        if (target is not null) target.AddBeforeSelf(scenes);
+        else document.Root?.Element("RootPanel")?.Add(scenes);
     }
 
     internal static string Arrangement(XDocument document)

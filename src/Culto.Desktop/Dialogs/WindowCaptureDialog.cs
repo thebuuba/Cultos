@@ -36,7 +36,7 @@ public sealed class WindowCaptureDialog : Window
     private bool _closed, _ready, _refreshing;
     public Cue? SelectedCue { get; private set; }
 
-    public WindowCaptureDialog(Cue? initialCue = null, WindowCaptureLayout? youTubeLayout = null)
+    public WindowCaptureDialog(Cue? initialCue = null, WindowCaptureLayout? youTubeLayout = null, string? confirmCaption = null)
     {
         _initialCue = initialCue;
         _youTubeLayout = youTubeLayout;
@@ -104,7 +104,7 @@ public sealed class WindowCaptureDialog : Window
 
         var footer = new WrapPanel { HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 20, 0, 0) };
         var cancel = Button("Cancelar", "CancelWindowCapture", () => DialogResult = false); cancel.IsCancel = true;
-        _add = Button(initialCue is null ? "Añadir al orden" : "Guardar captura", "AddWindowCapture", AddCapture);
+        _add = Button(confirmCaption ?? (initialCue is null ? "Añadir al orden" : "Guardar captura"), "AddWindowCapture", AddCapture);
         _add.IsDefault = true; _add.IsEnabled = false; _add.Style = (Style)FindResource("PrimaryButton");
         footer.Children.Add(cancel); footer.Children.Add(_add);
         Grid.SetRow(footer, 2); root.Children.Add(footer);
