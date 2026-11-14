@@ -30,9 +30,6 @@ public partial class MainWindow
         return sources;
     }
 
-    private CommandResult ExecuteRemoteScene(string? id)
-        => ExecuteRemoteSceneMode(id, false);
-
     private CommandResult ExecuteRemoteSceneMode(string? id, bool preserve)
     {
         var scene = BuildRemoteScenes().FirstOrDefault(item => item.Id == id);

@@ -33,9 +33,9 @@ internal static partial class Program
         var oldPreparedReading = Field<IReadOnlyList<Cue>?>(window, "_preparedReading");
         var oldLiveReading = Field<IReadOnlyList<Cue>?>(window, "_liveReading");
         var originalOutput = Field<object?>(window, "_outputWindow");
-        var hymn13 = new Cue { Title = "013 Himno sintético trece", HymnNumber = 13 };
-        var hymn113 = new Cue { Title = "113 Himno sintético ciento trece", HymnNumber = 113 };
-        var title13 = new Cue { Title = "Aviso sintético 13", Body = "Texto sintético de prueba" };
+        var hymn13 = new Cue { Title = "013 Himno sintÃ©tico trece", HymnNumber = 13 };
+        var hymn113 = new Cue { Title = "113 Himno sintÃ©tico ciento trece", HymnNumber = 113 };
+        var title13 = new Cue { Title = "Aviso sintÃ©tico 13", Body = "Texto sintÃ©tico de prueba" };
         var logoPath = Path.Combine(directory, "usability-logo.png");
         var logoEncoder = new PngBitmapEncoder();
         logoEncoder.Frames.Add(BitmapFrame.Create(BitmapSource.Create(1, 1, 96, 96, PixelFormats.Bgr32, null,
@@ -73,7 +73,7 @@ internal static partial class Program
                 Call(window, "PrepareCue", title13, null);
                 search.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(search)!, Environment.TickCount, Key.Enter) { RoutedEvent = Keyboard.KeyDownEvent });
                 Check(session.Prepared?.Id == hymn13.Id, "Enter on an already selected result did not prepare it again");
-                search.Text = "sin-resultados-sintéticos";
+                search.Text = "sin-resultados-sintÃ©ticos";
                 var prepared = session.Prepared;
                 search.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(search)!, Environment.TickCount, Key.Enter) { RoutedEvent = Keyboard.KeyDownEvent });
                 Check(ReferenceEquals(prepared, session.Prepared) && ReferenceEquals(live, session.Live), "Enter with no results changed prepared/live content");
@@ -87,7 +87,7 @@ internal static partial class Program
                 var text = (TextBox)window.FindName("TextBodyBox");
                 foreach (var entry in new[] { (Key.D1, 0, search), (Key.D2, 1, bible), (Key.D3, 2, text) })
                 {
-                    entry.Item3.Text = "Consulta sintética";
+                    entry.Item3.Text = "Consulta sintÃ©tica";
                     BindingFor(entry.Item1).Command.Execute(null);
                     Until(() => Field<int>(window, "_activeContentSource") == entry.Item2 && entry.Item3.IsKeyboardFocusWithin, "Source shortcut did not select and focus its source");
                     entry.Item3.Select(0, 0);
@@ -142,19 +142,19 @@ internal static partial class Program
                 Check(window.FindName("ScreenNavigationPanel") is null, "Removed output navigation is still present");
                 var outputMode = (TextBlock)window.FindName("OutputModeText");
                 Check(outputMode.Text == "SIN SALIDA", "Closed output retained a live mode indicator");
-                Call(window, "PrepareCue", new Cue { Title = "Texto sintético", Kind = CueKind.Text }, null);
+                Call(window, "PrepareCue", new Cue { Title = "Texto sintÃ©tico", Kind = CueKind.Text }, null);
                 Check(mediaPanel.Visibility == Visibility.Collapsed, "Text/closed output shows irrelevant media controls");
                 var fixture = Path.Combine(AppContext.BaseDirectory, "fixtures", "test.mkv");
-                Call(window, "PrepareCue", new Cue { Title = "Video sintético", Kind = CueKind.Video, FilePath = fixture }, null);
+                Call(window, "PrepareCue", new Cue { Title = "Video sintÃ©tico", Kind = CueKind.Video, FilePath = fixture }, null);
                 Check(mediaPanel.Visibility == Visibility.Collapsed, "Preparing video exposed live controls");
                 Call(window, "OpenOutput", DisplayService.GetDisplays().First(), true);
                 Call(window, "ProjectPrepared");
                 Check(mediaPanel.Visibility == Visibility.Visible, "Live video has no playback controls");
                 workspace.BackgroundImages = [logoPath];
                 workspace.BackgroundImagePath = logoPath;
-                Call(window, "ShowBackground");
+                Call(window, "ShowLogo");
                 Call(window, "PrepareCue", title13, null);
-                Check(mediaPanel.Visibility == Visibility.Visible, "Prepared text hid the controls for the still-live video");
+                Check(mediaPanel.Visibility == Visibility.Collapsed, "Preparing text exposed transport after normal Logo paused the video");
                 Check(outputMode.Text == "LOGO", "Preparing another cue hid the persistent Logo indicator");
                 Call(window, "ToggleBlackout");
                 Check(outputMode.Text == "NEGRO", "Blackout did not take priority over background-only mode");
@@ -169,9 +169,9 @@ internal static partial class Program
             });
             Test("Next guidance and live marker follow live order without changing selected prepared cue", () =>
             {
-                var a = new Cue { Title = "Orden sintético A", Body = "A" };
-                var b = new Cue { Title = "Orden sintético B", Body = "B" };
-                var c = new Cue { Title = "Orden sintético C", Body = "C" };
+                var a = new Cue { Title = "Orden sintÃ©tico A", Body = "A" };
+                var b = new Cue { Title = "Orden sintÃ©tico B", Body = "B" };
+                var c = new Cue { Title = "Orden sintÃ©tico C", Body = "C" };
                 plan.Clear(); plan.Add(a); plan.Add(b); plan.Add(c); Call(window, "UpdatePlanCount");
                 planList.SelectedItem = a; Call(window, "ProjectPrepared");
                 planList.SelectedItem = c;

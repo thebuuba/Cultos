@@ -1,4 +1,5 @@
 using System.IO;
+using System.Xml.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using AvalonDock;
@@ -18,18 +19,18 @@ internal static partial class Program
         LayoutAnchorable Panel(string id) => manager.Layout.Descendents().OfType<LayoutAnchorable>().Single(p => p.ContentId == id);
         Test("Dock separators resize content before release and cancellation restores the initial sizes", () =>
         {
-            var preview = (FrameworkElement)window.FindName("PreviewPanel");
+            var preview = Descendants(manager).OfType<AvalonDock.Controls.LayoutAnchorablePaneControl>().Single(p => ReferenceEquals(p.Model, Panel("preview").Parent));
             var live = session.Live; var prepared = session.Prepared;
             var splitter = Descendants(manager).OfType<AvalonDock.Controls.LayoutGridResizerControl>()
                 .First(s => s.Parent is Grid grid && grid.ColumnDefinitions.Count >= 3 && grid.IsAncestorOf(preview) && !grid.IsAncestorOf((FrameworkElement)window.FindName("SourcesPanel"))
-                    && grid.Children.OfType<FrameworkElement>().Any(child => child.IsAncestorOf(preview) && Grid.GetColumn(child) + 1 == Grid.GetColumn(s)));
+                    && grid.Children.OfType<FrameworkElement>().Any(child => child.IsAncestorOf(preview) && Grid.GetColumn(child) - 1 == Grid.GetColumn(s)));
             var before = preview.ActualWidth;
             try
             {
                 splitter.RaiseEvent(new System.Windows.Controls.Primitives.DragStartedEventArgs(0, 0) { RoutedEvent = System.Windows.Controls.Primitives.Thumb.DragStartedEvent });
                 splitter.RaiseEvent(new System.Windows.Controls.Primitives.DragDeltaEventArgs(35, 0) { RoutedEvent = System.Windows.Controls.Primitives.Thumb.DragDeltaEvent });
                 window.UpdateLayout();
-                Check(preview.ActualWidth > before + 20, "Panel waits until mouse release to resize");
+                Check(preview.ActualWidth < before - 20, "Panel waits until mouse release to resize");
                 Check(ReferenceEquals(live, session.Live) && ReferenceEquals(prepared, session.Prepared), "Resizing changed prepared/live content");
             }
             finally
@@ -41,7 +42,7 @@ internal static partial class Program
         });
         Test("Vertical live resizing follows successive moves respects limits and persists on release", () =>
         {
-            var preview = (FrameworkElement)window.FindName("PreviewPanel");
+            var preview = Descendants(manager).OfType<AvalonDock.Controls.LayoutAnchorablePaneControl>().Single(p => ReferenceEquals(p.Model, Panel("preview").Parent));
             var splitter = Descendants(manager).OfType<AvalonDock.Controls.LayoutGridResizerControl>()
                 .First(s => s.Parent is Grid grid && grid.RowDefinitions.Count == 3 && grid.IsAncestorOf(preview));
             var before = preview.ActualHeight;
@@ -63,34 +64,33 @@ internal static partial class Program
             }
             finally { Call(window, "RestoreDockLayout", initial); }
         });
-        Test("Output monitor follows the real output window and disconnects on close", () =>
+        Test("Output monitor shares the local compositor and disconnects on close", () =>
         {
             Call(window, "PrepareCue", new Cue { Title = "Salida", Body = "Salida real" }, null);
             Call(window, "ProjectPrepared"); window.UpdateLayout();
-            Until(() => monitor.IsConnected, "DWM monitor did not connect to output");
-            var output = Field<ProjectionWindow>(window, "_outputWindow");
-            Check(ReferenceEquals(Field<Window?>(monitor, "_source"), output), "Monitor is not connected to the output window");
+            var output = Field<ProjectionSurface>(window, "_output");
+            Check(ReferenceEquals(Field<System.Windows.Media.VisualBrush?>(monitor, "_localImage")?.Visual, output), "Monitor does not share the local compositor");
             Call(window, "PrepareCue", new Cue { Title = "Preparado", Body = "Vista previa independiente" }, null);
-            Check(session.Live?.Body == "Salida real" && monitor.IsConnected, "Preparing changed or disconnected output");
-            Call(window, "ToggleBlackout"); Check(session.IsBlackout && monitor.IsConnected, "Blackout detached monitor");
+            Check(session.Live?.Body == "Salida real" && ReferenceEquals(Field<System.Windows.Media.VisualBrush?>(monitor, "_localImage")?.Visual, output), "Preparing changed or disconnected output");
+            Call(window, "ToggleBlackout"); Check(session.IsBlackout && ReferenceEquals(Field<System.Windows.Media.VisualBrush?>(monitor, "_localImage")?.Visual, output), "Blackout detached monitor");
             Call(window, "ToggleBlackout");
-            Call(window, "CloseOutput"); Check(!monitor.IsConnected, "Closed output left a stale thumbnail");
+            Call(window, "CloseOutput"); Check(Field<System.Windows.Media.VisualBrush?>(monitor, "_localImage") is null, "Closed output left a stale local source");
             Call(window, "OpenOutput", Culto.Desktop.Services.DisplayService.GetDisplays().First(), true);
-            Call(window, "ProjectPrepared"); Until(() => monitor.IsConnected, "Reopened output did not reconnect");
+            Call(window, "ProjectPrepared"); Check(ReferenceEquals(Field<System.Windows.Media.VisualBrush?>(monitor, "_localImage")?.Visual, Field<ProjectionSurface>(window, "_output")), "Reopened output did not reconnect to the compositor");
         });
-        Test("All nine panels can float regroup and restore without replacing controls or session", () =>
+        Test("All ten panels can float regroup and restore without replacing controls or session", () =>
         {
             var live = session.Live; var prepared = session.Prepared;
             var original = manager.Layout.Descendents().OfType<LayoutAnchorable>().ToDictionary(p => p.ContentId, p => p.Content);
             try
             {
-                Check(original.Count == 9, "Missing dockable workspace panels");
-                foreach (var id in original.Keys)
+                Check(original.Count == 10, "Missing dockable workspace panels");
+                foreach (var id in original.Keys.Where(id => id != "preview"))
                 {
                     var pane = Panel(id);
                     pane.Float(); window.UpdateLayout(); PumpFor(100);
                     Check(pane.IsFloating && PresentationSource.FromVisual((FrameworkElement)pane.Content) != PresentationSource.FromVisual(window), id + " did not float into a separate native window");
-                    if (id == "output") Until(() => { monitor.Refresh(); return monitor.IsConnected; }, $"Output mirror failed after floating: loaded={monitor.IsLoaded}, visible={monitor.IsVisible}, sourceVisible={Field<Window?>(monitor, "_source")?.IsVisible}, root={PresentationSource.FromVisual(monitor)?.RootVisual?.GetType().Name}");
+                    if (id == "preview") Until(() => { monitor.Refresh(); return monitor.IsConnected; }, $"Output mirror failed after floating: loaded={monitor.IsLoaded}, visible={monitor.IsVisible}, sourceVisible={Field<Window?>(monitor, "_source")?.IsVisible}, root={PresentationSource.FromVisual(monitor)?.RootVisual?.GetType().Name}");
                     pane.Dock(); window.UpdateLayout(); PumpFor(60);
                     Check(!pane.IsFloating, id + " did not dock back");
                 }
@@ -113,12 +113,14 @@ internal static partial class Program
             {
                 var document = System.Xml.Linq.XDocument.Parse(initial);
                 document.Descendants().Single(e => (string?)e.Attribute("ContentId") == "scenes").Parent!.Remove();
-                foreach (var id in new[] { "media", "bible", "text", "youtube" }) document.Descendants().Single(e => (string?)e.Attribute("ContentId") == id).Remove();
+                foreach (var id in new[] { "media", "bible", "text", "youtube", "playlists", "powerpoint" }) document.Descendants().Single(e => (string?)e.Attribute("ContentId") == id).Remove();
                 var order = document.Descendants().Single(e => (string?)e.Attribute("ContentId") == "order");
                 order.Parent!.SetAttributeValue("DockWidth", "1.25*");
                 order.Parent.Add(new System.Xml.Linq.XElement("LayoutAnchorable", new System.Xml.Linq.XAttribute("Title", "Retired"), new System.Xml.Linq.XAttribute("ContentId", "sequence")));
+                order.Parent.Add(new System.Xml.Linq.XElement("LayoutAnchorable", new System.Xml.Linq.XAttribute("Title", "Old output"), new System.Xml.Linq.XAttribute("ContentId", "output")));
+                Check(document.Descendants().Attributes("ContentId").Count() == 5, "Legacy fixture is not a complete five-panel layout");
                 Call(window, "RestoreDockLayout", document.ToString());
-                Check(manager.Layout.Descendents().OfType<LayoutAnchorable>().Count() == 9, "Migration lost a panel or retained Sequence");
+                Check(manager.Layout.Descendents().OfType<LayoutAnchorable>().Count() == 10, "Migration lost a panel or retained Sequence");
                 Check(ReferenceEquals(Panel("media").Parent, Panel("order").Parent), "Migration reset the old media group");
                 Check(((LayoutAnchorablePane)Panel("order").Parent).DockWidth == new GridLength(1.25, GridUnitType.Star), "Migration reset saved width");
             }
@@ -127,7 +129,7 @@ internal static partial class Program
         Test("Invalid or incomplete layout is rejected before replacing current panels", () =>
         {
             var before = manager.Layout;
-            foreach (var invalid in new[] { "<invalid", "<LayoutRoot />", initial.Replace("ContentId=\"output\"", "ContentId=\"unknown\"") })
+            foreach (var invalid in new[] { "<invalid", "<LayoutRoot />", initial.Replace("ContentId=\"preview\"", "ContentId=\"unknown\"") })
             {
                 var rejected = false;
                 try { Call(window, "RestoreDockLayout", invalid); } catch { rejected = true; }
@@ -138,15 +140,15 @@ internal static partial class Program
         {
             try
             {
-                Panel("output").Float(); window.UpdateLayout(); PumpFor(100);
+                Panel("youtube").Float(); window.UpdateLayout(); PumpFor(100);
                 var document = System.Xml.Linq.XDocument.Parse((string)Call(window, "SerializeDockLayout")!);
                 foreach (var element in document.Descendants().Where(e => e.Attribute("FloatingLeft") is not null))
                 { element.SetAttributeValue("FloatingLeft", "-100000"); element.SetAttributeValue("FloatingTop", "-100000"); }
                 Call(window, "RestoreDockLayout", document.ToString()); window.UpdateLayout(); PumpFor(100);
-                Check(Panel("output").IsFloating, "Floating panel was not restored");
-                var floating = manager.FloatingWindows.Single(w => w.Model.Descendents().Contains(Panel("output")));
+                Check(Panel("youtube").IsFloating, "Floating panel was not restored");
+                var floating = manager.FloatingWindows.Single(w => w.Model.Descendents().Contains(Panel("youtube")));
                 Check(floating.Left > -10000 && floating.Top > -10000, "Floating title remained offscreen");
-                Until(() => { monitor.Refresh(); return monitor.IsConnected; }, "Restored floating monitor lost output");
+                Check(!Panel("preview").IsFloating, "Restoring a floating source moved the fixed monitors");
             }
             finally { Call(window, "RestoreDockLayout", initial); }
         });

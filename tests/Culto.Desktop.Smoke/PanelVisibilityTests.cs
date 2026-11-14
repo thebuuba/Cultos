@@ -17,12 +17,12 @@ internal static partial class Program
         void Visible(string id, bool value) => Call(window, "SetWorkspacePanelVisible", id, value);
         try
         {
-            Test("Every panel can hide and return with the same content instance", () =>
+            Test("Source panels can hide and return while joined monitors stay fixed", () =>
             {
                 foreach (var id in original.Keys)
                 {
                     Visible(id, false); window.UpdateLayout();
-                    Check(Panel(id).IsHidden, "Panel did not hide: " + id);
+                    Check(Panel(id).IsHidden == (id != "preview"), "Unexpected panel visibility: " + id);
                     Visible(id, true); window.UpdateLayout();
                     Check(!Panel(id).IsHidden && ReferenceEquals(Panel(id).Content, original[id]), "Showing recreated or lost " + id);
                 }
@@ -50,14 +50,14 @@ internal static partial class Program
             Test("Hiding all panels is recoverable without resetting the workspace", () =>
             {
                 foreach (var id in original.Keys) Visible(id, false);
-                Check(original.Keys.All(id => Panel(id).IsHidden), "Not all panels hid");
+                Check(original.Keys.All(id => Panel(id).IsHidden == (id != "preview")), "Source panels did not hide or fixed monitors disappeared");
                 var saved = (string)Call(window, "SerializeDockLayout")!;
                 Call(window, "RestoreDockLayout", saved); window.UpdateLayout();
                 Call(window, "ShowAllWorkspacePanelsClick", window, new RoutedEventArgs()); window.UpdateLayout();
                 Check(original.Keys.All(id => !Panel(id).IsHidden), "Show all did not recover every panel");
                 foreach (var entry in original) Check(ReferenceEquals(Panel(entry.Key).Content, entry.Value), "Recovery replaced content");
             });
-            Test("Hiding the output panel preserves live video playback and restores its monitor", () =>
+            Test("Attempting to hide fixed monitors preserves both pictures and live playback", () =>
             {
                 Call(window, "RestoreDockLayout", initial);
                 ((Slider)window.FindName("VolumeSlider")).Value = 0; ((CheckBox)window.FindName("LoopCheck")).IsChecked = true;
@@ -66,10 +66,12 @@ internal static partial class Program
                 var output = Field<ProjectionSurface>(window, "_output"); var session = Field<PresentationSession>(window, "_session");
                 Until(() => output.IsPlaying && !output.IsTransitioning, "Video fixture did not start");
                 var cue = session.Live;
-                Visible("output", false); PumpFor(100);
+                Visible("preview", false); PumpFor(100);
+                Check(!Panel("preview").IsHidden, "Fixed monitor panel could be hidden");
                 Check(output.IsPlaying && ReferenceEquals(cue, session.Live), "Hiding output stopped or changed the live video");
-                Visible("output", true); window.UpdateLayout(); PumpFor(100);
-                Check(output.IsPlaying && ((FrameworkElement)window.FindName("LiveMonitor")).IsVisible, "Output did not return while playing");
+                Visible("preview", true); window.UpdateLayout(); PumpFor(100);
+                Check(output.IsPlaying && ((FrameworkElement)window.FindName("LiveMonitor")).IsVisible
+                    && ((FrameworkElement)window.FindName("PreviewViewport")).IsVisible, "Both monitor pictures did not return while playing");
                 Call(window, "CloseOutput");
             });
         }

@@ -97,12 +97,13 @@ internal static partial class Program
             });
             Test("A constrained star group resizes immediately without taking space from a third neighbour", () =>
             {
-                window.Width = 1450; window.Height = 900; window.UpdateLayout();
+                window.Width = 1900; window.Height = 900; window.UpdateLayout();
                 var items = Contents();
                 var first = new XElement("LayoutPanel", new XAttribute("Orientation", "Horizontal"), new XAttribute("DockWidth", "*"),
                     Pane(items["sources"]), Pane(items["bible"]), Pane(items["youtube"]));
-                Restore(new XElement("RootPanel", new XAttribute("Orientation", "Horizontal"), first, Pane(items["output"]),
-                    Pane(items.Where(entry => entry.Key is not ("sources" or "bible" or "youtube" or "output")).Select(entry => entry.Value).ToArray())));
+                var monitors = Pane(items["preview"]); monitors.SetAttributeValue("DockWidth", "2*");
+                Restore(new XElement("RootPanel", new XAttribute("Orientation", "Horizontal"), first, monitors,
+                    Pane(items.Where(entry => entry.Key is not ("sources" or "bible" or "youtube" or "preview")).Select(entry => entry.Value).ToArray())));
                 var grid = Descendants(manager).OfType<LayoutPanelControl>().Single(control => ReferenceEquals(control.Model, manager.Layout.RootPanel));
                 var splitter = grid.Children.OfType<LayoutGridResizerControl>().First();
                 var a = grid.ColumnDefinitions[0].ActualWidth;
@@ -127,8 +128,8 @@ internal static partial class Program
             {
                 JsonFileStore.Save(System.IO.Path.Combine(Field<WorkspaceStore>(window, "_store").DirectoryPath, "biblia.json"), new BibleDocument
                 {
-                    Name = "Biblia de prueba", Attribution = "Texto sintético",
-                    Verses = Enumerable.Range(1, 31).Select(number => new BibleVerse("Génesis", 1, number, "Texto de prueba para verificar el panel apilado y su lista.")).ToList()
+                    Name = "Biblia de prueba", Attribution = "Texto sintÃ©tico",
+                    Verses = Enumerable.Range(1, 31).Select(number => new BibleVerse("GÃ©nesis", 1, number, "Texto de prueba para verificar el panel apilado y su lista.")).ToList()
                 });
                 Call(window, "LoadSavedBible");
                 window.Width = 1400; window.Height = 740; window.UpdateLayout();
@@ -200,7 +201,7 @@ internal static partial class Program
                         "right" => source.Left >= target.Right && Math.Abs(source.Top - target.Top) < 2,
                         _ => ReferenceEquals(Panel("sources").Parent, Panel("bible").Parent) && Panel("sources").IsSelected
                     }, "Incorrect relative rectangle for " + position);
-                    Check(manager.Layout.Descendents().OfType<LayoutAnchorable>().Count() == 9, "Placement lost a panel");
+                    Check(manager.Layout.Descendents().OfType<LayoutAnchorable>().Count() == 10, "Placement lost a panel");
                     var saved = (string)Call(window, "SerializeDockLayout")!;
                     Check(XDocument.Parse(saved).Root!.Attribute("WorkspacePreset") is null, "Custom placement still adapts as an untouched preset");
                     Call(window, "RestoreDockLayout", saved);
@@ -221,18 +222,18 @@ internal static partial class Program
             Test("Relative placement works inside floating groups and returns every panel to the dock", () =>
             {
                 Call(window, "RestoreDockLayout", initial);
-                Panel("output").Float(); window.UpdateLayout(); PumpFor(60);
+                Panel("youtube").Float(); window.UpdateLayout(); PumpFor(60);
                 var floatingXml = (string)Call(window, "SerializeDockLayout")!;
                 System.IO.File.WriteAllText(System.IO.Path.Combine(Environment.CurrentDirectory, ".tools", "panel-sizing", "floating-before.xml"), floatingXml);
-                Check((bool)Call(window, "PlaceWorkspacePanel", "sources", "output", "bottom")!, "Could not split a floating target"); PumpFor(80);
-                Check(Panel("sources").IsFloating && Panel("output").IsFloating, "Placement did not stay in the floating group");
+                Check((bool)Call(window, "PlaceWorkspacePanel", "sources", "youtube", "bottom")!, "Could not split a floating target"); PumpFor(80);
+                Check(Panel("sources").IsFloating && Panel("youtube").IsFloating, "Placement did not stay in the floating group");
                 Check((bool)Call(window, "PlaceWorkspacePanel", "sources", "bible", "top")!, "Could not move back from a floating group"); PumpFor(80);
-                Check(!Panel("sources").IsFloating && Panel("output").IsFloating, "Moving back undocked an unrelated panel");
-                Check((bool)Call(window, "PlaceWorkspacePanel", "output", "preview", "right")!, "Could not return the last floating panel"); PumpFor(80);
-                Check(!manager.FloatingWindows.Any() && manager.Layout.Descendents().OfType<LayoutAnchorable>().Count() == 9, "Empty floating window or missing content remained");
+                Check(!Panel("sources").IsFloating && Panel("youtube").IsFloating, "Moving back undocked an unrelated panel");
+                Check((bool)Call(window, "PlaceWorkspacePanel", "youtube", "bible", "right")!, "Could not return the last floating panel"); PumpFor(80);
+                Check(!manager.FloatingWindows.Any() && manager.Layout.Descendents().OfType<LayoutAnchorable>().Count() == 10, "Empty floating window or missing content remained");
                 AssertSession();
             });
-            Test("Moving and stacking the output keeps the active video playing from its current position", () =>
+            Test("Fixed monitors reject relocation while source rearrangement keeps the active decoder playing", () =>
             {
                 Call(window, "RestoreDockLayout", initial);
                 Call(window, "CloseOutput");
@@ -257,7 +258,10 @@ internal static partial class Program
                 var position = output.Position; var current = session.Live;
                 var player = Field<LibVLCSharp.Shared.MediaPlayer?>(output, "_player");
                 var clock = System.Diagnostics.Stopwatch.StartNew();
-                Check((bool)Call(window, "PlaceWorkspacePanel", "output", "preview", "bottom")!, "Could not stack output");
+                var layout = (string)Call(window, "SerializeDockLayout")!;
+                Check(!(bool)Call(window, "PlaceWorkspacePanel", "preview", "bible", "bottom")!
+                    && layout == (string)Call(window, "SerializeDockLayout")!, "Fixed monitors allowed relocation");
+                Check((bool)Call(window, "PlaceWorkspacePanel", "sources", "bible", "bottom")!, "Could not stack source panels");
                 PumpFor(180);
                 Check(ReferenceEquals(output, Field<ProjectionSurface>(window, "_output")) && ReferenceEquals(current, session.Live)
                     && ReferenceEquals(player, Field<LibVLCSharp.Shared.MediaPlayer?>(output, "_player")) && output.IsPlaying

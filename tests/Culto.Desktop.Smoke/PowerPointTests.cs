@@ -249,6 +249,7 @@ internal static partial class Program
                 Call(window, "CloseOutput");
                 try
                 {
+                    Call(window, "ActivateWorkspacePanel", "powerpoint");
                     Wait((Task)Call(window, "ImportMediaAsync", (object)new[] { fixture })!);
                     var files = (System.Windows.Controls.ListBox)window.FindName("PowerPointFiles");
                     files.SelectedItem = files.Items.OfType<Cue>().Single(c => c.FilePath == fixture);

@@ -1,8 +1,18 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 14 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.40.0`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 14 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.40.1`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### Limpieza y refresco de PowerPoint - 0.40.1
+
+Se eliminan la casilla oculta KeepMediaAudioCheck, su persistencia y las ramas del modo permanente en el mezclador; permanecen las operaciones explícitas TransitionVisual/PlayAudioKeepingVisual y el retorno a la posición actual. Se retiran siete recursos XAML sin consumidores, eventos desconectados, la animación Reveal sin llamadas y el modo de videos inalcanzable del antiguo diálogo SavedSets. El diálogo de cultos guardados y la tarjeta real de listas permanecen. La lista activa se guarda en una referencia a SavedSet, sin construir un ComboBox invisible. Cue.Copy centraliza las copias independientes, incluidas las opciones de captura y navegador y la regeneración explícita de IDs para contenidos añadidos al orden. Reducción neta de código de producción: 216 líneas antes de documentación y versión; ninguna dependencia añadida o eliminada.
+
+PowerPoint no enumera ni ordena biblioteca/orden cuando su pestaña está oculta: refresca al activarse y conserva la selección. Se comprueban cero notificaciones de colección durante cambios ocultos y la recuperación al activar. La instalación de Office se consulta una vez por proceso, en lugar de hasta dos consultas por actualización de 350 ms; instalar Office durante la sesión requiere reiniciar Culto Studio. Los cambios de imagen/audio y el control USB mantienen sus rutas actuales.
+
+La prueba nueva de copias falla antes y pasa después; 263 pruebas del núcleo y 66 del mando aprobadas. --powerpoint-refresh reproduce la reconstrucción oculta antes del cambio y pasa después. Mezclador nativo: --split-media 83 comprobaciones, --persistent-media 49 con operaciones explícitas (incluye volumen nativo, fundido de salida de 1200 ms, identidad del decodificador y cancelación) y --ended-media 13 (ninguna lectura posterior revive un archivo terminado). Se actualizan pruebas antiguas de paneles: diez contenidos, monitor combinado fijo, fuente local compartida y mínimos de tamaño actuales; permanecen migraciones antiguas, rechazo de distribuciones inválidas, recuperación de ventanas flotantes, redimensionado en vivo y preservación de contenido. Registros de esta entrega: .tools/cleanup-*.log.
+
+Verificación final: compilación/publicación sin advertencias ni errores en cleanup-release-build.log; PowerPoint nativo y canal de presentador USB aprobados en cleanup-powerpoint-final.log, incluido importar tras restaurar una distribución antigua y refrescar al abrir la pestaña. Pasaron workspace, panel-sizing, panel-visibility y docking; también split-controls, video-lists, saved-sets, hymn-playlist, backdrops, player y youtube-controls. Captura nativa --capture-recovery: 49 comprobaciones aprobadas de recuperación de imagen, identidad de origen, cambios de recorte, pausa/restauración con negro/logo y liberación de procesos/audio. No se midió una mejora global de FPS o RAM: la optimización verificada es la supresión de reconstrucciones de lista mientras PowerPoint está oculto y de consultas repetidas de disponibilidad de Office.
 
 ### Tarjeta PowerPoint y presentador USB - 0.40.0
 

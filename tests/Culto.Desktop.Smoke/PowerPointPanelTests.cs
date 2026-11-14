@@ -32,6 +32,7 @@ internal static partial class Program
             var files = (ListBox)window.FindName("PowerPointFiles");
             var path = Path.Combine(directory, "Imported presentation.pptx"); File.WriteAllText(path, "Import-only fixture");
             Wait((Task)Call(window, "ImportMediaAsync", (object)new[] { path })!);
+            Call(window, "ActivateWorkspacePanel", "powerpoint"); window.UpdateLayout();
             Check(files.Items.OfType<Cue>().Any(c => c.Kind == CueKind.PowerPoint && c.FilePath == path), "Imported PowerPoint missing from its card");
             files.SelectedItem = files.Items.OfType<Cue>().Single(c => c.FilePath == path);
             Check(Field<PresentationSession>(window, "_session").Prepared?.FilePath == path, "Card selection does not prepare PowerPoint");

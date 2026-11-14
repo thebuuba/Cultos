@@ -35,7 +35,6 @@ public sealed class WorkspaceData
     public int TransitionDefaultsVersion { get; set; }
     public int Volume { get; set; } = 80;
     public bool Loop { get; set; }
-    public bool KeepMediaAudio { get; set; }
     public string MediaViewMode { get; set; } = "Thumbnails";
     public int MediaFolderFilter { get; set; } = 2;
     public string? MediaCustomFolderPath { get; set; }

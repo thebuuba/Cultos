@@ -120,7 +120,7 @@ internal static partial class Program
             catch (TargetInvocationException error) when (error.InnerException is InvalidOperationException) { rejected = true; }
             Check(rejected, "A reused process identity cannot reconnect to the selected window");
 
-            await RunRetainedCaptureChecks(selected);
+            await RunCaptureBackdropChecks(selected);
 
             RecoveryShowWindow((nint)selected.WindowHandle, 6);
             Worker()!.Kill(entireProcessTree: false);
@@ -159,11 +159,11 @@ internal static partial class Program
         }
     }
 
-    private static async Task RunRetainedCaptureChecks(WindowCaptureOptions selected)
+    private static async Task RunCaptureBackdropChecks(WindowCaptureOptions selected)
     {
-        using var output = new ProjectionSurface(smoothTransitions: true) { Volume = 60, KeepMediaAudio = true,
+        using var output = new ProjectionSurface(smoothTransitions: true) { Volume = 60,
             Transitions = new TransitionOptions { DurationMilliseconds = 220, AudioFadeInMilliseconds = 0, AudioFadeOutMilliseconds = 0 } };
-        var host = new Window { Content = output, Title = "Culto retained capture test", Width = 640, Height = 360,
+        var host = new Window { Content = output, Title = "Culto capture test", Width = 640, Height = 360,
             Left = 800, Top = 420, ShowInTaskbar = false };
         const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
         object? Field(ProjectionSurface surface, string name) => typeof(ProjectionSurface).GetField(name, flags)!.GetValue(surface);
@@ -186,38 +186,12 @@ internal static partial class Program
         {
             host.Show(); output.TransitionTo(cue);
             await Until(() => !output.IsTransitioning && output.IsPlaying && Pixel(output.ActiveSurface) >= 0,
-                "Persistent capture starts with live source pixels");
+                "Capture starts with live source pixels");
             var original = output.ActiveSurface;
             var client = Field(original, "_captureClient");
             var audio = (CapturedApplicationAudio.Lease)Field(original, "_captureAudio")!;
-            await Until(() => audio.Gain > .20 && audio.Gain < .23, "Persistent capture reaches its native audio gain");
-            foreach (var kind in new[] { "text", "image", "black" })
-            {
-                if (kind == "black") output.TransitionToBackdrop(cue, blackout: true, hideText: false);
-                else output.TransitionTo(kind == "text" ? new Cue { Kind = CueKind.Text, Body = "Over captured audio" }
-                    : new Cue { Kind = CueKind.Image, FilePath = Path.Combine(Folder, "panorama.png") });
-                await Until(() => !output.IsTransitioning && output.HasBackgroundMedia,
-                    "Capture remains live behind the " + kind + " foreground");
-                int previous = Pixel(original);
-                await Until(() => Pixel(original) != previous, "Hidden capture pixels keep changing behind " + kind);
-                Check(ReferenceEquals(output.ActiveSurface, original) && ReferenceEquals(Field(original, "_captureClient"), client)
-                    && audio.Gain > .20 && audio.Gain < .23 && !output.IsPaused,
-                    "Foreground keeps the same capture worker and audio gain");
-                output.TransitionTo(new Cue { Kind = CueKind.WindowCapture, Capture = cue.Capture with { } });
-                await Until(() => !output.IsTransitioning && !output.HasBackgroundMedia, "Copied capture cue returns from " + kind);
-                Check(ReferenceEquals(output.ActiveSurface, original) && ReferenceEquals(Field(original, "_captureClient"), client)
-                    && audio.Gain > .20 && audio.Gain < .23 && !output.IsPaused,
-                    "Returning copied capture cue reuses its worker without muting audio");
-            }
-            output.TransitionTo(new Cue { Kind = CueKind.Text, Body = "Return after browser title changes" });
-            await Until(() => !output.IsTransitioning && output.HasBackgroundMedia, "Capture is retained before its title metadata changes");
-            var renamed = cue.Capture with { WindowTitle = "Updated browser page title" };
-            output.TransitionTo(new Cue { Kind = CueKind.WindowCapture, Capture = renamed });
-            await Until(() => !output.IsTransitioning && !output.HasBackgroundMedia, "A capture cue with updated title returns from the foreground");
-            Check(ReferenceEquals(output.ActiveSurface, original) && ReferenceEquals(Field(original, "_captureClient"), client)
-                && ReferenceEquals(Field(original, "_captureAudio"), audio) && audio.Gain > .20 && audio.Gain < .23,
-                "Changing only capture title metadata reuses the live worker and application audio lease");
-            output.TransitionTo(new Cue { Kind = CueKind.WindowCapture, Capture = renamed with { CropLeft = 20 } });
+            await Until(() => audio.Gain > .20 && audio.Gain < .23, "Capture reaches its native audio gain");
+            output.TransitionTo(new Cue { Kind = CueKind.WindowCapture, Capture = cue.Capture with { CropLeft = 20 } });
             await Until(() => !output.IsTransitioning && output.IsPlaying, "A capture crop edit becomes live");
             Check(!ReferenceEquals(output.ActiveSurface, original) && Field(output.ActiveSurface, "_captureClient") is { } changedClient
                 && !ReferenceEquals(changedClient, client) && audio.Gain == 0,
@@ -226,15 +200,14 @@ internal static partial class Program
             var visibleCapture = output.ActiveSurface;
             var visibleClient = Field(visibleCapture, "_captureClient");
             var visibleCue = output.DisplayedCue!;
-            output.KeepMediaAudio = false;
             foreach (var kind in new[] { "black", "logo" })
             {
                 output.TransitionToBackdrop(visibleCue, blackout: kind == "black", hideText: kind == "logo");
-                await Until(() => !output.IsTransitioning, "Capture completes the " + kind + " backdrop with persistence disabled");
+                await Until(() => !output.IsTransitioning, "Capture completes the " + kind + " backdrop normally");
                 Check(output.IsPaused && changedAudio.Gain == 0 && ReferenceEquals(output.ActiveSurface, visibleCapture),
-                    "Black or logo pauses the retained capture internally while hidden");
+                    "Black or logo pauses the capture internally while hidden");
                 output.TransitionToBackdrop(visibleCue, blackout: false, hideText: false);
-                await Until(() => !output.IsTransitioning, "Capture restores from " + kind + " with persistence disabled");
+                await Until(() => !output.IsTransitioning, "Capture restores from " + kind + " normally");
                 Check(output.IsPlaying && !output.IsPaused && changedAudio.Gain > .20 && changedAudio.Gain < .23
                     && ReferenceEquals(output.ActiveSurface, visibleCapture) && ReferenceEquals(Field(visibleCapture, "_captureClient"), visibleClient),
                     "Restoring capture from " + kind + " automatically resumes the same worker and audio lease");
@@ -249,9 +222,9 @@ internal static partial class Program
                 "Immediate capture restore automatically resumes the same worker and audio lease");
             int restoredPixel = Pixel(visibleCapture);
             await Until(() => Pixel(visibleCapture) != restoredPixel, "Immediately restored capture pixels keep advancing");
-            Check(errors.Count == 0, "Persistent capture foreground changes produce no playback failures");
+            Check(errors.Count == 0, "Capture foreground changes produce no playback failures");
             output.Dispose();
-            Check(audio.Gain == 0 && changedAudio.Gain == 0, "Disposing retained capture releases its application audio lease");
+            Check(audio.Gain == 0 && changedAudio.Gain == 0, "Disposing capture releases its application audio lease");
         }
         finally { output.Dispose(); host.Close(); }
     }

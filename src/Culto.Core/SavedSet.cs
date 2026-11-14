@@ -13,10 +13,5 @@ public sealed class SavedSet
 
     public List<Cue> CreateItems() => Items.Select(CloneCue).ToList();
 
-    private static Cue CloneCue(Cue cue) => new()
-    {
-        Title = cue.Title, Kind = cue.Kind, Body = cue.Body, Reference = cue.Reference,
-        Version = cue.Version, FilePath = cue.FilePath, HymnNumber = cue.HymnNumber, Notes = cue.Notes, Capture = cue.Capture is {} capture ? capture with {} : null,
-        Browser = cue.Browser is {} browser ? browser with {} : null
-    };
+    private static Cue CloneCue(Cue cue) => cue.Copy(newId: true);
 }

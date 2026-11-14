@@ -1,5 +1,4 @@
 using System.Windows;
-using Culto.Desktop.Dialogs;
 
 namespace Culto.Desktop;
 
@@ -15,12 +14,5 @@ public partial class MainWindow
         { SetStatus("Hay una captura activa en salida o vista previa.", true); return; }
         try { Services.CapturedApplicationAudio.RestoreShared(); SetStatus("Audio de las aplicaciones restaurado."); }
         catch (System.Exception error) { SetStatus(error.Message, true); }
-    }
-
-    private void CaptureWindowClick(object sender, RoutedEventArgs e)
-    {
-        var dialog = new WindowCaptureDialog(youTubeLayout: _workspace.YouTubeLayout) { Owner = this };
-        if (dialog.ShowDialog() != true || dialog.SelectedCue is not { } cue) return;
-        AddCaptureToPlan(cue);
     }
 }

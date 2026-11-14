@@ -42,6 +42,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        PowerPointPanel.IsVisibleChanged += PowerPointPanelVisibilityChanged;
         InitializeWorkspaceHeader();
         InitializeBibleReferenceInput();
         InitializeOrderActions();
@@ -94,8 +95,6 @@ public partial class MainWindow : Window
         PlanNameBox.Text = _workspace.Plan.Name;
         VolumeSlider.Value = _workspace.Volume;
         LoopCheck.IsChecked = _workspace.Loop;
-        _workspace.KeepMediaAudio = false;
-        KeepMediaAudioCheck.IsChecked = false;
         _preview = new ProjectionSurface(preview: true);
         _preview.PlaybackError += message => Dispatcher.BeginInvoke(() => SetStatus(message, true));
         PreviewHost.Content = _preview;

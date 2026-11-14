@@ -7,7 +7,7 @@ namespace Culto.Desktop;
 public partial class MainWindow
 {
     private void VideoCollectionsClick(object sender, RoutedEventArgs e) { RefreshVideoLists(); ActivateWorkspacePanel("playlists"); }
-    private void SavedServicesClick(object sender, RoutedEventArgs e) => ShowSavedSets(videosOnly: false);
+    private void SavedServicesClick(object sender, RoutedEventArgs e) => ShowSavedSets();
     private void AddVideoToCollectionClick(object sender, RoutedEventArgs e)
     {
         if (LibraryList.SelectedItem is not Cue { Kind: CueKind.Video } cue)
@@ -15,22 +15,20 @@ public partial class MainWindow
         if (AppendToVideoQueue(cue)) ActivateWorkspacePanel("playlists");
     }
 
-    private void ShowSavedSets(bool videosOnly, Cue? selectedVideo = null)
+    private void ShowSavedSets()
     {
         CommitNotes();
-        var original = videosOnly ? _workspace.VideoCollections : _workspace.SavedServices;
-        var dialog = new SavedSetsDialog(original, videosOnly, selectedVideo) { Owner = this };
+        var original = _workspace.SavedServices;
+        var dialog = new SavedSetsDialog(original) { Owner = this };
         if (dialog.ShowDialog() != true) return;
-        if (videosOnly) _workspace.VideoCollections = dialog.Sets;
-        else _workspace.SavedServices = dialog.Sets;
+        _workspace.SavedServices = dialog.Sets;
         if (!SaveWorkspace())
         {
-            if (videosOnly) _workspace.VideoCollections = original;
-            else _workspace.SavedServices = original;
+            _workspace.SavedServices = original;
             return;
         }
         if (dialog.RequestedSet is { } set) ApplySavedSet(set, dialog.ReplaceOrder);
-        else SetStatus(videosOnly ? "Colecciones guardadas." : "Cultos guardados.");
+        else SetStatus("Cultos guardados.");
     }
 
     private void SaveServiceClick(object sender, RoutedEventArgs e)

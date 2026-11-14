@@ -28,7 +28,6 @@
         <SolidColorBrush x:Key="LiveSurfaceBrush" Color="#243D34" />
         <CornerRadius x:Key="PanelRadius">22</CornerRadius>
         <CornerRadius x:Key="ItemRadius">14</CornerRadius>
-        <CornerRadius x:Key="ThumbnailRadius">16</CornerRadius>
         <CornerRadius x:Key="ControlRadius">12</CornerRadius>
         <local:CueKindConverter x:Key="CueKindConverter" />
         <local:PillRadiusConverter x:Key="PillRadiusConverter" />
@@ -129,11 +128,6 @@
             <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="Padding" Value="10,7" />
             <Setter Property="MinHeight" Value="34" />
-        </Style>
-        <Style x:Key="ToolbarButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="Padding" Value="11,7" />
-            <Setter Property="MinHeight" Value="34" />
-            <Setter Property="FontSize" Value="12" />
         </Style>
         <Style x:Key="MenuBarButton" TargetType="Button" BasedOn="{StaticResource QuietButton}">
             <Setter Property="Padding" Value="12,6" />
@@ -590,18 +584,5 @@
             <Setter Property="CornerRadius" Value="{StaticResource PanelRadius}" />
             <Setter Property="Padding" Value="16" />
         </Style>
-        <DataTemplate x:Key="CueTemplate">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <TextBlock Text="{Binding Kind, Converter={StaticResource CueKindConverter}}"
-                           FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}"
-                           Margin="0,0,0,4" />
-                <TextBlock Grid.Row="1" Text="{Binding Title}" FontSize="13"
-                           FontWeight="SemiBold" TextWrapping="Wrap" />
-            </Grid>
-        </DataTemplate>
     </Application.Resources>
 </Application>

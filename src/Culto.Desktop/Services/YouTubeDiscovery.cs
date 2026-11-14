@@ -34,13 +34,7 @@ public static class YouTubeDiscovery
         }).ToArray();
     }
 
-    public static Cue Clone(Cue cue) => new()
-    {
-        Id = cue.Id, Title = cue.Title, Kind = cue.Kind, Body = cue.Body, Reference = cue.Reference,
-        Version = cue.Version, FilePath = cue.FilePath, HymnNumber = cue.HymnNumber, Notes = cue.Notes,
-        Capture = cue.Capture is { } capture ? capture with { } : null,
-        Browser = cue.Browser is { } browser ? browser with { } : null
-    };
+    public static Cue Clone(Cue cue) => cue.Copy();
 
     public static Cue ApplyLayout(Cue cue, WindowCaptureLayout? layout)
     {

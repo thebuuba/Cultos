@@ -87,7 +87,9 @@ internal static partial class Program
 
             Test("Church backdrop uses the saved image and switches exclusively with black and paused content", () =>
             {
-                Call(window, "SetChurchBackground", imagePath);
+                workspace.BackgroundImagePath = imagePath;
+                workspace.BackgroundImages = [imagePath];
+                Check((bool)Call(window, "SaveWorkspace")!, "Church background settings did not save");
                 Check(workspace.BackgroundImagePath == imagePath, "Church background selection did not update the workspace");
                 Check(new WorkspaceStore().Load().BackgroundImagePath == imagePath, "Saved workspace lost the church background path");
                 Check(new WorkspaceStore().Load().BackgroundImages.Contains(imagePath), "Saved gallery lost its image list");
@@ -130,14 +132,14 @@ internal static partial class Program
                 Check(workspace.BackgroundImagePath == imagePath, "Automatic advance changed the saved starting image");
                 Check(output.Transitions.DurationMilliseconds == 100 && output.Transitions.Kind == "Dissolve",
                     "Logo did not use its own transition duration");
-                Call(window, "PrepareCue", new Cue { Title = "Después del logo", Body = "Contenido nuevo" }, null);
+                Call(window, "PrepareCue", new Cue { Title = "DespuÃ©s del logo", Body = "Contenido nuevo" }, null);
                 Call(window, "ProjectPrepared");
-                Until(() => session.Live?.Title == "Después del logo" && !output.IsTransitioning,
+                Until(() => session.Live?.Title == "DespuÃ©s del logo" && !output.IsTransitioning,
                     "New cue did not replace Logo");
                 Check(!session.IsTextHidden && !session.IsBlackout && !Field<LogoSlideshow>(window, "_logoSlides").IsRunning
                     && !Field<DispatcherTimer>(window, "_logoTimer").IsEnabled, "New cue left Logo scheduled");
                 Call(window, "AdvanceLogo");
-                Check(session.Live?.Title == "Después del logo" && !session.IsTextHidden, "A stale Logo tick replaced the new cue");
+                Check(session.Live?.Title == "DespuÃ©s del logo" && !session.IsTextHidden, "A stale Logo tick replaced the new cue");
             });
 
             Test("Removing a Logo image and saving updates its list without deleting files or changing output", () =>

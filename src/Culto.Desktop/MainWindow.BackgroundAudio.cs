@@ -15,14 +15,6 @@ public partial class MainWindow
         : _session.IsTextHidden ? "Logo" : _session.Live?.Title ?? "Fondo";
     private string AudioChannelTitle => _output?.AudioCue?.Title ?? "Sin audio";
 
-    private void KeepMediaAudioChanged(object sender, RoutedEventArgs e)
-    {
-        if (!_ready) return;
-        _workspace.KeepMediaAudio = KeepMediaAudioCheck.IsChecked == true;
-        if (_output is not null) _output.KeepMediaAudio = _workspace.KeepMediaAudio;
-        UpdateBackgroundAudioState(); UpdateUsabilityState(); SaveWorkspace();
-    }
-
     private void ReturnToMediaClick(object sender, RoutedEventArgs e) => ReturnToMedia();
     private void ReturnToMedia()
     {

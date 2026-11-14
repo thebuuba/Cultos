@@ -81,7 +81,6 @@ public partial class MainWindow
             _standbyOutput = null;
             _output.Volume = (int)VolumeSlider.Value;
             _output.Loop = LoopCheck.IsChecked == true;
-            _output.KeepMediaAudio = false;
             _output.BackgroundImagePath = _workspace.BackgroundImagePath;
             _output.BibleStyle = _workspace.BibleStyle.Normalize();
             _output.Transitions = _workspace.Transitions.Normalize();
@@ -196,8 +195,6 @@ public partial class MainWindow
         OpenOutput(display, test: false);
         SetStatus("HDMI activado.");
     }
-    private void NextClick(object sender, RoutedEventArgs e) => AdvancePresentation(1);
-    private void PreviousClick(object sender, RoutedEventArgs e) => AdvancePresentation(-1);
     private void MoveLive(int delta)
     {
         if (_output is null || _session.Live is null) { SetStatus("Proyecta primero un elemento del culto."); return; }
@@ -229,7 +226,6 @@ public partial class MainWindow
         UpdateSessionLabels();
         SetStatus("En pantalla: " + _session.Live!.Title);
     }
-    private void BlackoutClick(object sender, RoutedEventArgs e) => ToggleBlackout();
     private void ToggleBlackout()
     {
         if (_output is null) { SetStatus("La salida ya está cerrada."); return; }
@@ -241,9 +237,6 @@ public partial class MainWindow
         UpdateSessionLabels();
         SetStatus(_session.IsBlackout ? "Salida en negro; reproducción pausada." : "Imagen restaurada; reproducción pausada.");
     }
-    private void BackgroundClick(object sender, RoutedEventArgs e) => ShowBackground();
-    private void ShowBackground()
-        => ShowLogo();
     private void PauseClick(object sender, RoutedEventArgs e) => TogglePause();
     private void TogglePause()
     {

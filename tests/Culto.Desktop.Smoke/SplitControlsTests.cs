@@ -67,7 +67,7 @@ internal static partial class Program
             Check(returnResult.Success && output.DisplayedCue?.Id == clip.Id, "Phone did not restore sounding video");
             Call(window, "PrepareCue", new Cue { Title = "Normal", Body = "Audio should end" }, null); Call(window, "ProjectPrepared");
             UntilSplit(() => !output.IsTransitioning && !output.HasBackgroundMedia, "Normal projection inherited prior Shift intent");
-            Check(!workspace.KeepMediaAudio, "One-shot command persisted a sticky audio mode");
+            Check(output.AudioCue is null && !output.IsPlaying, "Normal projection left one-shot audio playing");
             Call(window, "CloseOutput");
         });
     }

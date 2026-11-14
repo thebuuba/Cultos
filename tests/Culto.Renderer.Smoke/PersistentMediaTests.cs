@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
@@ -31,7 +31,6 @@ internal static partial class Program
         var window = new Window { Content = output, Width = 800, Height = 450, Topmost = true };
         window.Show(); window.Activate();
         const BindingFlags fields = BindingFlags.Instance | BindingFlags.NonPublic;
-        var keep = typeof(ProjectionSurface).GetProperty("KeepMediaAudio");
         var retained = typeof(ProjectionSurface).GetProperty("RetainedMediaCue");
         var background = typeof(ProjectionSurface).GetProperty("HasBackgroundMedia");
         MediaPlayer Player(ProjectionSurface source) => (MediaPlayer)typeof(ProjectionSurface).GetField("_player", fields)!.GetValue(source)!;
@@ -44,10 +43,8 @@ internal static partial class Program
         }
         try
         {
-            Check(keep is not null && retained is not null && background is not null,
+            Check(retained is not null && background is not null,
                 "Persistent media mode exposes playback retention and return APIs");
-            Check(!(bool)keep!.GetValue(output)!, "Persistent audio is opt-in");
-            keep.SetValue(output, true);
             output.Transitions = new TransitionOptions { DurationMilliseconds = 250,
                 AudioFadeOutMilliseconds = 1200, AudioFadeInMilliseconds = 250 };
             var video = new Cue { Kind = CueKind.Video, Title = "Persistent synthetic video", FilePath = videoPath };
@@ -57,16 +54,15 @@ internal static partial class Program
             var original = output.ActiveSurface;
             var player = Player(original);
             await Until(() => player.Volume == 60 && !player.Mute, "Persistent video reaches native master volume");
-            var copy = (Cue)retained!.GetValue(output)!;
+            var copy = output.AudioCue!;
             copy.FilePath = "modified copy";
-            Check(((Cue)retained.GetValue(output)!).FilePath == video.FilePath, "Returned media cue is a defensive copy");
+            Check(output.AudioCue!.FilePath == video.FilePath, "Returned media cue is a defensive copy");
 
             async Task Overlay(Cue? foreground, bool black = false, bool hidden = false)
             {
                 output.Seek(.02); await Task.Delay(150);
                 var position = player.Time;
-                if (black || hidden) output.TransitionToBackdrop(foreground ?? video, black, hidden);
-                else output.TransitionTo(foreground!);
+                output.TransitionVisual(foreground ?? video, black, hidden);
                 bool audibleThroughout = true;
                 var clock = Stopwatch.StartNew();
                 while (output.IsTransitioning && clock.ElapsedMilliseconds < 4000)
@@ -99,7 +95,7 @@ internal static partial class Program
             await Overlay(video, black: true);
             await Overlay(video, hidden: true);
 
-            output.TransitionToBackdrop(video, blackout: true, hideText: false);
+            output.TransitionVisual(video, blackout: true, hideText: false);
             await Until(() => !output.IsTransitioning && Background(), "Failure recovery starts with a black foreground and live background");
             int errors = 0; output.PlaybackError += _ => errors++;
             output.TransitionTo(new Cue { Kind = CueKind.Video, FilePath = Path.Combine(Folder, "missing-persistent-video.mkv") });
@@ -109,10 +105,10 @@ internal static partial class Program
             output.TransitionTo(video);
             await Until(() => !output.IsTransitioning && !Background(), "Retained source can return after a failed replacement");
 
-            output.TransitionTo(new Cue { Kind = CueKind.Text, Body = "First overlay" });
+            output.TransitionVisual(new Cue { Kind = CueKind.Text, Body = "First overlay" });
             var latest = new Cue { Kind = CueKind.Image, FilePath = Path.Combine(Folder, "panorama.png") };
-            output.TransitionTo(new Cue { Kind = CueKind.Text, Body = "Superseded overlay" });
-            output.TransitionTo(latest);
+            output.TransitionVisual(new Cue { Kind = CueKind.Text, Body = "Superseded overlay" });
+            output.TransitionVisual(latest);
             await Until(() => !output.IsTransitioning && output.DisplayedCue?.Id == latest.Id,
                 "Rapid foreground requests retain only the newest overlay");
             Check(Background() && ReferenceEquals(output.ActiveSurface, original) && player.IsPlaying && player.Volume == 60,
@@ -122,8 +118,8 @@ internal static partial class Program
                 $"Master volume updates the retained native player behind an image (native={player.Volume}, child={original.Volume}, master={output.Volume})", 500);
             output.Volume = 60;
             output.TransitionTo(new Cue { Kind = CueKind.Audio, FilePath = Path.Combine(Folder, "audio.wav") });
-            output.TransitionTo(new Cue { Kind = CueKind.Text, Body = "Cancel incoming audio" });
-            output.TransitionToBackdrop(video, blackout: true, hideText: false);
+            output.TransitionVisual(new Cue { Kind = CueKind.Text, Body = "Cancel incoming audio" });
+            output.TransitionVisual(video, blackout: true, hideText: false);
             await Until(() => !output.IsTransitioning && output.DisplayedBlackout,
                 "A pending replacement can be superseded by a black foreground");
             Check(Background() && ReferenceEquals(output.ActiveSurface, original) && player.IsPlaying && player.Volume == 60,
@@ -131,22 +127,22 @@ internal static partial class Program
             output.TransitionTo(video);
             await Until(() => !output.IsTransitioning && !Background(), "Original media returns after rapid cancellation");
 
-            output.TransitionTo(new Cue { Kind = CueKind.Text, Body = "Release background" });
-            await Until(() => !output.IsTransitioning && Background(), "Video is retained before disabling audio persistence");
-            var setterClock = Stopwatch.StartNew(); keep.SetValue(output, false);
+            output.TransitionVisual(new Cue { Kind = CueKind.Text, Body = "Release background" });
+            await Until(() => !output.IsTransitioning && Background(), "Video is retained before normal projection releases it");
+            var setterClock = Stopwatch.StartNew();
+            output.TransitionTo(new Cue { Kind = CueKind.Text, Body = "Normal projection releases audio" });
             Check(setterClock.ElapsedMilliseconds < 100 && player.IsPlaying && player.Volume > 0,
-                "Disabling persistence schedules its audio fade without waiting on the dispatcher");
-            await Until(() => player.Volume is > 5 and < 59, "Disabling persistence fades the native background volume", 1500);
-            await Until(() => !Background() && retained.GetValue(output) is null,
-                "Disabled background retires after its configured fade", 3000);
+                "Normal projection schedules its audio fade without waiting on the dispatcher");
+            await Until(() => player.Volume is > 5 and < 59, "Normal projection fades the native background volume", 1500);
+            await Until(() => !Background() && retained!.GetValue(output) is null,
+                "Released background retires after its configured fade", 3000);
             Check(setterClock.ElapsedMilliseconds >= 1000 && setterClock.ElapsedMilliseconds < 2500,
-                "Disabling persistence honors the configured 1200 ms audio fade");
+                "Normal projection honors the configured 1200 ms audio fade");
 
-            keep.SetValue(output, true);
             output.TransitionTo(video);
             await Until(() => !output.IsTransitioning && output.IsPlaying, "Media can start after background retirement");
             var replaced = Player(output.ActiveSurface);
-            output.TransitionTo(new Cue { Kind = CueKind.Text, Body = "Replace pinned source" });
+            output.TransitionVisual(new Cue { Kind = CueKind.Text, Body = "Replace pinned source" });
             await Until(() => !output.IsTransitioning && Background(), "Replacement begins behind a foreground");
             var audio = new Cue { Kind = CueKind.Audio, FilePath = Path.Combine(Folder, "audio.wav") };
             output.TransitionTo(audio);
@@ -158,7 +154,7 @@ internal static partial class Program
                 "Replacement retires the old pinned source and leaves one live medium");
             output.Seek(.1); await Task.Delay(150);
             var audioPosition = replacement.Time;
-            output.TransitionTo(new Cue { Kind = CueKind.Text, Body = "Audio-only background" });
+            output.TransitionVisual(new Cue { Kind = CueKind.Text, Body = "Audio-only background" });
             await Until(() => !output.IsTransitioning && Background(), "Audio-only media can remain behind foreground text");
             Check(replacement.IsPlaying && replacement.Volume == 60 && replacement.Time > audioPosition,
                 "Audio-only background keeps advancing at native master volume");

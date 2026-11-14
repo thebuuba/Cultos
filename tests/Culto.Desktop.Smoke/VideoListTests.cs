@@ -34,7 +34,7 @@ internal static partial class Program
         {
             var before=session.Live;var prepared=session.Prepared;
             var menu=(ContextMenu)Call(window,"BuildMediaPlaylistMenu",external)!;
-            var add=menu.Items.OfType<MenuItem>().Single();
+            var add=menu.Items.OfType<MenuItem>().Single(item => item.Header?.ToString() == "Añadir a lista de reproducción");
             Check(add.Header?.ToString()=="Añadir a lista de reproducción","Missing media playlist action");
             menu.PlacementTarget=window;menu.IsOpen=true;menu.UpdateLayout();
             Check(!add.HasItems,"Adding to the queue still requires choosing or creating a list");

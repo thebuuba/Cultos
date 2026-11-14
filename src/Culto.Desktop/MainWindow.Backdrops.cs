@@ -1,6 +1,5 @@
 using System.Windows;
 using Culto.Core;
-using Culto.Desktop.Dialogs;
 
 namespace Culto.Desktop;
 
@@ -75,33 +74,5 @@ public partial class MainWindow
         UpdateSessionLabels();
         SetStatus(presentationError ?? (_session.IsBlackout ? "Fondo negro" : _session.IsTextHidden ? "Logo"
             : _isPaused ? "Contenido restaurado; reproducción pausada." : "Contenido restaurado."), presentationError is not null);
-    }
-
-    private void ChangeChurchBackgroundClick(object sender, RoutedEventArgs e)
-    {
-        var dialog = new Microsoft.Win32.OpenFileDialog
-        {
-            Title = "Fondo de la iglesia", CheckFileExists = true,
-            Filter = "Imágenes|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff"
-        };
-        if (dialog.ShowDialog(this) != true) return;
-        if (!CheckMedia(new Cue { Kind = CueKind.Image, Title = "Fondo iglesia", FilePath = dialog.FileName })) return;
-        SetChurchBackground(dialog.FileName);
-    }
-
-    private void ClearChurchBackgroundClick(object sender, RoutedEventArgs e) => SetChurchBackground(null);
-
-    private void SetChurchBackground(string? path)
-    {
-        _workspace.BackgroundImagePath = path;
-        if (path is not null && !_workspace.BackgroundImages.Contains(path, StringComparer.OrdinalIgnoreCase))
-            _workspace.BackgroundImages.Add(path);
-        SaveWorkspace();
-        if (_output is not null)
-        {
-            _output.BackgroundImagePath = path;
-            if (_session.IsTextHidden && !_session.IsBlackout) ApplyBackdropTransition();
-        }
-        SetStatus(path is null ? "Fondo sencillo seleccionado." : "Fondo de la iglesia guardado.");
     }
 }

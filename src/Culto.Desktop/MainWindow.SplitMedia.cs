@@ -29,7 +29,6 @@ public partial class MainWindow
             if (!CheckMedia(cue)) return false;
             _pendingCuePlayback.Cancel(); CancelPowerPointAudioFade();
             _videoListPlayback.Cancel(); _videoListAfter.IsChecked = false;
-            _output.KeepMediaAudio = false;
             _preserveAudioForBackdrop = _session.IsTextHidden || _session.IsBlackout;
             _output.PlayAudioKeepingVisual(CopyCue(cue));
             _isPaused = false;

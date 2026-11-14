@@ -95,8 +95,6 @@ internal static partial class Program
                 var session=Field<PresentationSession>(window,"_session");
                 var workspace=Field<WorkspaceData>(window,"_workspace");
                 var oldBackground=workspace.BackgroundImagePath;
-                var keepAudio=(CheckBox)window.FindName("KeepMediaAudioCheck");
-                var oldKeepAudio=keepAudio.IsChecked;
                 var imagePath=Path.Combine(Path.GetTempPath(),"CultoPlayerLogo-"+Guid.NewGuid().ToString("N")+".png");
                 var encoder=new System.Windows.Media.Imaging.PngBitmapEncoder();
                 encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(
@@ -107,21 +105,20 @@ internal static partial class Program
                     workspace.BackgroundImagePath=imagePath;
                     foreach(var keep in new[]{false,true})
                     {
-                        keepAudio.IsChecked=keep;
                         output.Seek(0);output.SetPaused(false);
-                        Check((bool)Call(window,"ShowLogo")!,"Logo did not activate");
+                        Check((bool)Call(window,keep ? "ShowLogoPreservingAudio" : "ShowLogo")!,"Logo did not activate");
                         Until(()=>output.DisplayedHidden && !output.IsTransitioning,"Logo did not finish its transition");
                         foreach(var update in new[]{"UpdateUsabilityState","UpdateBackgroundAudioState"})
                         {
                             Call(window,update);Call(window,"ShowPlaybackOverlay",true);
                             var panel=(FrameworkElement)window.FindName("MediaPlaybackPanel");
-                            Check(panel.Visibility==Visibility.Collapsed && !panel.IsHitTestVisible,"Logo retained active video controls after "+update);
+                            Check(panel.Visibility == (keep ? Visibility.Visible : Visibility.Collapsed), "Logo transport visibility ignored its audio channel after " + update);
                         }
-                        if(!keep)Check(!output.IsPlaying,"Logo left the hidden video playing without Keep audio");
-                        Call(window,"ShowBlackBackdrop");
+                        Check(keep ? output.IsPlaying && output.HasBackgroundMedia : !output.IsPlaying, "Logo did not honor its one-shot audio action");
+                        Call(window,keep ? "ShowBlackPreservingAudio" : "ShowBlackBackdrop");
                         Until(()=>output.DisplayedBlackout && !output.IsTransitioning,"Black transition did not finish");
                         Call(window,"TimerTick",null,EventArgs.Empty);
-                        Check(((FrameworkElement)window.FindName("MediaPlaybackPanel")).Visibility==Visibility.Collapsed,"Black restored the video bar");
+                        Check(((FrameworkElement)window.FindName("MediaPlaybackPanel")).Visibility == (keep ? Visibility.Visible : Visibility.Collapsed), "Black transport visibility ignored its audio channel");
                         session.RestoreContent();Call(window,"ApplyBackdropTransition");
                         Until(()=>!output.DisplayedBlackout && !output.DisplayedHidden && !output.IsTransitioning,"Video did not restore");
                         Call(window,"UpdateBackgroundAudioState");
@@ -129,7 +126,7 @@ internal static partial class Program
                         output.SetPaused(true);
                     }
                 }
-                finally { keepAudio.IsChecked=oldKeepAudio;workspace.BackgroundImagePath=oldBackground;File.Delete(imagePath); }
+                finally { workspace.BackgroundImagePath=oldBackground;File.Delete(imagePath); }
             });
         }
         finally { Call(window, "CloseOutput"); volume.Value = oldVolume; }

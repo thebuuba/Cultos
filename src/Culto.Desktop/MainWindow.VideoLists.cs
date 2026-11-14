@@ -11,11 +11,10 @@ namespace Culto.Desktop;
 public partial class MainWindow
 {
     private readonly VideoListPlayback _videoListPlayback = new();
-    private readonly ComboBox _videoLists = new() { DisplayMemberPath = "Name", Margin = new Thickness(0,0,0,10) };
     private readonly ListBox _videoListItems = new() { DisplayMemberPath = "Title" };
     private readonly CheckBox _videoListAfter = new() { Content = "Después de este video, iniciar la lista", Margin = new Thickness(0,8,0,8) };
     private bool _refreshingVideoLists;
-    private SavedSet? SelectedVideoList => _videoLists.SelectedItem as SavedSet;
+    private SavedSet? SelectedVideoList { get; set; }
     private ContextMenu BuildMediaPlaylistMenu(Cue cue)
     {
         var menu = new ContextMenu();
@@ -70,7 +69,6 @@ public partial class MainWindow
             hint.Text = "Al terminar: " + next.Title;
         };
         _videoListAfter.Unchecked += (_,_)=> { _videoListPlayback.Cancel(); hint.Text = ""; };
-        _videoLists.SelectionChanged += (_,_)=> { if (_refreshingVideoLists) return; _videoListAfter.IsChecked = false; RefreshVideoListItems(); };
         _videoListItems.SelectionChanged += (_,_)=> { if (!_refreshingVideoLists && _videoListAfter.IsChecked == true) _videoListAfter.IsChecked = false; };
         _videoListItems.MouseDoubleClick += (_,e)=> { if(e.ChangedButton==MouseButton.Left) PlaySelectedVideoListItem(); };
         _videoListItems.PreviewKeyDown += (_,e)=> { if(e.Key==Key.Delete){EditVideoList(remove:true);e.Handled=true;} else if(e.Key==Key.Enter){PlaySelectedVideoListItem();e.Handled=true;} };
@@ -86,8 +84,7 @@ public partial class MainWindow
         _refreshingVideoLists = true;
         try
         {
-            _videoLists.ItemsSource = null; _videoLists.ItemsSource = _workspace.VideoCollections;
-            _videoLists.SelectedItem = _workspace.VideoCollections.FirstOrDefault(s=>s.Id==selected?.Id) ?? _workspace.VideoCollections.FirstOrDefault();
+            SelectedVideoList = _workspace.VideoCollections.FirstOrDefault(s=>s.Id==selected?.Id) ?? _workspace.VideoCollections.FirstOrDefault();
             _workspace.ActiveVideoListId = SelectedVideoList?.Id;
             RefreshVideoListItems();
         }

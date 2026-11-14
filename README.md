@@ -8,7 +8,9 @@ La pestaña **Lista de videos** permite agregar videos, eliminar y cambiar el or
 
 ## Abrir el programa
 
-Ejecuta **Abrir Culto Studio.cmd** en esta carpeta, o abre `artifacts/CultoStudio-0.40.0/CultoStudio.exe`. Cierra la versión anterior primero. La distribución publicada incluye .NET y el reproductor nativo; conserva todos los archivos de esa carpeta junto al ejecutable. Windows x64.
+Ejecuta **Abrir Culto Studio.cmd** en esta carpeta, o abre `artifacts/CultoStudio-0.40.1/CultoStudio.exe`. Cierra la versión anterior primero. La distribución publicada incluye .NET y el reproductor nativo; conserva todos los archivos de esa carpeta junto al ejecutable. Windows x64.
+
+En **0.40.1**, se eliminan controles ocultos y funciones antiguas que ya no se usaban. El audio se conserva únicamente mediante las acciones explícitas con Shift o sus botones del teléfono. PowerPoint actualiza su lista al abrir la pestaña y evita reconstruirla mientras buscas en el Himnario; también deja de consultar repetidamente la instalación de Office. La reproducción, el control USB, los cultos guardados y las listas de videos conservan sus funciones.
 
 En **0.40.0**, la pestaña **PowerPoint** está arriba, junto a **Lista de videos**. Usa **+ Agregar PowerPoint**, selecciona un archivo y pulsa **Proyectar** (también doble clic o Enter). Seleccionar solo prepara; **+ Al orden** permite incluirlo en el culto. La misma tarjeta muestra el archivo en pantalla y la diapositiva actual, con **Anterior**, **Siguiente**, **Pausar/Continuar** y **Reiniciar**. Anterior/Siguiente respetan las animaciones antes de cambiar de diapositiva y las pulsaciones rápidas ya no se pierden durante el fundido de audio. Requiere Microsoft PowerPoint instalado.
 

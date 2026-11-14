@@ -15,7 +15,6 @@ internal static partial class Program
     {
         var session = Field<PresentationSession>(window, "_session");
         var volume = (Slider)window.FindName("VolumeSlider");
-        var keep = (CheckBox)window.FindName("KeepMediaAudioCheck");
         var oldVolume = volume.Value;
         Window? floating = null;
         try
@@ -82,14 +81,13 @@ internal static partial class Program
             Test("Keep audio and one-way return work through the actual console actions", () =>
             {
                 var video = new Cue { Kind = CueKind.Video, Title = "Conservar este video", FilePath = Path.Combine(AppContext.BaseDirectory, "fixtures", "test.mkv") };
-                keep.IsChecked = true;
                 Call(window, "PrepareCue", video, null); Call(window, "ProjectPrepared");
                 var output = Field<ProjectionSurface>(window, "_output");
                 Until(() => output.IsPlaying && output.Position > .2 && !output.IsTransitioning, "Video did not start");
                 var retained = output.ActiveSurface;
                 var position = output.Position;
-                var text = new Cue { Kind = CueKind.Text, Title = "Texto encima", Body = "La música continúa" };
-                Call(window, "PrepareCue", text, null); Call(window, "ProjectPrepared");
+                var text = new Cue { Kind = CueKind.Text, Title = "Texto encima", Body = "La mÃºsica continÃºa" };
+                Call(window, "PrepareCue", text, null); Call(window, "ProjectPreparedPreservingOther");
                 Until(() => output.HasBackgroundMedia && !output.IsTransitioning, "Console did not retain background media");
                 PumpFor(450); Call(window, "TimerTick", null, EventArgs.Empty);
                 Check(output.IsPlaying && output.Position > position, "Video stopped while text was shown");
@@ -101,13 +99,12 @@ internal static partial class Program
                 Check(ReferenceEquals(retained, output.ActiveSurface) && output.Position > position, "Return replaced or restarted the decoder");
                 Call(window, "ReturnToMedia");
                 Check(session.Live?.Id == video.Id, "Repeated return toggled away from video");
-                keep.IsChecked = false;
             });
         }
         finally
         {
             floating?.Close(); Call(window, "DisposeYouTube"); Call(window, "CloseOutput");
-            keep.IsChecked = false; volume.Value = oldVolume;
+            volume.Value = oldVolume;
         }
     }
 }

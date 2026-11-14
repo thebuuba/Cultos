@@ -88,7 +88,7 @@ internal static partial class Program
                     "Failed input preserves the image and existing audio source");
                 output.TransitionTo(reading);
                 await Until(() => !output.IsTransitioning && !output.HasBackgroundMedia, "Normal projection releases background audio");
-                Check(Sounding() is null && !output.IsPlaying && !output.KeepMediaAudio,
+                Check(Sounding() is null && !output.IsPlaying,
                     "One-shot actions do not enable persistent audio for a later normal projection");
             }
             Audio(video);

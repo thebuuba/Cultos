@@ -21,7 +21,6 @@ internal sealed class ProjectionMixer : Grid, IDisposable
         TransitionOptions Options, BibleVisualStyle Style, string? Background, bool ReusedLiveMedia = false, bool PreserveAudio = false, bool AudioOnly = false);
     private readonly DispatcherTimer _timer;
     private readonly Stopwatch _clock = new();
-    private readonly Stopwatch _backgroundClock = new();
     private readonly Stopwatch _audioClock = new();
     private ProjectionSurface? _audioOutgoing;
     private TransitionOptions? _audioBlend;
@@ -35,8 +34,6 @@ internal sealed class ProjectionMixer : Grid, IDisposable
     private Request? _loading, _blend, _queued, _visible;
     private int _volume = 80;
     private bool _loop, _disposed, _desiredPause, _pauseImmediately, _blackout, _hidden;
-    private bool _keepMediaAudio, _backgroundFading;
-    private double _backgroundFadeMilliseconds;
     private TransitionOptions _options = new(), _appliedOptions = new();
     private BibleVisualStyle _style = new();
     public event Action<string>? PlaybackError;
@@ -55,34 +52,13 @@ internal sealed class ProjectionMixer : Grid, IDisposable
     private ProjectionSurface? BackgroundSurface => _background is { HasEnded: false } ? _background : (KeepOutgoingMedia ? _outgoing : null);
     public bool HasBackgroundMedia => BackgroundSurface is not null;
     public Cue? RetainedMediaCue => (_background is { HasEnded: false } ? _backgroundCue
-        : KeepOutgoingMedia ? _outgoingCue : _keepMediaAudio && _current.HasLoadedMedia && !_current.HasEnded ? _currentCue : null)
-        is { } cue ? Copy(cue) : null;
-    public bool KeepMediaAudio
-    {
-        get => _keepMediaAudio;
-        set
-        {
-            if (_disposed || _keepMediaAudio == value) return;
-            // Complete an already visible blend before changing ownership of its
-            // outgoing child. The new mode then has one unambiguous live source.
-            if (_blend is not null) FinishBlend();
-            _keepMediaAudio = value;
-            if (_background is not null)
-            {
-                _backgroundFading = !value;
-                _backgroundFadeMilliseconds = _options.AudioFadeOutMilliseconds;
-                _backgroundClock.Restart();
-                _timer.Start();
-            }
-            ApplyVolumes();
-            Tick();
-        }
-    }
+        : KeepOutgoingMedia ? _outgoingCue : null)
+        is { } cue ? cue.Copy() : null;
     public Cue? AudioCue => (BackgroundSurface is not null ? _backgroundCue ?? _outgoingCue
-        : _current.HasLoadedMedia && !_current.HasEnded ? _currentCue : null) is { Kind: CueKind.Video or CueKind.Audio } cue ? Copy(cue) : null;
+        : _current.HasLoadedMedia && !_current.HasEnded ? _currentCue : null) is { Kind: CueKind.Video or CueKind.Audio } cue ? cue.Copy() : null;
     public Cue? DisplayedCue => _currentCue;
     public TransitionOptions PresentedTransitions => _appliedOptions with { };
-    public bool IsTransitioning => _loading is not null || _blend is not null || _queued is not null || _backgroundFading || _audioBlend is not null || _current.IsTransitioning;
+    public bool IsTransitioning => _loading is not null || _blend is not null || _queued is not null || _audioBlend is not null || _current.IsTransitioning;
     public bool IsPreparingPlaybackEngine => !_disposed && _initialization is { IsCompleted: false };
     public bool IsPlaying => !_disposed && ActiveSurface.IsPlaying;
     public bool IsPaused => _disposed || (HasBackgroundMedia ? ActiveSurface.IsPaused : _queued is { } queued
@@ -128,18 +104,16 @@ internal sealed class ProjectionMixer : Grid, IDisposable
             options = options with { Kind = _style.Transition, DurationMilliseconds = _style.TransitionMilliseconds };
         // Native Move currently takes still-image inputs. Live windows use the
         // compositor's dissolve and report that actual kind instead of freezing.
-        if (options.Kind == "Move" && (_keepMediaAudio || _background is not null
+        if (options.Kind == "Move" && (_background is not null
             || cue?.Kind is CueKind.WindowCapture or CueKind.BrowserSource || _currentCue?.Kind is CueKind.WindowCapture or CueKind.BrowserSource))
             options = options with { Kind = "Dissolve" };
-        return new(cue is null ? null : Copy(cue), blackout, hidden, pauseAfter, options, _style.Normalize(), BackgroundImagePath);
+        return new(cue is null ? null : cue.Copy(), blackout, hidden, pauseAfter, options, _style.Normalize(), BackgroundImagePath);
     }
-    private static Cue Copy(Cue cue) => new() { Id = cue.Id, Kind = cue.Kind, Title = cue.Title, Body = cue.Body,
-        FilePath = cue.FilePath, Reference = cue.Reference, Version = cue.Version, HymnNumber = cue.HymnNumber, Notes = cue.Notes, Capture = cue.Capture is {} capture ? capture with {} : null, Browser = cue.Browser is {} browser ? browser with {} : null };
     private static bool SameMedia(Cue? first, Cue? second) => first is not null && second is not null
         && first.Id == second.Id && first.Kind == second.Kind && first.FilePath == second.FilePath && first.Capture == second.Capture && first.Browser == second.Browser;
     private static bool IsMedia(Cue? cue) => cue?.Kind is CueKind.Video or CueKind.Audio or CueKind.WindowCapture or CueKind.BrowserSource;
     private static bool ShowsMedia(Request request) => !request.Blackout && !request.Hidden && IsMedia(request.Cue);
-    private bool KeepOutgoingMedia => _blend is { } blend && (_keepMediaAudio || blend.PreserveAudio && _outgoingCue?.Kind is CueKind.Video or CueKind.Audio) && !ShowsMedia(blend)
+    private bool KeepOutgoingMedia => _blend is { } blend && (blend.PreserveAudio && _outgoingCue?.Kind is CueKind.Video or CueKind.Audio) && !ShowsMedia(blend)
         && _outgoing is { HasLoadedMedia: true, HasEnded: false } && IsMedia(_outgoingCue);
     private static bool SameSource(Cue? first, Cue? second)
     {
@@ -153,7 +127,7 @@ internal sealed class ProjectionMixer : Grid, IDisposable
         try { return StringComparer.OrdinalIgnoreCase.Equals(Path.GetFullPath(first.FilePath), Path.GetFullPath(second.FilePath)); }
         catch (Exception error) when (error is ArgumentException or NotSupportedException or PathTooLongException) { return false; }
     }
-    private bool ReusesSource(Cue? first, Cue? second) => SameMedia(first, second) || _keepMediaAudio && SameSource(first, second);
+    private bool ReusesSource(Cue? first, Cue? second) => SameMedia(first, second);
 
     public void TransitionVisual(Cue? cue, bool blackout, bool hidden) =>
         Enqueue(Capture(cue, blackout, hidden, false) with { PreserveAudio = true });
@@ -264,7 +238,7 @@ internal sealed class ProjectionMixer : Grid, IDisposable
             ApplyVolumes();
             return;
         }
-        if (!request.AudioOnly && !request.PreserveAudio && request.Options.Kind == "Move" && !_keepMediaAudio && _background is null
+        if (!request.AudioOnly && !request.PreserveAudio && request.Options.Kind == "Move" && _background is null
             && request.Cue?.Kind is not (CueKind.WindowCapture or CueKind.BrowserSource) && _currentCue?.Kind is not (CueKind.WindowCapture or CueKind.BrowserSource))
         {
             // The genuine OBS plugin currently accepts still-image inputs. Keep
@@ -282,7 +256,7 @@ internal sealed class ProjectionMixer : Grid, IDisposable
         var incoming = !request.AudioOnly && ShowsMedia(request) && (ReusesSource(_backgroundCue, request.Cue) || SameSource(_backgroundCue, request.Cue)) ? _background : null;
         if (incoming is not null)
         {
-            _background = null; _backgroundCue = null; _backgroundFading = false;
+            _background = null; _backgroundCue = null;
             request = request with { ReusedLiveMedia = true, PauseAfter = false };
             _desiredPause = false;
         }
@@ -322,7 +296,6 @@ internal sealed class ProjectionMixer : Grid, IDisposable
         {
             if (!IncomingReady(loading, incoming))
             {
-                if (_backgroundFading && _backgroundClock.Elapsed.TotalMilliseconds >= _backgroundFadeMilliseconds) ReleaseBackground();
                 ApplyVolumes();
                 if (_clock.Elapsed.TotalSeconds >= 15) SurfaceFailed(incoming, "El nuevo medio no entregó imagen o audio.");
                 return;
@@ -334,7 +307,7 @@ internal sealed class ProjectionMixer : Grid, IDisposable
                 // foreground remains untouched throughout loading and crossfade.
                 Children.Remove(incoming);
                 _audioOutgoing = _background;
-                _background = incoming; _backgroundCue = loading.Cue; _backgroundFading = false;
+                _background = incoming; _backgroundCue = loading.Cue;
                 _incoming = null; _loading = null;
                 _audioBlend = loading.Options; _audioClock.Restart();
             }
@@ -356,14 +329,13 @@ internal sealed class ProjectionMixer : Grid, IDisposable
             ApplyVolumes();
             if (sample.Complete) FinishBlend();
         }
-        if (_backgroundFading && _backgroundClock.Elapsed.TotalMilliseconds >= _backgroundFadeMilliseconds) ReleaseBackground();
         ApplyVolumes();
-        if (_loading is null && _blend is null && !_backgroundFading && _audioBlend is null) _timer.Stop();
+        if (_loading is null && _blend is null && _audioBlend is null) _timer.Stop();
     }
 
     private CrossfadeSample Sample(Request request) => CrossfadeTimeline.Sample(_clock.Elapsed.TotalMilliseconds,
         request.Options.Kind == "Cut" ? 0 : request.Options.DurationMilliseconds,
-        !KeepOutgoingMedia && (_outgoing?.HasLoadedMedia == true || _background is not null && (!request.PreserveAudio && !_keepMediaAudio || ShowsMedia(request)))
+        !KeepOutgoingMedia && (_outgoing?.HasLoadedMedia == true || _background is not null && (!request.PreserveAudio || ShowsMedia(request)))
             ? request.Options.AudioFadeOutMilliseconds : 0,
         _current.HasLoadedMedia && !_desiredPause && !request.ReusedLiveMedia ? request.Options.AudioFadeInMilliseconds : 0);
 
@@ -401,8 +373,8 @@ internal sealed class ProjectionMixer : Grid, IDisposable
                 CrossfadeTimeline.Sample(_audioClock.Elapsed.TotalMilliseconds, 0, fade.AudioFadeOutMilliseconds, fade.AudioFadeInMilliseconds).OutgoingGain);
         if (_background is not null)
         {
-            var gain = _backgroundFading ? Math.Clamp(1 - _backgroundClock.Elapsed.TotalMilliseconds / Math.Max(1, _backgroundFadeMilliseconds), 0, 1) : 1;
-            if (_blend is { } replacement && (ShowsMedia(replacement) || !replacement.PreserveAudio && !_keepMediaAudio)) gain = Math.Min(gain, Sample(replacement).OutgoingGain);
+            double gain = 1;
+            if (_blend is { } replacement && (ShowsMedia(replacement) || !replacement.PreserveAudio)) gain = Math.Min(gain, Sample(replacement).OutgoingGain);
             if (_audioBlend is { } audio) gain = Math.Min(gain, CrossfadeTimeline.Sample(_audioClock.Elapsed.TotalMilliseconds, 0,
                 audio.AudioFadeOutMilliseconds, audio.AudioFadeInMilliseconds).IncomingGain);
             _background.Volume = _pauseImmediately ? 0 : ProjectionSurface.NativeFadeVolume(_volume, gain);
@@ -440,10 +412,10 @@ internal sealed class ProjectionMixer : Grid, IDisposable
             else Retire(outgoing);
         }
         if (request is { Blackout: false, Hidden: false }) ReleaseRetained();
-        if (request is not null && (ShowsMedia(request) || !request.PreserveAudio && !_keepMediaAudio)) ReleaseBackground();
+        if (request is not null && (ShowsMedia(request) || !request.PreserveAudio)) ReleaseBackground();
         _outgoingCue = null;
         ApplyVolumes();
-        if (_backgroundFading || _audioBlend is not null) _timer.Start();
+        if (_audioBlend is not null) _timer.Start();
         if (_queued is { } queued)
         {
             _queued = null;
@@ -462,7 +434,7 @@ internal sealed class ProjectionMixer : Grid, IDisposable
             { _background = pending; _backgroundCue = loading.Cue; }
             else Retire(pending);
         }
-        if (_blend is null && !_backgroundFading) _timer.Stop();
+        if (_blend is null) _timer.Stop();
     }
     private void ReleaseRetained()
     {
@@ -470,7 +442,7 @@ internal sealed class ProjectionMixer : Grid, IDisposable
     }
     private void ReleaseBackground()
     {
-        if (_background is { } background) { _background = null; _backgroundCue = null; _backgroundFading = false; Retire(background); }
+        if (_background is { } background) { _background = null; _backgroundCue = null; Retire(background); }
     }
     private void Retire(ProjectionSurface surface)
     {
@@ -499,7 +471,7 @@ internal sealed class ProjectionMixer : Grid, IDisposable
     public void ShowCue(Cue? cue, bool blackout, bool hidden)
     {
         if (_disposed) return;
-        if (_keepMediaAudio || _background is not null)
+        if (_background is not null)
         {
             var cut = Capture(cue, blackout, hidden, blackout || hidden);
             Enqueue(cut with { Options = cut.Options with { Kind = "Cut", DurationMilliseconds = 0 } });

@@ -15,6 +15,15 @@ public sealed class Cue
     public string Notes { get; set; } = "";
     public WindowCaptureOptions? Capture { get; set; }
     public BrowserSourceOptions? Browser { get; set; }
+
+    public Cue Copy(bool newId = false)
+    {
+        var copy = (Cue)MemberwiseClone();
+        if (newId) copy.Id = Guid.NewGuid();
+        copy.Capture = Capture is { } capture ? capture with { } : null;
+        copy.Browser = Browser is { } browser ? browser with { } : null;
+        return copy;
+    }
 }
 
 public sealed class ServicePlan

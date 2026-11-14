@@ -58,14 +58,13 @@ internal static partial class Program
             Test("Capture compatibility survives a live transition and releases after its last outgoing frame", () =>
             {
                 var output = Field<Culto.Desktop.Projection.ProjectionSurface>(window, "_output");
-                output.KeepMediaAudio = false;
                 output.ShowCue(new Cue { Kind = CueKind.Text, Body = "Antes" });
                 session.RestoreOutput(new Cue { Kind = CueKind.WindowCapture, Capture = new WindowCaptureOptions
                     { Executable = "chrome.exe", WindowClass = "Chrome_WidgetWin_1" } }, false, false);
                 Check(!IsOpaqueCover(), "Browser capture did not enable compatibility before the transition");
                 output.Transitions = new TransitionOptions { Kind = "Dissolve", DurationMilliseconds = 600,
                     AudioFadeInMilliseconds = 0, AudioFadeOutMilliseconds = 0 };
-                var next = new Cue { Kind = CueKind.Text, Body = "Después" };
+                var next = new Cue { Kind = CueKind.Text, Body = "DespuÃ©s" };
                 output.TransitionTo(next);
                 session.RestoreOutput(next, false, false);
                 Check(output.IsTransitioning && !IsOpaqueCover(), "New session removed capture compatibility during the outgoing dissolve");

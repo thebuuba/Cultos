@@ -14,6 +14,12 @@ public partial class MainWindow
     private bool _updatingPowerPointPanel;
     private int _powerPointSlideIndex;
     private long _lastPowerPointPositionPoll;
+    private static readonly Lazy<bool> PowerPointAvailable = new(() => PowerPointPresentation.IsAvailable);
+
+    private void PowerPointPanelVisibilityChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (PowerPointPanel.IsVisible) RefreshPowerPointFiles();
+    }
 
     private void PollPowerPointPosition()
     {
@@ -26,7 +32,7 @@ public partial class MainWindow
 
     private void RefreshPowerPointFiles()
     {
-        if (!_ready) return;
+        if (!_ready || !PowerPointPanel.IsVisible) return;
         var selected = (PowerPointFiles.SelectedItem as Cue)?.FilePath;
         _updatingPowerPointPanel = true;
         try
@@ -98,13 +104,13 @@ public partial class MainWindow
         var controllable = running && !_session.IsBlackout && !_session.IsTextHidden && !_pendingCuePlayback.IsPending;
         PowerPointPlaybackPanel.Visibility = Visibility.Visible;
         PowerPointPlaybackPanel.IsEnabled = controllable;
-        PowerPointProjectButton.IsEnabled = PowerPointFiles.SelectedItem is Cue && PowerPointPresentation.IsAvailable;
+        PowerPointProjectButton.IsEnabled = PowerPointFiles.SelectedItem is Cue && PowerPointAvailable.Value;
         PowerPointAddToPlanButton.IsEnabled = PowerPointFiles.SelectedItem is Cue;
         PowerPointEmpty.Visibility = _powerPointFiles.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         PowerPointPositionText.Text = running ? $"Diapositiva {_powerPointSlideIndex} de {_powerPoint!.SlideCount}" : "Sin presentación en pantalla";
         PowerPointLiveText.Text = running ? "En pantalla: " + _session.Live!.Title
             : _pendingPowerPoint is not null ? "Preparando presentación…"
-            : PowerPointPresentation.IsAvailable ? "Selecciona un archivo y pulsa Proyectar." : "Instala Microsoft PowerPoint para presentar estos archivos.";
+            : PowerPointAvailable.Value ? "Selecciona un archivo y pulsa Proyectar." : "Instala Microsoft PowerPoint para presentar estos archivos.";
         PowerPointPauseButton.Content = _isPaused ? "Continuar" : "Pausar";
         _updatingPowerPointPanel = true;
         try

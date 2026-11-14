@@ -14,8 +14,8 @@ internal static partial class Program
 {
     private static void RunWorkspacePresetTests(MainWindow window, string directory)
     {
-        string[] expectedIds = ["bible", "media", "order", "output", "preview", "scenes", "sources", "text", "youtube"];
-        string[] sourceIds = ["sources", "bible", "text", "youtube"];
+        string[] expectedIds = ["bible", "media", "order", "playlists", "powerpoint", "preview", "scenes", "sources", "text", "youtube"];
+        string[] sourceIds = ["sources", "bible", "text", "youtube", "playlists", "powerpoint"];
         var manager = (DockingManager)window.FindName("WorkspaceDock");
         var session = Field<PresentationSession>(window, "_session");
         var originalLayout = (string)Call(window, "SerializeDockLayout")!;
@@ -55,7 +55,7 @@ internal static partial class Program
             void CheckWorkspace(string context)
             {
                 var panels = manager.Layout.Descendents().OfType<LayoutAnchorable>().ToArray();
-                Check(panels.Length == 9 && panels.Select(p => p.ContentId).Distinct().Count() == 9
+                Check(panels.Length == expectedIds.Length && panels.Select(p => p.ContentId).Distinct().Count() == expectedIds.Length
                     && panels.Select(p => p.ContentId).Order().SequenceEqual(expectedIds), context + ": missing or duplicate panel IDs");
                 foreach (var panel in panels)
                     Check(ReferenceEquals(panel.Content, originalContents[panel.ContentId]), context + ": recreated " + panel.ContentId);
@@ -76,9 +76,11 @@ internal static partial class Program
 
             void CheckPrincipalCards()
             {
-                string[] visibleIds = ["sources", "scenes", "preview", "output", "order"];
+                string[] visibleIds = ["sources", "scenes", "preview", "order"];
                 var cards = visibleIds.Select(id => (Id: id, Element: Content(id))).ToArray();
                 foreach (var card in cards) CheckWithin(card.Element, manager, new Rect(manager.RenderSize), "Principal " + card.Id);
+                foreach (var name in new[] { "PreviewViewport", "OutputViewport" })
+                    CheckWithin((FrameworkElement)window.FindName(name), Content("preview"), new Rect(Content("preview").RenderSize), name);
                 for (var first = 0; first < cards.Length; first++)
                     for (var second = first + 1; second < cards.Length; second++)
                     {
@@ -87,17 +89,17 @@ internal static partial class Program
                             "Principal cards overlap: " + cards[first].Id + " and " + cards[second].Id);
                     }
                 CheckSourceTabs("Principal", includeMedia: true);
-                foreach (var id in new[] { "sources", "bible", "youtube", "media", "text" })
+                foreach (var id in sourceIds.Append("media"))
                 {
                     Call(window, "ActivateWorkspacePanel", id); Settle();
                     Check(Panel(id).IsSelected, "Source tab is not selected: " + id);
-                    foreach (var other in new[] { "preview", "output", "order" })
+                    foreach (var other in new[] { "preview", "order" })
                         Check(Content(other).IsVisible, "Changing tabs hid " + other);
                 }
                 Call(window, "ActivateWorkspacePanel", "sources"); Settle();
             }
 
-            Test("Workspace presets retain all nine IDs, controls and presentation snapshots across repeated switches", () =>
+            Test("Workspace presets retain all ten IDs, controls and presentation snapshots across repeated switches", () =>
             {
                 foreach (var preset in new[] { "principal", "compacta", "proyeccion", "principal", "proyeccion", "compacta" })
                 {
@@ -106,21 +108,20 @@ internal static partial class Program
                 }
             });
 
-            Test("Principal groups five sources while order and both monitors remain visible", () =>
+            Test("Principal groups seven sources while order and both monitors remain visible", () =>
             {
                 Preset("principal");
                 CheckPrincipalCards();
                 CheckWorkspace("Principal geometry");
             });
 
-            Test("Compacta keeps five source tabs to the left of both monitors", () =>
+            Test("Compacta keeps seven source tabs to the left of both monitors", () =>
             {
                 Preset("compacta");
                 CheckSourceTabs("Compacta", includeMedia: true);
                 var sources = BoundsWithin(Content("sources"), manager);
-                Check(sources.Right <= BoundsWithin(Content("preview"), manager).Left + 1
-                    && sources.Right <= BoundsWithin(Content("output"), manager).Left + 1, "Compacta sources are not on the left");
-                foreach (var id in sourceIds)
+                Check(sources.Right <= BoundsWithin(Content("preview"), manager).Left + 1, "Compacta sources are not on the left");
+                foreach (var id in sourceIds.Append("media"))
                 {
                     Call(window, "ActivateWorkspacePanel", id); Settle();
                     Check(Panel(id).IsSelected, "Native source tab did not select " + id);
@@ -144,13 +145,12 @@ internal static partial class Program
                 Check(PictureArea("PreviewViewport") > previewArea * 1.25 && PictureArea("OutputViewport") > outputArea * 1.25,
                     "Proyeccion did not enlarge both monitor pictures");
                 var sourceBounds = BoundsWithin(Content("sources"), manager);
-                Check(sourceBounds.Right <= BoundsWithin(Content("preview"), manager).Left + 1
-                    && sourceBounds.Right <= BoundsWithin(Content("output"), manager).Left + 1, "Proyeccion sources are not beside the monitors");
+                Check(sourceBounds.Right <= BoundsWithin(Content("preview"), manager).Left + 1, "Proyeccion sources are not beside the monitors");
                 Check(!ReferenceEquals(Panel("media").Parent, Panel("order").Parent), "Proyeccion grouped order with media");
                 CheckWorkspace("Proyeccion geometry");
             });
 
-            Test("Customized grouping and floating survive paneles-v2 round-trip and window resizing", () =>
+            Test("Customized grouping and floating survive paneles-v3 round-trip and window resizing", () =>
             {
                 File.WriteAllText(legacyPath, "Legacy layout must remain untouched.");
                 Preset("compacta");
@@ -160,10 +160,10 @@ internal static partial class Program
                 Panel("youtube").Float(); Settle();
                 var groupWidth = target.DockWidth;
                 Check((bool)Call(window, "SaveDockLayout")!, "Could not save customized workspace");
-                Check(File.Exists(layoutPath), "Workspace was not saved to paneles-v2.xml");
+                Check(File.Exists(layoutPath), "Workspace was not saved to paneles-v3.xml");
                 Check(File.ReadAllText(legacyPath) == "Legacy layout must remain untouched.", "Saving replaced the legacy layout file");
                 var saved = File.ReadAllText(layoutPath);
-                Check(XDocument.Parse(saved).Descendants().Attributes("ContentId").Count() == 9, "Saved workspace lost panels");
+                Check(XDocument.Parse(saved).Descendants().Attributes("ContentId").Count() == expectedIds.Length, "Saved workspace lost panels");
                 Call(window, "RestoreDockLayout", originalLayout); Settle();
                 Call(window, "RestoreDockLayout", saved); Settle();
                 Check(ReferenceEquals(Panel("order").Parent, Panel("media").Parent), "Restoring lost customized grouping");
@@ -176,12 +176,12 @@ internal static partial class Program
                 CheckWorkspace("Customized layout round-trip");
             });
 
-            Test("Complete six-panel legacy layout adds three source tabs without resetting custom geometry", () =>
+            Test("Complete six-panel legacy layout migrates to all current panels without resetting custom geometry", () =>
             {
                 Preset("compacta");
                 var legacy = XDocument.Parse((string)Call(window, "SerializeDockLayout")!);
                 legacy.Descendants("LayoutAnchorable").Single(e => (string?)e.Attribute("ContentId") == "scenes").Parent!.Remove();
-                foreach (var id in new[] { "bible", "text", "youtube" })
+                foreach (var id in new[] { "bible", "text", "youtube", "playlists", "powerpoint" })
                     legacy.Descendants("LayoutAnchorable").Single(element => (string?)element.Attribute("ContentId") == id).Remove();
                 var sources = legacy.Descendants("LayoutAnchorable").Single(element => (string?)element.Attribute("ContentId") == "sources");
                 sources.SetAttributeValue("IsSelected", true);
@@ -190,6 +190,7 @@ internal static partial class Program
                 var order = legacy.Descendants("LayoutAnchorable").Single(element => (string?)element.Attribute("ContentId") == "order");
                 order.Parent!.SetAttributeValue("DockWidth", "0.83*");
                 order.Parent.Add(new XElement("LayoutAnchorable", new XAttribute("Title", "Retired"), new XAttribute("ContentId", "sequence")));
+                order.Parent.Add(new XElement("LayoutAnchorable", new XAttribute("Title", "Old output"), new XAttribute("ContentId", "output")));
                 Check(legacy.Descendants().Attributes("ContentId").Count() == 6, "Legacy fixture is not a complete six-panel layout");
                 Call(window, "RestoreDockLayout", legacy.ToString()); Settle();
                 CheckSourceTabs("Migrated legacy layout", includeMedia: true);
@@ -207,7 +208,7 @@ internal static partial class Program
             {
                 Preset("compacta");
                 var duplicate = XDocument.Parse((string)Call(window, "SerializeDockLayout")!);
-                duplicate.Descendants("LayoutAnchorable").Single(element => (string?)element.Attribute("ContentId") == "output")
+                duplicate.Descendants("LayoutAnchorable").Single(element => (string?)element.Attribute("ContentId") == "scenes")
                     .SetAttributeValue("ContentId", "preview");
                 foreach (var invalid in new[] { "<LayoutRoot>", "<LayoutRoot />", duplicate.ToString() })
                 {
@@ -220,7 +221,7 @@ internal static partial class Program
                 }
             });
 
-            Test("Reset returns all nine panels to Principal and closes floating hosts", () =>
+            Test("Reset returns all ten panels to Principal and closes floating hosts", () =>
             {
                 Preset("compacta"); Panel("text").Float(); Settle();
                 Check(Panel("text").IsFloating, "Reset fixture did not float a panel");

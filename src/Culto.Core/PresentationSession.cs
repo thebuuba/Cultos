@@ -16,7 +16,7 @@ public sealed class PresentationSession
     public event Action? Changed;
     public void FollowLive()
     {
-        Prepared = Live is null ? null : Copy(Live);
+        Prepared = Live is null ? null : Live.Copy();
         Changed?.Invoke();
     }
     public void Prepare(Cue cue)
@@ -29,7 +29,7 @@ public sealed class PresentationSession
     public void GoLive()
     {
         if (Prepared is null) return;
-        Live = Copy(Prepared);
+        Live = Prepared.Copy();
         IsBlackout = false;
         IsTextHidden = false;
         Changed?.Invoke();
@@ -37,19 +37,11 @@ public sealed class PresentationSession
 
     public void RestoreOutput(Cue? cue, bool blackout, bool hidden)
     {
-        Live = cue is null ? null : Copy(cue);
+        Live = cue is null ? null : cue.Copy();
         IsBlackout = blackout;
         IsTextHidden = hidden;
         Changed?.Invoke();
     }
-
-    private static Cue Copy(Cue cue) => new()
-    {
-        Id = cue.Id, Title = cue.Title, Kind = cue.Kind, Body = cue.Body,
-        Reference = cue.Reference, Version = cue.Version, FilePath = cue.FilePath,
-        HymnNumber = cue.HymnNumber, Notes = cue.Notes, Capture = cue.Capture is {} capture ? capture with {} : null,
-        Browser = cue.Browser is {} browser ? browser with {} : null
-    };
 
     public void ToggleBlackout()
     {

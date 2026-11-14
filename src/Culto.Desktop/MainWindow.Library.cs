@@ -129,12 +129,7 @@ public partial class MainWindow
         SetStatus($"{result.added.Count} archivos incorporados" + (result.failed > 0 ? $"; {result.failed} no se pudieron leer." : "."), result.failed > 0);
         if (result.added.Count > 0) LibraryList.SelectedItem = result.added[0];
     }
-    private static Cue CopyCue(Cue c, bool newId = false) => new()
-    {
-        Id = newId ? Guid.NewGuid() : c.Id, Title = c.Title, Kind = c.Kind, Body = c.Body,
-        Reference = c.Reference, Version = c.Version, FilePath = c.FilePath, HymnNumber = c.HymnNumber, Notes = c.Notes, Capture = c.Capture is {} capture ? capture with {} : null,
-        Browser = c.Browser is { } browser ? browser with { } : null
-    };
+    private static Cue CopyCue(Cue cue, bool newId = false) => cue.Copy(newId);
     private void AddToPlan(Cue cue)
     {
         var item = CopyCue(cue, true);
