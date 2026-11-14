@@ -89,6 +89,13 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
     }
     public bool Loop { get => _mixer?.Loop ?? _loop; set { _loop = value; if (_mixer is not null) _mixer.Loop = value; } }
     public bool KeepMediaAudio { get => _mixer?.KeepMediaAudio == true; set { if (_mixer is not null) _mixer.KeepMediaAudio = value; } }
+    public Cue? AudioCue => _mixer?.AudioCue ?? (_mixer is null && HasLoadedMedia && !HasEnded && _shownCue?.Kind is CueKind.Video or CueKind.Audio ? _shownCue : null);
+    public void TransitionVisual(Cue? cue, bool blackout = false, bool hideText = false)
+    {
+        if (_mixer is not null) _mixer.TransitionVisual(cue, blackout, hideText);
+        else TransitionToBackdrop(cue, blackout, hideText);
+    }
+    public void PlayAudioKeepingVisual(Cue cue) => _mixer?.PlayAudioKeepingVisual(cue);
     public Cue? RetainedMediaCue => _mixer?.RetainedMediaCue;
     public bool HasBackgroundMedia => _mixer?.HasBackgroundMedia == true;
     public string? BackgroundImagePath { get => _mixer?.BackgroundImagePath ?? _backgroundImagePath;

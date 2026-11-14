@@ -48,7 +48,7 @@ public partial class MainWindow : Window
         InitializePlayerControls();
         InitializeUsabilityShortcuts();
         InitializeContentDragDrop();
-        _plan.CollectionChanged += (_, _) => UpdateUsabilityState();
+        _plan.CollectionChanged += (_, _) => { UpdateUsabilityState(); RefreshPowerPointFiles(); };
         Loaded += (_, _) => InitializeWorkspace();
         Closing += OnWindowClosing;
         _browserCaptureResizeTimer.Tick+=RefreshBrowserCaptureAfterResize;
@@ -56,6 +56,7 @@ public partial class MainWindow : Window
         StateChanged += (_, _) => BrowserCaptureLayoutChanged();
         Activated += (_, _) => BrowserCaptureActivated();
         InputBindings.Add(new KeyBinding(new ActionCommand(ProjectPrepared), Key.F5, ModifierKeys.None));
+        InputBindings.Add(new KeyBinding(new ActionCommand(() => ProjectPreparedPreservingOther()), Key.F5, ModifierKeys.Shift));
         InputBindings.Add(new KeyBinding(new ActionCommand(() => AdvancePresentation(1)), Key.F6, ModifierKeys.None));
         InputBindings.Add(new KeyBinding(new ActionCommand(() => AdvancePresentation(-1)), Key.F7, ModifierKeys.None));
         InputBindings.Add(new KeyBinding(new ActionCommand(ToggleBlackout), Key.F8, ModifierKeys.None));
@@ -93,7 +94,8 @@ public partial class MainWindow : Window
         PlanNameBox.Text = _workspace.Plan.Name;
         VolumeSlider.Value = _workspace.Volume;
         LoopCheck.IsChecked = _workspace.Loop;
-        KeepMediaAudioCheck.IsChecked = _workspace.KeepMediaAudio;
+        _workspace.KeepMediaAudio = false;
+        KeepMediaAudioCheck.IsChecked = false;
         _preview = new ProjectionSurface(preview: true);
         _preview.PlaybackError += message => Dispatcher.BeginInvoke(() => SetStatus(message, true));
         PreviewHost.Content = _preview;
@@ -105,6 +107,7 @@ public partial class MainWindow : Window
         InitializeYouTube();
         InitializeScenes();
         InitializeMediaBrowser();
+        InitializeSplitMediaActions();
         SetupPresenterHotkeys();
         RefreshLibrary();
         LoadSavedBible();

@@ -20,7 +20,7 @@ public partial class MainWindow
                 CanContentScroll = false,
                 Padding = new Thickness(0)
             };
-            body.MinHeight = id switch { "bible" => 400, "sources" => 360, "media" or "order" => 180, _ => 320 };
+            body.MinHeight = id switch { "bible" => 400, "powerpoint" => 480, "sources" => 360, "media" or "order" => 180, _ => 320 };
             // Give the inner star rows a finite viewport so long lists remain
             // virtualized instead of expanding to their entire item count.
             body.SetBinding(HeightProperty, new Binding(nameof(ScrollViewer.ViewportHeight))

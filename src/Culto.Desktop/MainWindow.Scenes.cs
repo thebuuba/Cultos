@@ -39,7 +39,7 @@ public partial class MainWindow
         if (SceneMedia(kind) is not { } cue) { ChooseSceneMediaClick(sender, e); return; }
         if (cue.Kind != kind || !CheckMedia(cue) || !RememberSceneMedia(cue)) return;
         PrepareCue(CopyCue(cue));
-        ProjectPrepared();
+        ProjectPreparedFromInput();
     }
 
     private void ChooseSceneMediaClick(object sender, RoutedEventArgs e)

@@ -285,7 +285,7 @@ public partial class MainWindow
             || !BibleResults.Items.Contains(result)) return;
         if (!BibleResults.SelectedItems.Contains(result)) BibleResults.SelectedItem = result;
         PrepareBibleSelection();
-        ProjectPrepared();
+        ProjectPreparedFromInput();
     }
     private void AddSelectedBibleToPlanClick(object sender, RoutedEventArgs e)
     {

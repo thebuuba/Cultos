@@ -61,15 +61,15 @@ public partial class MainWindow
     private void UpdateUsabilityState()
     {
         if (!_ready) return;
-        var capture = _output is not null && _session.Live?.Kind == CueKind.WindowCapture;
-        OutputTransportGrid.Visibility = capture || _session.Live?.Kind is not (CueKind.Video or CueKind.Audio) ? Visibility.Collapsed : Visibility.Visible;
+        var capture = !HasBackgroundFileAudio && _output is not null && _session.Live?.Kind == CueKind.WindowCapture;
+        OutputTransportGrid.Visibility = CanControlFileMedia ? Visibility.Visible : Visibility.Collapsed;
         PauseButton.IsEnabled = HasVisibleMediaOutput && !capture;
         PauseButton.Visibility = capture ? Visibility.Collapsed : Visibility.Visible;
         foreach (var control in new FrameworkElement[] { PositionSlider, TimeText, OutputDurationText,
             RestartOutputButton, OutputSkipBackButton, OutputSkipForwardButton, LoopCheck })
             control.Visibility = capture ? Visibility.Collapsed : Visibility.Visible;
         if (capture) UpdateCapturePlayButton();
-        PowerPointPlaybackPanel.Visibility = _output is not null && _session.Live?.Kind == CueKind.PowerPoint ? Visibility.Visible : Visibility.Collapsed;
+        UpdatePowerPointPanel();
         if (FindName("MediaPlaybackPanel") is FrameworkElement mediaPanel)
             mediaPanel.Visibility = HasVisibleMediaOutput ? Visibility.Visible : Visibility.Collapsed;
         PlanList.LiveCueId = _output is not null ? _session.Live?.Id : null;
@@ -90,6 +90,8 @@ public partial class MainWindow
     {
         var live = _session.Live;
         if (_output is null || live is null) return "Sin contenido en salida";
+        if (live.Kind == CueKind.PowerPoint && _powerPoint?.IsRunning == true)
+            return $"Diapositiva {_powerPointSlideIndex} de {_powerPoint.SlideCount}";
         var orderIndex = _plan.ToList().FindIndex(cue => cue.Id == live.Id);
         if (orderIndex >= 0)
             return orderIndex + 1 < _plan.Count ? "Siguiente: " + _plan[orderIndex + 1].Title : "Fin del orden";

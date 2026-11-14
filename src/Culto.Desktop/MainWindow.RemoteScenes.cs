@@ -31,17 +31,21 @@ public partial class MainWindow
     }
 
     private CommandResult ExecuteRemoteScene(string? id)
+        => ExecuteRemoteSceneMode(id, false);
+
+    private CommandResult ExecuteRemoteSceneMode(string? id, bool preserve)
     {
         var scene = BuildRemoteScenes().FirstOrDefault(item => item.Id == id);
         if (scene is null) return new(false, "Esta escena ya no está disponible.");
         if (!scene.Available) return new(false, scene.Detail ?? "Elige el contenido de esta escena en la PC.");
+        if (preserve && id is not ("logo" or "blackout" or "image" or "video")) return new(false, "Esta escena se controla normalmente.");
         switch (id)
         {
             case "blackout":
-                ShowBlackBackdrop();
+                if (preserve) ShowBlackPreservingAudio(); else ShowBlackBackdrop();
                 return new(_output is not null, _session.IsBlackout ? "Fondo negro." : "Contenido restaurado.");
             case "logo":
-                return new(ShowLogo(), "Logo en pantalla.");
+                return new(preserve ? ShowLogoPreservingAudio() : ShowLogo(), "Logo en pantalla.");
             case "youtube":
                 var source = SceneYouTubeSource();
                 if (source is not { IsAvailable: true } || !CheckMedia(source.Cue))
@@ -53,7 +57,9 @@ public partial class MainWindow
             case "video":
                 var cue = SceneMedia(id == "image" ? CueKind.Image : CueKind.Video);
                 if (cue is null || !CheckMedia(cue) || !RememberSceneMedia(cue)) return new(false, "Elige el archivo en la PC.");
-                PrepareCue(CopyCue(cue)); ProjectPrepared();
+                PrepareCue(CopyCue(cue));
+                if (preserve) return new(ProjectPreparedPreservingOther(), StatusText.Text);
+                ProjectPrepared();
                 return new(_output is not null && _session.Live?.Id == cue.Id, "Escena enviada a pantalla.");
             case "browser":
                 var browser = _workspace.BrowserSources.FirstOrDefault(c => c.Id == _selectedBrowserSource)

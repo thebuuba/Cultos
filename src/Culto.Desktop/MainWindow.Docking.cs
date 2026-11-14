@@ -239,6 +239,7 @@ public partial class MainWindow
         WorkspaceLayouts.AddScenesPanel(document);
         WorkspaceLayouts.MergeMonitors(document);
         WorkspaceLayouts.AddVideoLists(document);
+        WorkspaceLayouts.AddPowerPoint(document);
         var ids = document.Descendants().Attributes("ContentId").Select(a => a.Value).ToArray();
         if (document.Root?.Name != "LayoutRoot" || ids.Length != _dockContents.Count || !ids.Order().SequenceEqual(_dockContents.Keys.Order())
             || document.Descendants().Any(e => e.Attribute("ContentId") is not null && e.Name != "LayoutAnchorable"))

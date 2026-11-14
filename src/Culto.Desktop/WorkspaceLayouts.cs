@@ -6,14 +6,14 @@ internal static class WorkspaceLayouts
 {
     internal const double PrincipalWindowWidth = 1420;
     private static readonly string[] LegacyIds = ["media", "order", "output", "preview", "sequence", "sources"];
-    private static readonly string[] SourceIds = ["sources", "bible", "text", "youtube", "playlists"];
-    private static readonly string[] TabbedSourceIds = ["sources", "bible", "youtube", "media", "text", "playlists"];
+    private static readonly string[] SourceIds = ["sources", "bible", "text", "youtube", "playlists", "powerpoint"];
+    private static readonly string[] TabbedSourceIds = ["sources", "bible", "youtube", "media", "text", "playlists", "powerpoint"];
 
     internal static string Title(string id) => id switch
     {
         "sources" => "Himnario", "bible" => "Biblia", "text" => "Texto", "youtube" => "YouTube",
         "preview" => "Monitores", "output" => "En pantalla", "order" => "Orden del culto",
-        "playlists" => "Lista de videos", "media" => "Medios", "scenes" => "Escenas", _ => id
+        "playlists" => "Lista de videos", "powerpoint" => "PowerPoint", "media" => "Medios", "scenes" => "Escenas", _ => id
     };
 
     internal static double MinimumWidth(string? id) => id switch
@@ -71,7 +71,7 @@ internal static class WorkspaceLayouts
         var sources = contents.Single(e => (string?)e.Attribute("ContentId") == "sources");
         if (sources.Name != "LayoutAnchorable" || sources.Parent is not { Name.LocalName: "LayoutAnchorablePane" } pane) return false;
         sources.SetAttributeValue("Title", Title("sources"));
-        foreach (var id in SourceIds.Skip(1).Where(id => id != "playlists")) pane.Add(Content(id, false));
+        foreach (var id in SourceIds.Skip(1).Where(id => id is not ("playlists" or "powerpoint"))) pane.Add(Content(id, false));
         return true;
     }
 
@@ -179,6 +179,22 @@ internal static class WorkspaceLayouts
         if (!document.Descendants().Attributes("ContentId").Select(a=>a.Value).Order().SequenceEqual(oldIds)) return;
         var source = document.Descendants("LayoutAnchorable").Single(e=>(string?)e.Attribute("ContentId")=="sources");
         source.Parent!.Add(Content("playlists",false));
+    }
+
+    internal static void AddPowerPoint(XDocument document)
+    {
+        string[] oldIds = ["bible", "media", "order", "playlists", "preview", "scenes", "sources", "text", "youtube"];
+        if (!document.Descendants().Attributes("ContentId").Select(a => a.Value).Order().SequenceEqual(oldIds)) return;
+        var playlists = document.Descendants("LayoutAnchorable").Single(e => (string?)e.Attribute("ContentId") == "playlists");
+        if (playlists.Parent?.Name.LocalName == "LayoutAnchorablePane") playlists.AddAfterSelf(Content("powerpoint", false));
+        else
+        {
+            var source = document.Descendants("LayoutAnchorable").Single(e => (string?)e.Attribute("ContentId") == "sources");
+            var pane = source.Parent?.Name.LocalName == "LayoutAnchorablePane" ? source.Parent
+                : document.Descendants("LayoutAnchorablePane").FirstOrDefault();
+            if (pane is null) document.Root!.Element("RootPanel")!.Add(Pane("*", "powerpoint"));
+            else pane.Add(Content("powerpoint", false));
+        }
     }
 
     internal static string Arrangement(XDocument document)

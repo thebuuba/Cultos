@@ -29,7 +29,7 @@ public partial class MainWindow
         player.SkipRequested += SkipOutput;
         player.SeekRequested += position =>
         {
-            if (_session.Live?.Kind is CueKind.Video or CueKind.Audio && !_session.IsBlackout && !_session.IsTextHidden)
+            if (CanControlFileMedia)
                 _output?.Seek(position);
         };
         player.VolumeRequested += volume => VolumeSlider.Value = volume;
@@ -47,10 +47,10 @@ public partial class MainWindow
         var native = _powerPoint?.IsRunning == true ? LiveMonitor.NativeSource : IntPtr.Zero;
         player.Monitor.SetMirrorSource(native != IntPtr.Zero && _outputDisplay is null ? LiveMonitor : null);
         player.Monitor.SetNativeSource(_outputDisplay is not null ? native : IntPtr.Zero);
-        var available = _output is not null && !_session.IsBlackout && !_session.IsTextHidden;
-        var media = _session.Live?.Kind is CueKind.Video or CueKind.Audio;
-        var capture = _session.Live?.Kind == CueKind.WindowCapture;
-        player.Update(new OutputPlayerState(_session.Live?.Title ?? "Sin contenido",
+        var available = CanControlFileMedia;
+        var media = CanControlFileMedia;
+        var capture = !HasBackgroundFileAudio && _session.Live?.Kind == CueKind.WindowCapture;
+        player.Update(new OutputPlayerState("Imagen: " + VisualChannelTitle + " · Audio: " + AudioChannelTitle,
             available && media, available && media && _output!.Duration > 0,
             _output?.IsPaused ?? true, capture, media ? _output?.Position ?? 0 : 0,
             media ? _output?.Duration ?? 0 : 0, VolumeSlider.Value, LoopCheck.IsChecked == true));

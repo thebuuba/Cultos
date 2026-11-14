@@ -22,6 +22,13 @@ public partial class MainWindow
         var add = new MenuItem { Header = "Añadir a lista de reproducción", IsEnabled = cue.Kind == CueKind.Video };
         menu.Items.Add(add);
         add.Click += (_,_)=>AppendToVideoQueue(cue);
+        if (cue.Kind is CueKind.Video or CueKind.Audio or CueKind.Image or CueKind.Bible or CueKind.Text)
+        {
+            var split = new MenuItem { Header = cue.Kind is CueKind.Video or CueKind.Audio
+                ? "Solo audio · conservar imagen" : "Mostrar conservando audio" };
+            split.Click += (_, _) => { PrepareCue(cue); ProjectPreparedPreservingOther(); };
+            menu.Items.Add(split);
+        }
         return menu;
     }
     private void InitializeVideoListsPanel()

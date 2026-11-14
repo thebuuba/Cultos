@@ -42,6 +42,7 @@ public partial class MainWindow
     {
         if (FindName("PresenterEnabledMenu") is MenuItem enabled) enabled.IsChecked = _presenterHotkeys?.IsEnabled == true;
         if (FindName("PresenterArrowsMenu") is MenuItem arrows) arrows.IsChecked = _workspace.PresenterUsesArrows;
+        UpdatePowerPointPanel();
     }
 
     private void TogglePresenterClick(object sender, RoutedEventArgs e)

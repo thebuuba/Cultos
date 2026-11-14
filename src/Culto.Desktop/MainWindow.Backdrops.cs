@@ -7,10 +7,22 @@ namespace Culto.Desktop;
 public partial class MainWindow
 {
     private void ChurchBackgroundClick(object sender, RoutedEventArgs e)
-        => ShowLogo();
-    private void BlackBackgroundClick(object sender, RoutedEventArgs e) => ShowBlackBackdrop();
+    {
+        if (System.Windows.Input.Keyboard.Modifiers == System.Windows.Input.ModifierKeys.Shift) ShowLogoPreservingAudio();
+        else ShowLogo();
+    }
+    private void BlackBackgroundClick(object sender, RoutedEventArgs e)
+    {
+        if (System.Windows.Input.Keyboard.Modifiers == System.Windows.Input.ModifierKeys.Shift) ShowBlackPreservingAudio();
+        else ShowBlackBackdrop();
+    }
 
     private void ShowBlackBackdrop()
+    {
+        _preserveAudioForBackdrop = false;
+        ShowBlackBackdropCore();
+    }
+    private void ShowBlackBackdropCore()
     {
         if (!EnsureOutput()) return;
         if (_session.IsBlackout) _session.RestoreContent();
@@ -20,6 +32,7 @@ public partial class MainWindow
 
     private void ApplyBackdropTransition()
     {
+        _preserveAudioForNextCue = false;
         if (_pendingCuePlayback.IsPending)
         {
             _pendingCuePlayback.SetPaused(true);
@@ -53,7 +66,9 @@ public partial class MainWindow
         }
         _output!.BackgroundImagePath = CurrentBackgroundPath;
         _output.Transitions = transitions;
-        _output.TransitionToBackdrop(WithYouTubeLayout(_session.Live), _session.IsBlackout, _session.IsTextHidden);
+        if (_preserveAudioForBackdrop)
+            _output.TransitionVisual(WithYouTubeLayout(_session.Live), _session.IsBlackout, _session.IsTextHidden);
+        else _output.TransitionToBackdrop(WithYouTubeLayout(_session.Live), _session.IsBlackout, _session.IsTextHidden);
         _logoAwaitingOutput = false;
         _isPaused = _output.HasBackgroundMedia ? _output.IsPaused
             : _session.Live?.Kind != CueKind.WindowCapture || _session.IsBlackout || _session.IsTextHidden;

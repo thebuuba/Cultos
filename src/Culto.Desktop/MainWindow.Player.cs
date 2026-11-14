@@ -95,8 +95,7 @@ public partial class MainWindow
 
     private void SeekOutput()
     {
-        if (_output is not null && _session.Live?.Kind is CueKind.Video or CueKind.Audio
-            && !_session.IsBlackout && !_session.IsTextHidden && _output.Duration > 0)
+        if (CanControlFileMedia && _output!.Duration > 0)
             _output.Seek(PositionSlider.Value);
     }
 
@@ -109,7 +108,7 @@ public partial class MainWindow
     private void OutputSkipForwardClick(object sender, RoutedEventArgs e) => SkipOutput(10);
     private void SkipOutput(double seconds)
     {
-        if (_session.Live?.Kind is CueKind.Video or CueKind.Audio && !_session.IsBlackout && !_session.IsTextHidden)
+        if (CanControlFileMedia)
             Skip(_output, seconds);
     }
 }

@@ -127,7 +127,11 @@ public partial class MainWindow
     private void UpdatePowerPointPosition()
     {
         if (_powerPoint?.IsRunning == true)
-            NextLiveText.Text = $"Diapositiva {_powerPoint.SlideIndex} de {_powerPoint.SlideCount}";
+        {
+            _powerPointSlideIndex = _powerPoint.SlideIndex;
+            NextLiveText.Text = $"Diapositiva {_powerPointSlideIndex} de {_powerPoint.SlideCount}";
+        }
+        UpdatePowerPointPanel();
     }
 
     private static Cue PowerPointPreview(Cue cue)

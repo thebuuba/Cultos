@@ -11,16 +11,19 @@ namespace Culto.Desktop;
 
 public partial class MainWindow
 {
-    private void ProjectClick(object sender, RoutedEventArgs e) => ProjectPrepared();
+    private void ProjectClick(object sender, RoutedEventArgs e) => ProjectPreparedFromInput();
     private void ProjectPrepared() => ProjectPreparedCore(activate: true);
     private void ProjectPreparedWithoutActivation() => ProjectPreparedCore(activate: false);
-    private void ProjectPreparedCore(bool activate)
+    private void ProjectPreparedCore(bool activate, bool preserve = false)
     {
+        _preserveAudioForNextCue = false;
         var cue = _session.Prepared;
         if (cue is null) { SetStatus("Selecciona primero un contenido para preparar."); return; }
         if (!CheckMedia(cue)) return;
         if (!EnsureOutput()) return;
         if (!PreparePowerPointOutput(cue)) return;
+        _preserveAudioForBackdrop = false;
+        _preserveAudioForNextCue = preserve;
         _liveReading = _preparedReading;
         _preparedBibleStyleChanged = false;
         _session.GoLive();
@@ -78,7 +81,7 @@ public partial class MainWindow
             _standbyOutput = null;
             _output.Volume = (int)VolumeSlider.Value;
             _output.Loop = LoopCheck.IsChecked == true;
-            _output.KeepMediaAudio = _workspace.KeepMediaAudio;
+            _output.KeepMediaAudio = false;
             _output.BackgroundImagePath = _workspace.BackgroundImagePath;
             _output.BibleStyle = _workspace.BibleStyle.Normalize();
             _output.Transitions = _workspace.Transitions.Normalize();
@@ -230,6 +233,7 @@ public partial class MainWindow
     private void ToggleBlackout()
     {
         if (_output is null) { SetStatus("La salida ya está cerrada."); return; }
+        _preserveAudioForBackdrop = false;
         _session.ToggleBlackout();
         if (_session.IsTextHidden && !_session.IsBlackout) { ShowLogo(); return; }
         ApplyBackdropTransition();
@@ -243,6 +247,7 @@ public partial class MainWindow
     private void PauseClick(object sender, RoutedEventArgs e) => TogglePause();
     private void TogglePause()
     {
+        if (HasBackgroundFileAudio) { _isPaused = !_output!.IsPaused; _output.SetPaused(_isPaused); UpdatePlayButton(PauseButton, _isPaused, false); return; }
         if (_session.Live?.Kind == CueKind.WindowCapture) return;
         if (TogglePendingCuePause()) return;
         if (_session.Live?.Kind == CueKind.PowerPoint && _powerPoint is not null)
@@ -264,6 +269,7 @@ public partial class MainWindow
     private void RestartClick(object sender, RoutedEventArgs e) => RestartMedia();
     private void RestartMedia()
     {
+        if (HasBackgroundFileAudio) { _output!.Restart(); _isPaused = false; return; }
         if (RestartPendingCue()) return;
         if (_session.Live?.Kind == CueKind.PowerPoint && _powerPoint is not null)
         {
@@ -324,9 +330,9 @@ public partial class MainWindow
             var duration = _output.Duration; var position = _output.Position;
             if (!_outputScrubbing) TimeText.Text = FormatTime(position);
             OutputDurationText.Text = FormatTime(duration);
-            PositionSlider.IsEnabled = duration > 0 && !_session.IsBlackout && !_session.IsTextHidden;
+            PositionSlider.IsEnabled = duration > 0 && CanControlFileMedia;
             if (!_outputScrubbing && !PositionSlider.IsMouseCaptureWithin) PositionSlider.Value = duration > 0 ? Math.Clamp(position / duration, 0, 1) : 0;
-            if (_session.Live?.Kind is CueKind.Video or CueKind.Audio or CueKind.WindowCapture)
+            if (HasBackgroundFileAudio || _session.Live?.Kind is CueKind.Video or CueKind.Audio or CueKind.WindowCapture)
             {
                 _isPaused = _pendingCuePlayback.IsPending
                     ? _session.IsBlackout || _session.IsTextHidden || _pendingCuePlayback.Intent.IsPaused : _output.IsPaused;
@@ -337,6 +343,8 @@ public partial class MainWindow
         AdvanceVideoListIfEnded();
         UpdateOutputPlayer();
         UpdateBackgroundAudioState();
+        PollPowerPointPosition();
+        UpdatePowerPointPanel();
         if (++_displayTick < 10) return;
         _displayTick = 0;
         if (_outputDisplay is not null && !DisplayService.GetDisplays().Any(d => d.DeviceName == _outputDisplay.DeviceName))

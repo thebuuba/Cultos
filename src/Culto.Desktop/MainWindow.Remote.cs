@@ -16,12 +16,13 @@ public partial class MainWindow
         _plan.Select(cue => new RemoteCue(cue.Id.ToString(), cue.Title, cue.Kind.ToString())).ToArray(),
         _output is null ? null : _session.Live?.Id.ToString(), _session.Prepared?.Id.ToString(),
         _output is not null, _output is not null && _session.IsTextHidden, _outputWindow is not null,
-        _output is not null && _session.Live?.Kind is CueKind.Video or CueKind.Audio or CueKind.PowerPoint
+        CanControlFileMedia || _output is not null && _session.Live?.Kind == CueKind.PowerPoint
             && !_session.IsBlackout && !_session.IsTextHidden,
         _output is not null && !_session.IsBlackout && !_session.IsTextHidden && _session.Live?.Kind is CueKind.Bible or CueKind.Text
             ? _session.Live.Body : null,
         _output is not null && !_session.IsBlackout && !_session.IsTextHidden ? _session.Live?.Reference : null,
-        _output is not null ? _session.Live?.Kind.ToString() : null, BuildRemoteScenes());
+        _output is not null ? _session.Live?.Kind.ToString() : null, BuildRemoteScenes(),
+        VisualChannelTitle, AudioChannelTitle, _output?.HasBackgroundMedia == true, _session.Prepared?.Kind.ToString());
 
     private async Task<CommandResult> HandleRemote(RemoteCommand command)
         => await Dispatcher.InvokeAsync(() => ExecuteRemote(command));
@@ -32,13 +33,20 @@ public partial class MainWindow
         try
         {
             var action = command.Action;
-            if (action == "scene") return ExecuteRemoteScene(command.ButtonId);
+            if (action == "scene") return ExecuteRemoteSceneMode(command.ButtonId, command.PreserveOther == true);
+            if (action == "return-media")
+            {
+                if (_output?.HasBackgroundMedia != true) return new(false, "No hay video de fondo al que volver.");
+                ReturnToMedia(); return new(true, "Volviendo al video en su posición actual.");
+            }
             if (action == "library")
             {
                 if (!Guid.TryParse(command.CueId, out var id) || !_remoteCatalog.TryGetValue(id, out var selected))
                     return new(false, "Busca de nuevo este contenido en el teléfono.");
                 if (!CheckMedia(selected)) return new(false, "El archivo no está disponible en la PC.");
-                PrepareCue(selected, selected.Kind == CueKind.Bible ? _bibleReading : null); ProjectPrepared();
+                PrepareCue(selected, selected.Kind == CueKind.Bible ? _bibleReading : null);
+                if (command.PreserveOther == true) return new(ProjectPreparedPreservingOther(), StatusText.Text);
+                ProjectPrepared();
                 return new(_output is not null && _session.Live?.Id == selected.Id, "Contenido enviado a pantalla.");
             }
             if (action == "cue")
@@ -46,7 +54,9 @@ public partial class MainWindow
                 var cue = Guid.TryParse(command.CueId, out var cueId) ? _plan.FirstOrDefault(c => c.Id == cueId) : null;
                 if (cue is null) return new(false, "Este elemento ya no pertenece al orden del culto.");
                 if (!CheckMedia(cue)) return new(false, "No se encuentra el archivo en la computadora.");
-                PrepareCue(cue); ProjectPrepared();
+                PrepareCue(cue);
+                if (command.PreserveOther == true) return new(ProjectPreparedPreservingOther(), StatusText.Text);
+                ProjectPrepared();
                 var projected = _output is not null && _session.Live?.Id == cue.Id;
                 return new(projected, !projected ? "No se pudo iniciar la salida."
                     : _outputWindow is null ? "Contenido enviado a la salida local." : "Contenido enviado a pantalla.");
@@ -67,7 +77,7 @@ public partial class MainWindow
             }
             if (action is not ("project" or "volume" or "background" or "blackout") && _output is null)
                 return new(false, "La salida de proyección está cerrada.");
-            if (action is "pause" or "restart" or "seek")
+            if (action is "pause" or "restart" or "seek" && !HasBackgroundFileAudio)
             {
                 if (_session.Live?.Kind == CueKind.WindowCapture)
                     return new(false, "La reproducción de esta captura se controla desde YouTube.");
@@ -83,6 +93,7 @@ public partial class MainWindow
                 case "project":
                     if (_session.Prepared is null) return new(false, "No hay contenido preparado.");
                     if (!CheckMedia(_session.Prepared)) return new(false, "No se encuentra el archivo en la computadora.");
+                    if (command.PreserveOther == true) return new(ProjectPreparedPreservingOther(), StatusText.Text);
                     ProjectPrepared();
                     return new(_output is not null, _output is null ? "No se pudo iniciar la salida." : _outputWindow is null ? "Preparado en salida local." : "Preparado en pantalla.");
                 case "next":

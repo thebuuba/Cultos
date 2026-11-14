@@ -53,7 +53,7 @@ public partial class MainWindow
         if (!_ready || _orderActionCue is not Cue cue || !_plan.Contains(cue)) return;
         PlanList.SelectedItem = cue;
         if (_session.Prepared?.Id != cue.Id) PrepareCue(cue);
-        ProjectPrepared();
+        ProjectPreparedFromInput();
     }
 
     private void DeleteOrderActionClick(object sender, RoutedEventArgs e)

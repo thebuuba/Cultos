@@ -322,6 +322,7 @@
             <MenuItem Header="YouTube" Tag="youtube" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
             <MenuItem Header="Medios" Tag="media" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
             <MenuItem Header="Lista de videos" Tag="playlists" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
+            <MenuItem Header="PowerPoint" Tag="powerpoint" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
             <MenuItem Header="Mostrar todos los paneles" Click="ShowAllWorkspacePanelsClick"/>
             <Separator/>
             <MenuItem Header="Principal" Tag="principal" Click="WorkspacePresetClick"/>
@@ -413,7 +414,7 @@
     </StackPanel>
   </ScrollViewer>
   <StackPanel Grid.Row="1">
-      <CheckBox x:Name="KeepMediaAudioCheck" Content="Audio de fondo" Checked="KeepMediaAudioChanged" Unchecked="KeepMediaAudioChanged" FontSize="12" Margin="3,6" ToolTip="Al mostrar Biblia, texto, logo o negro, continúa solo el archivo que esté reproduciéndose. Nunca reinicia un himno terminado. YouTube mantiene su audio en Chrome." AutomationProperties.Name="Continuar el audio del archivo que está reproduciéndose"/>
+      <CheckBox x:Name="KeepMediaAudioCheck" Visibility="Collapsed" Content="Audio de fondo" Checked="KeepMediaAudioChanged" Unchecked="KeepMediaAudioChanged" FontSize="12" Margin="3,6" ToolTip="Al mostrar Biblia, texto, logo o negro, continúa solo el archivo que esté reproduciéndose. Nunca reinicia un himno terminado. YouTube mantiene su audio en Chrome." AutomationProperties.Name="Continuar el audio del archivo que está reproduciéndose"/>
       <Button x:Name="ReturnToMediaButton" Content="Volver al video" Click="ReturnToMediaClick" Visibility="Collapsed" FontSize="12" Padding="8,5" MinHeight="30" ToolTip="Volver al video · F9"/>
       <TextBlock x:Name="BackgroundMediaText" Visibility="Collapsed" Foreground="{StaticResource MutedBrush}" FontSize="12" TextTrimming="CharacterEllipsis" Margin="3,3"/>
   </StackPanel>
@@ -515,10 +516,6 @@
               <Button Grid.Column="1" x:Name="ChooseOutputButton" Content="Pantalla…" Click="DisplayClick" FontSize="12" MinHeight="28" Padding="8,4" Margin="5,0"/>
               <Button Grid.Column="2" x:Name="ToggleOutputButton" Content="Activar HDMI" Click="ToggleOutputClick" FontSize="12" MinHeight="28" Padding="8,4"/>
             </Grid>
-            <UniformGrid Grid.Row="2" x:Name="PowerPointPlaybackPanel" Columns="2" Visibility="Collapsed" Margin="0,5,0,0">
-              <Button x:Name="PowerPointPauseButton" Content="Pausar" Click="PauseClick" Margin="0,0,5,0"/>
-              <Button Content="Reiniciar" Click="RestartClick"/>
-            </UniformGrid>
 
             </Grid>
             </StackPanel>
@@ -671,6 +668,44 @@
               </Grid>
             </Grid>
           </Border>
+</ad:LayoutAnchorable>
+<ad:LayoutAnchorable Title="PowerPoint" ContentId="powerpoint" CanClose="False" CanHide="True" CanAutoHide="False" CanDockAsTabbedDocument="False">
+  <Border x:Name="PowerPointPanel" Background="{StaticResource PanelBrush}" Padding="14,4,14,14">
+    <Grid>
+      <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+      <StackPanel Margin="0,0,0,10">
+        <Button Content="+ Agregar PowerPoint" Click="ImportPowerPointClick" MinHeight="36" AutomationProperties.Name="Agregar presentaciones de PowerPoint"/>
+        <TextBlock Text="Archivos de presentación" Style="{StaticResource MutedText}" Margin="2,10,0,0" FontSize="12"/>
+      </StackPanel>
+      <Grid Grid.Row="1" MinHeight="64">
+        <ListBox x:Name="PowerPointFiles" SelectionChanged="PowerPointSelectionChanged" MouseDoubleClick="PowerPointDoubleClick" PreviewKeyDown="PowerPointKeyDown" AutomationProperties.Name="Presentaciones de PowerPoint">
+          <ListBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Title}" ToolTip="{Binding FilePath}" TextTrimming="CharacterEllipsis" Padding="4,6"/></DataTemplate></ListBox.ItemTemplate>
+        </ListBox>
+        <TextBlock x:Name="PowerPointEmpty" Text="Agrega tus archivos .pptx, .ppt, .ppsx o .pps." Style="{StaticResource MutedText}" TextAlignment="Center" Margin="16" IsHitTestVisible="False"/>
+      </Grid>
+      <StackPanel Grid.Row="2" Margin="0,10,0,0">
+        <Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+          <Button x:Name="PowerPointProjectButton" Content="Proyectar" Click="ProjectPowerPointClick" Background="{StaticResource ActionBrush}" Foreground="{StaticResource OnActionBrush}" MinHeight="36" Margin="0,0,4,0"/>
+          <Button x:Name="PowerPointAddToPlanButton" Grid.Column="1" Content="+ Al orden" Click="AddPowerPointToPlanClick" MinHeight="36" Margin="4,0,0,0"/>
+        </Grid>
+        <TextBlock x:Name="PowerPointLiveText" Style="{StaticResource MutedText}" FontSize="12" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+        <TextBlock x:Name="PowerPointPositionText" FontSize="15" FontWeight="SemiBold" Margin="0,5,0,8"/>
+        <UniformGrid x:Name="PowerPointPlaybackPanel" Columns="2" Rows="2">
+          <Button x:Name="PowerPointPreviousButton" Content="‹ Anterior" Click="PowerPointPreviousClick" MinHeight="36" Margin="0,0,4,4" ToolTip="Retrocede una animación o diapositiva"/>
+          <Button x:Name="PowerPointNextButton" Content="Siguiente ›" Click="PowerPointNextClick" MinHeight="36" Margin="4,0,0,4" ToolTip="Avanza una animación o diapositiva"/>
+          <Button x:Name="PowerPointPauseButton" Content="Pausar" Click="PowerPointPauseClick" MinHeight="36" Margin="0,4,4,0"/>
+          <Button x:Name="PowerPointRestartButton" Content="Reiniciar" Click="PowerPointRestartClick" MinHeight="36" Margin="4,4,0,0" ToolTip="Volver a la primera diapositiva"/>
+        </UniformGrid>
+      </StackPanel>
+      <StackPanel Grid.Row="3" Margin="0,14,0,0">
+        <CheckBox x:Name="PowerPointUsbCheck" Content="Controlar con presentador USB" Click="TogglePresenterClick" FontSize="12" Margin="0,0,0,6"/>
+        <ComboBox x:Name="PowerPointUsbKeys" SelectionChanged="PowerPointUsbKeysChanged" AutomationProperties.Name="Teclas del presentador USB" MinHeight="32">
+          <ComboBoxItem Content="Av Pág / Re Pág"/><ComboBoxItem Content="Flechas derecha / izquierda"/>
+        </ComboBox>
+        <TextBlock x:Name="PowerPointUsbStatus" Style="{StaticResource MutedText}" FontSize="12" Margin="0,6,0,0"/>
+      </StackPanel>
+    </Grid>
+  </Border>
 </ad:LayoutAnchorable>
 <ad:LayoutAnchorable Title="Biblia" ContentId="bible" CanClose="False" CanHide="True" CanAutoHide="False" CanDockAsTabbedDocument="False">
 <Border x:Name="BiblePanel" Background="{StaticResource PanelBrush}" CornerRadius="0" Padding="14,4,14,14">

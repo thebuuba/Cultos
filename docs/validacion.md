@@ -1,8 +1,32 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 14 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.38.0`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 14 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.40.0`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### Tarjeta PowerPoint y presentador USB - 0.40.0
+
+PowerPoint tiene pestaña propia junto a Lista de videos en Principal, Compacta y Proyección. Importa la misma biblioteca existente, incluye las presentaciones del orden y conserva la selección como vista previa hasta pulsar Proyectar. La tarjeta reúne controles de archivo, Anterior/Siguiente, pausa, reinicio, estado de salida y contador de diapositivas. Se migra la distribución anterior añadiendo únicamente el nuevo panel. El selector USB comparte el registro global existente y permite Av Pág/Re Pág o flechas, con activación y estado visibles.
+
+Se corrigió la pérdida de pulsaciones de avance durante el fundido de audio: la navegación pendiente conserva una cola de pasos ligada a la presentación, procesada al terminar el fundido; un cambio de contenido cancela esa cola. El contador consulta la diapositiva nativa aproximadamente cada 700 ms y reintenta cuando Office está ocupado, cubriendo avances externos o automáticos.
+
+--powerpoint-panel pasó con PowerPoint nativo instalado: pestaña/posición/visibilidad, importación/preparación y migración; animaciones antes de diapositivas, imágenes del monitor y video incrustado; botones reales de la tarjeta, reinicio, avances rápidos, lectura del contador tras cambio nativo, mensajes WM_HOTKEY de PageDown y flechas, registro y liberación de teclas, conflicto parcial y bloqueo durante negro. Se preservan archivos fuente y presentaciones abiertas previamente. No se probó un dispositivo USB físico: se comprobó el mismo canal de mensajes usado por el servicio. La comprobación de foco espera la restauración diferida y solo se exige si no entra nueva interacción durante ese intervalo; cuando hay nueva entrada, se registra y se respeta el foco elegido por el usuario. El reinicio de video comprueba su estado nativo y que su posición no avance antes del clic de reproducción, en lugar de deducir reproducción de una posición distinta de cero. Diagnóstico final: diapositiva 2, clic 0, estado detenido y posición estable. Se conservan los intentos anteriores con fallos en .tools/powerpoint-panel-final.log; verificación final sin fallos en .tools/powerpoint-panel-verified.log y powerpoint-restart-diagnostic.log. Pruebas iniciales en powerpoint-panel-red.log, powerpoint-counter-red.log y powerpoint-panel-build.log; capturas powerpoint-card.png y powerpoint-card-live.png en .tools.
+
+Publicación final 0.40.0 en .tools/powerpoint-final-publish.log. Compilación de la solución sin advertencias ni errores, 261 pruebas del núcleo y 66 del mando aprobadas en powerpoint-release-build.log; regresión de los controles de imagen/audio aprobada en powerpoint-split-regression.log.
+
+### Icono de la aplicación - 0.39.1
+
+Diseño vectorial original en Assets/CultoStudio.Drawing.xaml; scripts/new-app-icon.ps1 genera el ICO con imágenes de 16, 20, 24, 32, 40, 48, 64, 128 y 256 píxeles, además de un PNG de vista previa. ApplicationIcon lo incorpora al ejecutable y el estilo compartido de Window lo asigna a las ventanas WPF. Se comprobó la decodificación de los nueve tamaños, el icono de la consola en --native-startup y la extracción del icono de 32 píxeles desde el ejecutable publicado con la API de Windows. Compilación Release sin advertencias ni errores; 261 pruebas de núcleo y 66 del mando aprobadas. Registros .tools/app-icon-build.log, app-icon-startup.log y app-icon-release.log. El iniciador apunta a 0.39.1.
+
+### Acciones de imagen y audio por separado - 0.39.0
+
+Shift aplica una intención a una sola acción: mostrar Logo, negro, Biblia, texto o imagen conserva el archivo que está sonando; enviar un video/audio local con Shift cambia solo el audio sobre una imagen fija ya en salida. La imagen se conserva mientras carga el archivo y los cambios de audio usan fundido. F9 reutiliza el decodificador y la posición actuales. La casilla permanente de audio se retira de la interfaz y no se recupera del espacio de trabajo. Las acciones normales liberan el audio conservado. YouTube sigue con audio independiente en Chrome.
+
+El mando añade preserveOther opcional únicamente en project/scene/cue/library, return-media y campos separados de estado. Los botones del teléfono describen la operación, sin modo permanente. Los controles de reproducción siguen disponibles sobre Logo/negro. Se rechaza solo audio sobre video, audio, captura, PowerPoint o navegador visibles: primero se debe elegir una imagen fija, Logo, texto o negro.
+
+Pruebas con reproductor nativo: --split-media pasa 83 comprobaciones (incluye cambio de intención y pausa durante carga, fallos, EOF, fundido y retorno al mismo decodificador). --persistent-media pasa 50 y --ended-media pasa 13. --split-controls recorre la consola real, Logo repetido normal, audio bajo Logo, Biblia, negro desde teléfono, pausa, retorno y limpieza de la intención. --backdrops conserva sus comprobaciones. Protocolo móvil: 66 pruebas; página publicada comprobada con navegador headless en 320/390/540/1024 píxeles, acciones de escenas, preparado, orden y catálogo. Registros .tools/split-media-final.txt, shift-controls-green.log, shift-backdrops-regression.log y shift-release-build.log.
+
+La regresión --remote-scenes pasó completa en Release, incluida captura de una ventana aislada de Chrome y protección visual al cambiar su título fuera de YouTube. El primer intento concurrente con la compilación no detectó esa ventana dentro del plazo; se conservan ambos registros, shift-remote-scenes-regression.log y shift-remote-scenes-final.log. No se presenta como una comprobación nueva del YouTube personal. --hymn-playlist también pasó y verifica que añadir a listas sigue funcionando con las nuevas acciones del menú.
 
 ### Fin de himno y audio independiente de Chrome - 0.38.0
 

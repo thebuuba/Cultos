@@ -15,6 +15,7 @@ public partial class MainWindow
     private bool _powerPointAudioReady;
     private double _powerPointAudioTarget;
     private readonly PendingCuePlayback _pendingCuePlayback = new();
+    private (PowerPointPresentation Owner, Queue<int> Steps)? _pendingPowerPointNavigation;
 
     private void QueueLiveCue()
     {
@@ -32,7 +33,7 @@ public partial class MainWindow
         if (_session.Live?.Kind == CueKind.PowerPoint) return; // Keep intent until the delayed native Start.
         if (_pendingCuePlayback.Complete(token) is not { } intent) return;
         if (intent.Restart) _output?.Restart();
-        if (!_logoSlides.IsRunning || !_session.IsTextHidden || _session.IsBlackout) _output?.SetPaused(_isPaused);
+        if (!_preserveAudioForBackdrop && (!_logoSlides.IsRunning || !_session.IsTextHidden || _session.IsBlackout)) _output?.SetPaused(_isPaused);
         UpdateSessionLabels();
     }
 
@@ -59,6 +60,7 @@ public partial class MainWindow
 
     private void CancelPowerPointAudioFade()
     {
+        _pendingPowerPointNavigation = null;
         _powerPointAudioTimer.Stop();
         _audioFadeOwner?.CancelAudioFade();
         _audioFadeOwner = null;
@@ -139,11 +141,21 @@ public partial class MainWindow
     {
         var presentation = _powerPoint;
         if (_pendingCuePlayback.IsPending || presentation?.IsRunning != true || _session.IsBlackout || _session.IsTextHidden) return false;
+        if (_pendingPowerPointNavigation is { } pending && ReferenceEquals(pending.Owner, presentation))
+        {
+            pending.Steps.Enqueue(direction);
+            return true;
+        }
+        var steps = new Queue<int>(); steps.Enqueue(direction);
+        var completed = false;
         var transitions = _workspace.Transitions.Normalize();
         FadePowerPointOut(() =>
         {
+            completed = true;
             if (!ReferenceEquals(_powerPoint, presentation)) return;
-            if (!presentation.Advance(direction))
+            var advanced = false;
+            while (steps.TryDequeue(out var step)) advanced |= presentation.Advance(step);
+            if (!advanced)
             { FadePowerPointIn(transitions.AudioFadeInMilliseconds); SetStatus("Sin más pasos en esa dirección."); return; }
             _isPaused = false;
             presentation.SetPaused(false);
@@ -151,6 +163,7 @@ public partial class MainWindow
             UpdatePowerPointPosition();
             FadePowerPointIn(transitions.AudioFadeInMilliseconds);
         }, transitions.AudioFadeOutMilliseconds);
+        if (!completed) _pendingPowerPointNavigation = (presentation, steps);
         return true;
     }
 }

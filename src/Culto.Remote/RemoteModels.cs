@@ -8,7 +8,8 @@ public sealed record RemoteSnapshot(string PlanName, string PreparedTitle, strin
     bool IsBlackout, bool IsPaused, int Volume, double Position, double Duration, IReadOnlyList<DeckButton> Buttons,
     IReadOnlyList<RemoteCue>? Order = null, string? LiveCueId = null, string? PreparedCueId = null,
     bool HasOutput = false, bool IsBackground = false, bool HasExternalOutput = false, bool CanPause = true,
-    string? LiveBody = null, string? LiveReference = null, string? LiveKind = null, IReadOnlyList<RemoteScene>? Scenes = null);
+    string? LiveBody = null, string? LiveReference = null, string? LiveKind = null, IReadOnlyList<RemoteScene>? Scenes = null,
+    string? VisualTitle = null, string? AudioTitle = null, bool CanReturnToMedia = false, string? PreparedKind = null);
 public sealed record RemoteCommand(string Action, string RequestId, string? ButtonId = null, double? Value = null,
-    string? CueId = null);
+    string? CueId = null, bool? PreserveOther = null);
 public sealed record CommandResult(bool Success, string Message);

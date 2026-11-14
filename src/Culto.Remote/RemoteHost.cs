@@ -25,7 +25,7 @@ public sealed class RemoteHost : IAsyncDisposable
     private bool disposed;
     private const int BodyLimit = 16 * 1024;
     private static readonly HashSet<string> Actions = new(StringComparer.Ordinal)
-        { "project", "next", "previous", "blackout", "background", "pause", "restart", "volume", "seek", "deck", "cue", "library", "scene" };
+        { "project", "next", "previous", "blackout", "background", "pause", "restart", "volume", "seek", "deck", "cue", "library", "scene", "return-media" };
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
         UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
@@ -140,7 +140,8 @@ public sealed class RemoteHost : IAsyncDisposable
             try
             {
                 if (completed.TryGetValue(input!.RequestId, out var previous)) return Results.Json(previous, Json);
-                if (input.Action == "scene" && snapshot().Scenes?.Any(scene => scene.Id == input.ButtonId && scene.Available) != true)
+                if (input.Action == "scene" && snapshot().Scenes?.Any(scene => scene.Id == input.ButtonId && scene.Available
+                        && (input.PreserveOther != true || scene.Kind is "logo" or "blackout" or "image" or "video" or "audio")) != true)
                     return InvalidCommand();
                 if (input.Action == "cue" && snapshot().Order?.Any(cue =>
                         Guid.TryParse(cue.Id, out var cueId) && cueId == Guid.Parse(input.CueId!)) != true)
@@ -216,7 +217,8 @@ public sealed class RemoteHost : IAsyncDisposable
         if (input is null || input.Action is null || !Actions.Contains(input.Action)
             || string.IsNullOrWhiteSpace(input.RequestId) || input.RequestId.Length > 128
             || input.RequestId.Any(character => !(char.IsAsciiLetterOrDigit(character) || character is '-' or '_' or '.' or ':'))
-            || (input.Action is not ("cue" or "library") && input.CueId is not null)) return false;
+            || (input.Action is not ("cue" or "library") && input.CueId is not null)
+            || (input.PreserveOther is not null && input.Action is not ("scene" or "project" or "cue" or "library"))) return false;
         return input.Action switch
         {
             "cue" or "library" => input.ButtonId is null && input.Value is null

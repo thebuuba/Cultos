@@ -65,9 +65,10 @@ internal static partial class Program
                     presentation.ExportPreview(preview);
                     Check(File.Exists(preview) && new FileInfo(preview).Length > 100, "Native preview was not exported");
                     var foreground = PowerPointTestForegroundWindow();
+                    var inputTick = PowerPointTestInputTick();
                     presentation.Start(null); // Offscreen window; no external display is used.
                     Until(() => presentation.IsRunning && presentation.SlideIndex == 1, "Native slide show did not start");
-                    Check(PowerPointTestForegroundWindow() == foreground, "Starting PowerPoint changed foreground ownership");
+                    CheckPowerPointForeground(foreground, inputTick, "Starting PowerPoint changed foreground ownership");
                     var firstClick = presentation.ClickIndex;
                     Check(presentation.Advance(1), "First animation click was rejected");
                     Until(() => presentation.ClickIndex > firstClick, "Next did not advance the native animation build");
@@ -95,8 +96,12 @@ internal static partial class Program
                         Check(presentation.SlideIndex == 1, "Restart while paused did not return to slide one");
                         presentation.SetPaused(false);
                         presentation.Advance(1); presentation.Advance(1);
+                        Until(() => presentation.SlideIndex == 2, "Restart did not preserve native animation order");
+                        var beforeMedia = PowerPointVideoPlayback(presentation);
                         PumpFor(200);
-                        Check(presentation.SlideIndex == 2 && PowerPointVideoPosition(presentation) <= 50,
+                        var afterMedia = PowerPointVideoPlayback(presentation);
+                        Console.WriteLine($"RESTART MEDIA slide={presentation.SlideIndex} click={presentation.ClickIndex}: {beforeMedia}->{afterMedia}");
+                        Check(presentation.ClickIndex == 0 && afterMedia.State != 0 && afterMedia.Position == beforeMedia.Position,
                             "Restart retained an old paused-media entry and resumed an unstarted build");
                     }
                 }
@@ -140,7 +145,7 @@ internal static partial class Program
                         "MainWindow did not start the native PowerPoint output");
                     var presentation = Field<PowerPointPresentation>(window, "_powerPoint");
                     Check(session.Live?.Id == cue.Id && session.Live.Kind == CueKind.PowerPoint, "PowerPoint was not the live cue");
-                    Check(PowerPointTestForegroundWindow() == foreground, "Background projection stole focus from another window");
+                    CheckPowerPointForeground(foreground, foregroundInputTick, "Background projection stole focus from another window");
                     Check(Field<object?>(window, "_outputWindow") is null, "Local PowerPoint opened an HDMI projection window");
                     var monitor = (OutputMonitor)window.FindName("LiveMonitor");
                     Until(() => monitor.IsConnected, "Live monitor did not connect to native PowerPoint output");
@@ -160,7 +165,10 @@ internal static partial class Program
 
                     var firstClick = presentation.ClickIndex;
                     var viewStateBefore = PowerPointViewState(presentation);
-                    Call(window, "HandlePresenterAdvance", 1);
+                    var usb = (System.Windows.Controls.CheckBox)window.FindName("PowerPointUsbCheck");
+                    if (usb.IsChecked != true) usb.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.CheckBox.ClickEvent));
+                    Check(Field<PresenterHotkeys>(window, "_presenterHotkeys").IsEnabled, "PowerPoint card did not enable USB control");
+                    PresenterSendMessage(new System.Windows.Interop.WindowInteropHelper(window).Handle, 0x0312, 0x4351, 0x22 << 16);
                     var viewStateAfter = PowerPointViewState(presentation);
                     Until(() => presentation.ClickIndex > firstClick, "Presenter route did not advance the native build");
                     Check(presentation.SlideIndex == 1, "Presenter route skipped the native build");
@@ -176,7 +184,7 @@ internal static partial class Program
                     Test("Physical desktop pixels undo the native PowerPoint animation build", () =>
                     {
                         var beforePrevious = CapturePowerPointMonitorPixels(monitor, Path.Combine(directory, "native-monitor-before-previous.png"));
-                        Call(window, "HandlePresenterAdvance", -1);
+                        ((System.Windows.Controls.Button)window.FindName("PowerPointPreviousButton")).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
                         Until(() => presentation.ClickIndex == firstClick, "Previous did not undo the native build");
                         Check(presentation.SlideIndex == 1, "Previous skipped the build and changed slide");
                         AssertPowerPointMonitorChanges(monitor, beforePrevious, Path.Combine(directory, "native-monitor-after-previous.png"),
@@ -184,8 +192,9 @@ internal static partial class Program
                     });
                     Call(window, "HandlePresenterAdvance", 1);
                     Until(() => presentation.ClickIndex > firstClick, "Could not restore the native build after testing Previous");
-                    Call(window, "NextClick", window, new RoutedEventArgs());
+                    ((System.Windows.Controls.Button)window.FindName("PowerPointNextButton")).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
                     Until(() => presentation.SlideIndex == 2, "Next button did not advance the native slide");
+                    Check(((System.Windows.Controls.TextBlock)window.FindName("PowerPointPositionText")).Text.StartsWith("Diapositiva 2 de "), "PowerPoint card does not show current slide");
                     if (optionalVideo is not null)
                         AssertPowerPointVideoPlayback(presentation, () => Call(window, "HandlePresenterAdvance", 1), () =>
                         {
@@ -197,9 +206,7 @@ internal static partial class Program
                                     .001, .15, "The native video clock advanced but the visible live monitor image stayed frozen");
                             });
                         });
-                    Check(PowerPointTestForegroundWindow() == foreground,
-                        $"Native navigation stole foreground focus: before=0x{foreground:X}, after=0x{PowerPointTestForegroundWindow():X}, "
-                        + $"show=0x{presentation.Handle:X}, root=0x{PowerPointTestGetParent(presentation.Handle):X}, input={foregroundInputTick}->{PowerPointTestInputTick()}");
+                    CheckPowerPointForeground(foreground, foregroundInputTick, "Native navigation stole foreground focus");
 
                     Call(window, "PrepareCue", new Cue { Title = "Independent preview", Body = "Preview only" }, null);
                     Check(session.Live?.Id == cue.Id && presentation.SlideIndex == 2 && presentation.IsRunning,
@@ -237,6 +244,51 @@ internal static partial class Program
                 Check((int)presentations.Count == originalCount, "MainWindow closed another deck or retained its owned deck");
                 Check(PowerPointFixtureHash(fixture) == sourceHash, "MainWindow modified the source presentation");
             });
+            Test("PowerPoint card projects selected file and owns navigation playback and USB controls", () =>
+            {
+                Call(window, "CloseOutput");
+                try
+                {
+                    Wait((Task)Call(window, "ImportMediaAsync", (object)new[] { fixture })!);
+                    var files = (System.Windows.Controls.ListBox)window.FindName("PowerPointFiles");
+                    files.SelectedItem = files.Items.OfType<Cue>().Single(c => c.FilePath == fixture);
+                    Call(window, "ActivateWorkspacePanel", "powerpoint"); window.UpdateLayout();
+                    void Click(string name) => ((System.Windows.Controls.Button)window.FindName(name)).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
+                    Click("PowerPointProjectButton");
+                    Until(() => Field<PowerPointPresentation?>(window, "_powerPoint")?.IsRunning == true, "Card Project did not start selected file");
+                    var presentation = Field<PowerPointPresentation>(window, "_powerPoint");
+                    Click("PowerPointNextButton"); Until(() => presentation.ClickIndex > 0, "Card Next skipped animation");
+                    Click("PowerPointPreviousButton"); Until(() => presentation.ClickIndex == 0, "Card Previous did not undo animation");
+                    Click("PowerPointPauseButton"); Until(() => PowerPointViewState(presentation) == 2, "Card Pause failed");
+                    Click("PowerPointPauseButton"); Until(() => PowerPointViewState(presentation) == 1, "Card Continue failed");
+                    Click("PowerPointNextButton"); Until(() => presentation.ClickIndex > 0, "Card Next failed after pause");
+                    Click("PowerPointNextButton"); Until(() => presentation.SlideIndex == 2, "Card did not reach second slide");
+                    Click("PowerPointRestartButton"); Until(() => presentation.SlideIndex == 1 && presentation.ClickIndex == 0, "Card Restart failed");
+                    Click("PowerPointNextButton"); Click("PowerPointNextButton");
+                    Until(() => presentation.SlideIndex == 2, "Rapid Next presses were dropped during audio fade");
+                    Click("PowerPointRestartButton"); Until(() => presentation.SlideIndex == 1 && presentation.ClickIndex == 0, "Restart after rapid advance failed");
+                    var usb = (System.Windows.Controls.CheckBox)window.FindName("PowerPointUsbCheck");
+                    if (usb.IsChecked != true) usb.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.CheckBox.ClickEvent));
+                    ((System.Windows.Controls.ComboBox)window.FindName("PowerPointUsbKeys")).SelectedIndex = 1;
+                    Check(workspace.PresenterUsesArrows && Field<PresenterHotkeys>(window, "_presenterHotkeys").IsEnabled, "Card USB arrow mode not applied");
+                    var handle = new System.Windows.Interop.WindowInteropHelper(window).Handle;
+                    PresenterSendMessage(handle, 0x0312, 0x4351, 0x27 << 16);
+                    Until(() => presentation.ClickIndex > 0, "USB Right did not advance live PowerPoint");
+                    PresenterSendMessage(handle, 0x0312, 0x4352, 0x25 << 16);
+                    Until(() => presentation.ClickIndex == 0, "USB Left did not undo live PowerPoint build");
+                    presentation.Advance(1); presentation.Advance(1);
+                    Until(() => presentation.SlideIndex == 2, "Native deck did not advance outside app controls");
+                    Until(() => ((System.Windows.Controls.TextBlock)window.FindName("PowerPointPositionText")).Text.StartsWith("Diapositiva 2 de "),
+                        "Card counter missed a native slide change outside app controls");
+                    Check(((System.Windows.Controls.TextBlock)window.FindName("NextLiveText")).Text.StartsWith("Diapositiva 2 de "), "Monitor counter disagrees with the PowerPoint card");
+                    CaptureDesignWindow(window, Path.Combine(Environment.CurrentDirectory, ".tools", "powerpoint-card-live.png"));
+                    usb.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.CheckBox.ClickEvent));
+                    Check(!Field<PresenterHotkeys>(window, "_presenterHotkeys").IsEnabled, "Card did not release USB keys");
+                    ((System.Windows.Controls.ComboBox)window.FindName("PowerPointUsbKeys")).SelectedIndex = 0;
+                }
+                finally { Call(window, "CloseOutput"); }
+                Check((int)presentations.Count == originalCount, "Card retained its owned presentation");
+            });
             Test("PowerPoint pending startup cannot reveal content during blackout", () =>
             {
                 Call(window, "CloseOutput");
@@ -268,6 +320,19 @@ internal static partial class Program
             ReleasePowerPointTestCom((object)application);
             // The smoke host removes its own temporary directory after shutdown.
         }
+    }
+
+    private static void CheckPowerPointForeground(nint expected, uint inputTick, string failure)
+    {
+        // A human can keep using this shared desktop while the native test runs.
+        // The product deliberately gives any new input priority over restoring focus.
+        // Its guarded restore is posted at DispatcherPriority.Background after COM.
+        Until(() => PowerPointTestInputTick() != inputTick || PowerPointTestForegroundWindow() == expected,
+            failure + $" (expected 0x{expected:X})");
+        var currentTick = PowerPointTestInputTick();
+        if (currentTick != inputTick)
+        { Console.WriteLine($"INFO Foreground assertion interrupted by new input: {inputTick}->{currentTick}"); return; }
+        Check(PowerPointTestForegroundWindow() == expected, failure);
     }
 
     private static void CreatePowerPointFixture(object presentationsObject, string path, string? optionalVideo)
@@ -444,7 +509,9 @@ internal static partial class Program
     {
         if (Marshal.IsComObject(value)) Marshal.ReleaseComObject(value);
     }
-    private static int PowerPointVideoPosition(PowerPointPresentation presentation)
+    private static int PowerPointVideoPosition(PowerPointPresentation presentation) => PowerPointVideoPlayback(presentation).Position;
+
+    private static (int Position, int State) PowerPointVideoPlayback(PowerPointPresentation presentation)
     {
         dynamic show = Field<object>(presentation, "_show");
         var owned = new List<object>();
@@ -456,7 +523,7 @@ internal static partial class Program
             dynamic shapes = Track((object)slide.Shapes);
             dynamic video = Track((object)shapes["Smoke embedded video"]);
             dynamic player = Track((object)view.Player((int)video.Id));
-            return (int)player.CurrentPosition;
+            return ((int)player.CurrentPosition, (int)player.State);
         }
         finally
         {

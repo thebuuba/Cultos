@@ -20,7 +20,7 @@ public partial class MainWindow
         if (source is null || ItemsControl.ContainerFromElement(LibraryList, source) is not ListBoxItem { DataContext: Cue cue }) return;
         e.Handled = true;
         if (_session.Prepared?.Id != cue.Id) PrepareCue(cue);
-        ProjectPrepared();
+        ProjectPreparedFromInput();
     }
     private void RefreshLibrary()
     {
@@ -51,6 +51,7 @@ public partial class MainWindow
         finally { _refreshingLibrary = false; }
         LibraryCountText.Text = $"{_libraryView.Count:N0} de {sourceItems.Count:N0} contenidos";
         ClearSearchButton.IsEnabled = query.Length > 0;
+        RefreshPowerPointFiles();
         LibraryEmpty.Visibility = _libraryView.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         var category = (LibraryFilter.SelectedItem as ListBoxItem)?.Content?.ToString() ?? "Todo";
         LibraryEmpty.Text = _workspace.Library.Count == 0

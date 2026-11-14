@@ -45,6 +45,7 @@
         </Style>
 
         <Style TargetType="Window">
+            <Setter Property="Icon" Value="/CultoStudio;component/Assets/CultoStudio.ico" />
             <Setter Property="Background" Value="{StaticResource CanvasBrush}" />
             <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
             <Setter Property="FontFamily" Value="{StaticResource ConsoleFont}" />

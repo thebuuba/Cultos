@@ -20,8 +20,8 @@ public partial class MainWindow
 
     private void LogoRightClick(object sender, MouseButtonEventArgs e)
     {
-        e.Handled = true;
-        LogoSettingsClick(sender, new RoutedEventArgs());
+        if (ChurchBackgroundButton.ContextMenu is { } menu)
+        { e.Handled = true; menu.PlacementTarget = ChurchBackgroundButton; menu.IsOpen = true; }
     }
 
     private void LogoSettingsClick(object sender, RoutedEventArgs e)
@@ -53,7 +53,11 @@ public partial class MainWindow
         .Where(path => !string.IsNullOrWhiteSpace(path) && !_logoUnavailable.Contains(path) && File.Exists(path))
         .Distinct(StringComparer.OrdinalIgnoreCase);
 
-    private bool ShowLogo() => StartLogoPresentation(_workspace.BackgroundImagePath);
+    private bool ShowLogo()
+    {
+        _preserveAudioForBackdrop = false;
+        return StartLogoPresentation(_workspace.BackgroundImagePath);
+    }
 
     private bool StartLogoPresentation(string? preferredPath)
     {
@@ -84,7 +88,7 @@ public partial class MainWindow
         _session.ShowBackground();
         _logoClock.Restart();
         _logoAwaitingOutput = wasAwaitingOutput;
-        if (!wasActive || !string.Equals(previousPath, _logoCurrentPath, StringComparison.OrdinalIgnoreCase))
+        if (!wasActive || !_preserveAudioForBackdrop || !string.Equals(previousPath, _logoCurrentPath, StringComparison.OrdinalIgnoreCase))
         {
             _logoAwaitingOutput = true;
             ApplyBackdropTransition();

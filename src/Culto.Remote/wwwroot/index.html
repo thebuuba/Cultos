@@ -59,7 +59,10 @@ button:disabled{opacity:.4;cursor:not-allowed}
 #deck button .tile-label{overflow-wrap:anywhere}
 #deck button[aria-pressed=true]{box-shadow:inset 0 0 0 2px currentColor,0 8px 20px #0000001A}
 .scene-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:24px}
-.scene-key{aspect-ratio:1;min-height:88px;min-width:0;flex-direction:column;gap:7px;padding:12px 7px 9px;border-radius:12px;background:#F6F8FA;color:#18232F;box-shadow:0 3px 7px #0005;border:2px solid transparent;position:relative}
+.scene-slot{display:flex;flex-direction:column;gap:7px;min-width:0}
+.preserve-action{min-height:44px;font-size:11px;padding:8px;border-radius:12px;width:100%;margin-top:6px}
+.scene-slot .preserve-action{margin-top:0}
+.scene-key{width:100%;aspect-ratio:1;min-height:88px;min-width:0;flex-direction:column;gap:7px;padding:12px 7px 9px;border-radius:12px;background:#F6F8FA;color:#18232F;box-shadow:0 3px 7px #0005;border:2px solid transparent;position:relative}
 .scene-key svg{width:39px;height:39px;stroke-width:1.8}
 .scene-key .tile-label{font-size:12px;line-height:1.2;max-width:100%;overflow-wrap:anywhere}
 .scene-key .scene-state{font-size:9px;line-height:1.25;min-height:12px;color:#48515D;max-width:100%;text-align:center}
@@ -121,11 +124,12 @@ noscript{display:block;padding:20px;color:var(--amber)}
 <section class="live" aria-labelledby="live-label">
 <div class="row live-head"><span id="live-label" class="eyebrow">En pantalla</span><span id="blackout-state" class="detail">Sin confirmar</span></div>
 <div id="live-preview" class="preview" data-muted="true"><div id="preview-icon" class="preview-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/></svg></div><div id="preview-body" class="preview-body">Esperando la consola</div><p id="preview-reference" class="preview-reference" hidden></p></div>
-<div class="live-meta"><div id="live-title" class="title">—</div><div class="row"><p id="play-state" class="detail">Esperando estado</p><span id="output-target" class="detail output-target">—</span></div></div>
+<div class="live-meta"><p id="visual-title" class="detail">Imagen: sin confirmar</p><p id="audio-title" class="detail">Audio: sin confirmar</p><div id="live-title" class="title">—</div><div class="row"><p id="play-state" class="detail">Esperando estado</p><span id="output-target" class="detail output-target">—</span></div></div>
 <div class="grid controls"><button data-action="previous" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 6-6 6 6 6M4 12h16"/></svg>Anterior</button><button class="next" data-action="next" disabled>Siguiente<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6 6 6-6 6M20 12H4"/></svg></button></div>
 </section>
 <section aria-labelledby="deck-label"><div class="row section-head"><h2 id="deck-label">Accesos del culto</h2><span class="section-note">Tu deck</span></div><div id="deck" class="grid"></div><p id="deck-empty" class="empty">Sin accesos configurados.</p></section>
 <div class="grid output-controls" role="group" aria-label="Salida de proyección"><button data-action="blackout" id="blackout" aria-pressed="false" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 3 18 18M4 8a2 2 0 0 0-1 2v7a2 2 0 0 0 2 2h12M8 5h11a2 2 0 0 1 2 2v9M8 22h8m-4-3v3"/></svg>Salida en negro</button><button data-action="background" id="background" aria-pressed="false" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m7 16 4-4 3 3 3-5M8 8h.01"/></svg>Logo</button></div>
+<button id="return-media" data-action="return-media" class="preserve-action" disabled>Volver al video completo (F9)</button>
 <section class="panel" aria-labelledby="playback-label"><h2 id="playback-label" class="playback-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 5 11 7-11 7Z"/></svg>Reproducción</h2>
 <div class="grid playback-buttons"><button data-action="pause" id="pause" disabled>Reanudar</button><button data-action="restart" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10a9 9 0 1 1 2 8M3 4v6h6"/></svg>Reiniciar</button></div>
 <div class="field"><div class="row"><label for="position">Posición</label><output id="time" for="position">0:00 / 0:00</output></div><input id="position" type="range" min="0" max="1000" step="1" value="0" disabled aria-label="Posición de reproducción"></div>
@@ -138,7 +142,7 @@ noscript{display:block;padding:20px;color:var(--amber)}
 <input id="catalog-query" maxlength="200" placeholder="Ej. Juan 3:16 o una frase" aria-label="Buscar contenido en la PC" style="width:100%;box-sizing:border-box;border:0;border-radius:22px;background:#343539;color:#fff;padding:14px;font:inherit"/></form>
 <p id="catalog-status" class="detail" role="status"></p><div id="catalog-results" style="display:grid;gap:8px;margin-top:12px"></div></section>
 <section aria-labelledby="order-label"><div class="row section-head"><h2 id="order-label">Orden del culto</h2><span id="order-count" class="count">—</span></div><ol id="order" aria-label="Elementos para proyectar"></ol><p id="order-empty" class="empty">Esperando el orden del equipo.</p></section>
-<section class="panel" aria-labelledby="prepared-label"><span id="prepared-label" class="eyebrow">Preparado en el equipo</span><div id="prepared-title" class="title prepared-title">—</div><button class="primary" data-action="project" disabled>Proyectar preparado<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 5 10 7-10 7Z"/></svg></button></section>
+<section class="panel" aria-labelledby="prepared-label"><span id="prepared-label" class="eyebrow">Preparado en el equipo</span><div id="prepared-title" class="title prepared-title">—</div><button class="primary" data-action="project" disabled>Proyectar preparado<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 5 10 7-10 7Z"/></svg></button><button id="prepared-preserve" class="preserve-action" data-action="project" data-preserve-other="true" hidden disabled>Conservar audio</button></section>
 </aside>
 </div>
 <div class="remote-footer"><button id="retry" type="button">Volver a conectar</button><footer>Culto Studio · Control local</footer></div>
@@ -165,7 +169,8 @@ try {
 function message(text, error = false) { $('notice').textContent = text; $('notice').classList.toggle('error', error); }
 function enableControls() {
   document.querySelectorAll('[data-action],#volume,#position').forEach(element => element.disabled = !connected || pending);
-  sceneButtons.forEach(({ button, available }) => { if (!available) button.disabled = true; });
+  sceneButtons.forEach(({ button, preserve, available }) => { if (!available) { button.disabled = true; if (preserve) preserve.disabled = true; } });
+  if (!current?.canReturnToMedia) $('return-media').disabled = true;
   if (connected && !pending && (!current || current.duration <= 0)) $('position').disabled = true;
   if (current?.canPause === false) document.querySelectorAll('[data-action="pause"],[data-action="restart"],[data-playback],#position').forEach(element => element.disabled = true);
   $('retry').disabled = pending;
@@ -217,6 +222,19 @@ function icon(name) {
 }
 function contentKind(kind) {
   return ({ 0: 'text', 1: 'bible', 2: 'image', 3: 'video', 4: 'audio', 5: 'powerpoint', 6: 'windowcapture' })[kind] || String(kind || '').toLowerCase();
+}
+function preserveLabel(kind) {
+  kind = contentKind(kind);
+  return ['video', 'audio'].includes(kind) ? 'Solo audio' : ['text', 'bible', 'image', 'logo', 'blackout'].includes(kind) ? 'Conservar audio' : '';
+}
+function preserveButton(kind, action, extra) {
+  const label = preserveLabel(kind);
+  if (!label) return null;
+  const button = document.createElement('button');
+  button.className = 'preserve-action'; button.dataset.action = action; button.dataset.preserveOther = 'true';
+  button.textContent = label;
+  button.addEventListener('click', () => send(action, { ...extra, preserveOther: true }));
+  return button;
 }
 function renderPreview(state) {
   const live = Array.isArray(state.order) ? state.order.find(item => item.id === state.liveCueId) : null;
@@ -271,7 +289,15 @@ function renderScenes(state) {
       button.title = scene.detail || scene.label;
       button.append(icon(scene.kind), label, status);
       button.addEventListener('click', () => send('scene', { buttonId: scene.id }));
-      $('scenes').appendChild(button); sceneButtons.set(scene.id, { button, status, available: false });
+      const slot = document.createElement('div'); slot.className = 'scene-slot'; slot.append(button);
+      const preserve = preserveButton(scene.kind, 'scene', { buttonId: scene.id });
+      if (preserve) {
+        preserve.dataset.sceneId = scene.id;
+        preserve.textContent = scene.kind === 'logo' ? 'Logo + audio' : scene.kind === 'blackout' ? 'Negro + audio' : preserve.textContent;
+        preserve.setAttribute('aria-label', preserve.textContent + ': ' + scene.label);
+        slot.append(preserve);
+      }
+      $('scenes').appendChild(slot); sceneButtons.set(scene.id, { button, preserve, status, available: false });
     });
   }
   scenes.forEach(scene => {
@@ -296,6 +322,8 @@ function renderOrder(state) {
       kind.className = 'cue-kind'; kind.textContent = kindLabel(item.kind); marker.className = 'cue-state';
       copy.append(title, kind); button.append(number, copy, marker); row.appendChild(button); $('order').appendChild(row);
       button.addEventListener('click', () => send('cue', { cueId: item.id }));
+      const preserve = preserveButton(item.kind, 'cue', { cueId: item.id });
+      if (preserve) { preserve.setAttribute('aria-label', preserve.textContent + ': ' + (item.title || 'Sin título')); row.append(preserve); }
       orderButtons.set(item.id, { button, marker, title: item.title || 'Sin título' });
     });
   }
@@ -317,6 +345,12 @@ function render(state, force = false) {
   $('plan').textContent = state.planName || 'Culto';
   $('live-title').textContent = state.hasOutput === false ? 'Sin contenido en pantalla' : state.isBackground ? 'Logo' : state.liveTitle || 'Sin contenido en vivo';
   $('prepared-title').textContent = state.preparedTitle || 'Sin contenido preparado';
+  const preparedKind = state.preparedKind ?? (Array.isArray(state.order) ? state.order.find(item => item.id === state.preparedCueId)?.kind : '');
+  const preparedLabel = preserveLabel(preparedKind);
+  $('prepared-preserve').hidden = !preparedLabel;
+  $('prepared-preserve').textContent = preparedLabel === 'Solo audio' ? 'Solo audio del preparado' : 'Proyectar conservando audio';
+  $('visual-title').textContent = 'Imagen: ' + (state.visualTitle ?? (state.hasOutput === false ? 'Sin salida' : state.isBlackout ? 'Negro' : state.isBackground ? 'Logo' : state.liveTitle || 'Sin contenido'));
+  $('audio-title').textContent = 'Audio: ' + (state.audioTitle ?? 'Sin información');
   $('blackout-state').textContent = state.hasOutput === false ? 'Sin salida' : state.isBlackout ? 'SALIDA EN NEGRO' : state.isBackground ? 'Logo' : 'Salida visible';
   $('output-target').textContent = state.hasExternalOutput ? 'HDMI' : 'Local';
   $('blackout').setAttribute('aria-pressed', String(state.isBlackout));
@@ -388,7 +422,7 @@ async function send(action, extra = {}) {
     message(commandNotice.text, true);
   } finally { pending = false; enableControls(); }
 }
-document.querySelectorAll('button[data-action]').forEach(button => button.addEventListener('click', () => send(button.dataset.action)));
+document.querySelectorAll('button[data-action]').forEach(button => button.addEventListener('click', () => send(button.dataset.action, button.dataset.preserveOther === 'true' ? { preserveOther: true } : {})));
 
 let catalogGeneration = 0;
 async function searchCatalog() {
@@ -404,7 +438,10 @@ async function searchCatalog() {
       row.className = 'panel'; row.style.padding = '14px'; title.textContent = item.title; body.textContent = item.body || ''; body.className = 'detail';
       play.textContent = 'Proyectar'; play.dataset.action = 'library'; play.style.marginTop = '10px';
       play.addEventListener('click', () => send('library', { cueId: item.id }));
-      row.append(title); if (item.body) row.append(body); row.append(play); $('catalog-results').append(row);
+      row.append(title); if (item.body) row.append(body); row.append(play);
+      const preserve = preserveButton(item.kind, 'library', { cueId: item.id });
+      if (preserve) { preserve.setAttribute('aria-label', preserve.textContent + ': ' + item.title); row.append(preserve); }
+      $('catalog-results').append(row);
     }); enableControls();
   } catch (error) { if (generation === catalogGeneration) $('catalog-status').textContent = error.message; }
 }
