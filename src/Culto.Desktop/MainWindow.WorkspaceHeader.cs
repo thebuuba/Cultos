@@ -2,12 +2,15 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
+using System.Windows.Automation;
 
 namespace Culto.Desktop;
 
 public partial class MainWindow
 {
     private bool? _workspaceSaveOkay;
+    private bool _remotePulseActive;
 
     private void InitializeWorkspaceHeader()
     {
@@ -26,9 +29,22 @@ public partial class MainWindow
         HeaderSaveState.Text = _workspaceSaveOkay == false || _workspaceRecoveryBlocked ? "Revisar"
             : PlanNameBox.Text.Trim() != _workspace.Plan.Name ? "Sin guardar" : _workspaceSaveOkay is null ? "Local" : "Guardado";
         var connected = _remote?.ConnectedClientCount ?? 0;
-        RemoteConnectionText.Text = _remote is null ? "Desactivado" : connected == 0 ? "Sin dispositivos"
+        var status = _remote is null ? "Desactivado" : connected == 0 ? "Sin dispositivos"
             : connected == 1 ? "1 conectado" : $"{connected} conectados";
-        RemoteConnectionDot.Fill = (Brush)FindResource(_remote is null ? "PanelBorderBrush" : "AccentBrush");
+        RemoteTopButton.ToolTip = "Control remoto · " + status;
+        AutomationProperties.SetItemStatus(RemoteTopButton, status);
+        var active = _remote is not null;
+        RemoteTopButton.Foreground = (Brush)FindResource(active ? "AccentTextBrush" : "OnActionBrush");
+        RemoteTopButton.Background = (Brush)FindResource(active ? "SelectedBrush" : "TextBrush");
+        var animate = active && SystemParameters.ClientAreaAnimation;
+        if (_remotePulseActive == animate) return;
+        _remotePulseActive = animate;
+        var scale = (ScaleTransform)RemotePulse.RenderTransform;
+        DoubleAnimation? Pulse(double from, double to) => animate ? new(from, to, TimeSpan.FromSeconds(1.4))
+        { RepeatBehavior = RepeatBehavior.Forever } : null;
+        RemotePulse.BeginAnimation(OpacityProperty, Pulse(.65, 0));
+        scale.BeginAnimation(ScaleTransform.ScaleXProperty, Pulse(.8, 1.35));
+        scale.BeginAnimation(ScaleTransform.ScaleYProperty, Pulse(.8, 1.35));
     }
 
     private void MonitorFrameSizeChanged(object sender, SizeChangedEventArgs e)

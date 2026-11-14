@@ -12,7 +12,6 @@ public sealed class CueThumbnail : FrameworkElement
     public static readonly DependencyProperty CueProperty = DependencyProperty.Register(nameof(Cue), typeof(Cue), typeof(CueThumbnail),
         new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, Changed));
     private static readonly System.Threading.SemaphoreSlim ImageWork = new(2);
-    private static readonly Typeface Face = new("Segoe UI");
     private static readonly Brush Back = new SolidColorBrush(Color.FromRgb(16, 23, 34));
     private static readonly Brush Accent = new SolidColorBrush(Color.FromRgb(36, 178, 126));
     private static readonly Geometry Play = Geometry.Parse("M 57,20 L 76,31 L 57,42 Z");
@@ -75,12 +74,15 @@ public sealed class CueThumbnail : FrameworkElement
         if (_image is null && Cue is { } cue)
         {
             var media = cue.Kind is CueKind.Video or CueKind.Audio;
+            var textHeight = (media ? 21 : 51) * fittedScale;
+            if (textHeight < 16) return;
             var message = media || string.IsNullOrWhiteSpace(cue.Body) ? cue.Title : cue.Body;
             // Shape glyphs at their final display size, instead of magnifying
             // text hinted for an 8/9 DIP miniature canvas.
-            var words = new FormattedText(message, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, Face,
-                (media ? 8 : 9) * fittedScale, Brushes.White, null, TextFormattingMode.Display, VisualTreeHelper.GetDpi(this).PixelsPerDip)
-            { MaxTextWidth = 110 * fittedScale, MaxTextHeight = (media ? 21 : 51) * fittedScale,
+            var face = new Typeface((FontFamily)FindResource("ConsoleFont"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
+            var words = new FormattedText(message, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, face,
+                Math.Max(12, (media ? 8 : 9) * fittedScale), Brushes.White, null, TextFormattingMode.Display, VisualTreeHelper.GetDpi(this).PixelsPerDip)
+            { MaxTextWidth = 110 * fittedScale, MaxTextHeight = textHeight,
                 TextAlignment = TextAlignment.Center, Trimming = TextTrimming.CharacterEllipsis };
             var x = (ActualWidth - 128 * fittedScale) / 2 + 9 * fittedScale;
             var y = (ActualHeight - 72 * fittedScale) / 2 + (media ? 46 * fittedScale : Math.Max(8 * fittedScale, (72 * fittedScale - words.Height) / 2));

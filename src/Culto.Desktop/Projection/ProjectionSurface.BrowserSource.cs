@@ -9,7 +9,7 @@ public sealed partial class ProjectionSurface
     private BrowserSourceView? _browserSource;
     private void ShowBrowserSource(Cue cue, bool paused)
     {
-        if (cue.Browser is null) throw new ArgumentException("La fuente navegador no tiene ubicación.");
+        if (cue.Browser is null) throw new ArgumentException("La fuente navegador no tiene ubicaciÃ³n.");
         _pauseRequested = paused || _suppressed;
         if (_browserSource is null)
         {

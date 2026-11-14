@@ -143,8 +143,8 @@ public sealed class WindowCaptureDialog : Window
         title.SetValue(TextBlock.TextTrimmingProperty, TextTrimming.CharacterEllipsis); panel.AppendChild(title);
         var detail = new FrameworkElementFactory(typeof(TextBlock));
         detail.SetBinding(TextBlock.TextProperty, new Binding(nameof(WindowCaptureTarget.Detail)));
-        detail.SetValue(TextBlock.ForegroundProperty, FindResource("MutedBrush"));
-        detail.SetValue(TextBlock.FontSizeProperty, 11d); detail.SetValue(MarginProperty, new Thickness(0, 5, 0, 0));
+        detail.SetValue(TextBlock.StyleProperty, FindResource("ItemMetadataText"));
+        detail.SetValue(TextBlock.FontSizeProperty, 12d); detail.SetValue(MarginProperty, new Thickness(0, 5, 0, 0));
         panel.AppendChild(detail);
         return new DataTemplate { VisualTree = panel };
     }

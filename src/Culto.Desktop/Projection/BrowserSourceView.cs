@@ -28,7 +28,7 @@ public sealed class BrowserSourceView : Viewbox, IDisposable
         Stretch = Stretch.Uniform;
         IsHitTestVisible = false;
         _timeout = new DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
-        _timeout.Tick += (_, _) => Fail("La fuente navegador no entregÛ imagen a tiempo.");
+        _timeout.Tick += (_, _) => Fail("La fuente navegador no entreg√≥ imagen a tiempo.");
     }
 
     public void SetSource(BrowserSourceOptions options, bool muted)
@@ -55,7 +55,7 @@ public sealed class BrowserSourceView : Viewbox, IDisposable
             browser.FrameLoadEnd += async (_, args) =>
             {
                 if (!args.Frame.IsMain || _disposed || !ReferenceEquals(browser, _browser)) return;
-                if (args.HttpStatusCode >= 400) { Fail("La p·gina devolviÛ HTTP " + args.HttpStatusCode + "."); return; }
+                if (args.HttpStatusCode >= 400) { Fail("La p√°gina devolvi√≥ HTTP " + args.HttpStatusCode + "."); return; }
                 try
                 {
                     var css = JsonSerializer.Serialize(options.CustomCss);
@@ -128,6 +128,6 @@ public sealed class BrowserSourceView : Viewbox, IDisposable
     private sealed class OutputRequestHandler(Action<string> fail) : RequestHandler
     {
         protected override void OnRenderProcessTerminated(IWebBrowser control, IBrowser browser, CefTerminationStatus status, int errorCode, string errorMessage)
-            => fail("El proceso de renderizado se cerrÛ. " + errorMessage);
+            => fail("El proceso de renderizado se cerr√≥. " + errorMessage);
     }
 }

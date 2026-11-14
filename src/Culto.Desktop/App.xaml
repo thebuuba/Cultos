@@ -22,6 +22,7 @@
         <SolidColorBrush x:Key="AmberBrush" Color="#E7BE90" />
         <SolidColorBrush x:Key="HoverBrush" Color="#34353A" />
         <SolidColorBrush x:Key="SelectedBrush" Color="#3A3B40" />
+        <SolidColorBrush x:Key="FocusSurfaceBrush" Color="#C9DED6" />
         <SolidColorBrush x:Key="InputBrush" Color="#34353A" />
 
         <SolidColorBrush x:Key="LiveBrush" Color="#24B27E" />
@@ -36,11 +37,73 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Control">
-                        <Border BorderBrush="{StaticResource AmberBrush}" BorderThickness="2"
+                        <Border Background="{StaticResource FocusSurfaceBrush}" Opacity="0.25" BorderThickness="0"
                                 CornerRadius="{StaticResource ControlRadius}" Margin="-3" />
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        </Style>
+
+        <Style TargetType="Label">
+            <Setter Property="FontFamily" Value="{StaticResource ConsoleFont}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+            <Setter Property="UseLayoutRounding" Value="True"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+        </Style>
+        <Style TargetType="Expander">
+            <Setter Property="FontFamily" Value="{StaticResource ConsoleFont}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+            <Setter Property="UseLayoutRounding" Value="True"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+        </Style>
+        <Style TargetType="GroupBox">
+            <Setter Property="FontFamily" Value="{StaticResource ConsoleFont}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+            <Setter Property="UseLayoutRounding" Value="True"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+        </Style>
+        <Style TargetType="RadioButton">
+            <Setter Property="FontFamily" Value="{StaticResource ConsoleFont}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+            <Setter Property="UseLayoutRounding" Value="True"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+        </Style>
+        <Style TargetType="ToggleButton">
+            <Setter Property="FontFamily" Value="{StaticResource ConsoleFont}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+            <Setter Property="UseLayoutRounding" Value="True"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+        </Style>
+        <Style TargetType="ToolTip">
+            <Setter Property="FontFamily" Value="{StaticResource ConsoleFont}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+            <Setter Property="UseLayoutRounding" Value="True"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Background" Value="{StaticResource PanelBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Padding" Value="10,6"/>
+        </Style>
+        <Style x:Key="ItemMetadataText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsKeyboardFocusWithin, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                    <Setter Property="Foreground" Value="{StaticResource OnActionBrush}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsKeyboardFocusWithin, RelativeSource={RelativeSource AncestorType=MenuItem}}" Value="True">
+                    <Setter Property="Foreground" Value="{StaticResource OnActionBrush}"/>
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
 
         <Style TargetType="Window">
@@ -51,6 +114,8 @@
             <Setter Property="FontSize" Value="14" />
             <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
             <Setter Property="UseLayoutRounding" Value="True" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Setter Property="RenderOptions.ClearTypeHint" Value="Enabled" />
         </Style>
 
         <!-- Foreground stays inherited for ordinary text, including button labels. -->
@@ -62,12 +127,16 @@
         </Style>
         <Style x:Key="Overline" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
-            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontSize" Value="12" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Margin" Value="0,0,0,10" />
         </Style>
 
         <Style TargetType="Button">
+            <Setter Property="FontFamily" Value="{StaticResource ConsoleFont}" />
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+            <Setter Property="UseLayoutRounding" Value="True" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
             <EventSetter Event="MouseEnter" Handler="ButtonHoverChanged" />
             <EventSetter Event="MouseLeave" Handler="ButtonHoverChanged" />
             <Setter Property="Background" Value="{StaticResource RaisedBrush}" />
@@ -93,24 +162,24 @@
                             <Border x:Name="ButtonHighlight" Background="{StaticResource TextBrush}"
                                     CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={StaticResource PillRadiusConverter}}" Opacity="0" IsHitTestVisible="False" />
                             <Border x:Name="ButtonPressed" Background="#000000" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={StaticResource PillRadiusConverter}}" Opacity="0" IsHitTestVisible="False" />
+                            <Border x:Name="ButtonFocus" Background="{StaticResource FocusSurfaceBrush}"
+                                    BorderThickness="0" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={StaticResource PillRadiusConverter}}"
+                                    Opacity="0" IsHitTestVisible="False" />
                             <ContentPresenter Margin="{TemplateBinding Padding}"
                                               HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                               VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
                                               TextElement.Foreground="{TemplateBinding Foreground}"
                                               RecognizesAccessKey="True" />
-                            <Border x:Name="ButtonFocus" BorderBrush="{StaticResource AmberBrush}"
-                                    BorderThickness="2" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={StaticResource PillRadiusConverter}}" Margin="-3"
-                                    Opacity="0" IsHitTestVisible="False" />
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="ButtonPressed" Property="Opacity" Value="0.14" />
                             </Trigger>
                             <Trigger Property="IsKeyboardFocused" Value="True">
-                                <Setter TargetName="ButtonFocus" Property="Opacity" Value="1" />
+                                <Setter TargetName="ButtonFocus" Property="Opacity" Value="1" /><Setter Property="Foreground" Value="{StaticResource OnActionBrush}" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="ButtonRoot" Property="Opacity" Value="0.42" />
+                                <Setter TargetName="ButtonRoot" Property="Opacity" Value="0.65" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -136,6 +205,10 @@
         </Style>
 
         <Style TargetType="TextBox">
+            <Setter Property="FontFamily" Value="{StaticResource ConsoleFont}" />
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+            <Setter Property="UseLayoutRounding" Value="True" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
             <Setter Property="Background" Value="{StaticResource InputBrush}" />
             <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
             <Setter Property="CaretBrush" Value="{StaticResource AccentBrush}" />
@@ -169,16 +242,20 @@
                     <Setter Property="BorderBrush" Value="{StaticResource RaisedBrush}" />
                 </Trigger>
                 <Trigger Property="IsKeyboardFocused" Value="True">
-                    <Setter Property="BorderBrush" Value="{StaticResource AmberBrush}" />
+                    <Setter Property="Background" Value="{StaticResource FocusSurfaceBrush}" /><Setter Property="Foreground" Value="{StaticResource OnActionBrush}" />
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="Opacity" Value="0.45" />
+                    <Setter Property="Opacity" Value="0.65" />
                 </Trigger>
             </Style.Triggers>
         </Style>
 
         <!-- Native ComboBox behavior, with its named popup and editable-text parts intact. -->
         <Style TargetType="ComboBox">
+            <Setter Property="FontFamily" Value="{StaticResource ConsoleFont}" />
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+            <Setter Property="UseLayoutRounding" Value="True" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
             <Setter Property="Background" Value="{StaticResource RaisedBrush}" />
             <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
             <Setter Property="BorderBrush" Value="Transparent" />
@@ -251,14 +328,14 @@
                                 <Setter TargetName="ComboFrame" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
                             </Trigger>
                             <Trigger Property="IsKeyboardFocusWithin" Value="True">
-                                <Setter TargetName="ComboFrame" Property="BorderBrush" Value="{StaticResource AmberBrush}" />
+                                <Setter TargetName="ComboFrame" Property="Background" Value="{StaticResource FocusSurfaceBrush}" /><Setter Property="Foreground" Value="{StaticResource OnActionBrush}" />
                             </Trigger>
                             <Trigger Property="IsEditable" Value="True">
                                 <Setter TargetName="SelectionContent" Property="Visibility" Value="Hidden" />
                                 <Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="ComboRoot" Property="Opacity" Value="0.45" />
+                                <Setter TargetName="ComboRoot" Property="Opacity" Value="0.65" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -266,6 +343,10 @@
             </Setter>
         </Style>
         <Style TargetType="ComboBoxItem">
+            <Setter Property="FontFamily" Value="{StaticResource ConsoleFont}" />
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+            <Setter Property="UseLayoutRounding" Value="True" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
             <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
             <Setter Property="Padding" Value="9,8" />
             <Setter Property="MinHeight" Value="32" />
@@ -289,10 +370,10 @@
                                 <Setter TargetName="Option" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
                             </Trigger>
                             <Trigger Property="IsKeyboardFocusWithin" Value="True">
-                                <Setter TargetName="Option" Property="BorderBrush" Value="{StaticResource AmberBrush}" />
+                                <Setter TargetName="Option" Property="Background" Value="{StaticResource FocusSurfaceBrush}" /><Setter Property="Foreground" Value="{StaticResource OnActionBrush}" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Opacity" Value="0.45" />
+                                <Setter Property="Opacity" Value="0.65" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -301,6 +382,10 @@
         </Style>
 
         <Style TargetType="ListBox">
+            <Setter Property="FontFamily" Value="{StaticResource ConsoleFont}" />
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+            <Setter Property="UseLayoutRounding" Value="True" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
             <Setter Property="BorderThickness" Value="0" />
@@ -311,6 +396,10 @@
             <Setter Property="VirtualizingPanel.VirtualizationMode" Value="Recycling" />
         </Style>
         <Style TargetType="ListBoxItem">
+            <Setter Property="FontFamily" Value="{StaticResource ConsoleFont}" />
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+            <Setter Property="UseLayoutRounding" Value="True" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
             <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="Padding" Value="9,8" />
@@ -333,10 +422,10 @@
                                 <Setter TargetName="ItemBorder" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
                             </Trigger>
                             <Trigger Property="IsKeyboardFocusWithin" Value="True">
-                                <Setter TargetName="ItemBorder" Property="BorderBrush" Value="{StaticResource AmberBrush}" />
+                                <Setter TargetName="ItemBorder" Property="Background" Value="{StaticResource FocusSurfaceBrush}" /><Setter Property="Foreground" Value="{StaticResource OnActionBrush}" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Opacity" Value="0.45" />
+                                <Setter Property="Opacity" Value="0.65" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -345,11 +434,15 @@
         </Style>
 
         <Style TargetType="ContextMenu">
+            <Setter Property="FontFamily" Value="{StaticResource ConsoleFont}" />
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+            <Setter Property="UseLayoutRounding" Value="True" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
             <Setter Property="Background" Value="{StaticResource PanelBrush}"/>
             <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
             <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="6"/>
+            <Setter Property="Padding" Value="4"/>
             <Setter Property="MinWidth" Value="220"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -365,8 +458,12 @@
             </Setter>
         </Style>
         <Style TargetType="MenuItem">
+            <Setter Property="FontFamily" Value="{StaticResource ConsoleFont}" />
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+            <Setter Property="UseLayoutRounding" Value="True" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
             <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-            <Setter Property="Padding" Value="10,9"/>
+            <Setter Property="Padding" Value="10,4"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -376,13 +473,13 @@
                             <Grid>
                                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                 <ContentPresenter ContentSource="Header" RecognizesAccessKey="True"/>
-                                <TextBlock Grid.Column="1" Text="{TemplateBinding InputGestureText}" Foreground="{StaticResource MutedBrush}" Margin="24,0,0,0"/>
+                                <TextBlock Grid.Column="1" Text="{TemplateBinding InputGestureText}" Style="{StaticResource ItemMetadataText}" Margin="24,0,0,0"/>
                                 <TextBlock x:Name="SubmenuArrow" Grid.Column="2" Text="›" Margin="12,0,0,0" Visibility="Collapsed"/>
                             </Grid>
                         </Border>
                         <Popup x:Name="PART_Popup" Placement="Right" PlacementTarget="{Binding ElementName=MenuOption}" HorizontalOffset="-1"
                                IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
-                          <Border Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource ControlRadius}" Padding="6" MinWidth="200">
+                          <Border Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource ControlRadius}" Padding="4" MinWidth="200">
                             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" MaxHeight="420" CanContentScroll="True">
                               <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" KeyboardNavigation.TabNavigation="Cycle"/>
                             </ScrollViewer>
@@ -392,15 +489,15 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="HasItems" Value="True"><Setter TargetName="SubmenuArrow" Property="Visibility" Value="Visible"/></Trigger>
                             <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="MenuOption" Property="Background" Value="{StaticResource HoverBrush}"/></Trigger>
-                            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="MenuOption" Property="BorderBrush" Value="{StaticResource AmberBrush}"/></Trigger>
-                            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="MenuOption" Property="Opacity" Value="0.45"/></Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="MenuOption" Property="Background" Value="{StaticResource FocusSurfaceBrush}" /><Setter Property="Foreground" Value="{StaticResource OnActionBrush}" /></Trigger>
+                            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="MenuOption" Property="Opacity" Value="0.65"/></Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
         <Style TargetType="Separator">
-            <Setter Property="Margin" Value="8,4"/>
+            <Setter Property="Margin" Value="8,2"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Separator"><Border Height="1" Background="{StaticResource PanelBorderBrush}"/></ControlTemplate></Setter.Value></Setter>
         </Style>
 
@@ -420,6 +517,10 @@
             </Setter.Value></Setter>
         </Style>
         <Style TargetType="TabItem">
+            <Setter Property="FontFamily" Value="{StaticResource ConsoleFont}" />
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+            <Setter Property="UseLayoutRounding" Value="True" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
             <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
             <Setter Property="Padding" Value="11,8" />
             <Setter Property="FontSize" Value="13" />
@@ -444,10 +545,10 @@
                                 <Setter TargetName="TabLabel" Property="TextElement.Foreground" Value="{StaticResource OnActionBrush}" />
                             </Trigger>
                             <Trigger Property="IsKeyboardFocused" Value="True">
-                                <Setter TargetName="TabPill" Property="BorderBrush" Value="{StaticResource AmberBrush}" />
+                                <Setter TargetName="TabPill" Property="Background" Value="{StaticResource FocusSurfaceBrush}" /><Setter TargetName="TabLabel" Property="TextElement.Foreground" Value="{StaticResource OnActionBrush}" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Opacity" Value="0.45" />
+                                <Setter Property="Opacity" Value="0.65" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -561,13 +662,17 @@
                     </Track>
                 </Grid>
                 <ControlTemplate.Triggers>
-                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="SeekThumb" Property="BorderBrush" Value="{StaticResource AmberBrush}"/></Trigger>
+                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="SeekThumb" Property="Background" Value="{StaticResource FocusSurfaceBrush}" /><Setter Property="Foreground" Value="{StaticResource OnActionBrush}" /></Trigger>
                     <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="SeekThumb" Property="Background" Value="{StaticResource TextBrush}"/></Trigger>
                     <Trigger Property="IsEnabled" Value="False"><Setter TargetName="SliderRoot" Property="Opacity" Value="0.4"/></Trigger>
                 </ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
         </Style>
         <Style TargetType="CheckBox">
+            <Setter Property="FontFamily" Value="{StaticResource ConsoleFont}" />
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+            <Setter Property="UseLayoutRounding" Value="True" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
             <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
             <Setter Property="Background" Value="{StaticResource RaisedBrush}" />
             <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />

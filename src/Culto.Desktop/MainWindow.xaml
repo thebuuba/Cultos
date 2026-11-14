@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:Culto.Desktop"
         xmlns:ad="https://github.com/Dirkster99/AvalonDock"
+        xmlns:adc="clr-namespace:AvalonDock.Controls;assembly=AvalonDock"
         xmlns:themes="clr-namespace:AvalonDock.Themes;assembly=AvalonDock.Themes.Arc"
         xmlns:projection="clr-namespace:Culto.Desktop.Projection"
         xmlns:sys="clr-namespace:System;assembly=System.Runtime"
@@ -10,6 +11,33 @@
         MinWidth="1200" MinHeight="680" WindowStartupLocation="CenterScreen" WindowState="Maximized"
         UseLayoutRounding="True" Style="{StaticResource {x:Type Window}}">
   <Window.Resources>
+    <ControlTemplate x:Key="WorkspaceSourceTabTemplate" TargetType="TabItem">
+      <Border x:Name="TabSurface" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="6">
+        <ContentPresenter ContentSource="Header" VerticalAlignment="Center"/>
+      </Border>
+      <ControlTemplate.Triggers>
+        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="TabSurface" Property="Background" Value="{StaticResource RaisedBrush}"/></Trigger>
+        <Trigger Property="IsSelected" Value="True">
+          <Setter TargetName="TabSurface" Property="Background" Value="{StaticResource FocusSurfaceBrush}"/>
+          <Setter Property="Foreground" Value="{StaticResource OnActionBrush}"/>
+        </Trigger>
+        <Trigger Property="IsKeyboardFocusWithin" Value="True">
+          <Setter TargetName="TabSurface" Property="Background" Value="{StaticResource FocusSurfaceBrush}"/>
+          <Setter Property="Foreground" Value="{StaticResource OnActionBrush}"/>
+        </Trigger>
+      </ControlTemplate.Triggers>
+    </ControlTemplate>
+    <ControlTemplate x:Key="PanelCaptionTemplate" TargetType="{x:Type adc:AnchorablePaneTitle}">
+      <Border Background="{TemplateBinding Background}">
+        <Grid>
+          <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+          <TextBlock Text="{Binding Model.Title, RelativeSource={RelativeSource TemplatedParent}}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,8,0"/>
+          <Button Grid.Column="1" Click="PanelMenuClick" Width="28" Height="28" MinWidth="28" MinHeight="28" Padding="6" Background="Transparent" BorderThickness="0" ToolTip="Opciones del panel" AutomationProperties.Name="Opciones del panel">
+            <Path Data="M 1,3 L 15,3 M 1,8 L 15,8 M 1,13 L 15,13" Width="14" Height="12" Stretch="Uniform" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.5"/>
+          </Button>
+        </Grid>
+      </Border>
+    </ControlTemplate>
     <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
     <local:OrderNumberConverter x:Key="OrderNumberConverter"/>
     <Style x:Key="SceneButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
@@ -20,7 +48,6 @@
       <Setter Property="FontWeight" Value="SemiBold"/>
       <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
         <Border x:Name="SceneSurface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="2" CornerRadius="10" Padding="{TemplateBinding Padding}">
-          <Border.Effect><DropShadowEffect BlurRadius="5" ShadowDepth="2" Opacity="0.25"/></Border.Effect>
           <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
         </Border>
         <ControlTemplate.Triggers>
@@ -48,7 +75,7 @@
     </Style>
     <Style x:Key="PlayerTime" TargetType="TextBlock">
       <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
-      <Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="FontSize" Value="10"/>
+      <Setter Property="FontFamily" Value="{StaticResource ConsoleFont}"/><Setter Property="FontSize" Value="12"/>
       <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
       <Setter Property="VerticalAlignment" Value="Center"/>
     </Style>
@@ -74,7 +101,7 @@
             <Setter TargetName="LoopEnabled" Property="Visibility" Value="Visible"/>
           </Trigger>
           <Trigger Property="IsPressed" Value="True"><Setter TargetName="LoopSurface" Property="Background" Value="{StaticResource RaisedBrush}"/></Trigger>
-          <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="LoopSurface" Property="BorderBrush" Value="{StaticResource AmberBrush}"/></Trigger>
+          <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="LoopSurface" Property="Background" Value="{StaticResource FocusSurfaceBrush}" /><Setter Property="Foreground" Value="{StaticResource OnActionBrush}" /></Trigger>
           <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.42"/></Trigger>
         </ControlTemplate.Triggers>
       </ControlTemplate></Setter.Value></Setter>
@@ -102,7 +129,7 @@
                 <Setter TargetName="Chip" Property="BorderBrush" Value="{StaticResource MutedBrush}"/>
               </Trigger>
               <Trigger Property="IsKeyboardFocusWithin" Value="True">
-                <Setter TargetName="Chip" Property="BorderBrush" Value="{StaticResource AmberBrush}"/>
+                <Setter TargetName="Chip" Property="Background" Value="{StaticResource FocusSurfaceBrush}" /><Setter Property="Foreground" Value="{StaticResource OnActionBrush}" />
               </Trigger>
             </ControlTemplate.Triggers>
           </ControlTemplate>
@@ -114,12 +141,12 @@
         <Grid.ColumnDefinitions><ColumnDefinition Width="34"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
         <Border Width="26" Height="28" Background="Transparent" VerticalAlignment="Top">
           <TextBlock x:Name="OrderNumber" Text="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(local:OrderListBox.AbsoluteIndex), Converter={StaticResource OrderNumberConverter}}"
-                     FontSize="12" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                     FontSize="12" Style="{StaticResource ItemMetadataText}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
         </Border>
         <StackPanel Grid.Column="1">
           <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
           <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
-            <TextBlock x:Name="OrderKind" Text="{Binding Kind, Converter={StaticResource CueKindConverter}}" FontSize="12" Foreground="{StaticResource MutedBrush}"/>
+            <TextBlock x:Name="OrderKind" Text="{Binding Kind, Converter={StaticResource CueKindConverter}}" FontSize="12" Style="{StaticResource ItemMetadataText}"/>
             <TextBlock Text="EN VIVO" FontSize="12" FontWeight="Bold" Foreground="{StaticResource OnActionBrush}" Margin="10,0,0,0"
                        Visibility="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(local:OrderListBox.IsLive), Converter={StaticResource BoolToVisibility}}"/>
           </StackPanel>
@@ -141,7 +168,7 @@
         </Border>
         <StackPanel Grid.Column="1" VerticalAlignment="Center">
           <TextBlock Text="{Binding Title}" FontSize="12" FontWeight="Medium" TextTrimming="CharacterEllipsis"/>
-          <TextBlock Text="{Binding Kind, Converter={StaticResource CueKindConverter}}" FontSize="12" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
+          <TextBlock Text="{Binding Kind, Converter={StaticResource CueKindConverter}}" FontSize="12" Style="{StaticResource ItemMetadataText}" Margin="0,4,0,0"/>
         </StackPanel>
       </Grid>
       <DataTemplate.Triggers>
@@ -171,7 +198,7 @@
           <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Tile" Property="Background" Value="{StaticResource RaisedBrush}"/></Trigger>
           <Trigger Property="IsSelected" Value="True"><Setter TargetName="Tile" Property="BorderBrush" Value="{StaticResource AccentBrush}"/><Setter TargetName="Tile" Property="Background" Value="{StaticResource SelectedBrush}"/></Trigger>
           <Trigger Property="local:OrderListBox.IsLive" Value="True"><Setter TargetName="Tile" Property="BorderBrush" Value="{StaticResource LiveBrush}"/></Trigger>
-          <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Tile" Property="BorderBrush" Value="{StaticResource AmberBrush}"/></Trigger>
+          <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Tile" Property="Background" Value="{StaticResource FocusSurfaceBrush}" /><Setter Property="Foreground" Value="{StaticResource OnActionBrush}" /></Trigger>
         </ControlTemplate.Triggers>
       </ControlTemplate></Setter.Value></Setter>
     </Style>
@@ -191,8 +218,8 @@
         <Border Background="Black" CornerRadius="18" SizeChanged="MonitorFrameSizeChanged"><local:MediaThumbnail Cue="{Binding}" Height="{DynamicResource MediaThumbnailHeight}"/></Border>
         <TextBlock Grid.Row="1" Text="{Binding Title}" FontSize="12" FontWeight="SemiBold" Margin="1,6,1,2" TextTrimming="CharacterEllipsis"/>
         <DockPanel Grid.Row="2">
-          <TextBlock DockPanel.Dock="Right" Text="{Binding FilePath, Converter={StaticResource MediaPathConverter}, ConverterParameter=Extension}" FontSize="12" Foreground="{StaticResource MutedBrush}"/>
-          <TextBlock Text="{Binding Kind, Converter={StaticResource CueKindConverter}}" FontSize="12" Foreground="{StaticResource MutedBrush}"/>
+          <TextBlock DockPanel.Dock="Right" Text="{Binding FilePath, Converter={StaticResource MediaPathConverter}, ConverterParameter=Extension}" FontSize="12" Style="{StaticResource ItemMetadataText}"/>
+          <TextBlock Text="{Binding Kind, Converter={StaticResource CueKindConverter}}" FontSize="12" Style="{StaticResource ItemMetadataText}"/>
         </DockPanel>
       </Grid>
     </DataTemplate>
@@ -202,9 +229,9 @@
         <TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource AccentTextBrush}" VerticalAlignment="Center" FontSize="17"/>
         <StackPanel Grid.Column="1" Margin="0,0,10,0">
           <TextBlock Text="{Binding FilePath, Converter={StaticResource MediaPathConverter}, ConverterParameter=FileName}" FontSize="12" TextTrimming="CharacterEllipsis"/>
-          <TextBlock Text="{Binding Kind, Converter={StaticResource CueKindConverter}}" FontSize="12" Foreground="{StaticResource MutedBrush}" Margin="0,2,0,0"/>
+          <TextBlock Text="{Binding Kind, Converter={StaticResource CueKindConverter}}" FontSize="12" Style="{StaticResource ItemMetadataText}" Margin="0,2,0,0"/>
         </StackPanel>
-        <TextBlock Grid.Column="2" Text="{Binding FilePath, Converter={StaticResource MediaPathConverter}, ConverterParameter=Extension}" FontSize="12" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+        <TextBlock Grid.Column="2" Text="{Binding FilePath, Converter={StaticResource MediaPathConverter}, ConverterParameter=Extension}" FontSize="12" Style="{StaticResource ItemMetadataText}" VerticalAlignment="Center" HorizontalAlignment="Right"/>
       </Grid>
     </DataTemplate>
     <Style x:Key="OrderRow" TargetType="ListBoxItem">
@@ -226,7 +253,7 @@
             <Setter TargetName="Stripe" Property="Background" Value="{StaticResource OnActionBrush}"/>
             <Setter Property="Foreground" Value="{StaticResource OnActionBrush}"/>
           </Trigger>
-          <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Row" Property="BorderBrush" Value="{StaticResource AmberBrush}"/></Trigger>
+          <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Row" Property="Background" Value="{StaticResource FocusSurfaceBrush}" /><Setter Property="Foreground" Value="{StaticResource OnActionBrush}" /></Trigger>
         </ControlTemplate.Triggers>
       </ControlTemplate></Setter.Value></Setter>
     </Style>
@@ -312,8 +339,24 @@
               <Border Background="{StaticResource InputBrush}" CornerRadius="14" Padding="8,4" Margin="8,0,0,0" VerticalAlignment="Center"><TextBlock x:Name="HeaderSaveState" Text="Local" FontSize="12" Foreground="{StaticResource MutedBrush}"/></Border>
             </StackPanel>
           </Border>
-          <Button x:Name="RemoteTopButton" Click="RemoteClick" Background="{StaticResource TextBrush}" Foreground="{StaticResource OnActionBrush}" BorderThickness="0" Padding="14,7" MinHeight="40" AutomationProperties.Name="Control remoto">
-            <StackPanel Orientation="Horizontal"><Path Data="M 3,1 L 11,1 Q 13,1 13,3 L 13,19 Q 13,21 11,21 L 3,21 Q 1,21 1,19 L 1,3 Q 1,1 3,1 M 5,18 L 9,18" Width="12" Height="18" Stretch="Uniform" Stroke="{StaticResource OnActionBrush}" StrokeThickness="1.5" Margin="0,0,9,0"/><TextBlock Text="Control remoto" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/><Border Background="#E2E3E5" CornerRadius="14" Padding="8,5" Margin="9,0,-5,0"><StackPanel Orientation="Horizontal"><Ellipse x:Name="RemoteConnectionDot" Fill="{StaticResource MutedBrush}" Width="5" Height="5" Margin="0,0,5,0" VerticalAlignment="Center"/><TextBlock x:Name="RemoteConnectionText" Text="Desactivado" FontSize="12"/></StackPanel></Border></StackPanel>
+          <Button x:Name="RemoteTopButton" Click="RemoteClick" Width="44" Height="44" MinWidth="44" MinHeight="44" Padding="0" Background="{StaticResource TextBrush}" Foreground="{StaticResource OnActionBrush}" ToolTip="Control remoto ? Desactivado" AutomationProperties.Name="Control remoto">
+            <Button.Template><ControlTemplate TargetType="Button">
+              <Grid>
+                <Border x:Name="RemoteCircle" Background="{TemplateBinding Background}" BorderBrush="{StaticResource AccentBrush}" BorderThickness="0" CornerRadius="22"/>
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+              </Grid>
+              <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="RemoteCircle" Property="Opacity" Value="0.85"/></Trigger>
+                <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="RemoteCircle" Property="BorderThickness" Value="2"/></Trigger>
+                <Trigger Property="IsPressed" Value="True"><Setter TargetName="RemoteCircle" Property="Opacity" Value="0.65"/></Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate></Button.Template>
+            <Grid Width="44" Height="44">
+              <Ellipse x:Name="RemotePulse" Stroke="{StaticResource AccentBrush}" StrokeThickness="2" Opacity="0" RenderTransformOrigin="0.5,0.5" IsHitTestVisible="False">
+                <Ellipse.RenderTransform><ScaleTransform/></Ellipse.RenderTransform>
+              </Ellipse>
+              <Path Data="M 3,1 L 11,1 Q 13,1 13,3 L 13,19 Q 13,21 11,21 L 3,21 Q 1,21 1,19 L 1,3 Q 1,1 3,1 M 5,18 L 9,18" Width="12" Height="20" HorizontalAlignment="Center" VerticalAlignment="Center" Stretch="Uniform" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.5"/>
+            </Grid>
           </Button>
           <Border Background="{StaticResource LiveSurfaceBrush}" CornerRadius="22" Padding="13,10" Margin="12,0,0,0"><StackPanel Orientation="Horizontal">
             <Ellipse x:Name="OutputIndicator" Width="7" Height="7" Margin="0,0,7,0" VerticalAlignment="Center">
@@ -349,22 +392,22 @@
     <StackPanel>
       <UniformGrid x:Name="OutputBackdropsPanel" Columns="2">
         <Button x:Name="ChurchBackgroundButton" Style="{StaticResource SceneButton}" Background="#F5FBF3" Foreground="#167746" Click="ChurchBackgroundClick" PreviewMouseRightButtonUp="LogoRightClick" AutomationProperties.Name="Logo">
-          <StackPanel><TextBlock Text="&#xE80F;" FontFamily="Segoe MDL2 Assets" FontSize="30" HorizontalAlignment="Center"/><TextBlock Text="Logo" FontSize="11" HorizontalAlignment="Center" Margin="0,7,0,0"/></StackPanel>
+          <StackPanel><TextBlock Text="&#xE80F;" FontFamily="Segoe MDL2 Assets" FontSize="30" HorizontalAlignment="Center"/><TextBlock Text="Logo" FontSize="12" HorizontalAlignment="Center" Margin="0,7,0,0"/></StackPanel>
         </Button>
         <Button x:Name="BlackoutButton" Style="{StaticResource SceneButton}" Background="#08090C" Foreground="White" Click="BlackBackgroundClick" AutomationProperties.Name="Fondo negro">
-          <StackPanel><Border Width="31" Height="24" CornerRadius="4" Background="Black" BorderBrush="#5B6069" BorderThickness="1"/><TextBlock Text="Fondo negro" FontSize="11" TextWrapping="Wrap" TextAlignment="Center" Margin="0,7,0,0"/></StackPanel>
+          <StackPanel><Border Width="31" Height="24" CornerRadius="4" Background="Black" BorderBrush="#5B6069" BorderThickness="1"/><TextBlock Text="Fondo negro" FontSize="12" TextWrapping="Wrap" TextAlignment="Center" Margin="0,7,0,0"/></StackPanel>
         </Button>
         <Button x:Name="SceneImageButton" Style="{StaticResource SceneButton}" Background="#E6F3FC" Foreground="#075A87" Tag="Image" Click="SceneMediaClick" AutomationProperties.Name="Escena de imagen">
           <Button.ContextMenu><ContextMenu><MenuItem Header="Elegir imagen…" Tag="Image" Click="ChooseSceneMediaClick"/></ContextMenu></Button.ContextMenu>
-          <StackPanel><Grid Height="30" Width="50"><TextBlock Text="&#xEB9F;" FontFamily="Segoe MDL2 Assets" FontSize="29" HorizontalAlignment="Center"/><local:CueThumbnail x:Name="SceneImageThumb"/></Grid><TextBlock x:Name="SceneImageTitle" Text="Imagen" FontSize="11" TextTrimming="CharacterEllipsis" MaxWidth="100" HorizontalAlignment="Center" Margin="0,7,0,0"/></StackPanel>
+          <StackPanel><Grid Height="30" Width="50"><TextBlock Text="&#xEB9F;" FontFamily="Segoe MDL2 Assets" FontSize="29" HorizontalAlignment="Center"/><local:CueThumbnail x:Name="SceneImageThumb"/></Grid><TextBlock x:Name="SceneImageTitle" Text="Imagen" FontSize="12" TextTrimming="CharacterEllipsis" MaxWidth="100" HorizontalAlignment="Center" Margin="0,7,0,0"/></StackPanel>
         </Button>
         <Button x:Name="SceneVideoButton" Style="{StaticResource SceneButton}" Background="#FFF0D7" Foreground="#945000" Tag="Video" Click="SceneMediaClick" AutomationProperties.Name="Escena de video">
           <Button.ContextMenu><ContextMenu><MenuItem Header="Elegir video…" Tag="Video" Click="ChooseSceneMediaClick"/></ContextMenu></Button.ContextMenu>
-          <StackPanel><Grid Height="30" Width="50"><Path Data="M 0,0 L 22,15 L 0,30 Z" Fill="#F39800" Width="25" Height="30" Stretch="Uniform" HorizontalAlignment="Center"/><local:CueThumbnail x:Name="SceneVideoThumb"/></Grid><TextBlock x:Name="SceneVideoTitle" Text="Video" FontSize="11" TextTrimming="CharacterEllipsis" MaxWidth="100" HorizontalAlignment="Center" Margin="0,7,0,0"/></StackPanel>
+          <StackPanel><Grid Height="30" Width="50"><Path Data="M 0,0 L 22,15 L 0,30 Z" Fill="#F39800" Width="25" Height="30" Stretch="Uniform" HorizontalAlignment="Center"/><local:CueThumbnail x:Name="SceneVideoThumb"/></Grid><TextBlock x:Name="SceneVideoTitle" Text="Video" FontSize="12" TextTrimming="CharacterEllipsis" MaxWidth="100" HorizontalAlignment="Center" Margin="0,7,0,0"/></StackPanel>
         </Button>
       <Button x:Name="SceneYouTubeButton" Style="{StaticResource SceneButton}" Background="White" Foreground="#C90017" Click="SceneYouTubeClick" AutomationProperties.Name="Escena de YouTube">
         <Button.ContextMenu><ContextMenu Opened="SceneYouTubeMenuOpened"/></Button.ContextMenu>
-        <StackPanel><Border Width="37" Height="28" CornerRadius="7" Background="#EA001B" HorizontalAlignment="Center"><Path Data="M 1,1 L 19,11 L 1,21 Z" Fill="White" Width="14" Height="16" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><TextBlock Text="YouTube" FontSize="11" TextAlignment="Center" Margin="0,7,0,0"/></StackPanel>
+        <StackPanel><Border Width="37" Height="28" CornerRadius="7" Background="#EA001B" HorizontalAlignment="Center"><Path Data="M 1,1 L 19,11 L 1,21 Z" Fill="White" Width="14" Height="16" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><TextBlock Text="YouTube" FontSize="12" TextAlignment="Center" Margin="0,7,0,0"/></StackPanel>
       </Button>
       <Button x:Name="SceneBrowserButton" Style="{StaticResource SceneButton}" Background="#354E6D" Foreground="White" Click="SceneBrowserClick" AutomationProperties.Name="Escena de navegador HTML">
         <Button.ContextMenu><ContextMenu Opened="SceneBrowserMenuOpened"/></Button.ContextMenu>
@@ -382,19 +425,18 @@
 </ad:LayoutAnchorable>
 </ad:LayoutAnchorablePane>
 <ad:LayoutAnchorablePane DockWidth="*" DockHeight="*" DockMinWidth="280" DockMinHeight="260">
-<ad:LayoutAnchorable Title="Vista previa" ContentId="preview" CanClose="False" CanHide="True" CanAutoHide="False" CanDockAsTabbedDocument="False">
+<ad:LayoutAnchorable Title="Vista Previa" ContentId="preview" CanClose="False" CanHide="True" CanAutoHide="False" CanDockAsTabbedDocument="False">
 <Border x:Name="ProductionPanel" VerticalAlignment="Top" Background="{StaticResource PanelBrush}" CornerRadius="22" Padding="4"><Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="140"/><ColumnDefinition/></Grid.ColumnDefinitions><Border x:Name="PreviewPanel" VerticalAlignment="Top" Background="{StaticResource PanelBrush}" CornerRadius="0" Padding="10,10">
           <Grid>
             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <Grid>
-              <TextBlock Text="Vista previa" FontWeight="SemiBold" FontSize="14"/>
+              <TextBlock Text="Vista Previa" FontWeight="SemiBold" FontSize="14"/>
               <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" MinHeight="32">
                 <Button x:Name="FollowLiveButton" Content="Ver salida" Click="FollowLivePreviewClick" Visibility="Collapsed" FontSize="12" MinHeight="24" Padding="8,3" Margin="0,0,8,0" AutomationProperties.Name="Volver a ver la salida"/>
-                <TextBlock x:Name="PreviewModeText" Text="PREPARADO" Foreground="{StaticResource MutedBrush}" FontSize="12" VerticalAlignment="Center"/>
               </StackPanel>
             </Grid>
             <local:AspectRatioBox Grid.Row="1" Margin="0,10,0,12" VerticalAlignment="Top">
-              <Border x:Name="PreviewViewport" CornerRadius="22" SizeChanged="MonitorFrameSizeChanged" BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="0" Background="#000000" MouseEnter="PlaybackViewportMouseEnter" MouseLeave="PlaybackViewportMouseLeave" GotKeyboardFocus="PlaybackViewportGotKeyboardFocus" LostKeyboardFocus="PlaybackViewportLostKeyboardFocus">
+              <Border x:Name="PreviewViewport" CornerRadius="0" SizeChanged="MonitorFrameSizeChanged" BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="0" Background="#000000" MouseEnter="PlaybackViewportMouseEnter" MouseLeave="PlaybackViewportMouseLeave" GotKeyboardFocus="PlaybackViewportGotKeyboardFocus" LostKeyboardFocus="PlaybackViewportLostKeyboardFocus">
                 <Grid MinHeight="80">
                   <ContentControl x:Name="PreviewHost" MinHeight="80"/>
                   <local:CueThumbnail x:Name="PreparedMediaCover" Visibility="Collapsed" IsHitTestVisible="False"/>
@@ -421,12 +463,12 @@
             <Grid x:Name="LiveHeaderGrid" MinHeight="32">
               <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
               <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-              <Border Background="{StaticResource LiveSurfaceBrush}" CornerRadius="9" Padding="7,3" Margin="0,0,9,0"><TextBlock Text="En pantalla" Foreground="{StaticResource TextBrush}" FontSize="12" FontWeight="SemiBold"/></Border>
+              <Border Background="{StaticResource LiveSurfaceBrush}" CornerRadius="9" Padding="7,3" Margin="0,0,9,0"><TextBlock Text="Programa" Foreground="{StaticResource TextBrush}" FontSize="12" FontWeight="SemiBold"/></Border>
               <TextBlock Grid.Column="1" x:Name="LiveTitleText" Text="Sin contenido" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
               <TextBlock Grid.Column="2" x:Name="OutputModeText" Text="SIN SALIDA" Foreground="{StaticResource MutedBrush}" FontSize="12" VerticalAlignment="Center" Margin="8,0,0,0" ToolTip="{Binding Text, ElementName=OutputStatusText}"/>
             </Grid>
             <local:AspectRatioBox Grid.Row="1" Margin="0,10,0,12" VerticalAlignment="Top">
-              <Border x:Name="OutputViewport" CornerRadius="22" SizeChanged="MonitorFrameSizeChanged" BorderBrush="Transparent" BorderThickness="0" Background="#000000" MouseEnter="PlaybackViewportMouseEnter" MouseLeave="PlaybackViewportMouseLeave" GotKeyboardFocus="PlaybackViewportGotKeyboardFocus" LostKeyboardFocus="PlaybackViewportLostKeyboardFocus">
+              <Border x:Name="OutputViewport" CornerRadius="0" SizeChanged="MonitorFrameSizeChanged" BorderBrush="Transparent" BorderThickness="0" Background="#000000" MouseEnter="PlaybackViewportMouseEnter" MouseLeave="PlaybackViewportMouseLeave" GotKeyboardFocus="PlaybackViewportGotKeyboardFocus" LostKeyboardFocus="PlaybackViewportLostKeyboardFocus">
                 <Grid>
                   <projection:OutputMonitor x:Name="LiveMonitor" MinHeight="80" MouseLeftButtonDown="OutputMonitorMouseDown" ToolTip="Abrir reproductor · doble clic" AutomationProperties.Name="Monitor de la salida real"/>
                   <ContentControl x:Name="LiveOverlayHost" VerticalAlignment="Bottom" Margin="4">
@@ -746,7 +788,7 @@
               </Grid>
               <StackPanel Grid.Row="2" Margin="2,0,0,8">
                 <TextBlock x:Name="YouTubeCountText" Foreground="{StaticResource MutedBrush}" FontSize="12" TextTrimming="CharacterEllipsis"/>
-                <TextBlock Text="Audio independiente: Chrome o Windows." Foreground="{StaticResource MutedBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                <TextBlock Text="Audio independiente: Chrome o Windows." Foreground="{StaticResource MutedBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
               </StackPanel>
               <Grid Grid.Row="3">
                 <ListBox x:Name="YouTubeList" SelectionChanged="YouTubeSelectionChanged" MouseDoubleClick="YouTubeDoubleClick" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Ventanas de YouTube">

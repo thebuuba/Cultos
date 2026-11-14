@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Net;
 using System.Net.NetworkInformation;
@@ -8,7 +8,6 @@ using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
-using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
 using System.Windows.Shell;
 using System.Windows.Threading;
@@ -26,25 +25,25 @@ public sealed class RemoteDialog : Window
     public Func<RemoteSnapshot>? SnapshotRequested { get; set; }
     private RemoteHost? _host;
     private bool _changingConnection;
-    private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap, FontSize = 11, LineHeight = 17 };
-    private readonly TextBlock _stateLabel = new() { FontSize = 10, FontWeight = FontWeights.SemiBold };
-    private readonly TextBox _url = new() { IsReadOnly = true, TextWrapping = TextWrapping.Wrap, FontSize = 11, MinHeight = 64, MaxHeight = 90, AcceptsReturn = true };
+    private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap, FontSize = 12, LineHeight = 17 };
+    private readonly TextBlock _stateLabel = new() { FontSize = 12, FontWeight = FontWeights.SemiBold };
+    private readonly TextBox _url = new() { IsReadOnly = true, TextWrapping = TextWrapping.Wrap, FontSize = 12, MinHeight = 64, MaxHeight = 90, AcceptsReturn = true };
     private readonly Image _qr = new() { Width = 108, Height = 108, Stretch = Stretch.Uniform };
-    private readonly TextBlock _qrEmpty = new() { TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap, FontSize = 10, Width = 100, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+    private readonly TextBlock _qrEmpty = new() { TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap, FontSize = 12, Width = 100, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
     private readonly Border _qrFrame = new() { Width = 124, Height = 124, CornerRadius = new CornerRadius(14) };
     private readonly ComboBox _addresses = new();
     private readonly Button _start = new() { Content = "Activar mando", Margin = new Thickness(0, 0, 8, 0) };
     private readonly Button _stop = new() { Content = "Desactivar" };
-    private readonly Button _copy = new() { Content = "Copiar enlace", MinHeight = 30, FontSize = 10, Padding = new Thickness(11, 6, 11, 6), HorizontalAlignment = HorizontalAlignment.Left };
+    private readonly Button _copy = new() { Content = "Copiar enlace", MinHeight = 30, FontSize = 12, Padding = new Thickness(11, 6, 11, 6), HorizontalAlignment = HorizontalAlignment.Left };
     private readonly TextBlock _addressLabel = new() { FontSize = 12, FontWeight = FontWeights.Medium, TextWrapping = TextWrapping.Wrap };
-    private readonly TextBlock _protectedLabel = new() { FontSize = 10, TextWrapping = TextWrapping.Wrap };
-    private readonly TextBlock _connectedCount = new() { FontSize = 11, VerticalAlignment = VerticalAlignment.Center };
+    private readonly TextBlock _protectedLabel = new() { FontSize = 12, TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock _connectedCount = new() { FontSize = 12, VerticalAlignment = VerticalAlignment.Center };
     private readonly StackPanel _devices = new();
-    private readonly TextBlock _phonePlan = new() { FontSize = 9, TextTrimming = TextTrimming.CharacterEllipsis };
-    private readonly TextBlock _phoneLiveLabel = new() { FontSize = 8, FontWeight = FontWeights.Medium };
+    private readonly TextBlock _phonePlan = new() { FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis };
+    private readonly TextBlock _phoneLiveLabel = new() { FontSize = 12, FontWeight = FontWeights.Medium };
     private readonly TextBlock _phoneBody = new() { FontSize = 13, FontWeight = FontWeights.Medium, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center, MaxHeight = 100, TextTrimming = TextTrimming.CharacterEllipsis };
-    private readonly TextBlock _phoneReference = new() { FontSize = 8, TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) };
-    private readonly System.Windows.Controls.Primitives.UniformGrid _phoneDeck = new() { Columns = 3 };
+    private readonly TextBlock _phoneReference = new() { FontSize = 12, TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) };
+    private readonly System.Windows.Controls.Primitives.UniformGrid _phoneDeck = new() { Columns = 2 };
     private readonly Grid _pages = new();
     private readonly DispatcherTimer _refreshTimer = new() { Interval = TimeSpan.FromSeconds(2) };
     private UIElement? _connectionPage, _deckPage;
@@ -70,18 +69,17 @@ public sealed class RemoteDialog : Window
         MinHeight = 500; MinWidth = 640;
         MaxHeight = Math.Max(500, SystemParameters.WorkArea.Height - 16);
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        WindowStyle = WindowStyle.None; AllowsTransparency = true; Background = Brushes.Transparent;
+        WindowStyle = WindowStyle.SingleBorderWindow; Background = ColorBrush("#2A2B2F");
         ResizeMode = ResizeMode.CanResize;
         WindowChrome.SetWindowChrome(this, new WindowChrome
         {
-            CaptionHeight = 0, CornerRadius = new CornerRadius(28), ResizeBorderThickness = new Thickness(6),
+            CaptionHeight = 0, ResizeBorderThickness = new Thickness(6),
             GlassFrameThickness = new Thickness(0), UseAeroCaptionButtons = false
         });
         var shell = new Border
         {
-            Background = ColorBrush("#2A2B2F"), CornerRadius = new CornerRadius(28), Margin = new Thickness(12),
+            Background = ColorBrush("#2A2B2F"),
             Padding = new Thickness(28), BorderBrush = ColorBrush("#3A3B40"), BorderThickness = new Thickness(1),
-            Effect = new DropShadowEffect { Color = Colors.Black, BlurRadius = 20, ShadowDepth = 5, Opacity = .24 }
         };
         var root = new Grid(); root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); root.RowDefinitions.Add(new RowDefinition());
         var header = new Grid { Margin = new Thickness(0, 0, 0, 20), Background = Brushes.Transparent };
@@ -130,7 +128,7 @@ public sealed class RemoteDialog : Window
         AutomationProperties.SetName(_qr, "Código QR para vincular el teléfono");
         pairing.Children.Add(_qrFrame);
         var link = new StackPanel { Margin = new Thickness(16, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
-        var addressHeading = Muted("Dirección local", new Thickness(0, 0, 0, 5)); addressHeading.FontSize = 10; link.Children.Add(addressHeading); link.Children.Add(_addressLabel);
+        var addressHeading = Muted("Dirección local", new Thickness(0, 0, 0, 5)); addressHeading.FontSize = 12; link.Children.Add(addressHeading); link.Children.Add(_addressLabel);
         var protection = new Grid { Margin = new Thickness(0, 8, 0, 11) };
         protection.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); protection.ColumnDefinitions.Add(new ColumnDefinition());
         var lockIcon = Glyph("M7 11 L7 7 A5 5 0 0 1 17 7 L17 11 M5 11 L19 11 L19 21 L5 21 Z M12 15 L12 17", 12);
@@ -149,14 +147,14 @@ public sealed class RemoteDialog : Window
         var options = new StackPanel();
         DialogUi.Label(options, "Dirección de esta computadora", _addresses); options.Children.Add(_addresses);
         RefreshAddresses(); _addresses.SelectionChanged += (_, _) => RefreshConnection();
-        var refresh = new Button { Content = "Actualizar red", HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 8, 0, 0), FontSize = 11, MinHeight = 32 };
+        var refresh = new Button { Content = "Actualizar red", HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 8, 0, 0), FontSize = 12, MinHeight = 32 };
         refresh.Click += (_, _) => { RefreshAddresses(); RefreshConnection(); }; options.Children.Add(refresh);
         DialogUi.Label(options, "Enlace protegido de vinculación", _url); options.Children.Add(_url);
         options.Children.Add(Muted("El enlace incluye la clave de acceso. Al desactivar el mando deja de funcionar.", new Thickness(0, 8, 0, 0)));
-        connection.Children.Add(new Expander { Header = "Opciones de conexión", Foreground = (Brush)FindResource("TextBrush"), Content = options, Margin = new Thickness(0, 16, 0, 0), FontSize = 11 });
+        connection.Children.Add(new Expander { Header = "Opciones de conexión", Foreground = (Brush)FindResource("TextBrush"), Content = options, Margin = new Thickness(0, 16, 0, 0), FontSize = 12 });
         var edit = new Button { Content = "Editar botones", HorizontalAlignment = HorizontalAlignment.Left, Style = (Style)FindResource("QuietButton"), Margin = new Thickness(-10, 12, 0, 0), FontSize = 12 };
         edit.Click += (_, _) => ShowDeck(true); connection.Children.Add(edit);
-        var hint = Muted("Cerrar esta ventana mantiene el mando activo.", new Thickness(0, 7, 0, 2)); hint.FontSize = 10; connection.Children.Add(hint);
+        var hint = Muted("Cerrar esta ventana mantiene el mando activo.", new Thickness(0, 7, 0, 2)); hint.FontSize = 12; connection.Children.Add(hint);
         columns.Children.Add(Scroll(connection));
         var preview = BuildPhonePanel(); Grid.SetColumn(preview, 2); columns.Children.Add(preview);
         return columns;
@@ -188,9 +186,8 @@ public sealed class RemoteDialog : Window
         var layout = new Grid(); layout.RowDefinitions.Add(new RowDefinition()); layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         var phone = new Border
         {
-            Width = 264, Height = 540, Background = ColorBrush("#101113"), CornerRadius = new CornerRadius(48),
+            MaxWidth = 264, MinHeight = 540, Background = ColorBrush("#101113"), CornerRadius = new CornerRadius(48),
             Padding = new Thickness(8), BorderBrush = ColorBrush("#515258"), BorderThickness = new Thickness(2),
-            Effect = new DropShadowEffect { Color = Colors.Black, BlurRadius = 18, ShadowDepth = 6, Opacity = .28 },
             IsHitTestVisible = false
         };
         AutomationProperties.SetName(phone, "Vista previa del mando con el estado actual de la proyección");
@@ -213,11 +210,15 @@ public sealed class RemoteDialog : Window
         content.Children.Add(new Border { Background = Brushes.Black, CornerRadius = new CornerRadius(18), Height = 112, ClipToBounds = true, Child = live });
         var navigation = new Grid { Margin = new Thickness(0, 8, 0, 12) }; navigation.ColumnDefinitions.Add(new ColumnDefinition()); navigation.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(6) }); navigation.ColumnDefinitions.Add(new ColumnDefinition());
         navigation.Children.Add(PhonePill("Anterior", "M14 6 L8 12 L14 18")); var next = PhonePill("Siguiente", "M10 6 L16 12 L10 18", true); Grid.SetColumn(next, 2); navigation.Children.Add(next); content.Children.Add(navigation);
-        content.Children.Add(new TextBlock { Text = "Accesos rápidos", FontSize = 10, FontWeight = FontWeights.Medium, Margin = new Thickness(2, 0, 0, 6) });
+        content.Children.Add(new TextBlock { Text = "Accesos rápidos", FontSize = 12, FontWeight = FontWeights.Medium, Margin = new Thickness(2, 0, 0, 6) });
         content.Children.Add(_phoneDeck); screen.Child = content;
-        var viewbox = new Viewbox { Child = phone, Stretch = Stretch.Uniform, StretchDirection = StretchDirection.DownOnly, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-        layout.Children.Add(viewbox);
-        var caption = Muted("Vista previa del mando", new Thickness(0, 12, 0, 0)); caption.FontSize = 10; caption.TextAlignment = TextAlignment.Center;
+        layout.Children.Add(new ScrollViewer
+        {
+            Content = phone, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            HorizontalContentAlignment = HorizontalAlignment.Stretch
+        });
+        var caption = Muted("Vista previa del mando", new Thickness(0, 12, 0, 0)); caption.FontSize = 12; caption.TextAlignment = TextAlignment.Center;
         Grid.SetRow(caption, 1); layout.Children.Add(caption); panel.Child = layout; return panel;
     }
 
@@ -225,7 +226,7 @@ public sealed class RemoteDialog : Window
     {
         var ink = primary ? ColorBrush("#1F2023") : ColorBrush("#D7D8DE");
         var row = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
-        row.Children.Add(Glyph(geometry, 12, ink)); row.Children.Add(new TextBlock { Text = label, FontSize = 8, Foreground = ink, Margin = new Thickness(4, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center });
+        row.Children.Add(Glyph(geometry, 12, ink)); row.Children.Add(new TextBlock { Text = label, FontSize = 12, Foreground = ink, Margin = new Thickness(4, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center });
         return new Border { CornerRadius = new CornerRadius(18), Height = 36, Background = primary ? Brushes.White : ColorBrush("#34353A"), Child = row };
     }
 
@@ -261,7 +262,7 @@ public sealed class RemoteDialog : Window
         {
             var empty = new StackPanel { Margin = new Thickness(13, 11, 13, 11) };
             empty.Children.Add(new TextBlock { Text = "Aún no hay dispositivos", FontSize = 12, FontWeight = FontWeights.Medium });
-            var hint = Muted(_host is null ? "Activa el mando para conectar tu teléfono." : "Escanea el QR para empezar.", new Thickness(0, 4, 0, 0)); hint.FontSize = 10; empty.Children.Add(hint);
+            var hint = Muted(_host is null ? "Activa el mando para conectar tu teléfono." : "Escanea el QR para empezar.", new Thickness(0, 4, 0, 0)); hint.FontSize = 12; empty.Children.Add(hint);
             _devices.Children.Add(new Border { CornerRadius = new CornerRadius(20), Background = ColorBrush("#303136"), Child = empty }); return;
         }
         foreach (var client in clients.OrderByDescending(client => client.IsConnected).ThenByDescending(client => client.LastSeen))
@@ -272,8 +273,8 @@ public sealed class RemoteDialog : Window
             var isPhone = name.Contains("iPhone", StringComparison.OrdinalIgnoreCase) || name.Contains("Android", StringComparison.OrdinalIgnoreCase) || name.Contains("iPad", StringComparison.OrdinalIgnoreCase) || name.Contains("móvil", StringComparison.OrdinalIgnoreCase) || name.Contains("teléfono", StringComparison.OrdinalIgnoreCase);
             row.Children.Add(Glyph(isPhone ? "M7 2 L17 2 Q19 2 19 4 L19 20 Q19 22 17 22 L7 22 Q5 22 5 20 L5 4 Q5 2 7 2 Z M10 18 L14 18" : "M3 4 L21 4 L21 17 L3 17 Z M12 17 L12 21 M7 21 L17 21", 20));
             var labels = new StackPanel { Margin = new Thickness(9, 0, 10, 0), VerticalAlignment = VerticalAlignment.Center };
-            labels.Children.Add(new TextBlock { Text = name, FontSize = 11, FontWeight = FontWeights.Medium, TextTrimming = TextTrimming.CharacterEllipsis, ToolTip = name });
-            labels.Children.Add(new TextBlock { Text = client.IsConnected ? "Conectado" : LastSeen(client.LastSeen), FontSize = 9, Margin = new Thickness(0, 3, 0, 0), Foreground = client.IsConnected ? ColorBrush("#38D399") : (Brush)FindResource("MutedBrush") });
+            labels.Children.Add(new TextBlock { Text = name, FontSize = 12, FontWeight = FontWeights.Medium, TextTrimming = TextTrimming.CharacterEllipsis, ToolTip = name });
+            labels.Children.Add(new TextBlock { Text = client.IsConnected ? "Conectado" : LastSeen(client.LastSeen), FontSize = 12, Margin = new Thickness(0, 3, 0, 0), Foreground = client.IsConnected ? ColorBrush("#38D399") : (Brush)FindResource("MutedBrush") });
             Grid.SetColumn(labels, 1); row.Children.Add(labels);
             var dot = new System.Windows.Shapes.Ellipse { Width = 6, Height = 6, Fill = client.IsConnected ? ColorBrush("#24B27E") : ColorBrush("#777A84"), VerticalAlignment = VerticalAlignment.Center }; Grid.SetColumn(dot, 2); row.Children.Add(dot);
             _devices.Children.Add(new Border { Background = ColorBrush("#34353A"), CornerRadius = new CornerRadius(24), Margin = new Thickness(0, 0, 0, 8), Child = row });
@@ -317,11 +318,11 @@ public sealed class RemoteDialog : Window
             var ink = PreviewInk(color.Color);
             var labels = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4) };
             labels.Children.Add(Glyph(ActionIcon(button.Action), 21, ink));
-            labels.Children.Add(new TextBlock { Text = button.Label, FontSize = 9, FontWeight = FontWeights.Medium, Foreground = ink, TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap, MaxHeight = 34, Margin = new Thickness(0, 9, 0, 0) });
+            labels.Children.Add(new TextBlock { Text = button.Label, FontSize = 12, FontWeight = FontWeights.Medium, Foreground = ink, TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap, TextTrimming = TextTrimming.CharacterEllipsis, LineHeight = 18, MaxHeight = 36, Margin = new Thickness(0, 9, 0, 0) });
             _phoneDeck.Children.Add(new Border { Background = color, CornerRadius = new CornerRadius(24), Height = 92, Margin = new Thickness(2, 2, 2, 2), Child = labels, ToolTip = button.Label });
         }
         if (_buttons.Count == 0)
-            _phoneDeck.Children.Add(new TextBlock { Text = "Sin accesos", FontSize = 9, Foreground = (Brush)FindResource("MutedBrush"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(4) });
+            _phoneDeck.Children.Add(new TextBlock { Text = "Sin accesos", FontSize = 12, Foreground = (Brush)FindResource("MutedBrush"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(4) });
     }
 
     private static Brush PreviewInk(Color color)
@@ -400,7 +401,7 @@ public sealed class RemoteDialog : Window
         stripe.SetValue(DockPanel.DockProperty, Dock.Left); row.AppendChild(stripe);
         var labels = new FrameworkElementFactory(typeof(StackPanel)); labels.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
         var label = new FrameworkElementFactory(typeof(TextBlock)); label.SetBinding(TextBlock.TextProperty, new Binding("Label")); label.SetValue(TextBlock.FontWeightProperty, FontWeights.SemiBold); label.SetValue(TextBlock.TextWrappingProperty, TextWrapping.Wrap); labels.AppendChild(label);
-        var action = new FrameworkElementFactory(typeof(TextBlock)); action.SetBinding(TextBlock.TextProperty, new Binding("Action") { Converter = new ActionLabelConverter() }); action.SetValue(TextBlock.FontSizeProperty, 11.0); action.SetValue(TextBlock.ForegroundProperty, Application.Current.FindResource("MutedBrush")); action.SetValue(FrameworkElement.MarginProperty, new Thickness(0, 3, 0, 0)); action.SetValue(TextBlock.TextWrappingProperty, TextWrapping.Wrap); labels.AppendChild(action);
+        var action = new FrameworkElementFactory(typeof(TextBlock)); action.SetBinding(TextBlock.TextProperty, new Binding("Action") { Converter = new ActionLabelConverter() }); action.SetValue(TextBlock.FontSizeProperty, 12d); action.SetValue(TextBlock.StyleProperty, Application.Current.FindResource("ItemMetadataText")); action.SetValue(FrameworkElement.MarginProperty, new Thickness(0, 3, 0, 0)); action.SetValue(TextBlock.TextWrappingProperty, TextWrapping.Wrap); labels.AppendChild(action);
         row.AppendChild(labels); return new DataTemplate { VisualTree = row };
     }
     private sealed class ActionLabelConverter : IValueConverter

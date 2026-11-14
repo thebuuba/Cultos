@@ -42,7 +42,6 @@ public partial class MainWindow
         PreviewHost.Visibility = (!following && !mediaCover) || _holdingBiblePreview ? Visibility.Visible : Visibility.Collapsed;
         PreparedMediaCover.Visibility = mediaCover ? Visibility.Visible : Visibility.Collapsed;
         PreviewLiveMonitor.Visibility = following && !_holdingBiblePreview ? Visibility.Visible : Visibility.Collapsed;
-        PreviewModeText.Text = following ? "EN PANTALLA" : "PREPARADO";
         FollowLiveButton.Visibility = !following && _output is not null ? Visibility.Visible : Visibility.Collapsed;
         PreparedTitleText.Text = following ? (_output is not null ? _session.Live?.Title : null) ?? "Sin salida"
             : _session.Prepared?.Title ?? "Sin contenido";

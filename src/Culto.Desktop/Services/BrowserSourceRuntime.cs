@@ -10,7 +10,7 @@ public static class BrowserSourceRuntime
     private static bool _shutdown;
     public static void EnsureInitialized()
     {
-        if (_shutdown) throw new InvalidOperationException("El motor navegador ya est· cerrado.");
+        if (_shutdown) throw new InvalidOperationException("El motor navegador ya est√° cerrado.");
         if (_initialized) return;
         var settings = new CefSettings { BackgroundColor = 0, WindowlessRenderingEnabled = true };
         // Application owns shutdown after disposing every output and preview view.

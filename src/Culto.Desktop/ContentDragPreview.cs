@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Documents;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -28,7 +29,7 @@ internal sealed class ContentDragPreview : IDisposable
         Grid.SetColumn(labels, 1);
         labels.Children.Add(new TextBlock
         {
-            Text = moving ? "Mover" : "+ Añadir", Foreground = (Brush)source.FindResource("AccentTextBrush"), FontSize = 10, FontWeight = FontWeights.SemiBold
+            Text = moving ? "Mover" : "+ Añadir", Foreground = (Brush)source.FindResource("AccentTextBrush"), FontSize = 12, FontWeight = FontWeights.SemiBold
         });
         labels.Children.Add(new TextBlock
         {
@@ -44,10 +45,13 @@ internal sealed class ContentDragPreview : IDisposable
                 CueKind.Image => "Imagen", CueKind.Audio => "Audio", CueKind.WindowCapture => "YouTube · Captura",
                 _ => cue.HymnNumber is { } hymn ? $"Himno {hymn:000}" : "Texto"
             },
-            Foreground = (Brush)source.FindResource("MutedBrush"), FontSize = 10,
+            Foreground = (Brush)source.FindResource("MutedBrush"), FontSize = 12,
             TextTrimming = TextTrimming.CharacterEllipsis
         });
         contents.Children.Add(labels);
+        TextElement.SetFontFamily(contents, (FontFamily)source.FindResource("ConsoleFont"));
+        TextOptions.SetTextFormattingMode(contents, TextFormattingMode.Display);
+        contents.UseLayoutRounding = true;
         _popup = new Popup
         {
             PlacementTarget = source, Placement = PlacementMode.AbsolutePoint, AllowsTransparency = true,

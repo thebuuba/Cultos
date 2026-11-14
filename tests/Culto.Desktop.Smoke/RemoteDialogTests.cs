@@ -8,6 +8,42 @@ internal static partial class Program
 {
     private static void RunRemoteDialogTests(MainWindow window)
     {
+        Test("Remote launcher is circular and remote window supports native opening motion", () =>
+        {
+            var button = (Button)window.FindName("RemoteTopButton");
+            Check(button.Width == 44 && button.Height == 44, "Remote launcher is not a compact circle");
+            Check(window.FindName("RemoteConnectionText") is null, "Remote launcher still shows a text badge");
+            var dialog = new RemoteDialog(null, [], []) { Owner = window };
+            try
+            {
+                Check(!dialog.AllowsTransparency && dialog.WindowStyle == WindowStyle.SingleBorderWindow,
+                    "Remote window does not use the player's native window surface");
+            }
+            finally { dialog.Close(); }
+        });
+        Test("Remote activity pulse survives header refresh and stops on deactivation", () =>
+        {
+            var pulse = (System.Windows.Shapes.Ellipse)window.FindName("RemotePulse");
+            var scale = (System.Windows.Media.ScaleTransform)pulse.RenderTransform;
+            var host = new RemoteHost();
+            try
+            {
+                SetField(window, "_remote", host);
+                Call(window, "UpdateWorkspaceHeader");
+                Call(window, "UpdateWorkspaceHeader");
+                Check(scale.HasAnimatedProperties == SystemParameters.ClientAreaAnimation,
+                    "Active remote does not respect system animation preference");
+                SetField(window, "_remote", null);
+                Call(window, "UpdateWorkspaceHeader");
+                Check(!scale.HasAnimatedProperties && pulse.Opacity == 0, "Inactive remote retained its pulse");
+            }
+            finally
+            {
+                SetField(window, "_remote", null);
+                Call(window, "UpdateWorkspaceHeader");
+                Wait(host.DisposeAsync().AsTask());
+            }
+        });
         Test("Refreshing remote connection while starting or stopping cannot duplicate operations", () =>
         {
             var host = new RemoteHost();

@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Xml.Linq;
 using AvalonDock.Controls;
 using AvalonDock.Layout;
@@ -15,6 +16,8 @@ public partial class MainWindow
     {
         if (_placementMenus.TryGetValue(title, out _)) return;
         _placementMenus.Add(title, new object());
+        title.Template = (ControlTemplate)FindResource("PanelCaptionTemplate");
+        title.ApplyTemplate();
         InitializePanelDrag(title);
         var menu = new ContextMenu();
         title.ContextMenu = menu;
@@ -26,7 +29,7 @@ public partial class MainWindow
                 ("Colocar a la izquierda de", "left"), ("Colocar a la derecha de", "right"), ("Agrupar con", "tab") })
             {
                 var direction = new MenuItem { Header = label };
-                foreach (var id in WorkspaceDock.Layout.Descendents().OfType<LayoutAnchorable>().Where(p => !p.IsHidden && p.ContentId != source.ContentId).Select(p => p.ContentId))
+                foreach (var id in WorkspaceDock.Layout.Descendents().OfType<LayoutAnchorable>().Where(p => !p.IsHidden && p.ContentId != source.ContentId && p.ContentId is not ("preview" or "output")).Select(p => p.ContentId))
                 {
                     var target = new MenuItem { Header = WorkspaceLayouts.Title(id) };
                     target.Click += (_, _) => PlaceWorkspacePanel(source.ContentId, id, position);
@@ -35,17 +38,26 @@ public partial class MainWindow
                 menu.Items.Add(direction);
             }
             menu.Items.Add(new Separator());
-            var floating = new MenuItem { Header = source.IsFloating ? "Acoplar" : "Flotar" };
+            var floating = new MenuItem { Header = source.IsFloating ? "Acoplar" : "Desacoplar", IsEnabled = source.CanFloat };
             floating.Click += (_, _) =>
             {
                 if (source.IsFloating) source.Dock(); else source.Float();
                 WorkspaceDock.UpdateLayout(); SaveDockLayout();
             };
             menu.Items.Add(floating);
-            var hide = new MenuItem { Header = "Ocultar panel" };
+            var hide = new MenuItem { Header = "Cerrar panel", IsEnabled = source.CanHide };
             hide.Click += (_, _) => SetWorkspacePanelVisible(source.ContentId, false);
             menu.Items.Add(hide);
         };
+    }
+
+    private void PanelMenuClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { TemplatedParent: AnchorablePaneTitle { ContextMenu: { } menu } } button) return;
+        menu.PlacementTarget = button;
+        menu.Placement = PlacementMode.Bottom;
+        menu.IsOpen = true;
+        e.Handled = true;
     }
 
     private bool PlaceWorkspacePanel(string sourceId, string targetId, string position)

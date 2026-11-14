@@ -133,6 +133,7 @@ public partial class MainWindow
             {
                 await host.StartAsync(18765, GetRemoteState, HandleRemote, catalog: SearchRemoteCatalog);
                 _remote = host; RemoteButton.Header = "Mando móvil activo…";
+                UpdateWorkspaceHeader();
                 SetStatus("Mando local activado.");
                 return host;
             }
@@ -142,6 +143,7 @@ public partial class MainWindow
         {
             if (_remote is null) return;
             var host = _remote; _remote = null;
+            UpdateWorkspaceHeader();
             await host.DisposeAsync(); RemoteButton.Header = "Mando móvil…";
             SetStatus("Mando desactivado. La proyección continúa.");
         };

@@ -66,10 +66,11 @@ internal static partial class Program
             var strip = Descendants(pane).OfType<AvalonDock.Controls.AnchorablePaneTabPanel>().Single();
             Check(BoundsWithin(strip, dock).Bottom <= BoundsWithin(source, dock).Top && pane.Clip is null, "Source tabs are below the body or have curved top clipping");
             var preview = (FrameworkElement)window.FindName("PreviewPanel"); var output = (FrameworkElement)window.FindName("LivePanel");
-            var shared = Descendants(dock).OfType<AvalonDock.Controls.LayoutPanelControl>().Last(p => p.IsAncestorOf(preview) && p.IsAncestorOf(output));
-            Check(shared.Background is SolidColorBrush && shared.Effect is not null && shared.Clip is not null, "Monitors have no shared card");
-            foreach (var child in Descendants(shared).OfType<AvalonDock.Controls.LayoutAnchorablePaneControl>())
-                Check(child.Margin == new Thickness(0) && child.Effect is null && child.Clip is null, "Monitor kept a separate rounded card");
+            var shared = (Border)window.FindName("ProductionPanel");
+            Check(shared.IsAncestorOf(preview) && shared.IsAncestorOf(output) && shared.Background is SolidColorBrush,
+                "Monitors have no shared card");
+            foreach (var child in new[] { (Border)preview, (Border)output })
+                Check(child.CornerRadius == new CornerRadius(0), "Monitor kept a separate rounded card");
         });
         Test("Bible utility buttons stay circular and aligned within their panel", () =>
         {

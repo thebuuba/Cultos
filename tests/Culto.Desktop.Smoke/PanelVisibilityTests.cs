@@ -17,6 +17,29 @@ internal static partial class Program
         void Visible(string id, bool value) => Call(window, "SetWorkspacePanelVisible", id, value);
         try
         {
+            Test("Panel caption has one menu button with working float dock and close actions", () =>
+            {
+                var title = Descendants(dock).OfType<AvalonDock.Controls.AnchorablePaneTitle>().First(t => t.IsVisible && t.Model?.ContentId == "scenes");
+                var buttons = Descendants(title).OfType<Button>().ToArray();
+                Check(buttons.Length == 1 && System.Windows.Automation.AutomationProperties.GetName(buttons[0]) == "Opciones del panel",
+                    "Caption still has native close buttons instead of one panel menu");
+                buttons[0].RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                var menu = title.ContextMenu;
+                Check(menu.IsOpen, "Caption button did not open panel menu");
+                MenuItem Item(string name) => menu.Items.OfType<MenuItem>().Single(i => (string)i.Header == name);
+                var floating = Item("Desacoplar");
+                menu.IsOpen = false;
+                floating.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent)); window.UpdateLayout(); PumpFor(100);
+                Check(Panel("scenes").IsFloating, "Detach menu did not float the panel");
+                Panel("scenes").Dock(); dock.UpdateLayout(); PumpFor(100);
+                Check(!Panel("scenes").IsFloating, "Panel could not dock again");
+                menu.IsOpen = true;
+                var close = Item("Cerrar panel"); menu.IsOpen = false;
+                close.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+                Check(Panel("scenes").IsHidden, "Close menu did not hide panel");
+                Visible("scenes", true); window.UpdateLayout();
+                Check(!Panel("scenes").IsHidden, "Closed panel could not be recovered");
+            });
             Test("Source panels can hide and return while joined monitors stay fixed", () =>
             {
                 foreach (var id in original.Keys)

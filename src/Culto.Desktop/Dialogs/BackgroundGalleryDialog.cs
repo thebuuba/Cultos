@@ -100,7 +100,7 @@ public sealed class BackgroundGalleryDialog : Window
         border.AppendChild(content);
         var template = new ControlTemplate(typeof(Button)) { VisualTree = border };
         template.Triggers.Add(new Trigger { Property = IsMouseOverProperty, Value = true, Setters = { new Setter(BorderBrushProperty, FindResource("AccentBrush")) } });
-        template.Triggers.Add(new Trigger { Property = IsKeyboardFocusedProperty, Value = true, Setters = { new Setter(BorderBrushProperty, FindResource("AmberBrush")) } });
+        template.Triggers.Add(new Trigger { Property = IsKeyboardFocusedProperty, Value = true, Setters = { new Setter(BackgroundProperty, FindResource("FocusSurfaceBrush")), new Setter(ForegroundProperty, FindResource("OnActionBrush")) } });
         template.Triggers.Add(new Trigger { Property = Button.IsPressedProperty, Value = true, Setters = { new Setter(OpacityProperty, .75d) } });
         template.Triggers.Add(new Trigger { Property = IsEnabledProperty, Value = false, Setters = { new Setter(OpacityProperty, .45d) } });
         style.Setters.Add(new Setter(TemplateProperty, template));
@@ -122,15 +122,15 @@ public sealed class BackgroundGalleryDialog : Window
             var picture = new Border { Background = (Brush)FindResource("InputBrush"), CornerRadius = new CornerRadius(6) };
             picture.Child = thumbnail is not null
                 ? new Image { Source = thumbnail, Stretch = Stretch.Uniform }
-                : new TextBlock { Text = "No disponible", FontSize = 11, Foreground = (Brush)FindResource("MutedBrush"), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+                : new TextBlock { Text = "No disponible", FontSize = 12, Foreground = (Brush)FindResource("MutedBrush"), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
             content.Children.Add(picture);
             var caption = new DockPanel { Margin = new Thickness(0, 7, 0, 0), LastChildFill = true };
             if (selected)
             {
-                var indicator = new TextBlock { Text = "●", FontSize = 10, Foreground = (Brush)FindResource("AccentBrush"), Margin = new Thickness(0, 0, 6, 0), ToolTip = "Seleccionado" };
+                var indicator = new TextBlock { Text = "●", FontSize = 12, Foreground = (Brush)FindResource("AccentBrush"), Margin = new Thickness(0, 0, 6, 0), ToolTip = "Seleccionado" };
                 DockPanel.SetDock(indicator, Dock.Left); caption.Children.Add(indicator);
             }
-            caption.Children.Add(new TextBlock { Text = title, FontSize = 11, FontWeight = FontWeights.Medium, TextTrimming = TextTrimming.CharacterEllipsis });
+            caption.Children.Add(new TextBlock { Text = title, FontSize = 12, FontWeight = FontWeights.Medium, TextTrimming = TextTrimming.CharacterEllipsis });
             Grid.SetRow(caption, 1); content.Children.Add(caption);
             var button = new Button
             {

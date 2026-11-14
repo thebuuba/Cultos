@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Xml;
 using System.Xml.Linq;
 using System.Windows.Media;
@@ -17,7 +18,6 @@ public partial class MainWindow
     private readonly Dictionary<string, object> _dockContents = new();
     private string _defaultDockLayout = "";
     private readonly ConditionalWeakTable<LayoutAnchorablePaneControl, object> _roundedDockPanes = new();
-    private readonly ConditionalWeakTable<LayoutAnchorableTabItem, object> _roundedDockTabs = new();
     private readonly ConditionalWeakTable<LayoutPanelControl, object> _joinedMonitorCards = new();
     private bool _stylingWorkspace;
     private bool _adaptPrincipalWorkspace;
@@ -96,7 +96,7 @@ public partial class MainWindow
             {
                 _joinedMonitorCards.Add(group, new object());
                 group.Margin = new Thickness(4); group.Background = _dockPanelBrush;
-                group.Effect = CardShadow(); group.SizeChanged += DockPaneOutlineChanged;
+                group.SizeChanged += DockPaneOutlineChanged;
                 DockPaneOutlineChanged(group, new RoutedEventArgs());
             }
         }
@@ -115,7 +115,6 @@ public partial class MainWindow
                 pane.Margin = new Thickness(4);
                 pane.Background = _dockPanelBrush;
                 pane.BorderThickness = new Thickness(0);
-                pane.Effect = CardShadow();
                 pane.SizeChanged += DockPaneOutlineChanged;
                 DockPaneOutlineChanged(pane, new RoutedEventArgs());
             }
@@ -127,8 +126,7 @@ public partial class MainWindow
             }
             var joined = IsMonitorPair(pane.Model.Parent);
             pane.Margin = new Thickness(joined ? 0 : 4);
-            if (joined) pane.Effect = null;
-            else if (pane.Effect is null) pane.Effect = CardShadow();
+            pane.Effect = null;
             var shouldClip = !joined && pane.Model is LayoutAnchorablePane { Children.Count: 1 };
             if (shouldClip != (pane.Clip is not null)) DockPaneOutlineChanged(pane, new RoutedEventArgs());
             StyleWorkspaceTabs(pane);
@@ -146,8 +144,11 @@ public partial class MainWindow
         {
             if (title.Model?.ContentId == "preview") { title.Visibility = Visibility.Collapsed; return; }
             title.FontSize = 14;
+            title.FontFamily = (FontFamily)FindResource("ConsoleFont");
+            title.SnapsToDevicePixels = true;
+            TextOptions.SetTextFormattingMode(title, TextFormattingMode.Display);
             title.FontWeight = FontWeights.SemiBold;
-            title.Padding = new Thickness(14, 10, 14, 10);
+            title.Padding = new Thickness(14, 6, 14, 6);
             title.Background = DockCardBrush(title.Model?.ContentId);
             RenderOptions.SetClearTypeHint(title, ClearTypeHint.Enabled);
             title.Foreground = _dockTextBrush;
@@ -162,13 +163,17 @@ public partial class MainWindow
         }
         if (root is LayoutAnchorableTabItem tab)
         {
-            if (!_roundedDockTabs.TryGetValue(tab, out _))
-            {
-                _roundedDockTabs.Add(tab, new object());
-                tab.FontSize = 12;
-                tab.SizeChanged += DockPaneOutlineChanged;
-                DockPaneOutlineChanged(tab, new RoutedEventArgs());
-            }
+            // This is the label inside the native TabItem, not a card surface.
+            tab.FontSize = 13;
+            tab.FontFamily = (FontFamily)FindResource("ConsoleFont");
+            if (!BindingOperations.IsDataBound(tab, ForegroundProperty))
+                tab.SetBinding(ForegroundProperty, new Binding(nameof(Foreground))
+                { RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor, typeof(TabItem), 1) });
+            tab.Clip = null;
+            tab.UseLayoutRounding = true;
+            tab.SnapsToDevicePixels = true;
+            TextOptions.SetTextFormattingMode(tab, TextFormattingMode.Display);
+            RenderOptions.SetClearTypeHint(tab, ClearTypeHint.Enabled);
             return;
         }
         if (_dockContents.Values.Contains(root)) return;
@@ -190,25 +195,43 @@ public partial class MainWindow
         && group.Children.Count is 2 or 3 && group.Children.All(child => child is LayoutAnchorablePane)
         && group.Descendents().OfType<LayoutAnchorable>().Select(p => p.ContentId).Where(id => id != "scenes").Order().SequenceEqual(new[] { "output", "preview" });
 
-    private static System.Windows.Media.Effects.DropShadowEffect CardShadow() => new()
-    { Color = Colors.Black, BlurRadius = 12, ShadowDepth = 2, Opacity = .14, RenderingBias = System.Windows.Media.Effects.RenderingBias.Performance };
-
     private void StyleWorkspaceTabs(LayoutAnchorablePaneControl pane)
     {
         // Move the native tab strip, retaining AvalonDock's header presenters,
         // selection and drag handlers rather than replacing the pane template.
         if (VisualTreeHelper.GetChildrenCount(pane) == 0 || VisualTreeHelper.GetChild(pane, 0) is not Grid grid) return;
-        var tabs = grid.Children.OfType<AnchorablePaneTabPanel>().FirstOrDefault();
+        var tabScroller = grid.Children.OfType<ScrollViewer>().FirstOrDefault(s => s.Content is AnchorablePaneTabPanel);
+        var tabs = tabScroller?.Content as AnchorablePaneTabPanel ?? grid.Children.OfType<AnchorablePaneTabPanel>().FirstOrDefault();
         if (tabs is null || grid.RowDefinitions.Count != 2) return;
+        if (tabScroller is null)
+        {
+            grid.Children.Remove(tabs);
+            tabScroller = new ScrollViewer
+            {
+                Content = tabs, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Disabled, CanContentScroll = false,
+                Focusable = false, PanningMode = PanningMode.HorizontalOnly
+            };
+            Grid.SetRow(tabScroller, 1);
+            grid.Children.Add(tabScroller);
+        }
         foreach (var border in grid.Children.OfType<Border>()) border.CornerRadius = new CornerRadius(0);
-        if (Grid.GetRow(tabs) != 0)
+        if (Grid.GetRow(tabScroller) != 0)
         {
             grid.RowDefinitions[0].Height = GridLength.Auto; grid.RowDefinitions[1].Height = new GridLength(1, GridUnitType.Star);
-            foreach (UIElement child in grid.Children) Grid.SetRow(child, child == tabs ? 0 : 1);
+            foreach (UIElement child in grid.Children) Grid.SetRow(child, child == tabScroller ? 0 : 1);
         }
         foreach (var tab in tabs.Children.OfType<TabItem>())
         {
             tab.FontSize = 13; tab.MinHeight = 34; tab.Padding = new Thickness(10, 8, 10, 8);
+            tab.Template = (ControlTemplate)FindResource("WorkspaceSourceTabTemplate");
+            tab.ClearValue(ForegroundProperty);
+            tab.Background = Brushes.Transparent;
+            tab.Clip = null;
+            tab.UseLayoutRounding = true;
+            tab.SnapsToDevicePixels = true;
+            TextOptions.SetTextFormattingMode(tab, TextFormattingMode.Display);
+            RenderOptions.SetClearTypeHint(tab, ClearTypeHint.Enabled);
             if (!tab.Resources.Contains(SystemColors.HighlightBrushKey))
             {
                 tab.Resources[SystemColors.HighlightBrushKey] = FindResource("SelectedBrush");

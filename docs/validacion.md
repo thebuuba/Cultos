@@ -4,6 +4,16 @@ Comprobación actualizada el 14 de noviembre de 2026 en esta PC Windows. Entrega
 
 ## Compilación y pruebas
 
+### Revisión completa de tipografía de la interfaz
+
+`--text-audit` recorre las siete pestañas de fuentes a 1480×900 y 1200×680, los menús y submenús visibles, un panel desacoplado, la tarjeta de arrastre y quince ventanas y variantes de diálogo de la aplicación. Incluye tamaños compactos, el editor del mando, texto con acentos y cifras. El inventario y las capturas quedan en `.tools/text-audit/coverage.txt` y `.tools/text-audit/`. La comprobación exige la fuente de consola en las etiquetas, al menos 12 DIP y ausencia de transformaciones que reduzcan ese tamaño o sombras que rastericen contenedores con texto. Las fuentes de contenido proyectado elegidas por el usuario se verifican aparte con las pruebas de estilo y editor bíblico.
+
+Se eliminaron las sombras de los contenedores con texto; las pestañas usan desplazamiento horizontal para conservar sus nombres y la vista del teléfono desplaza su contenido en lugar de reducir sus letras. También se revisaron las etiquetas creadas por código, las descripciones de listas, los estados desactivados y el contraste de la selección pastel. `--typography`, `--visual-theme`, `--panel-visibility`, `--content-drag` y `--output-player` pasaron.
+
+Se normalizaron a UTF-8 tres archivos de la integración de navegador que usaban Windows-1252. La auditoría comprueba también la codificación del código de interfaz de escritorio y del mando, y utiliza muestras con tildes, ñ y cifras.
+
+El mando web se comprobó con Edge sin interfaz a 320, 360, 390, 768 y 1200 píxeles de ancho, fuentes locales y nombres largos. No se detectaron etiquetas por debajo de 12 px, desbordamiento horizontal ni recortes de botones, nombres o estados. Resultados y capturas: `.tools/text-audit/web/`. Los controles del sistema operativo conservan el renderizado de Windows.
+
 ### Biblia: doble clic y fondo compartido - 0.40.5
 
 La búsqueda reconoce prefijos únicos de al menos tres caracteres y errores de una letra en nombres de al menos cuatro caracteres (inserción, omisión, sustitución o inversión contigua). Los nombres y alias exactos conservan prioridad y los libros numerados no cambian de número. Las coincidencias ambiguas no se eligen automáticamente. TrySearchBook se comparte entre referencias, capítulos, búsqueda unificada y segmentación del editor; la importación conserva TryBook estricto. Las pruebas específicas de búsqueda, edición, capítulos y pasajes pasaron 71 casos, incluidos `hebreo 5 1`, prefijos, errores y ambigüedades. Registros bible-tolerant-red.log y bible-tolerant-green.log.
