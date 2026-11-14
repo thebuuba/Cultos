@@ -131,7 +131,8 @@ public partial class MainWindow
     private static Cue CopyCue(Cue c, bool newId = false) => new()
     {
         Id = newId ? Guid.NewGuid() : c.Id, Title = c.Title, Kind = c.Kind, Body = c.Body,
-        Reference = c.Reference, Version = c.Version, FilePath = c.FilePath, HymnNumber = c.HymnNumber, Notes = c.Notes, Capture = c.Capture is {} capture ? capture with {} : null
+        Reference = c.Reference, Version = c.Version, FilePath = c.FilePath, HymnNumber = c.HymnNumber, Notes = c.Notes, Capture = c.Capture is {} capture ? capture with {} : null,
+        Browser = c.Browser is { } browser ? browser with { } : null
     };
     private void AddToPlan(Cue cue)
     {
@@ -145,6 +146,13 @@ public partial class MainWindow
     private void EditLibraryClick(object sender, RoutedEventArgs e)
     {
         if (LibraryList.SelectedItem is not Cue cue) { SetStatus("Selecciona un elemento para editarlo."); return; }
+        if (cue.Kind == CueKind.BrowserSource)
+        {
+            var browser = new BrowserSourceDialog(cue) { Owner = this };
+            if (browser.ShowDialog() != true || browser.SelectedCue is not { } edited) return;
+            cue.Title = edited.Title; cue.Browser = edited.Browser;
+            RefreshLibrary(); SaveWorkspace(); PrepareCue(cue); return;
+        }
         if (cue.Kind == CueKind.WindowCapture)
         {
             var capture = new WindowCaptureDialog(cue, _workspace.YouTubeLayout) { Owner = this };

@@ -12,7 +12,7 @@ public partial class MainWindow
         _preview.BibleStyle = _workspace.BibleStyle.Normalize();
         PreparedMediaCover.Cue = cue;
         // Prepared video/audio are title covers, never a second VLC player.
-        _preview.ShowCue(cue?.Kind is CueKind.Video or CueKind.Audio || (cue?.Kind == CueKind.WindowCapture && _session.PreviewFollowsLive) ? null
+        _preview.ShowCue(cue?.Kind is CueKind.Video or CueKind.Audio || (cue?.Kind is CueKind.WindowCapture or CueKind.BrowserSource && _session.PreviewFollowsLive) ? null
             : cue?.Kind == CueKind.PowerPoint ? PowerPointPreview(cue) : cue);
         SyncPreviewSource();
     }
@@ -31,7 +31,7 @@ public partial class MainWindow
     {
         if (!_ready) return;
         var following = _session.PreviewFollowsLive && !(_preparedBibleStyleChanged && _session.Prepared?.Kind == CueKind.Bible);
-        if (following && _preview.DisplayedCue?.Kind == CueKind.WindowCapture) _preview.ShowCue(null);
+        if (following && _preview.DisplayedCue?.Kind is CueKind.WindowCapture or CueKind.BrowserSource) _preview.ShowCue(null);
         var mediaCover = !following && _session.Prepared?.Kind is CueKind.Video or CueKind.Audio;
         PreviewHost.Visibility = !following && !mediaCover ? Visibility.Visible : Visibility.Collapsed;
         PreparedMediaCover.Visibility = mediaCover ? Visibility.Visible : Visibility.Collapsed;

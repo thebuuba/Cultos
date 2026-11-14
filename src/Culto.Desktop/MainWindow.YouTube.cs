@@ -12,6 +12,24 @@ public partial class MainWindow
 {
     private readonly DispatcherTimer _youTubeTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     private bool _refreshingYouTube;
+    private HashSet<long>? _projectionYouTubePreviousWindows;
+    private DateTime _projectionYouTubeDeadline;
+
+    private void OpenProjectionYouTubeClick(object sender, RoutedEventArgs e)
+    {
+        if (!_ready) return;
+        try
+        {
+            _projectionYouTubePreviousWindows = WindowCaptureCatalog.List().Select(item => item.Options.WindowHandle).ToHashSet();
+            _projectionYouTubeDeadline = DateTime.UtcNow.AddSeconds(40);
+            YouTubeProjectionBrowser.Open(_store.DirectoryPath);
+            SelectContentSource(3);
+            _youTubeTimer.Start();
+            SetStatus("YouTube para proyección abierto. Elige el video en esa ventana y pulsa Proyectar.");
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidOperationException or System.ComponentModel.Win32Exception)
+        { _projectionYouTubePreviousWindows = null; SetStatus("No se pudo abrir YouTube: " + error.Message, true); }
+    }
 
     private void InitializeYouTube()
     {
@@ -62,6 +80,14 @@ public partial class MainWindow
         {
             var sources = YouTubeDiscovery.Build(_workspace.YouTubeSources, WindowCaptureCatalog.List(), _workspace.YouTubeLayout,
                 WindowCaptureCatalog.WindowStillExists);
+            YouTubeSource? openedProjection = null;
+            if (_projectionYouTubePreviousWindows is { } previous)
+            {
+                var opened = sources.FirstOrDefault(source => source.IsAvailable && source.Cue.Capture is { } capture
+                    && !previous.Contains(capture.WindowHandle));
+                if (opened is not null) { selectedKey = opened.Key; openedProjection = opened; _projectionYouTubePreviousWindows = null; }
+                else if (DateTime.UtcNow >= _projectionYouTubeDeadline) _projectionYouTubePreviousWindows = null;
+            }
             _refreshingYouTube = true;
             try
             {
@@ -73,6 +99,7 @@ public partial class MainWindow
             YouTubeCountText.Text = $"{available} ventanas de YouTube";
             YouTubeEmpty.Visibility = sources.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             UpdateYouTubeActions();
+            if (openedProjection is not null) PrepareCue(CopyCue(openedProjection.Cue));
         }
         catch (Exception error) { YouTubeCountText.Text = "No se pudieron actualizar las ventanas: " + error.Message; }
     }
@@ -120,6 +147,8 @@ public partial class MainWindow
         var choose = new MenuItem { Header = "Actualizar YouTube" };
         choose.Click += ChooseSceneYouTubeClick;
         menu.Items.Add(choose);
+        var open = new MenuItem { Header = "Abrir YouTube para proyección…" };
+        open.Click += OpenProjectionYouTubeClick; menu.Items.Add(open);
     }
 
     private void ProjectSceneYouTube(YouTubeSource source)

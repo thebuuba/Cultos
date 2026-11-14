@@ -49,10 +49,11 @@ internal sealed class ProjectionMixer : Grid, IDisposable
 
     public ProjectionSurface ActiveSurface => _visible is { } visible && ShowsMedia(visible) && _current.HasLoadedMedia ? _current
         : BackgroundSurface ?? (_retained is not null && (_blackout || _hidden) ? _retained : _current);
-    private ProjectionSurface? BackgroundSurface => _background ?? (KeepOutgoingMedia ? _outgoing : null);
+    private ProjectionSurface? BackgroundSurface => _background is { HasEnded: false } ? _background : (KeepOutgoingMedia ? _outgoing : null);
     public bool HasBackgroundMedia => BackgroundSurface is not null;
-    public Cue? RetainedMediaCue => (_backgroundCue ?? (KeepOutgoingMedia ? _outgoingCue : null)
-        ?? (_keepMediaAudio && _current.HasLoadedMedia ? _currentCue : null)) is { } cue ? Copy(cue) : null;
+    public Cue? RetainedMediaCue => (_background is { HasEnded: false } ? _backgroundCue
+        : KeepOutgoingMedia ? _outgoingCue : _keepMediaAudio && _current.HasLoadedMedia && !_current.HasEnded ? _currentCue : null)
+        is { } cue ? Copy(cue) : null;
     public bool KeepMediaAudio
     {
         get => _keepMediaAudio;
@@ -96,6 +97,8 @@ internal sealed class ProjectionMixer : Grid, IDisposable
     public TransitionOptions Transitions { get => _options with { }; set => _options = (value ?? new()).Normalize(); }
     public BibleVisualStyle BibleStyle { get => _style with { }; set => _style = (value ?? new()).Normalize(); }
 
+    public void ReloadBrowserSource(Guid id) { foreach (var surface in Surfaces()) surface.ReloadBrowserSource(id); }
+
     public void RefreshWindowCapture() { foreach(var surface in Surfaces())surface.RefreshWindowCapture(); }
 
     private IEnumerable<ProjectionSurface> Surfaces() => new[] { _current, _incoming, _outgoing, _retained, _background }
@@ -114,28 +117,29 @@ internal sealed class ProjectionMixer : Grid, IDisposable
     {
         // A live window has no operator pause transport. Revealing its retained
         // capture must resume frames/audio automatically; files keep paused restore.
-        if (cue?.Kind == CueKind.WindowCapture && !blackout && !hidden) pauseAfter = false;
+        if (cue?.Kind is CueKind.WindowCapture or CueKind.BrowserSource && !blackout && !hidden) pauseAfter = false;
         var options = _options.Normalize();
         if (cue?.Kind == CueKind.Bible && !pauseAfter && _style.Transition != "System")
             options = options with { Kind = _style.Transition, DurationMilliseconds = _style.TransitionMilliseconds };
         // Native Move currently takes still-image inputs. Live windows use the
         // compositor's dissolve and report that actual kind instead of freezing.
         if (options.Kind == "Move" && (_keepMediaAudio || _background is not null
-            || cue?.Kind == CueKind.WindowCapture || _currentCue?.Kind == CueKind.WindowCapture))
+            || cue?.Kind is CueKind.WindowCapture or CueKind.BrowserSource || _currentCue?.Kind is CueKind.WindowCapture or CueKind.BrowserSource))
             options = options with { Kind = "Dissolve" };
         return new(cue is null ? null : Copy(cue), blackout, hidden, pauseAfter, options, _style.Normalize(), BackgroundImagePath);
     }
     private static Cue Copy(Cue cue) => new() { Id = cue.Id, Kind = cue.Kind, Title = cue.Title, Body = cue.Body,
-        FilePath = cue.FilePath, Reference = cue.Reference, Version = cue.Version, HymnNumber = cue.HymnNumber, Notes = cue.Notes, Capture = cue.Capture is {} capture ? capture with {} : null };
+        FilePath = cue.FilePath, Reference = cue.Reference, Version = cue.Version, HymnNumber = cue.HymnNumber, Notes = cue.Notes, Capture = cue.Capture is {} capture ? capture with {} : null, Browser = cue.Browser is {} browser ? browser with {} : null };
     private static bool SameMedia(Cue? first, Cue? second) => first is not null && second is not null
-        && first.Id == second.Id && first.Kind == second.Kind && first.FilePath == second.FilePath && first.Capture == second.Capture;
-    private static bool IsMedia(Cue? cue) => cue?.Kind is CueKind.Video or CueKind.Audio or CueKind.WindowCapture;
+        && first.Id == second.Id && first.Kind == second.Kind && first.FilePath == second.FilePath && first.Capture == second.Capture && first.Browser == second.Browser;
+    private static bool IsMedia(Cue? cue) => cue?.Kind is CueKind.Video or CueKind.Audio or CueKind.WindowCapture or CueKind.BrowserSource;
     private static bool ShowsMedia(Request request) => !request.Blackout && !request.Hidden && IsMedia(request.Cue);
     private bool KeepOutgoingMedia => _keepMediaAudio && _blend is { } blend && !ShowsMedia(blend)
-        && _outgoing?.HasLoadedMedia == true && IsMedia(_outgoingCue);
+        && _outgoing is { HasLoadedMedia: true, HasEnded: false } && IsMedia(_outgoingCue);
     private static bool SameSource(Cue? first, Cue? second)
     {
         if (!IsMedia(first) || first!.Kind != second?.Kind) return false;
+        if (first.Kind == CueKind.BrowserSource) return first.Browser is not null && first.Browser == second!.Browser;
         if (first.Kind == CueKind.WindowCapture) return first.Capture is { } source && second!.Capture is { } candidate
             // Browser titles change during playback; the exact window identity
             // and every effective capture/audio option still have to match.
@@ -187,6 +191,9 @@ internal sealed class ProjectionMixer : Grid, IDisposable
 
     private async void Load(Request request, bool retryEngine = true)
     {
+        // EOF leaves a decoder loaded, but it is no longer live audio to preserve
+        // or resume when a later foreground cue applies its playback intent.
+        if (_background?.HasEnded == true) ReleaseBackground();
         _desiredPause = request.PauseAfter; _pauseImmediately = false;
         _blackout = request.Blackout; _hidden = request.Hidden;
         _appliedOptions = request.Options with { };
@@ -239,7 +246,7 @@ internal sealed class ProjectionMixer : Grid, IDisposable
             return;
         }
         if (request.Options.Kind == "Move" && !_keepMediaAudio && _background is null
-            && request.Cue?.Kind != CueKind.WindowCapture && _currentCue?.Kind != CueKind.WindowCapture)
+            && request.Cue?.Kind is not (CueKind.WindowCapture or CueKind.BrowserSource) && _currentCue?.Kind is not (CueKind.WindowCapture or CueKind.BrowserSource))
         {
             // The genuine OBS plugin currently accepts still-image inputs. Keep
             // that explicit native path instead of silently substituting an effect.
@@ -283,8 +290,8 @@ internal sealed class ProjectionMixer : Grid, IDisposable
         surface.Transitions = request.Options with { Kind = "Cut", AudioFadeOutMilliseconds = 0, AudioFadeInMilliseconds = 0 };
     }
     private bool IncomingReady(Request request, ProjectionSurface incoming) => request.Blackout || request.Hidden
-        || request.Cue?.Kind is not (CueKind.Video or CueKind.Audio or CueKind.WindowCapture)
-        || (request.Cue.Kind is CueKind.Video or CueKind.WindowCapture ? incoming.HasVideoFrame : incoming.IsPlaying
+        || request.Cue?.Kind is not (CueKind.Video or CueKind.Audio or CueKind.WindowCapture or CueKind.BrowserSource)
+        || (request.Cue.Kind is CueKind.Video or CueKind.WindowCapture or CueKind.BrowserSource ? incoming.HasVideoFrame : incoming.IsPlaying
             || request.PauseAfter && incoming.HasLoadedMedia);
 
     private void Tick()
@@ -379,7 +386,7 @@ internal sealed class ProjectionMixer : Grid, IDisposable
                 _background = outgoing; _backgroundCue = _outgoingCue;
             }
             else if ((request is { Blackout: true } or { Hidden: true }) && SameMedia(_outgoingCue, request.Cue)
-                && outgoing.HasLoadedMedia)
+                && outgoing.HasLoadedMedia && !outgoing.HasEnded)
             {
                 ReleaseRetained();
                 outgoing.Volume = 0; outgoing.SetPaused(true);
@@ -472,7 +479,7 @@ internal sealed class ProjectionMixer : Grid, IDisposable
         {
             Children.Remove(_current); Retire(_current);
             _current = _retained!; _retained = null; _retainedCue = null;
-            resumeCapture = cue?.Kind == CueKind.WindowCapture;
+            resumeCapture = cue?.Kind is CueKind.WindowCapture or CueKind.BrowserSource;
             _desiredPause = !resumeCapture; Children.Add(_current);
         }
         else if (!blackout && !hidden) ReleaseRetained();

@@ -8,17 +8,19 @@ const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 function element(tag = 'div') {
   const classes = new Set(), attributes = {}, listeners = {};
   return {
-    tagName: tag.toUpperCase(), children: [], value: 0, disabled: false, hidden: false, dataset: {}, style: {},
+    tagName: tag.toUpperCase(), children: [], value: 0, disabled: false, hidden: false, dataset: {}, style: { setProperty(name, value) { this[name] = value; } },
+    get firstChild() { return this.children[0]; },
     get textContent() { return this._text || this.children.map(child => child.textContent).join(''); },
     set textContent(value) { this._text = String(value); this.children = []; },
     classList: { toggle(name, enabled) { enabled ? classes.add(name) : classes.delete(name); }, contains(name) { return classes.has(name); } },
     setAttribute(name, value) { attributes[name] = String(value); }, getAttribute(name) { return attributes[name] ?? null; },
     removeAttribute(name) { delete attributes[name]; },
     addEventListener(name, handler) { listeners[name] = handler; },
-    async dispatch(name) { if (!this.disabled) return listeners[name]?.({ target: this }); },
+    async dispatch(name) { if (!this.disabled) return listeners[name]?.({ target: this, preventDefault() {} }); },
     replaceChildren(...children) { this.children = children; this._text = ''; },
-    appendChild(child) { this.children.push(child); return child; },
-    append(...children) { this.children.push(...children); }
+    appendChild(child) { child.parentNode = this; this.children.push(child); return child; },
+    append(...children) { children.forEach(child => this.appendChild(child)); },
+    replaceWith(other) { const at = this.parentNode.children.indexOf(this); this.parentNode.children[at] = other; other.parentNode = this.parentNode; }
   };
 }
 const elements = new Map([...html.matchAll(/id="([^"]+)"/g)].map(match => [match[1], element()]));
@@ -47,7 +49,7 @@ const context = vm.createContext({
   document: {
     hidden: false, activeElement: null, getElementById: id => elements.get(id),
     querySelectorAll: selector => selector.includes('#volume') ? [...actionButtons(), elements.get('volume'), elements.get('position')] : actionButtons(),
-    createElement: element, addEventListener() {}
+    createElement: element, createElementNS: (_, tag) => element(tag), addEventListener() {}
   },
   location: { hash: '#token=' + token, pathname: '/', search: '' },
   history: { replaceState() { context.location.hash = ''; } },
@@ -123,7 +125,7 @@ const commands = () => calls.filter(call => call.url === '/api/command');
   state.isBlackout = false; state.isBackground = true; await run('refresh()');
   assert.equal(elements.get('background').getAttribute('aria-pressed'), 'true');
   assert.equal(cue('cue-b').getAttribute('aria-current'), 'true');
-  assert.match(cue('cue-b').textContent, /Fondo/);
+  assert.match(cue('cue-b').textContent, /Logo/);
   state.isBackground = false; state.hasOutput = false; await run('refresh()');
   assert.match(elements.get('blackout-state').textContent, /Sin salida/);
   assert.notEqual(cue('cue-b').getAttribute('aria-current'), 'true');
@@ -190,6 +192,33 @@ const commands = () => calls.filter(call => call.url === '/api/command');
   commandHandler = async () => ({ success: false });
   await elements.get('deck').children[0].dispatch('click');
   assert.equal(JSON.parse(commands().at(-1).options.body).buttonId, 'deck-1');
+
+  state.scenes = [
+    { id: 'blackout', label: 'Fondo negro', kind: 'blackout', available: true, active: false },
+    { id: 'youtube', label: 'YouTube', kind: 'youtube', available: true, active: false, detail: '<img onerror=alert(1)>' },
+    { id: 'image', label: 'Imagen', kind: 'image', available: false, active: false }
+  ];
+  await run('refresh()');
+  const scene = id => elements.get('scenes').children.find(button => button.dataset.sceneId === id);
+  assert.equal(elements.get('scenes-section').hidden, false);
+  assert.equal(elements.get('scenes').children.length, 3);
+  assert.equal(scene('image').disabled, true);
+  assert.equal(scene('youtube').disabled, false);
+  commandHandler = async command => {
+    assert.equal(command.action, 'scene'); assert.equal(command.buttonId, 'youtube');
+    state.scenes[1].active = true; return { success: true, message: 'YouTube en pantalla' };
+  };
+  await scene('youtube').dispatch('click');
+  assert.equal(scene('youtube').getAttribute('aria-pressed'), 'true');
+  assert.match(scene('youtube').textContent, /En pantalla/);
+  const sameButton = scene('youtube');
+  state.scenes[1].available = false; state.scenes[1].active = false; await run('refresh()');
+  assert.equal(scene('youtube'), sameButton, 'Polling availability must preserve keyboard focus');
+  assert.equal(scene('youtube').disabled, true);
+  const beforeUnavailable = commands().length; await scene('youtube').dispatch('click');
+  assert.equal(commands().length, beforeUnavailable);
+  state.scenes = null; await run('refresh()');
+  assert.equal(elements.get('scenes-section').hidden, true);
 
   context.fetch = async () => ({ status: 401, ok: false });
   await run('refresh()');

@@ -17,11 +17,13 @@ public partial class MainWindow
     private void InitializeMediaBrowser()
     {
         MediaList.ItemsSource = _mediaView;
-        MediaList.PreviewMouseRightButtonUp += (_, e) =>
+        foreach (var list in new[] { MediaList, LibraryList })
+        list.PreviewMouseRightButtonUp += (_, e) =>
         {
-            if (ContentRowAt(MediaList,e.OriginalSource)?.DataContext is not Cue cue) return;
+            var row = ContentRowAt(list, e.OriginalSource);
+            if (row?.DataContext is not Cue cue) return;
             var menu = BuildMediaPlaylistMenu(cue);
-            menu.PlacementTarget = ContentRowAt(MediaList,e.OriginalSource);
+            menu.PlacementTarget = row;
             menu.IsOpen = true; e.Handled = true;
         };
         if (!string.IsNullOrWhiteSpace(_workspace.MediaCustomFolderPath))

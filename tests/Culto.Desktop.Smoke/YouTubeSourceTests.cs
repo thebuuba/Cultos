@@ -7,6 +7,26 @@ internal static partial class Program
     // No Window, native enumeration, capture worker or browser is created.
     private static int RunYouTubeSourceTests()
     {
+        Test("YouTube keeps native Chrome audio independent of preview, projection and tab gating", () =>
+        {
+            var original = new Cue { Kind = CueKind.WindowCapture, Capture = new WindowCaptureOptions
+            {
+                WindowHandle = 10, ProcessId = 20, ProcessStartTimeUtcTicks = 30, Executable = "chrome.exe",
+                WindowClass = "Chrome_WidgetWin_1", WindowTitle = "Himno - YouTube", ControlAudio = true
+            } };
+            var target = new WindowCaptureTarget(original.Capture, false, 1280, 720);
+            var detected = YouTubeDiscovery.Build([], [target]).Single().Cue;
+            Check(detected.Capture is { YouTubeOnly: true, ControlAudio: false }, "Discovery still lets the scene mute Chrome");
+            var oldOrder = YouTubeDiscovery.ApplyLayout(original, null);
+            Check(oldOrder.Capture is { ControlAudio: false, YouTubeOnly: true }, "Old order entries still mute Chrome");
+            Check(original.Capture.ControlAudio, "Audio normalization mutated the original saved entry");
+            var otherChromeTab = YouTubeDiscovery.Clone(original);
+            otherChromeTab.Capture = otherChromeTab.Capture! with { WindowTitle = "Other Chrome tab", YouTubeOnly = false };
+            Check(YouTubeDiscovery.ApplyLayout(otherChromeTab, null).Capture is { ControlAudio: false, YouTubeOnly: false },
+                "Another Chrome tab can still silence a browser playing YouTube");
+            var otherApp = YouTubeDiscovery.Clone(original); otherApp.Capture = otherApp.Capture! with { Executable = "other.exe", WindowTitle = "Another application" };
+            Check(YouTubeDiscovery.ApplyLayout(otherApp, null).Capture!.ControlAudio, "Independent YouTube audio changed another application's controls");
+        });
         WindowCaptureTarget Target(long handle, string title = "Video - YouTube - Google Chrome", string executable = "chrome.exe", long started = 100) =>
             new(new WindowCaptureOptions { WindowHandle = handle, ProcessId = 42, ProcessStartTimeUtcTicks = started,
                 WindowTitle = title, Executable = executable, WindowClass = "Chrome_WidgetWin_1" }, false, 1280, 720);

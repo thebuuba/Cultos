@@ -8,7 +8,19 @@ La pestaña **Lista de videos** permite agregar videos, eliminar y cambiar el or
 
 ## Abrir el programa
 
-Ejecuta **Abrir Culto Studio.cmd** en esta carpeta, o abre `artifacts/CultoStudio-0.36.1/CultoStudio.exe`. Cierra la versión anterior primero. La distribución publicada incluye .NET y el reproductor nativo; conserva todos los archivos de esa carpeta junto al ejecutable. Windows x64.
+Ejecuta **Abrir Culto Studio.cmd** en esta carpeta, o abre `artifacts/CultoStudio-0.38.0/CultoStudio.exe`. Cierra la versión anterior primero. La distribución publicada incluye .NET y el reproductor nativo; conserva todos los archivos de esa carpeta junto al ejecutable. Windows x64.
+
+En **0.38.0**, un himno terminado no vuelve a sonar al pasar de negro a Logo y después a una lectura bíblica. La casilla **Audio de fondo** continúa solo el archivo que todavía esté reproduciéndose al cambiar a Biblia, texto, logo o negro; nunca reinicia uno terminado. Para volver a reproducirlo, envíalo de nuevo explícitamente.
+
+El audio de **YouTube/Chrome es independiente**: seleccionar una captura, cambiar de escena o cambiar de pestaña no hace que Culto Studio lo silencie. Se controla en Chrome o en el mezclador de Windows; los controles de volumen y silencio del programa no lo afectan. La imagen continúa protegida: si cambias a otra pestaña, esa pestaña no se proyecta. Cierra la versión anterior antes de abrir esta para devolver los niveles que pudiera haber retenido. YouTube todavía se reproduce en Chrome; el reproductor integrado se investigó, pero aún no se incluye.
+
+En **0.37.2**, también puedes añadir videos del Himnario a la lista: clic derecho sobre el himno → **Añadir a lista de reproducción**. Se agrega al final de la lista activa, conserva el número de himno y se guarda sin cambiar la reproducción actual. Si no existe una lista, se crea automáticamente.
+
+En **0.37.1**, **YouTube → Abrir YouTube para proyección** abre una ventana de Chrome configurada para continuar renderizando cuando otras aplicaciones la cubren. Elige el video en esa ventana y pulsa Proyectar en Culto Studio; se detecta y prepara la ventana nueva sin cambiar automáticamente la salida actual. Debe seguir abierta y sin minimizar. Usa una sesión propia, por lo que puede requerir iniciar sesión otra vez; el Chrome personal conserva sus ajustes. La opción también está en el clic derecho de la escena YouTube.
+
+En **0.37.0**, Escenas usa teclas de colores con iconos al estilo Deckboard. El teléfono muestra las mismas escenas: Logo, Fondo negro, Imagen, Video y YouTube, con un indicador de la escena en pantalla. YouTube usa la ventana seleccionada en la PC, sin tener que añadirla al orden; requiere YouTube abierto en Chrome. Las escenas sin contenido aparecen desactivadas. Al actualizar, activa el mando en la versión nueva y vuelve a vincular o recarga el teléfono desde su QR.
+
+En **0.36.2**, volver desde otra aplicación renueva la captura de Chrome. La ventana capturada se coloca detrás de la consola para evitar que otra aplicación intermedia suspenda el video; conserva su tamaño y el foco de Culto Studio. La comprobación usa un video generado en un perfil aislado de Chrome; falta confirmar el caso con el YouTube del usuario.
 
 En **0.34.1**, Vista previa y En pantalla forman un solo panel fijo, sin cierres ni arrastre independientes, con Proyectar y la transici?n en el centro. Escenas, Vista previa y En pantalla comparten una tarjeta. Las escenas incluyen Logo, Fondo negro, Imagen, Video y YouTube; imagen y video recuerdan la elección y el menú derecho permite cambiarla. La transición se elige en la misma tarjeta. Los controles semitransparentes aparecen sobre el monitor local al pasar el ratón y también en Vista previa cuando sigue la salida. Usan el mismo reproductor y no aparecen en HDMI. Se conservan las distribuciones acoplables, el orden del culto y el arranque anticipado del motor.
 

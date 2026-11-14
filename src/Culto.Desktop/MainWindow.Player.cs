@@ -82,8 +82,8 @@ public partial class MainWindow
         if (MuteButton is null || VolumeSlider is null) return;
         var muted = VolumeSlider.Value <= 0;
         MuteButton.Content = muted ? "\uE74F" : "\uE767";
-        var label = muted ? "Restaurar volumen" : "Silenciar salida";
-        MuteButton.ToolTip = label;
+        var label = muted ? "Restaurar volumen" : "Silenciar el programa";
+        MuteButton.ToolTip = label + ". YouTube se controla en Chrome o Windows.";
         AutomationProperties.SetName(MuteButton, label);
     }
 

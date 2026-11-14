@@ -9,6 +9,20 @@ public partial class MainWindow
 {
     private bool _refreshingScenes;
 
+    private void UpdateSceneActiveStates()
+    {
+        var live = _output is not null && !_session.IsBlackout && !_session.IsTextHidden ? _session.Live : null;
+        foreach (var (button, active) in new[]
+        {
+            (ChurchBackgroundButton, _output is not null && _session.IsTextHidden && !_session.IsBlackout),
+            (BlackoutButton, _output is not null && _session.IsBlackout),
+            (SceneImageButton, live?.Kind == CueKind.Image),
+            (SceneVideoButton, live?.Kind == CueKind.Video),
+            (SceneYouTubeButton, live?.Kind == CueKind.WindowCapture && live.Capture is { } capture && Services.YouTubeDiscovery.IsYouTube(capture)),
+            (SceneBrowserButton, live?.Kind == CueKind.BrowserSource)
+        }) System.Windows.Automation.AutomationProperties.SetItemStatus(button, active ? "En pantalla" : "");
+    }
+
     private void InitializeScenes() => RefreshSceneChoices();
 
     private Cue? SceneMedia(CueKind kind) => _session.Prepared is { } prepared && prepared.Kind == kind
@@ -77,11 +91,13 @@ public partial class MainWindow
         }
         finally { _refreshingScenes = false; }
         RefreshSceneYouTube();
+        RefreshBrowserScene();
     }
 
     private static void RefreshSceneMedia(Cue? cue, CueThumbnail thumbnail, TextBlock title, string empty)
     {
         thumbnail.Cue = cue;
+        thumbnail.Visibility = cue is null ? Visibility.Collapsed : Visibility.Visible;
         title.Text = cue?.Title ?? empty;
         title.TextTrimming = TextTrimming.CharacterEllipsis;
         title.ToolTip = cue is null ? empty : cue.Title + "\n" + cue.FilePath;

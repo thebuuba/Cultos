@@ -32,6 +32,16 @@ public partial class MainWindow
     }
     private bool CheckMedia(Cue cue)
     {
+        if (cue.Kind == CueKind.BrowserSource)
+        {
+            try
+            {
+                (cue.Browser ?? throw new ArgumentException("Configura el archivo HTML o la URL.")).Validate();
+                return true;
+            }
+            catch (Exception error) when (error is ArgumentException or IOException or UnauthorizedAccessException)
+            { SetStatus("Navegador: " + error.Message + " La salida actual se conserva.", true); return false; }
+        }
         if (cue.Kind == CueKind.WindowCapture)
         {
             try

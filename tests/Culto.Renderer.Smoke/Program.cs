@@ -32,6 +32,7 @@ internal static partial class Program
                 else if (args.Contains("--capture-local")) await RunLocalCaptureChecks();
                 else if (args.Contains("--capture-to-file")) await RunLocalCaptureChecks(switchToFile: true);
                 else if (args.Contains("--persistent-media")) await RunPersistentMediaChecks();
+                else if (args.Contains("--ended-media")) await RunEndedMediaChecks();
                 else if (args.Contains("--window-capture")) await RunWindowCaptureChecks();
                 else if (args.Contains("--capture-integration")) await RunWindowCaptureIntegrationChecks();
                 else await Run(args.Contains("--audio-fades"), args.Contains("--backdrops"), args.Contains("--bible-styles"), args.Contains("--global-transitions"), args.Contains("--dissolves"), args.Contains("--smooth-transitions")); File.WriteAllLines(ResultPath, Results); app.Shutdown(0); }

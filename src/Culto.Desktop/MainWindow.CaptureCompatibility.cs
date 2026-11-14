@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Windows.Interop;
 using System.Windows.Threading;
 using Culto.Core;
+using Culto.Desktop.Services;
 
 namespace Culto.Desktop;
 
@@ -12,6 +13,23 @@ public partial class MainWindow
     private nint _captureCompatibilityWindow;
     private bool _captureHadPaintStyle, _captureCompatibilityWarning;
     private readonly DispatcherTimer _browserCaptureResizeTimer=new(){Interval=TimeSpan.FromMilliseconds(250)};
+
+    private void BrowserCaptureActivated()
+    {
+        BrowserCaptureLayoutChanged();
+        if (_closing || _captureCompatibilityWindow == 0 || !IsActive || Topmost) return;
+        // An opaque application left between the console and Chrome still makes
+        // Chromium suspend rendering. Keep the selected browser behind us without
+        // activating, resizing, restoring or making it a topmost window.
+        foreach (var cue in new[] { _preview?.DisplayedCue, _output?.DisplayedCue, _output?.RetainedMediaCue })
+        {
+            if (!IsChromiumCapture(cue) || cue?.Capture is not { } source
+                || !WindowCaptureCatalog.WindowStillExists(source)) continue;
+            var browser = (nint)source.WindowHandle;
+            if (BrowserIsIconic(browser) || (BrowserGetWindowStyle(browser, -20) & 8) != 0) continue;
+            BrowserSetWindowPos(browser, _captureCompatibilityWindow, 0, 0, 0, 0, 0x0213);
+        }
+    }
 
     private void BrowserCaptureLayoutChanged()
     {
@@ -79,4 +97,9 @@ public partial class MainWindow
     private static extern int BrowserSetWindowStyle(nint window, int index, int value);
     [DllImport("user32.dll", EntryPoint = "NotifyWinEvent")]
     private static extern void BrowserNotifyWinEvent(uint eventId, nint window, int objectId, int childId);
+    [DllImport("user32.dll", EntryPoint = "IsIconic")]
+    [return: MarshalAs(UnmanagedType.Bool)] private static extern bool BrowserIsIconic(nint window);
+    [DllImport("user32.dll", EntryPoint = "SetWindowPos")]
+    [return: MarshalAs(UnmanagedType.Bool)] private static extern bool BrowserSetWindowPos(nint window, nint after,
+        int x, int y, int width, int height, uint flags);
 }

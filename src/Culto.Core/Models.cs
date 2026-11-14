@@ -1,6 +1,6 @@
 namespace Culto.Core;
 
-public enum CueKind { Text, Bible, Image, Video, Audio, PowerPoint, WindowCapture }
+public enum CueKind { Text, Bible, Image, Video, Audio, PowerPoint, WindowCapture, BrowserSource }
 
 public sealed class Cue
 {
@@ -14,6 +14,7 @@ public sealed class Cue
     public int? HymnNumber { get; set; }
     public string Notes { get; set; } = "";
     public WindowCaptureOptions? Capture { get; set; }
+    public BrowserSourceOptions? Browser { get; set; }
 }
 
 public sealed class ServicePlan

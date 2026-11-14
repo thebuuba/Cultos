@@ -50,7 +50,7 @@ public sealed class OutputPlayerWindow : Window
         _restart = CreateIconButton("PlayerRestart", "\uE72C", "Reiniciar", () => RestartRequested?.Invoke());
         _back = CreateIconButton("PlayerBack", "\uE892", "Retroceder 10 segundos", () => SkipRequested?.Invoke(-10));
         _forward = CreateIconButton("PlayerForward", "\uE893", "Avanzar 10 segundos", () => SkipRequested?.Invoke(10));
-        _mute = CreateIconButton("PlayerMute", "\uE767", "Silenciar salida", () => MuteRequested?.Invoke());
+        _mute = CreateIconButton("PlayerMute", "\uE767", "Silenciar el programa", () => MuteRequested?.Invoke());
         _fullscreen = CreateIconButton("PlayerFullscreen", "\uE740", "Pantalla completa · F11", ToggleFullscreen);
         Register("PlayerLoop", _loop); Register("PlayerPin", _pin);
         var root = new Grid();
@@ -107,7 +107,7 @@ public sealed class OutputPlayerWindow : Window
                 + " / " + FormatTime(state.Duration);
             _volume.Value = state.Volume; _loop.IsChecked = state.Loop;
             _mute.Content = state.Volume <= 0 ? "\uE74F" : "\uE767";
-            var muteLabel = state.Volume <= 0 ? "Restaurar volumen" : "Silenciar salida";
+            var muteLabel = state.Volume <= 0 ? "Restaurar volumen" : "Silenciar el programa";
             _mute.ToolTip = muteLabel; AutomationProperties.SetName(_mute, muteLabel);
         }
         finally { _updating = false; }

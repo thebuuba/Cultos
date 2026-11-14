@@ -10,6 +10,7 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         Services.CapturedApplicationAudio.ShutdownShared();
+        Services.BrowserSourceRuntime.Shutdown();
         base.OnExit(e);
     }
     private void ButtonHoverChanged(object sender, System.Windows.Input.MouseEventArgs e)
@@ -54,7 +55,7 @@ public sealed class CueKindConverter : IValueConverter
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture) => value is CueKind kind ? kind switch
     {
         CueKind.Bible => "BIBLIA", CueKind.Video => "VIDEO / HIMNO", CueKind.Image => "IMAGEN",
-        CueKind.Audio => "AUDIO", CueKind.PowerPoint => "POWERPOINT", CueKind.WindowCapture => "VENTANA", _ => "TEXTO"
+        CueKind.Audio => "AUDIO", CueKind.PowerPoint => "POWERPOINT", CueKind.WindowCapture => "VENTANA", CueKind.BrowserSource => "NAVEGADOR", _ => "TEXTO"
     } : "CONTENIDO";
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
 }

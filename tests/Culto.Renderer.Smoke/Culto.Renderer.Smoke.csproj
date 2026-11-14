@@ -14,6 +14,8 @@
     <Compile Include="../../src/Culto.Desktop/Services/CaptureService.cs" Link="CaptureService.cs" />
     <Compile Include="../../src/Culto.Desktop/Services/WindowCaptureCatalog.cs" Link="WindowCaptureCatalog.cs" />
     <Compile Include="../../src/Culto.Desktop/Services/CapturedApplicationAudio.cs" Link="CapturedApplicationAudio.cs" />
+    <Compile Include="../../src/Culto.Desktop/Services/BrowserSourceRuntime.cs" Link="BrowserSourceRuntime.cs" />
+    <PackageReference Include="CefSharp.Wpf.NETCore" Version="156.0.150" />
     <PackageReference Include="LibVLCSharp.WPF" Version="3.10.2" />
     <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.24" />
     <PackageReference Include="NAudio.Wasapi" Version="2.2.1" />

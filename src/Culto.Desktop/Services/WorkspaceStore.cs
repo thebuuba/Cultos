@@ -8,6 +8,7 @@ public sealed class WorkspaceData
     public ServicePlan Plan { get; set; } = new();
     public List<Cue> Library { get; set; } = [];
     public List<Cue> YouTubeSources { get; set; } = [];
+    public List<Cue> BrowserSources { get; set; } = [];
     public Cue? QuickSceneImage { get; set; }
     public Cue? QuickSceneVideo { get; set; }
     public WindowCaptureLayout? YouTubeLayout { get; set; }
@@ -58,6 +59,8 @@ public sealed class WorkspaceStore
         {
             data.Plan ??= new(); data.Plan.Items ??= []; data.Library ??= []; data.Deck ??= [];
             data.YouTubeSources = (data.YouTubeSources ?? []).Where(cue => cue is not null && cue.Kind == CueKind.WindowCapture).ToList();
+            data.BrowserSources = (data.BrowserSources ?? []).Where(cue => cue is not null && cue.Kind == CueKind.BrowserSource
+                && cue.Browser is not null).ToList();
             if (data.QuickSceneImage?.Kind != CueKind.Image) data.QuickSceneImage = null;
             if (data.QuickSceneVideo?.Kind != CueKind.Video) data.QuickSceneVideo = null;
             foreach (var cue in data.Library.Where(cue => cue.Kind == CueKind.WindowCapture))

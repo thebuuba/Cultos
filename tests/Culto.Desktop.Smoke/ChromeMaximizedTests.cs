@@ -14,12 +14,17 @@ internal static partial class Program
         var folder=Path.GetFullPath(Path.Combine(".tools","chrome-probe-"+Guid.NewGuid().ToString("N")));
         Directory.CreateDirectory(folder);
         var page=Path.Combine(folder,"probe.html");
-        var video=new Uri(Path.GetFullPath("tests/Culto.Renderer.Smoke/fixtures/chrome-alternating.mp4")).AbsoluteUri;
-        File.WriteAllText(page,$"""
+        File.WriteAllText(page,"""
             <!doctype html><title>Culto Chrome probe - YouTube</title>
-            <body style="margin:0;overflow:hidden;background:black"><video id="v" src="{video}" autoplay muted loop playsinline
+            <body style="margin:0;overflow:hidden;background:black"><video id="v" autoplay muted playsinline
             style="width:100vw;height:100vh;object-fit:fill"></video>
-            <script>setInterval(()=>document.title="Culto Chrome probe - YouTube "+v.readyState+" "+v.currentTime+" "+(v.error?.message||"ok"),500)</script>
+            <script>
+            const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;
+            const context=canvas.getContext('2d');let tick=0;
+            function paint(){context.fillStyle=(tick++%2)?'red':'lime';context.fillRect(0,0,640,360);}
+            paint();v.srcObject=canvas.captureStream(30);v.play();
+            setInterval(()=>{paint();document.title="Culto Chrome probe - YouTube "+v.readyState+" "+v.currentTime+" "+(v.error?.message||"ok");},500);
+            </script>
             """);
         var start=new ProcessStartInfo(@"C:\Program Files\Google\Chrome\Application\chrome.exe")
             {UseShellExecute=false,CreateNoWindow=true,WindowStyle=ProcessWindowStyle.Normal};
@@ -34,11 +39,15 @@ internal static partial class Program
             Test("Real Chrome capture keeps advancing under a maximized console",()=>
             {
                 Until(()=>WindowCaptureCatalog.List().Any(t=>t.Options.WindowTitle.Contains("Culto Chrome probe")),"Owned Chrome window did not open");
+                window.Topmost=false;
+                var loading=WindowCaptureCatalog.List().Single(t=>t.Options.WindowTitle.Contains("Culto Chrome probe"));
+                ChromeProbeSetWindowPos((nint)loading.Options.WindowHandle, (nint)(-1), 0, 0, 0, 0, 0x13);
+                ChromeProbeSetForegroundWindow((nint)loading.Options.WindowHandle);
                 Until(()=>WindowCaptureCatalog.List().Any(t=>t.Options.WindowTitle.Contains("YouTube 4 ")),"Visible Chrome video did not load");
+                ChromeProbeSetWindowPos((nint)loading.Options.WindowHandle, (nint)(-2), 0, 0, 0, 0, 0x13);
                 var target=WindowCaptureCatalog.List().Single(t=>t.Options.WindowTitle.Contains("Culto Chrome probe"));
                 var cue=new Cue {Kind=CueKind.WindowCapture,Title=target.Options.WindowTitle,
                     Capture=target.Options with {YouTubeOnly=true,ControlAudio=false}};
-                intervening.Show();intervening.WindowState=WindowState.Maximized;PumpFor(2000);
                 window.Show();window.WindowState=WindowState.Maximized;window.Activate();PumpFor(2500);
                 Call(window,"PrepareCue",cue,null);Call(window,"ProjectPrepared");
                 var output=Field<ProjectionSurface>(window,"_output");
@@ -65,6 +74,19 @@ internal static partial class Program
                 CaptureDesignWindow(window,Path.Combine(Environment.CurrentDirectory,".tools","chrome-maximized.png"));
                 window.WindowState=WindowState.Normal;PumpFor(800);Changing("Restored console");
                 window.WindowState=WindowState.Maximized;PumpFor(1500);Changing("Maximized again");
+                window.Topmost=false;
+                intervening.Show();intervening.WindowState=WindowState.Maximized;
+                intervening.Topmost=true;intervening.Activate();PumpFor(2000);
+                Check(!window.IsActive,"Owned other application did not take focus");
+                client=Field<object>(output,"_captureClient");
+                refreshCount=Field<int>(client,"_refreshCount");
+                intervening.Topmost=false;window.Activate();PumpFor(1000);
+                Check(window.IsActive && window.WindowState==WindowState.Maximized,"Console did not return maximized");
+                Until(()=>Field<int>(client,"_refreshCount")>refreshCount,"Returning from another application did not renew the native capture session");
+                Check(ReferenceEquals(client,Field<object>(output,"_captureClient")),"Returning replaced the capture worker");
+                Changing("Returning from another application");
+                Check(window.IsActive,"Capture recovery stole focus from the console");
+                Check((BrowserGetWindowLong((nint)target.Options.WindowHandle,-20)&8)==0,"Capture recovery made Chrome topmost");
             });
         }
         finally
@@ -74,4 +96,11 @@ internal static partial class Program
             if(!chrome.HasExited)chrome.Kill(entireProcessTree:true);
         }
     }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint="SetForegroundWindow")]
+    [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+    private static extern bool ChromeProbeSetForegroundWindow(nint window);
+    [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint="SetWindowPos")]
+    [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+    private static extern bool ChromeProbeSetWindowPos(nint window, nint after, int x, int y, int width, int height, uint flags);
 }

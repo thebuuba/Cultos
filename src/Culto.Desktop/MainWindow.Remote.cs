@@ -21,7 +21,7 @@ public partial class MainWindow
         _output is not null && !_session.IsBlackout && !_session.IsTextHidden && _session.Live?.Kind is CueKind.Bible or CueKind.Text
             ? _session.Live.Body : null,
         _output is not null && !_session.IsBlackout && !_session.IsTextHidden ? _session.Live?.Reference : null,
-        _output is not null ? _session.Live?.Kind.ToString() : null);
+        _output is not null ? _session.Live?.Kind.ToString() : null, BuildRemoteScenes());
 
     private async Task<CommandResult> HandleRemote(RemoteCommand command)
         => await Dispatcher.InvokeAsync(() => ExecuteRemote(command));
@@ -32,6 +32,7 @@ public partial class MainWindow
         try
         {
             var action = command.Action;
+            if (action == "scene") return ExecuteRemoteScene(command.ButtonId);
             if (action == "library")
             {
                 if (!Guid.TryParse(command.CueId, out var id) || !_remoteCatalog.TryGetValue(id, out var selected))

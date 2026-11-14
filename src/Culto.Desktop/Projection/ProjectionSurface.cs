@@ -84,6 +84,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
             if (_mixer is not null) { _mixer.Volume = value; return; }
             _volume = Math.Clamp(value, 0, 100);
             ApplyAudioVolume();
+            ApplyBrowserAudioMute();
         }
     }
     public bool Loop { get => _mixer?.Loop ?? _loop; set { _loop = value; if (_mixer is not null) _mixer.Loop = value; } }
@@ -94,13 +95,13 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         set { _backgroundImagePath = value; if (_mixer is not null) _mixer.BackgroundImagePath = value; } }
     public double Position => _mixer?.Position ?? (_player is null || _disposed ? 0 : Math.Max(0, _player.Time / 1000d));
     public double Duration => _mixer?.Duration ?? (_player is null || _disposed ? 0 : Math.Max(0, _player.Length / 1000d));
-    public bool IsPlaying => !_disposed && (_mixer?.IsPlaying ?? (_captureClient is not null
+    public bool IsPlaying => !_disposed && (_mixer?.IsPlaying ?? (_browserSource is not null ? _browserSource.IsReady && !_pauseRequested && !_suppressed : _captureClient is not null
         ? _captureReady && !_pauseRequested && !_suppressed : _player?.IsPlaying == true));
     public bool HasEnded => _mixer is not null ? !_mixer.IsTransitioning && _mixer.ActiveSurface.HasEnded : _ended;
     public bool IsPreparingPlaybackEngine => _mixer?.IsPreparingPlaybackEngine == true;
     public void PreparePlaybackEngine() => _mixer?.PreparePlaybackEngine();
-    internal bool HasVideoFrame => _captureClient is not null ? _captureReady : _compositedVideo.Source is not null;
-    internal bool HasLoadedMedia => _media is not null || _captureClient is not null;
+    internal bool HasVideoFrame => _browserSource is not null ? _browserSource.IsReady : _captureClient is not null ? _captureReady : _compositedVideo.Source is not null;
+    internal bool HasLoadedMedia => _media is not null || _captureClient is not null || _browserSource is not null;
     public bool DisplayedBlackout => _mixer?.DisplayedBlackout ?? _suppressed;
     public bool DisplayedHidden => _mixer?.DisplayedHidden ?? false;
     public ProjectionSurface ActiveSurface => _mixer?.ActiveSurface ?? this;
@@ -118,6 +119,8 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         if (_disposed) return;
         _shownCue = cue;
         if (cue?.Kind != CueKind.WindowCapture) StopWindowCapture();
+        if (cue?.Kind != CueKind.BrowserSource) StopBrowserSource();
+        if (_browserSource is not null) _browserSource.Visibility = Visibility.Collapsed;
         CancelDissolve();
         _cueFailed = false;
         _suppressed = blackout || hideText;
@@ -168,6 +171,9 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
                 case CueKind.Image:
                     _image.Source = ReadImage(cue.FilePath);
                     _image.Visibility = Visibility.Visible;
+                    break;
+                case CueKind.BrowserSource:
+                    ShowBrowserSource(cue, paused);
                     break;
                 case CueKind.WindowCapture:
                     ShowWindowCapture(cue, paused);
@@ -335,6 +341,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         _started = false;
         CancelDissolve();
         _player?.Stop();
+        if (_browserSource is not null) { _browserSource.SetMuted(true); _browserSource.Visibility = Visibility.Collapsed; }
         _video.Visibility = _compositedVideo.Visibility = _image.Visibility = Visibility.Collapsed;
         if (!_suppressed) ShowText("No se pudo mostrar el contenido");
         PlaybackError?.Invoke(message);
@@ -370,6 +377,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
                 _pendingPresentation = queued with { PauseAfter = false };
             return;
         }
+        if (_browserSource is not null) { ApplyBrowserAudioMute(); return; }
         if (_captureClient is not null)
         {
             if (!_pauseRequested) FadeAudio(1, _presentedTransitions.AudioFadeInMilliseconds);
@@ -434,6 +442,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         CancelDissolve();
         _disposed = true;
         StopWindowCapture();
+        StopBrowserSource();
         _mixer?.Dispose();
         _moveClient?.Dispose(); _moveClient = null;
         if (_player is not null)

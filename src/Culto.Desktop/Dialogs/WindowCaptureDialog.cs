@@ -172,12 +172,18 @@ public sealed class WindowCaptureDialog : Window
         if (_windows.SelectedItem is not WindowCaptureTarget target) return;
         var saved = !_initialApplied ? _initialCue?.Capture : null;
         var options = WindowCaptureCatalog.CopySelection(saved ?? target.Options, target.Options);
+        var browserAudio = YouTubeDiscovery.UsesBrowserAudio(target.Options);
+        if (browserAudio) options = options with { ControlAudio = false };
         if (_youTubeLayout is not null && YouTubeDiscovery.IsYouTube(target.Options) && !WindowCaptureLayout.IsConfigured(options))
             options = _youTubeLayout.ApplyTo(options);
         _captureCanvas.SetSource(target.Width, target.Height, options);
         _name.Text = !_initialApplied && _initialCue is not null ? _initialCue.Title : target.Options.WindowTitle;
         _cursor.IsChecked = (saved ?? target.Options).CaptureCursor;
-        _audio.IsChecked = (saved ?? target.Options).ControlAudio;
+        _audio.IsEnabled = !browserAudio;
+        _audio.IsChecked = !browserAudio && (saved ?? target.Options).ControlAudio;
+        _audio.Content = browserAudio ? "Audio independiente en Chrome" : "Audio de la aplicación";
+        _audio.ToolTip = browserAudio ? "Chrome conserva su sonido al cambiar de escena o pestaña. Ajusta su volumen en Chrome o Windows."
+            : "El programa controla el volumen de las sesiones de esta aplicación.";
         _initialApplied = true;
     }
 
@@ -200,7 +206,7 @@ public sealed class WindowCaptureDialog : Window
         var height = _captureCanvas.HasSource ? _captureCanvas.SourceHeight : target.Height;
         if (draft.CropLeft + draft.CropRight >= width || draft.CropTop + draft.CropBottom >= height)
         { SetStatus("El recorte debe conservar una parte visible de la ventana."); return false; }
-        options = target.Options with { CaptureCursor = _cursor.IsChecked == true, ControlAudio = _audio.IsChecked == true,
+        options = target.Options with { CaptureCursor = _cursor.IsChecked == true, ControlAudio = _audio.IsEnabled && _audio.IsChecked == true,
             CropLeft = draft.CropLeft, CropTop = draft.CropTop, CropRight = draft.CropRight, CropBottom = draft.CropBottom, Transform = draft.Transform };
         try { options.ValidateTarget(); }
         catch (InvalidDataException error) { SetStatus(error.Message); options = null; return false; }

@@ -57,6 +57,7 @@ public sealed partial class ProjectionSurface
             ShowCueCore(presentation.Cue, presentation.Blackout, presentation.HideText, presentation.PauseAfter);
             return;
         }
+        var liveBrowser = _shownCue?.Kind == CueKind.BrowserSource || presentation.Cue?.Kind == CueKind.BrowserSource;
         UpdateLayout();
         // Retain the composed outgoing frame, including any in-flight dissolve.
         // Only the new video decodes; there is never duplicate output audio.
@@ -68,11 +69,12 @@ public sealed partial class ProjectionSurface
             && presentation.BibleStyle.Transition != "System";
         _dissolveMilliseconds = bibleOverride ? presentation.BibleStyle.TransitionMilliseconds : presentation.Transitions.DurationMilliseconds;
         _transitionKind = bibleOverride ? presentation.BibleStyle.Transition : presentation.Transitions.Kind;
+        if (liveBrowser && _transitionKind == "Move") _transitionKind = "Dissolve";
         _dissolve.Source = previous;
         _dissolve.Opacity = 1;
         _dissolve.Visibility = Visibility.Visible;
         // Suppressed and paused video retains its decoded frame; it cannot deliver a new one.
-        if (presentation.Cue?.Kind == CueKind.Video && !_suppressed && !_pauseRequested)
+        if ((presentation.Cue?.Kind == CueKind.Video || presentation.Cue?.Kind == CueKind.BrowserSource && !HasVideoFrame) && !_suppressed && !_pauseRequested)
         {
             _waitingForFrame = true;
             _frameTimeout.Start();

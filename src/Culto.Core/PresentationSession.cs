@@ -10,7 +10,7 @@ public sealed class PresentationSession
         && Prepared.Id == Live.Id && Prepared.Kind == Live.Kind
         && Prepared.Title == Live.Title && Prepared.Body == Live.Body
         && Prepared.Reference == Live.Reference && Prepared.Version == Live.Version
-        && Prepared.FilePath == Live.FilePath && Prepared.Capture == Live.Capture;
+        && Prepared.FilePath == Live.FilePath && Prepared.Capture == Live.Capture && Prepared.Browser == Live.Browser;
     public bool IsBlackout { get; private set; }
     public bool IsTextHidden { get; private set; }
     public event Action? Changed;
@@ -47,7 +47,8 @@ public sealed class PresentationSession
     {
         Id = cue.Id, Title = cue.Title, Kind = cue.Kind, Body = cue.Body,
         Reference = cue.Reference, Version = cue.Version, FilePath = cue.FilePath,
-        HymnNumber = cue.HymnNumber, Notes = cue.Notes, Capture = cue.Capture is {} capture ? capture with {} : null
+        HymnNumber = cue.HymnNumber, Notes = cue.Notes, Capture = cue.Capture is {} capture ? capture with {} : null,
+        Browser = cue.Browser is {} browser ? browser with {} : null
     };
 
     public void ToggleBlackout()

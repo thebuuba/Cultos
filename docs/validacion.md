@@ -1,8 +1,52 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 13 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.36.1`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 14 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.38.0`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### Fin de himno y audio independiente de Chrome - 0.38.0
+
+Se reprodujo el fallo con VLC real: al terminar el himno, HasLoadedMedia seguía siendo true. KeepMediaAudio lo conservaba como fondo y SetPaused(false), enviado al confirmar la lectura bíblica, volvía a ejecutar Start desde el principio. ProjectionMixer ahora excluye HasEnded de la retención activa y pausada, oculta inmediatamente el fondo terminado de los controles y retira ese decodificador antes de reutilizarlo en otra petición. Enviar explícitamente el himno otra vez sí lo reproduce. La casilla pasa a llamarse Audio de fondo con explicación de que aplica a archivos todavía reproduciéndose.
+
+--ended-media falla antes y pasa después: 13 comprobaciones nativas de fin natural → negro → logo → volumen 80 → Biblia → confirmar reproducción, reproducción explícita, archivo vivo bajo Biblia y fin de archivo en segundo plano. --persistent-media conserva sus 50 comprobaciones. Registros de desarrollo en TEMP/culto-ended-red.txt, culto-ended-green.txt y culto-persistent-after-ended.txt; verificación final .tools/ended-hymn-final.txt.
+
+YouTubeDiscovery normaliza ControlAudio=false para nuevas ventanas y capturas antiguas de Chrome en las rutas de vista previa, salida y fondos. El editor desactiva el control de audio de aplicación para Chrome e indica que el audio se ajusta en Chrome/Windows. El programa no adquiere concesión de audio de Chrome y no lo silencia al preparar, cambiar de escena o bloquear visualmente otra pestaña. Otras aplicaciones conservan sus controles de captura. El botón Restaurar audio puede devolver niveles heredados cuando no hay otra aplicación bajo control; cerrar la versión anterior restaura sus sesiones. No se modifica la puerta visual YouTubeOnly.
+
+--youtube-sources falla antes con la nueva expectativa de audio y pasa después, incluyendo entradas antiguas y otras pestañas de Chrome. --remote-scenes usa un Chrome propio y verifica que vista previa, salida y cambio de pestaña no adquieren _captureAudio, mientras los fotogramas de otra pestaña quedan negros. --youtube-controls comprueba la continuidad de archivos bajo texto y regreso al video. Pruebas del móvil en mobile-smoke.cjs; registros .tools/youtube-audio-*.log y audio-policy-*.log. Se verifica ausencia de control de sesiones; no se afirma una medición acústica del sonido personal de YouTube.
+
+Se investigó el reproductor integrado con documentación primaria y un prototipo aislado: IFrame oficial, origen HTTP local real, Referer real y video de ejemplo M7lc1UVf-VE. En Chrome sin interfaz el estado llegó a reproducción y el tiempo avanzó de 1.22 a 15.23 s, sin error de API. No verifica CefSharp/WebView2 ni sonido físico. Los errores 101/150 indican restricción del propietario; 153 falta de identidad/Referer. No se integra aún en el producto, no se falsifica una identidad externa y no se promete reproducir cualquier canción. Evidencia .tools/youtube-embed-research. Fuentes: https://developers.google.com/youtube/iframe_api_reference y https://developers.google.com/youtube/terms/required-minimum-functionality .
+
+### Himnario a listas de reproducción - 0.37.2
+
+Himnario/LibraryList comparte el menú contextual de Medios. El objetivo se resuelve desde la fila pulsada, aunque otra esté seleccionada. Se reutilizan el filtrado por CueKind.Video, CheckMedia y AppendToVideoQueue, incluyendo creación automática, copia independiente y persistencia de la lista activa. Conserva HymnNumber y no inicia reproducción. La selección habitual puede preparar la fila pulsada; la acción de añadir no altera esa vista previa. No se trasladan ni duplican archivos del himnario.
+
+--hymn-playlist simula el evento WPF de botón derecho sobre un himno diferente al seleccionado y pulsa el menú real: verifica número 37, identidad independiente, archivo, persistencia y reproducción/vista previa intactas. Falla con el binario 0.37.1 y pasa con el cambio. Registros .tools/hymn-playlist-red.log y hymn-playlist-green.log; regresión completa de listas en hymn-playlist-regression.log.
+
+### YouTube cubierto por otra aplicación - 0.37.1
+
+Se añade Abrir YouTube para proyección al panel y al menú de la escena. Inicia Chrome con perfil propio persistente en YouTubeChrome, debajo del directorio de datos de Culto Studio. Aplica --disable-backgrounding-occluded-windows, --disable-features=CalculateNativeWinOcclusion, --disable-background-timer-throttling y --disable-renderer-backgrounding. Se conserva la seguridad web y el sandbox; no se modifica ni se reinicia el Chrome personal. La sesión propia permite que Chrome acepte los argumentos al arrancar. Referencia primaria: https://github.com/GoogleChrome/chrome-launcher/blob/main/docs/chrome-flags-for-tools.md
+
+Al detectar una ventana nueva tras esa acción se selecciona y prepara una vez, sin proyectarla. Proyectar, F5 o el teléfono pueden enviarla después. El sondeo no cambia ventanas de una captura activa. El perfil separado puede pedir inicio de sesión; las extensiones/sesiones del Chrome personal no se copian. Cerrar o minimizar la ventana de origen, cambiar su pestaña fuera de YouTube, bloquear Windows, desconectar la sesión gráfica o contenido protegido siguen fuera de la garantía de continuidad.
+
+--chrome-occluded usa un WebM VP8 generado por nosotros (sin MediaStream activo durante la reproducción). La captura recibe imagen antes y después de colocar una ventana opaca propia, maximizada y Topmost, sobre Chrome. Durante 10 segundos registra 23 cambios de color con la consola inactiva; verifica además que la nueva selección esté preparada para F5/teléfono. No captura ni modifica páginas personales. El mismo ensayo sin los argumentos adicionales también pasó con 20 cambios: no se logró reproducir consistentemente la pérdida del YouTube real del usuario. Los intentos iniciales tuvieron fallos de arranque/captura, por lo que no se presentan como evidencia de una corrección específica del síntoma. Se entrega una vía de inicio con la suspensión desactivada y una prueba de continuidad, sin afirmar haber verificado el YouTube personal.
+
+Registros .tools/occluded-chrome-baseline.log, occluded-chrome-green.log y occluded-chrome-build.log; fixture tests/Culto.Renderer.Smoke/fixtures/chrome-occlusion.webm. Se mantiene la recuperación previa de captura al volver a Culto Studio.
+
+### Escenas Deckboard y YouTube en el teléfono - 0.37.0
+
+RemoteSnapshot publica escenas con identificadores opacos, tipo, disponibilidad y estado activo. Incluye YouTube aunque la ventana no esté en el orden. El sondeo remoto actualiza el descubrimiento aunque el panel Escenas esté oculto. El comando autenticado scene valida pertenencia/disponibilidad y conserva la deduplicación por RequestId; no recibe rutas ni URL del teléfono. La consola usa las acciones existentes y nunca abre un selector de archivos por petición remota. Logo, negro, imagen y video reflejan la configuración de la PC; el navegador HTML aparece si existen fuentes guardadas.
+
+La consola muestra teclas de colores, icono de YouTube y borde activo/foco. El móvil usa una cuadrícula de tres columnas con teclas cuadradas, escenas no disponibles desactivadas e indicador confirmado después de recibir estado. Se mantiene el deck personalizado y la navegación del orden.
+
+Prueba RemoteSceneTests falla antes con HTTP 400 para YouTube y pasa después; verifica rechazo de escenas desconocidas/no disponibles y una sola ejecución al repetir RequestId. Suite Remote: 65 pruebas aprobadas. mobile-smoke.cjs prueba el script entregado, escenas, comandos, disponibilidad, marcadores y conservación del foco; se actualizó el simulador DOM para las APIs SVG existentes. scenes-browser-smoke.cjs ejecuta Chrome real contra una fixture HTTP local y verifica selección YouTube, estado activo, teclas cuadradas y ausencia de desbordamiento a 320/390/540/1024 px. Capturas en .tools/deckboard.
+
+--remote-scenes verifica escenas con salida cerrada, imagen guardada fuera del orden, negro/restauración, archivo eliminado y estilo de teclas. Abre un perfil de Chrome y una página de prueba propios, selecciona esa fuente y ejecuta scene/youtube: comprueba HWND elegido, llegada de imagen y ausencia de controles de pausa falsa. No manipula el YouTube personal del usuario. --remote-order y --youtube-controls pasan como regresiones. Registros .tools/deckboard-*.log. La conexión física desde el teléfono del usuario requiere volver a abrir el mando en la nueva entrega.
+
+### Volver desde otra aplicación - 0.36.2
+
+Activated solicita la misma recuperación nativa que los cambios de tamaño. Además, al volver a una consola normal (no Topmost), coloca las ventanas Chromium capturadas justo detrás de la consola, sin activarlas ni alterar su tamaño, posición o estado minimizado. No modifica aplicaciones intermedias ni convierte Chrome en Topmost. Valida HWND/PID/inicio antes de cambiar el orden de ventanas. La concesión de audio y el cliente de captura siguen siendo los existentes.
+
+El ensayo --chrome-maximized usa ahora un video MediaStream generado desde canvas en un perfil aislado, independiente del decodificador H264. Incluye otra ventana opaca maximizada, pérdida y recuperación reales del foco, confirmación nativa de renovación y fotogramas cambiantes al regresar sin restaurar el tamaño de la consola. Antes faltaba la renovación; añadir solo Activated renovaba WGC pero el video H264 quedaba detenido detrás de la aplicación intermedia. Con la corrección completa pasa el ensayo con MediaStream. Registros .tools/capture-activation-red.log, capture-activation-green.log y capture-activation-compat.log. No se ha verificado el YouTube real del usuario ni que la captura siga avanzando mientras otra aplicación opaca está delante; se comprueba la recuperación al volver.
 
 ### Recuperar captura al maximizar y restaurar - 0.36.1
 
