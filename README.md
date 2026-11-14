@@ -8,7 +8,15 @@ La pestaña **Lista de videos** permite agregar videos, eliminar y cambiar el or
 
 ## Abrir el programa
 
-Ejecuta **Abrir Culto Studio.cmd** en esta carpeta, o abre `artifacts/CultoStudio-0.40.1/CultoStudio.exe`. Cierra la versión anterior primero. La distribución publicada incluye .NET y el reproductor nativo; conserva todos los archivos de esa carpeta junto al ejecutable. Windows x64.
+Ejecuta siempre **Abrir Culto Studio.cmd** en esta carpeta, o abre `artifacts/CultoStudio/CultoStudio.exe`. Esta es la ubicación fija del programa: las actualizaciones se publican encima de esta misma instalación y el acceso no cambia de versión. Cierra Culto Studio antes de actualizar y vuelve a abrirlo con el mismo acceso. La distribución incluye .NET y el reproductor nativo; conserva todos los archivos de esa carpeta junto al ejecutable. Windows x64.
+
+En **0.40.2**, se retiran el indicador Progreso y el botón/editor Notas. Las notas que ya existían en archivos guardados se conservan como datos. Para próximas entregas locales, usa `scripts/build.ps1 -Publish` con su carpeta predeterminada `artifacts/CultoStudio`; el script avisa si esa instalación sigue abierta. Este cambio mantiene un acceso fijo; no descarga actualizaciones de Internet automáticamente.
+
+En **0.40.5**, el doble clic en la Biblia evita preparar dos veces el mismo pasaje. La vista previa conserva el nuevo versículo durante la transición para que no reaparezca brevemente el anterior. El fondo bíblico se decodifica una vez y se comparte entre vista previa y salida; si cambias o eliminas el archivo, se vuelve a comprobar.
+
+La búsqueda bíblica acepta nombres incompletos únicos y errores de una letra, incluida la inversión de letras contiguas: `hebreo 5 1`, `hebre 5:1` y `heberos 5 1` encuentran **Hebreos 5:1**. Las abreviaturas habituales siguen funcionando. Si el nombre coincide con varios libros, escribe más letras; en cartas numeradas conserva el número, por ejemplo `2 corinti 1 1`.
+
+En **0.40.4**, el reproductor flotante usa botones propios para cerrar, minimizar y maximizar. La X evita el seguimiento del botón nativo de Windows que detenía brevemente la entrega de imágenes mientras se pulsaba. Cerrar el reproductor conserva el video y audio en salida; pantalla completa y sus controles siguen disponibles.
 
 En **0.40.1**, se eliminan controles ocultos y funciones antiguas que ya no se usaban. El audio se conserva únicamente mediante las acciones explícitas con Shift o sus botones del teléfono. PowerPoint actualiza su lista al abrir la pestaña y evita reconstruirla mientras buscas en el Himnario; también deja de consultar repetidamente la instalación de Office. La reproducción, el control USB, los cultos guardados y las listas de videos conservan sus funciones.
 

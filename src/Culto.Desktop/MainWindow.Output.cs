@@ -299,6 +299,7 @@ public partial class MainWindow
     }
     private void TimerTick(object? sender, EventArgs e)
     {
+        if (_holdingBiblePreview) SyncPreviewSource();
         UpdateBrowserCaptureCompatibility();
         if (_output?.IsPreparingPlaybackEngine == true) SetStatus("Preparando reproductor…");
         else if (StatusText.Text == "Preparando reproductor…")

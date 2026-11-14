@@ -40,7 +40,11 @@ public partial class MainWindow
 
     private void PrepareBibleSelection()
     {
-        if (SelectedBibleCue() is { } cue) PrepareCue(cue, _selectedBibleReading);
+        if (SelectedBibleCue() is not { } cue) return;
+        // SelectionChanged already prepared this exact, cached passage on the
+        // first click. Sending it must not rebuild the preview on the second.
+        if (ReferenceEquals(_session.Prepared, cue)) { _preparedReading = _selectedBibleReading; return; }
+        PrepareCue(cue, _selectedBibleReading);
     }
 
     private void UpdateBibleSelectionSummary()

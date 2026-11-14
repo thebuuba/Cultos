@@ -52,7 +52,6 @@ internal static partial class Program
         }
         finally
         {
-            Call(window, "CommitNotes");
             plan.Clear(); foreach (var cue in oldPlan) plan.Add(cue); name.Text = oldName;
             workspace.VideoCollections = oldCollections; workspace.SavedServices = oldServices;
             Call(window, "UpdatePlanCount"); Call(window, "SaveWorkspace");

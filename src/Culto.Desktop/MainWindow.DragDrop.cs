@@ -251,7 +251,7 @@ public partial class MainWindow
         var effect = ContentDropEffect(data);
         if (!_ready || effect == DragDropEffects.None || ReadContentDrag(data) is not ContentDrag drag)
             return DragDropEffects.None;
-        CommitNotes();
+
         var index = Math.Clamp(insertionIndex, 0, _plan.Count);
         Cue item;
         if (effect == DragDropEffects.Move)

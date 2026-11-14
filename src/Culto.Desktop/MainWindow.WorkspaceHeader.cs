@@ -23,10 +23,6 @@ public partial class MainWindow
         ConsoleDateText.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
         ConsoleHeaderDetails.Margin = compact ? new Thickness(0) : new Thickness(0, 6, 0, 8);
         ConsoleDateText.Text = DateTime.Now.ToString("dddd, d 'de' MMMM", CultureInfo.GetCultureInfo("es-DO"));
-        var position = _output is null ? 0 : _plan.ToList().FindIndex(cue => cue.Id == _session.Live?.Id) + 1;
-        HeaderProgressText.Text = $"{position}/{_plan.Count}";
-        HeaderProgress.Maximum = Math.Max(1, _plan.Count);
-        HeaderProgress.Value = position;
         HeaderSaveState.Text = _workspaceSaveOkay == false || _workspaceRecoveryBlocked ? "Revisar"
             : PlanNameBox.Text.Trim() != _workspace.Plan.Name ? "Sin guardar" : _workspaceSaveOkay is null ? "Local" : "Guardado";
         var connected = _remote?.ConnectedClientCount ?? 0;

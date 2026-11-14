@@ -33,13 +33,4 @@ public partial class MainWindow
         menu.IsOpen = true;
     }
 
-    private void ToggleNotesClick(object sender, RoutedEventArgs e)
-    {
-        if (FindName("NotesPanel") is not FrameworkElement panel || FindName("NotesToggleButton") is not Button toggle) return;
-        var opening = panel.Visibility != Visibility.Visible;
-        panel.Visibility = opening ? Visibility.Visible : Visibility.Collapsed;
-        toggle.Content = opening ? "Ocultar" : "Notas";
-        if (opening) NotesBox.Focus();
-        else CommitNotes();
-    }
 }

@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
+using System.Windows.Media.Imaging;
 using Culto.Core;
 
 namespace Culto.Desktop.Projection;
@@ -12,6 +13,7 @@ public sealed partial class ProjectionSurface
 {
     private BibleVisualStyle _bibleStyle = new();
     private BibleVisualStyle _presentedBibleStyle = new();
+    private static (string Path, DateTime Modified, long Length, BitmapImage Image)? _bibleBackground;
     private readonly Border _bibleDim = new() { Background = Brushes.Black, IsHitTestVisible = false, Visibility = Visibility.Collapsed };
 
     // Each request captures its own value, including when outgoing audio delays presentation.
@@ -51,7 +53,7 @@ public sealed partial class ProjectionSurface
         {
             try
             {
-                _image.Source = ReadImage(style.BackgroundImagePath);
+                _image.Source = ReadBibleBackground(style.BackgroundImagePath);
                 _image.Visibility = Visibility.Visible;
             }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException
@@ -83,5 +85,19 @@ public sealed partial class ProjectionSurface
                 _ => null
             };
         }
+    }
+
+    private static BitmapImage ReadBibleBackground(string path)
+    {
+        // Preview and successive output surfaces share one frozen bitmap. Keep
+        // only the current background and reload when its file changes.
+        var file = new FileInfo(path);
+        var modified = file.LastWriteTimeUtc;
+        var length = file.Length;
+        if (_bibleBackground is { } cached && StringComparer.OrdinalIgnoreCase.Equals(cached.Path, file.FullName)
+            && cached.Modified == modified && cached.Length == length) return cached.Image;
+        var image = ReadImage(file.FullName);
+        _bibleBackground = (file.FullName, modified, length, image);
+        return image;
     }
 }

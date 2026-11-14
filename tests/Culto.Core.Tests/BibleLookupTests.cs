@@ -13,7 +13,9 @@ public sealed class BibleLookupTests
             new("Juan", 3, 17, "Segundo sintético"),
             new("Juan", 3, 18, "Tercero sintético"),
             new("Salmos", 23, 1, "Cántico sintético"),
-            new("1 Juan", 1, 1, "Carta sintética")
+            new("1 Juan", 1, 1, "Carta sintética"),
+            new("Hebreos", 5, 1, "Hebreos sintético"),
+            new("2 Corintios", 1, 1, "Carta sintética")
         ]
     });
 
@@ -24,6 +26,15 @@ public sealed class BibleLookupTests
     [InlineData("Jn", "Juan", 3)]
     [InlineData("Salmo 23", "Salmos", 1)]
     [InlineData("I Jn 1 1", "1 Juan", 1)]
+    [InlineData("hebreo 5 1", "Hebreos", 1)]
+    [InlineData("hebre 5:1", "Hebreos", 1)]
+    [InlineData("hebre", "Hebreos", 1)]
+    [InlineData("HEBREO 5", "Hebreos", 1)]
+    [InlineData("hebros 5 1", "Hebreos", 1)]
+    [InlineData("hebreoz 5 1", "Hebreos", 1)]
+    [InlineData("hebreoss 5 1", "Hebreos", 1)]
+    [InlineData("heberos 5 1", "Hebreos", 1)]
+    [InlineData("2 corinti 1 1", "2 Corintios", 1)]
     public void UnifiedLookupAcceptsNaturalReferencesAndWholeBooks(string query, string book, int count)
     {
         var verses = Catalog().Lookup(query, out var reference);
@@ -37,6 +48,10 @@ public sealed class BibleLookupTests
     [InlineData("Juan 3:16-")]
     [InlineData("Juan 99")]
     [InlineData("Juan 3 basura")]
+    [InlineData("ju 1 1")]
+    [InlineData("corinti 1 1")]
+    [InlineData("4 Juan 1 1")]
+    [InlineData("zzzz 5 1")]
     public void InvalidOrPartialReferenceNeverFallsBackToPhraseSearch(string query) =>
         Assert.Throws<ArgumentException>(() => Catalog().Lookup(query, out _));
 
@@ -49,4 +64,11 @@ public sealed class BibleLookupTests
         Assert.Same(catalog.Document.Verses[0], Assert.Single(verses));
         Assert.Equal("Salmos", verses[0].Book);
     }
+
+    [Fact]
+    public void TolerantSearchDoesNotRelaxImportedBookValidation() =>
+        Assert.Throws<InvalidDataException>(() => new BibleCatalog(new BibleDocument
+        {
+            Verses = [new("hebreo", 5, 1, "Nombre de importación incorrecto")]
+        }));
 }

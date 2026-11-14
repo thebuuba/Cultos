@@ -1,6 +1,13 @@
 param([switch]$Publish, [switch]$Smoke, [string]$OutputDirectory = 'artifacts\CultoStudio')
+# Keep the default installation path stable across releases so shortcuts remain valid.
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
+if ($Publish) {
+    $targetExe = [IO.Path]::GetFullPath((Join-Path $projectRoot (Join-Path $OutputDirectory 'CultoStudio.exe')))
+    if (Get-Process -Name CultoStudio -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $targetExe }) {
+        throw 'Cierra Culto Studio antes de actualizar esta instalación. Después podrás abrirlo con el mismo acceso.'
+    }
+}
 $sdk = Join-Path $projectRoot '.tools\dotnet\dotnet.exe'
 if (-not (Test-Path -LiteralPath $sdk)) { $sdk = (Get-Command dotnet -ErrorAction Stop).Source }
 Push-Location -LiteralPath $projectRoot

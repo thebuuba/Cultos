@@ -4,6 +4,8 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Shell;
+using System.Windows.Data;
 using Culto.Desktop.Projection;
 using Culto.Desktop.Services;
 
@@ -31,6 +33,7 @@ public sealed class OutputPlayerWindow : Window
     private Rect _restoreBounds;
     private WindowState _restoreState;
     private OutputPlayerState? _state;
+    private readonly Grid _caption = new() { Height = 34 };
 
     public OutputPlayerWindow()
     {
@@ -41,6 +44,11 @@ public sealed class OutputPlayerWindow : Window
         MinWidth = 480; MinHeight = 300;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         ResizeMode = ResizeMode.CanResize;
+        WindowChrome.SetWindowChrome(this, new WindowChrome
+        {
+            CaptionHeight = 34, ResizeBorderThickness = new Thickness(6),
+            GlassFrameThickness = new Thickness(0), UseAeroCaptionButtons = false
+        });
         NameScope.SetNameScope(this, new NameScope());
         Register("PlayerMonitor", Monitor);
         Register("PlayerPosition", _position); Register("PlayerVolume", _volume);
@@ -54,19 +62,42 @@ public sealed class OutputPlayerWindow : Window
         _fullscreen = CreateIconButton("PlayerFullscreen", "\uE740", "Pantalla completa · F11", ToggleFullscreen);
         Register("PlayerLoop", _loop); Register("PlayerPin", _pin);
         var root = new Grid();
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         root.RowDefinitions.Add(new RowDefinition());
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        _caption.ColumnDefinitions.Add(new ColumnDefinition());
+        _caption.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var captionTitle = new TextBlock { VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(12, 0, 8, 0), FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis };
+        captionTitle.SetBinding(TextBlock.TextProperty, new Binding(nameof(Title)) { Source = this });
+        _caption.Children.Add(captionTitle);
+        var windowActions = new StackPanel { Orientation = Orientation.Horizontal };
+        void CaptionButton(string name, string glyph, string label, Action action)
+        {
+            var button = CreateIconButton(name, glyph, label, action);
+            button.MinHeight = 30; button.MinWidth = 40; button.Height = 30;
+            button.FontSize = 12; button.Padding = new Thickness(8, 2, 8, 2); button.Margin = new Thickness(1, 2, 1, 2);
+            WindowChrome.SetIsHitTestVisibleInChrome(button, true);
+            windowActions.Children.Add(button);
+        }
+        CaptionButton("PlayerMinimize", "\uE921", "Minimizar", () => WindowState = WindowState.Minimized);
+        CaptionButton("PlayerMaximize", "\uE922", "Maximizar o restaurar", () =>
+            WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized);
+        // WPF handles this button without Windows' blocking native caption loop.
+        CaptionButton("PlayerClose", "\uE8BB", "Cerrar reproductor", Close);
+        Grid.SetColumn(windowActions, 1); _caption.Children.Add(windowActions);
+        root.Children.Add(_caption);
         var image = new Border { Background = Brushes.Black, Child = Monitor, ClipToBounds = true };
         image.MouseLeftButtonDown += (_, e) =>
         { if (e.ClickCount == 2) { ToggleFullscreen(); e.Handled = true; } };
-        root.Children.Add(image);
+        Grid.SetRow(image, 1); root.Children.Add(image);
         var controls = new StackPanel { Margin = new Thickness(16, 8, 16, 12) };
         controls.Children.Add(_position);
         var transport = new WrapPanel { VerticalAlignment = VerticalAlignment.Center };
         foreach (var control in new UIElement[] { _restart, _back, _pause, _forward, _time, _mute, _volume, _loop, _pin, _fullscreen })
             transport.Children.Add(control);
         controls.Children.Add(transport);
-        Grid.SetRow(controls, 1); root.Children.Add(controls);
+        Grid.SetRow(controls, 2); root.Children.Add(controls);
         Content = root;
         _volume.ValueChanged += (_, _) => { if (!_updating) VolumeRequested?.Invoke(_volume.Value); };
         _loop.Checked += (_, _) => { if (!_updating) LoopRequested?.Invoke(true); };
@@ -80,6 +111,7 @@ public sealed class OutputPlayerWindow : Window
     }
 
     private void Register(string name, FrameworkElement element) { element.Name = name; RegisterName(name, element); }
+
     private Button CreateIconButton(string name, string glyph, string label, Action action)
     {
         var button = new Button { Content = glyph, FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 17,
@@ -153,12 +185,14 @@ public sealed class OutputPlayerWindow : Window
             _restoreState = WindowState;
             _restoreBounds = WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds;
             _isFullscreen = true;
+            _caption.Visibility = Visibility.Collapsed;
             var display = DisplayService.GetDisplays().First(d => d.DeviceName == DisplayService.GetWindowDevice(this));
             DisplayService.PlaceWindow(this, display, fullscreen: true);
         }
         else
         {
             _isFullscreen = false;
+            _caption.Visibility = Visibility.Visible;
             WindowState = WindowState.Normal; WindowStyle = WindowStyle.SingleBorderWindow; ResizeMode = ResizeMode.CanResize;
             Left = _restoreBounds.Left; Top = _restoreBounds.Top; Width = _restoreBounds.Width; Height = _restoreBounds.Height;
             WindowState = _restoreState; Topmost = _pin.IsChecked == true;

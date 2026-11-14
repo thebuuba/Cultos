@@ -59,7 +59,7 @@ public partial class MainWindow
     private void DeleteOrderActionClick(object sender, RoutedEventArgs e)
     {
         if (!_ready || _orderActionCue is not Cue cue || !_plan.Contains(cue)) return;
-        CommitNotes();
+
         _plan.Remove(cue);
         HideOrderActions();
         UpdatePlanCount();

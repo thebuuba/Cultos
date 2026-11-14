@@ -25,8 +25,6 @@ public partial class MainWindow
             // virtualized instead of expanding to their entire item count.
             body.SetBinding(HeightProperty, new Binding(nameof(ScrollViewer.ViewportHeight))
             { Source = scroll, Mode = BindingMode.OneWay });
-            if (id == "order")
-                NotesPanel.IsVisibleChanged += (_, _) => body.MinHeight = NotesPanel.IsVisible ? 310 : 180;
             panel.Child = null;
             scroll.Content = body;
             panel.Child = scroll;

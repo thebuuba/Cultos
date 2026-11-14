@@ -17,7 +17,7 @@ public partial class MainWindow
 
     private void ShowSavedSets()
     {
-        CommitNotes();
+
         var original = _workspace.SavedServices;
         var dialog = new SavedSetsDialog(original) { Owner = this };
         if (dialog.ShowDialog() != true) return;
@@ -36,7 +36,7 @@ public partial class MainWindow
         if (_plan.Count == 0) { SetStatus("El orden está vacío."); return; }
         var name = PromptDialog.Ask(this, "Guardar culto", "Nombre", PlanNameBox.Text);
         if (name is null) return;
-        CommitNotes();
+
         var set = SavedSet.Capture(name, _plan);
         _workspace.SavedServices.Add(set);
         if (!SaveWorkspace()) { _workspace.SavedServices.Remove(set); return; }
@@ -46,7 +46,7 @@ public partial class MainWindow
     private bool ApplySavedSet(SavedSet set, bool replace)
     {
         if (set.Items.Count == 0) { SetStatus("No hay contenido guardado."); return false; }
-        CommitNotes();
+
         if (!SaveWorkspace()) return false;
         if (replace)
         {
@@ -77,7 +77,6 @@ public partial class MainWindow
             finally { _ready = true; }
             UpdatePlanCount(); return false;
         }
-        if (replace) { _notesCue = null; NotesBox.Text = ""; }
         UpdatePlanCount();
         PlanList.SelectedItem = items[0]; PlanList.ScrollIntoView(items[0]);
         SetStatus(replace ? $"Orden reemplazado: {set.Name}." : $"{items.Count} contenidos añadidos: {set.Name}.");

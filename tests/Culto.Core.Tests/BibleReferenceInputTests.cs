@@ -9,6 +9,8 @@ public sealed class BibleReferenceInputTests
     [InlineData("Génesis 1:1", "Génesis", "1", "1", false)]
     [InlineData("  1 Corintios 13:4-7  ", "1 Corintios", "13", "4-7", true)]
     [InlineData("Jn3:16", "Jn", "3", "16", false)]
+    [InlineData("hebreo 5 1", "hebreo", "5", "1", false)]
+    [InlineData("heberos 5:1-2", "heberos", "5", "1-2", true)]
     [InlineData("1co13:4 - 7", "1co", "13", "4 - 7", true)]
     [InlineData("I Jn 1 1", "I Jn", "1", "1", false)]
     [InlineData("Cantar de los cantares 2:1–3", "Cantar de los cantares", "2", "1–3", true)]

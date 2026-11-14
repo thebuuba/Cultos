@@ -1,8 +1,38 @@
 # Validación de Culto Studio
 
-Comprobación actualizada el 14 de noviembre de 2026 en esta PC Windows. Entrega actual Windows x64 en `artifacts/CultoStudio-0.40.1`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
+Comprobación actualizada el 14 de noviembre de 2026 en esta PC Windows. Entrega actual 0.40.5 Windows x64 en la ubicación fija `artifacts/CultoStudio`; iniciador `Abrir Culto Studio.cmd`. Las secciones siguientes distinguen las comprobaciones de cada versión.
 
 ## Compilación y pruebas
+
+### Biblia: doble clic y fondo compartido - 0.40.5
+
+La búsqueda reconoce prefijos únicos de al menos tres caracteres y errores de una letra en nombres de al menos cuatro caracteres (inserción, omisión, sustitución o inversión contigua). Los nombres y alias exactos conservan prioridad y los libros numerados no cambian de número. Las coincidencias ambiguas no se eligen automáticamente. TrySearchBook se comparte entre referencias, capítulos, búsqueda unificada y segmentación del editor; la importación conserva TryBook estricto. Las pruebas específicas de búsqueda, edición, capítulos y pasajes pasaron 71 casos, incluidos `hebreo 5 1`, prefijos, errores y ambigüedades. Registros bible-tolerant-red.log y bible-tolerant-green.log.
+
+Se reprodujeron dos problemas de estado con --bible-projection: el segundo clic volvía a preparar el pasaje y la vista previa recién preparada se sustituía por la imagen anterior de la salida durante el fundido. PrepareBibleSelection reutiliza su selección preparada y SyncPreviewSource conserva el nuevo versículo hasta terminar la transición. El temporizador existente devuelve después la vista previa al monitor de salida.
+
+Con el fondo bíblico real de unos 12 MB, sin modificar el archivo ni los datos del usuario, la preparación tardó 190,4 ms y el envío 207,0 ms antes de compartir la imagen decodificada. ReadBibleBackground conserva únicamente el último fondo congelado, identificado por ruta, fecha de modificación y tamaño. La prueba final midió 1,4 ms para preparar y 1,4 ms para enviar, sin contar el fundido configurado ni prometer ese tiempo para cualquier equipo. La primera carga sigue decodificando la imagen.
+
+La prueba falló antes de cada corrección y pasó después. Se verificaron también reemplazo/eliminación del fondo, selección múltiple, rangos, Enter y adición/arrastre al orden. Registros .tools/bible-projection-red.log, bible-background-red.log y bible-projection-final.log; cero fallos en el ensayo final. No se ejecutaron suites generales. La percepción del parpadeo en la proyección física queda pendiente de confirmación del usuario.
+
+### Clic real en la X del reproductor - 0.40.4
+
+Se reprodujo el tirón al mantener brevemente pulsada la X nativa mediante un gesto de mouse real sobre una ventana de prueba, usando un himno Full HD disponible y una copia aislada del espacio de trabajo. Cerrar por código no ejercitaba ese recorrido: el seguimiento nativo del botón retenía las llamadas del Dispatcher que entregan imágenes a las dos salidas. Con el gesto nativo se midieron 149,3 ms entre imágenes y 132,5 ms entre ciclos de render en floating-caption-before.log. Interceptar WM_NCLBUTTONDOWN no lo evitó (floating-caption-after.log).
+
+OutputPlayerWindow ahora usa WindowChrome y botones WPF para minimizar, maximizar y cerrar, sin el bucle nativo del botón de cierre. La barra conserva título, movimiento y redimensionado; desaparece en pantalla completa. Se retiraron la reutilización oculta de ventana y el TryLock añadidos en el intento anterior: no eran la causa comprobada. Con el mismo gesto real, himno y proyección, el resultado final fue 41,4 ms entre imágenes y 29,0 ms entre ciclos de render (floating-caption-final.log). El reproductor y el decodificador siguen siendo los mismos durante la prueba, y cerrar la vista no detiene el archivo. Se verificaron además los controles del reproductor en floating-player-controls-0404.log. No se ejecutaron suites generales.
+
+Corrección del diagnóstico anterior: los intervalos de 80 ms del primer video sintético correspondían a huecos en sus marcas de tiempo al concatenarlo; no eran evidencia del fallo. Se generó un video continuo, se separó el cierre por código del clic nativo y se comprobó el gesto que produce el bloqueo antes de aplicar esta corrección. No se modificaron los archivos del himnario ni el espacio de trabajo real.
+
+### Cierre del reproductor flotante - 0.40.3
+
+La X oculta y reutiliza una única OutputPlayerWindow; desconecta sus fuentes de monitor y suspende las actualizaciones mientras está oculta. Cerrar Culto Studio sigue destruyendo esa ventana y liberando sus recursos. Así no se destruye el destino de render de una ventana compartiendo el video durante su reproducción. CompositedVideo usa TryLock con espera cero antes de copiar: si WPF aún utiliza esa imagen se omite esa presentación, sin bloquear el búfer compartido con VLC.
+
+Prueba limitada al fallo: un video sintético Full HD de 15 segundos, cinco aperturas/cierres, identidad de ventana y decodificador, reproducción activa y entrega de imágenes. --floating-continuity reproduce la destrucción anterior (floating-view-red.log) y pasa con la vista reutilizada (floating-view-green.log). Los cierres bajaron de aproximadamente 6–9 ms a 5–7 ms en esta muestra; se siguieron observando intervalos aislados de hasta 80 ms entre imágenes, tanto antes como después. No se presenta esto como garantía de ausencia absoluta de tirones: falta confirmar el síntoma percibido por el usuario. --output-player pasó sus controles de pausa, seek, volumen, tamaño, pantalla completa y cierre. Registros .tools/floating-controls-final.log, floating-continuity-before.log y floating-continuity-after.log. No se repitieron suites generales de captura, PowerPoint o mando.
+
+### Interfaz sencilla e instalación fija - 0.40.2
+
+Se retiran Progreso, su cálculo periódico, el botón/editor de Notas y los eventos de edición asociados. Cue.Notes permanece en los datos para conservar archivos anteriores y cultos guardados. La selección del orden prepara el contenido directamente. El iniciador deja de referenciar una carpeta numerada y utiliza artifacts/CultoStudio, que es también el destino predeterminado de build.ps1 -Publish. Antes de publicar, el script comprueba que el ejecutable de ese destino no esté abierto. Se mantienen los directorios de datos existentes; no se incorpora descarga automática de actualizaciones.
+
+Comprobación limitada al cambio: --simple-console falla antes y pasa después, confirmando ausencia de los controles y selección del orden; compilación/publicación en stable-install-publish.log. La prueba de cultos guardados deja de llamar al editor retirado y conserva sus comprobaciones de persistencia de notas antiguas. No se ejecutaron las suites de reproducción o captura para este cambio de interfaz y ruta de instalación.
 
 ### Limpieza y refresco de PowerPoint - 0.40.1
 

@@ -31,6 +31,7 @@ public sealed class BibleCatalog
         "tit", "flm|filem|film", "heb|he", "sant|stg|sgo", "1ped|1pe|1p", "2ped|2pe|2p", "1jn|1jua|1j", "2jn|2jua|2j", "3jn|3jua|3j", "jud|jd", "apoc|ap|apo|revelacion"
     ];
     private static readonly Dictionary<string, int> BookNumbers = CreateBookNumbers();
+    private static readonly string[] SearchBookKeys = Books.Select(BookKey).ToArray();
     private readonly List<BibleVerse> verses;
     private readonly string[] normalizedTexts;
     public BibleDocument Document { get; }
@@ -101,7 +102,7 @@ public sealed class BibleCatalog
     public IReadOnlyList<BibleVerse> FindReference(string query)
     {
         var match = Regex.Match(query?.Trim() ?? "", @"^(?<book>.+?)\s*(?<chapter>\d+)(?:\s*[:.,]\s*|\s+)(?<start>\d+)(?:\s*[-–—]\s*(?<end>\d+))?$", RegexOptions.CultureInvariant);
-        if (!match.Success || !TryBook(match.Groups["book"].Value, out var book) ||
+        if (!match.Success || !TrySearchBook(match.Groups["book"].Value, out var book) ||
             !int.TryParse(match.Groups["chapter"].Value, out var chapter) || chapter <= 0 ||
             !int.TryParse(match.Groups["start"].Value, out var start) || start <= 0)
             throw InvalidReference();
@@ -116,9 +117,9 @@ public sealed class BibleCatalog
     public IReadOnlyList<BibleVerse> FindChapter(string query)
     {
         var match = Regex.Match(query?.Trim() ?? "", @"^(?<book>.+?)\s*(?<chapter>\d+)$", RegexOptions.CultureInvariant);
-        if (!match.Success || !TryBook(match.Groups["book"].Value, out var book)
+        if (!match.Success || !TrySearchBook(match.Groups["book"].Value, out var book)
             || !int.TryParse(match.Groups["chapter"].Value, out var chapter) || chapter <= 0)
-            throw new ArgumentException("El capítulo bíblico es inválido. Use, por ejemplo, Juan 3.", nameof(query));
+            throw new ArgumentException("El capítulo bíblico es inválido. Escribe más letras del libro y su número, si corresponde. Ejemplo: Juan 3.", nameof(query));
         var result = verses.Where(verse => verse.Book == Books[book] && verse.Chapter == chapter).ToArray();
         if (result.Length == 0) throw new ArgumentException("El capítulo no está disponible en la Biblia importada.", nameof(query));
         return result;
@@ -128,7 +129,7 @@ public sealed class BibleCatalog
     {
         query = query?.Trim() ?? "";
         referenceSearch = true;
-        if (TryBook(query, out var book))
+        if (TrySearchBook(query, out var book))
         {
             var first = verses.FirstOrDefault(verse => verse.Book == Books[book]);
             if (first is null) throw InvalidReference();
@@ -207,11 +208,52 @@ public sealed class BibleCatalog
         return string.Join(",", ranges);
     }
 
-    public static bool IsKnownBook(string? value) => TryBook(value, out _);
+    public static bool IsKnownBook(string? value) => TrySearchBook(value, out _);
 
-    private static ArgumentException InvalidReference() => new("La referencia bíblica es inválida o está incompleta en la Biblia importada. Use, por ejemplo, Juan 3:16-17.", "query");
+    private static ArgumentException InvalidReference() => new("La referencia bíblica es inválida o está incompleta en la Biblia importada. Escribe más letras del libro y su número, si corresponde. Ejemplo: Juan 3:16-17.", "query");
     private static IEnumerable<XElement> Children(XElement element, string name) => element.Elements().Where(e => e.Name.LocalName == name);
     private static bool TryBook(string? value, out int number) => BookNumbers.TryGetValue(BookKey(value ?? ""), out number);
+
+    private static bool TrySearchBook(string? value, out int number)
+    {
+        var key = BookKey(value ?? "");
+        if (BookNumbers.TryGetValue(key, out number)) return true;
+        number = -1;
+        if (key.Length < 3 || key.Skip(1).Any(char.IsDigit)) return false;
+        var matches = Enumerable.Range(0, Books.Length)
+            .Where(index => SearchBookKeys[index].StartsWith(key, StringComparison.Ordinal)).ToArray();
+        if (matches.Length == 0 && key.Length >= 4)
+            matches = Enumerable.Range(0, Books.Length).Where(index =>
+            {
+                var candidate = SearchBookKeys[index];
+                // Never add, remove or change the number of a numbered book.
+                return char.IsDigit(key[0]) == char.IsDigit(candidate[0])
+                    && (!char.IsDigit(key[0]) || key[0] == candidate[0]) && WithinOneEdit(key, candidate);
+            }).ToArray();
+        if (matches.Length != 1) return false;
+        number = matches[0];
+        return true;
+    }
+
+    private static bool WithinOneEdit(string first, string second)
+    {
+        if (Math.Abs(first.Length - second.Length) > 1) return false;
+        int left = 0, right = 0, edits = 0;
+        while (left < first.Length && right < second.Length)
+        {
+            if (first[left] == second[right]) { left++; right++; continue; }
+            if (++edits > 1) return false;
+            if (first.Length == second.Length && left + 1 < first.Length
+                && first[left] == second[right + 1] && first[left + 1] == second[right])
+            { left += 2; right += 2; }
+            else
+            {
+                if (first.Length >= second.Length) left++;
+                if (second.Length >= first.Length) right++;
+            }
+        }
+        return edits + first.Length - left + second.Length - right <= 1;
+    }
 
     private static Dictionary<string, int> CreateBookNumbers()
     {

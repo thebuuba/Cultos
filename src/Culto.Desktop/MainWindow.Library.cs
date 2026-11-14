@@ -193,14 +193,14 @@ public partial class MainWindow
     private void RemoveCueClick(object sender, RoutedEventArgs e)
     {
         if (PlanList.SelectedItem is not Cue cue) return;
-        CommitNotes(); _plan.Remove(cue); UpdatePlanCount(); SaveWorkspace();
+        _plan.Remove(cue); UpdatePlanCount(); SaveWorkspace();
         SetStatus("Elemento retirado del orden.");
     }
     private void NewPlanClick(object sender, RoutedEventArgs e)
     {
         var name = PromptDialog.Ask(this, "Nuevo culto", "Nombre del culto", "Culto del sábado");
         if (name is null) return;
-        CommitNotes(); SaveWorkspace();
+        SaveWorkspace();
         try { _store.Archive(_workspace.Plan); }
         catch (Exception ex) { SetStatus("No se pudo guardar el culto anterior: " + ex.Message, true); return; }
         _plan.Clear(); PlanNameBox.Text = name; UpdatePlanCount(); SaveWorkspace();
@@ -215,7 +215,7 @@ public partial class MainWindow
             var plan = JsonFileStore.Load<ServicePlan>(dialog.FileName);
             if (plan?.Items is null || plan.Items.Count > 10000 || plan.Items.Any(c => c is null || !Enum.IsDefined(c.Kind))) throw new InvalidDataException("El archivo no contiene un orden válido.");
             // IDs are refreshed so a loaded plan cannot accidentally match the current live item.
-            CommitNotes(); SaveWorkspace(); _store.Archive(_workspace.Plan);
+            SaveWorkspace(); _store.Archive(_workspace.Plan);
             _plan.Clear(); foreach (var cue in plan.Items) _plan.Add(CopyCue(cue, true));
             PlanNameBox.Text = plan.Name; UpdatePlanCount(); SaveWorkspace();
             SetStatus("Culto abierto.");
@@ -231,7 +231,7 @@ public partial class MainWindow
     }
     private void ExportPlan(string path)
     {
-        CommitNotes(); SaveWorkspace();
+        SaveWorkspace();
         JsonFileStore.Save(path, _workspace.Plan);
         SetStatus("Copia del orden guardada.");
     }

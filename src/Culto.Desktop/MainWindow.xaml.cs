@@ -37,7 +37,6 @@ public partial class MainWindow : Window
     private bool _isPaused;
     private int _displayTick;
     private Point _dragStart;
-    private Cue? _notesCue;
 
     public MainWindow()
     {
@@ -204,24 +203,16 @@ public partial class MainWindow : Window
     private void PlanSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (!_ready) return;
-        CommitNotes();
-        _notesCue = PlanList.SelectedItem as Cue;
-        NotesBox.Text = _notesCue?.Notes ?? "";
-        if (_notesCue is not null) PrepareCue(_notesCue);
+
+        if (PlanList.SelectedItem is Cue cue) PrepareCue(cue);
         else FollowLivePreview();
     }
-    private void CommitNotes()
-    {
-        if (_notesCue is not null && _notesCue.Notes != NotesBox.Text)
-        { _notesCue.Notes = NotesBox.Text; SaveWorkspace(); }
-    }
-    private void NotesChanged(object sender, RoutedEventArgs e) => CommitNotes();
 
     private async void OnWindowClosing(object? sender, CancelEventArgs e)
     {
         if (_closing) return;
         e.Cancel = true;
-        CommitNotes();
+
         if (!SaveWorkspace())
         {
             if (new UnsavedChangesDialog { Owner = this }.ShowDialog() != true)
