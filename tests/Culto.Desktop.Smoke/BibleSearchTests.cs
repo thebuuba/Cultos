@@ -71,8 +71,8 @@ internal static partial class Program
                 var lastPrepared = session.Prepared;
                 query.Text = "Juan 3:";
                 SendKey(Key.Enter);
-                Check(results.Items.Count == 0 && !((Button)window.FindName("AddSelectedBibleButton")).IsEnabled
-                    && !((Button)window.FindName("AddBiblePassageButton")).IsEnabled, "Invalid citation retained an actionable result");
+                Check(results.Items.Count == 0 && window.FindName("AddSelectedBibleButton") is null
+                    && window.FindName("AddBiblePassageButton") is null, "Invalid citation retained an actionable result");
                 Check(ReferenceEquals(lastPrepared, session.Prepared), "Invalid citation replaced prepared content");
                 SendKey(Key.Escape);
                 Check(query.Text.Length == 0 && results.Items.Count == 0, "Escape did not clear the query and results");

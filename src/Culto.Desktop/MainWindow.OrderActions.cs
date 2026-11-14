@@ -10,6 +10,19 @@ public partial class MainWindow
 {
     private Cue? _orderActionCue;
 
+    private void ClearOrderClick(object sender, RoutedEventArgs e)
+    {
+        if (_plan.Count == 0 || MessageBox.Show(this, $"¿Eliminar los {_plan.Count} elementos del orden del culto? La salida actual continuará.",
+            "Eliminar todo el orden", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes) return;
+        ClearOrder();
+    }
+
+    private void ClearOrder()
+    {
+        _plan.Clear(); HideOrderActions(); UpdatePlanCount();
+        if (SaveWorkspace()) SetStatus("Se eliminaron todos los elementos del orden. La salida actual continúa.");
+    }
+
     private void InitializeOrderActions()
     {
         PlanList.PreviewKeyDown += (_, e) =>

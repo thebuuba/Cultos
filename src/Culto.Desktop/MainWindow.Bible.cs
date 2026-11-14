@@ -45,7 +45,7 @@ public partial class MainWindow
         _referenceSearch = false;
         BibleResults.ItemsSource = null;
         BibleResultText.Text = "";
-        UpdateBibleAddActions();
+        UpdateBibleSelectionSummary();
         _updatingBiblePickers = true;
         try
         {
@@ -219,15 +219,6 @@ public partial class MainWindow
             SynchronizeBiblePickers(first.Verse);
             BibleResults.ScrollIntoView(first);
         }
-        UpdateBibleAddActions();
-    }
-    private void UpdateBibleAddActions()
-    {
-        AddSelectedBibleButton.IsEnabled = BibleResults.SelectedItem is BibleResult;
-        AddBiblePassageButton.IsEnabled = BibleResults.SelectedItem is BibleResult && _referenceSearch && _bibleResults.Count > 1;
-        AddBiblePassageButton.Visibility = _referenceSearch && _bibleResults.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
-        AddBiblePassageButton.Content = $"Separados ({_bibleResults.Count:N0})";
-        AddBiblePassageButton.ToolTip = $"Añadir los {_bibleResults.Count:N0} versículos mostrados como elementos separados del orden.";
         UpdateBibleSelectionSummary();
     }
     private void SearchBible()
@@ -250,7 +241,7 @@ public partial class MainWindow
         _bibleResults = [];
         BibleResults.ItemsSource = _bibleResults;
         BibleResultText.Text = message;
-        UpdateBibleAddActions();
+        UpdateBibleSelectionSummary();
     }
     private void BibleSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -262,7 +253,7 @@ public partial class MainWindow
             // WPF keeps the keyboard's moving end visible during Shift selection.
             if (BibleResults.SelectedItems.Count == 1) BibleResults.ScrollIntoView(result);
         }
-        UpdateBibleAddActions();
+        UpdateBibleSelectionSummary();
     }
     private void BibleResultsDoubleClick(object sender, MouseButtonEventArgs e)
     {
@@ -286,20 +277,5 @@ public partial class MainWindow
         if (!BibleResults.SelectedItems.Contains(result)) BibleResults.SelectedItem = result;
         PrepareBibleSelection();
         ProjectPreparedFromInput();
-    }
-    private void AddSelectedBibleToPlanClick(object sender, RoutedEventArgs e)
-    {
-        if (SelectedBibleCue() is not Cue selected) { SetStatus("Busca y selecciona primero un versículo."); return; }
-        _plan.Add(CopyCue(selected, true));
-        UpdatePlanCount(); SaveWorkspace();
-        SetStatus($"Añadido al orden: {selected.Reference}.");
-    }
-    private void AddBibleToPlanClick(object sender, RoutedEventArgs e)
-    {
-        if (BibleResults.SelectedItem is not BibleResult selected) { SetStatus("Busca y selecciona primero un pasaje."); return; }
-        var results = _referenceSearch ? _bibleResults : [selected];
-        foreach (var item in results) _plan.Add(CopyCue(item.Cue, true));
-        UpdatePlanCount(); SaveWorkspace();
-        SetStatus(results.Count == 1 ? "Lectura añadida al orden: 1 versículo." : $"Lectura añadida al orden: {results.Count} versículos.");
     }
 }

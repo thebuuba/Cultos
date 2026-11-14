@@ -140,6 +140,18 @@ internal static partial class Program
                 foreach (var entry in new[] { ("AddOrderLibrary", 0, "SourcesPanel"), ("AddOrderBible", 1, "BiblePanel"), ("AddOrderText", 2, "TextPanel") })
                 {
                     var item = add!.ContextMenu!.Items.OfType<MenuItem>().Single(i => i.Name == entry.Item1);
+                    if (entry.Item1 == "AddOrderText")
+                    {
+                        var opened = false;
+                        window.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ApplicationIdle, new Action(() =>
+                        {
+                            var editor = Application.Current.Windows.OfType<Culto.Desktop.Dialogs.CueEditDialog>().Single();
+                            opened = true; editor.DialogResult = false;
+                        }));
+                        item.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+                        Check(opened && ReferenceEquals(session.Live, live), "Announcement editor did not open independently of notes and live output");
+                        continue;
+                    }
                     item.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
                     Check(Field<int>(window, "_activeContentSource") == entry.Item2 && ReferenceEquals(manager.ActiveContent, window.FindName(entry.Item3)),
                         "Add menu opened wrong source");

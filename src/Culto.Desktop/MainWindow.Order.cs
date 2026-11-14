@@ -44,7 +44,7 @@ public partial class MainWindow
     {
         if (sender is not MenuItem item || !int.TryParse(item.Tag?.ToString(), out var source)) return;
         SelectContentSource(source);
-        SetStatus(source switch { 1 => "Biblia", 2 => "Texto", _ => "Biblioteca" });
+        SetStatus(source switch { 1 => "Biblia", 2 => "Notas", _ => "Biblioteca" });
     }
 
     private async void AddOrderFilesClick(object sender, RoutedEventArgs e)

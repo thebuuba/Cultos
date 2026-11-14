@@ -84,7 +84,7 @@ internal static partial class Program
             {
                 var live = session.Live;
                 var bible = (TextBox)window.FindName("BibleQuery");
-                var text = (TextBox)window.FindName("TextBodyBox");
+                var text = (TextBox)window.FindName("NotesSearchBox");
                 foreach (var entry in new[] { (Key.D1, 0, search), (Key.D2, 1, bible), (Key.D3, 2, text) })
                 {
                     entry.Item3.Text = "Consulta sintÃ©tica";
@@ -103,7 +103,7 @@ internal static partial class Program
             {
                 var manager = (DockingManager)window.FindName("WorkspaceDock");
                 var live = session.Live;
-                foreach (var entry in new[] { ("sources", 0, "LibrarySearch"), ("bible", 1, "BibleQuery"), ("text", 2, "TextBodyBox"), ("youtube", 3, "YouTubeList") })
+                foreach (var entry in new[] { ("sources", 0, "LibrarySearch"), ("bible", 1, "BibleQuery"), ("text", 2, "NotesSearchBox"), ("youtube", 3, "YouTubeList") })
                 {
                     Call(window, "ActivateWorkspacePanel", entry.Item1);
                     Until(() => Field<int>(window, "_activeContentSource") == entry.Item2, "Native panel activation left source shortcuts stale");

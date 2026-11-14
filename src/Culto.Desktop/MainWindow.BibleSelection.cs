@@ -54,6 +54,5 @@ public partial class MainWindow
             ? (BibleResults.SelectedItem as BibleResult)?.Reference ?? ""
             : $"{count} versículos · {SelectedBibleCue()?.Reference}";
         BibleSelectionText.Visibility = count > 0 ? Visibility.Visible : Visibility.Collapsed;
-        AddSelectedBibleButton.Content = count > 1 ? "+ Selección al orden" : "+ Versículo al orden";
     }
 }

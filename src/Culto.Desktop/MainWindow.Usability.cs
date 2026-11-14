@@ -43,6 +43,8 @@ public partial class MainWindow
         if (ReferenceEquals(WorkspaceDock.ActiveContent, MediaPanel) || WorkspaceDock.ActiveContent is null && MediaPanel.IsKeyboardFocusWithin)
         { MediaSearch.Focus(); MediaSearch.SelectAll(); return; }
         UpdateActiveContentSource();
+        if (_activeContentSource == 2 && NotesEditor.Visibility == Visibility.Visible)
+        { FlushNotesSave(); ShowNotesList(); }
         SelectContentSource(_activeContentSource);
     }
     private void FocusContentSourceSearch()
@@ -52,7 +54,7 @@ public partial class MainWindow
         {
             0 => LibrarySearch,
             1 => BibleQuery,
-            _ => TextBodyBox
+            _ => NotesEditor.Visibility == Visibility.Visible ? NotesBodyBox : NotesSearchBox
         };
         target.Focus();
         if (!ReferenceEquals(target, BibleQuery) || !SelectBibleQueryBook()) target.SelectAll();

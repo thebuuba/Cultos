@@ -26,19 +26,18 @@ public partial class MainWindow
     {
         if (!_ready) return;
         var query = LibrarySearch.Text.Trim();
-        var filter = LibraryFilter.SelectedIndex;
+        var filter = (LibraryFilter.SelectedItem as ListBoxItem)?.Tag?.ToString() ?? "All";
         var sourceItems = _workspace.Library.Where(cue => cue.Kind != CueKind.WindowCapture).ToList();
         var numericQuery = query.Length > 0 && query.All(char.IsAsciiDigit);
-        var exactHymnSearch = numericQuery && filter is 0 or 1;
+        var exactHymnSearch = numericQuery && filter is "All" or "Hymns";
         var validNumber = int.TryParse(query, out var number);
         var items = sourceItems.Where(cue => query.Length == 0
             || (numericQuery && validNumber && cue.HymnNumber == number)
             || (!exactHymnSearch && cue.Title.Contains(query, StringComparison.CurrentCultureIgnoreCase)));
         items = filter switch
         {
-            1 => items.Where(c => c.HymnNumber.HasValue), 2 => items.Where(c => c.Kind == CueKind.Video),
-            3 => items.Where(c => c.Kind == CueKind.Image), 4 => items.Where(c => c.Kind == CueKind.Audio),
-            5 => items.Where(c => c.Kind == CueKind.Text), 7 => items.Where(c => c.Kind == CueKind.PowerPoint), _ => items
+            "Hymns" => items.Where(c => c.HymnNumber.HasValue),
+            "Audio" => items.Where(c => c.Kind == CueKind.Audio), _ => items
         };
         var selectedId = (LibraryList.SelectedItem as Cue)?.Id;
         _refreshingLibrary = true;
@@ -171,16 +170,11 @@ public partial class MainWindow
         if (cue.Kind == CueKind.Text) cue.Body = dialog.Body;
         RefreshLibrary(); SaveWorkspace(); PrepareCue(cue);
     }
-    private Cue CreateTextCue() => new() { Title = string.IsNullOrWhiteSpace(TextTitleBox.Text) ? "Texto" : TextTitleBox.Text.Trim(), Body = TextBodyBox.Text.Trim(), Kind = CueKind.Text };
-    private void PrepareTextClick(object sender, RoutedEventArgs e)
+    private void AddOrderTextClick(object sender, RoutedEventArgs e)
     {
-        if (string.IsNullOrWhiteSpace(TextBodyBox.Text)) { SetStatus("Escribe el texto que quieres proyectar."); return; }
-        PrepareCue(CreateTextCue());
-    }
-    private void SaveTextClick(object sender, RoutedEventArgs e)
-    {
-        if (string.IsNullOrWhiteSpace(TextBodyBox.Text)) { SetStatus("Escribe el texto que quieres guardar."); return; }
-        var cue = CreateTextCue(); _workspace.Library.Add(cue); RefreshLibrary(); AddToPlan(cue);
+        var dialog = new CueEditDialog(new Cue { Kind = CueKind.Text, Title = "Texto" }) { Owner = this };
+        if (dialog.ShowDialog() != true || string.IsNullOrWhiteSpace(dialog.Body)) return;
+        AddToPlan(new Cue { Kind = CueKind.Text, Title = dialog.CueTitle, Body = dialog.Body });
     }
     private void MoveUpClick(object sender, RoutedEventArgs e) => MoveSelected(-1);
     private void MoveDownClick(object sender, RoutedEventArgs e) => MoveSelected(1);

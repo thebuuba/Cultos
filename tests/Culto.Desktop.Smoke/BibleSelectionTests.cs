@@ -109,7 +109,7 @@ internal static partial class Program
                 Check(results.SelectedItems.Count == 3, "Enter collapsed the range selection");
             });
 
-            Test("Bible add and drag insert one independent grouped cue without changing original verses or live", () =>
+            Test("Bible drag inserts one independent grouped cue without changing original verses or live", () =>
             {
                 Search("Génesis 1");
                 SelectVerses(2, 3, 4);
@@ -119,19 +119,14 @@ internal static partial class Program
                 var combinedId = session.Prepared!.Id;
                 var live = session.Live;
                 var count = plan.Count;
-                Call(window, "AddSelectedBibleToPlanClick", window, new RoutedEventArgs());
-                Check(plan.Count == count + 1, "Adding selection inserted separate verse rows");
-                var added = plan[^1];
-                CheckPassage(added, "Génesis 1:2-4", 2, 3, 4);
-                Check(added.Id != combinedId && !originalIds.Contains(added.Id), "Added passage reused source identity");
                 var member = results.Items.Cast<BibleResult>().Single(result => result.Verse.Verse == 3);
                 var data = Call(window, "CreateContentDragData", results, member.Cue) as IDataObject;
                 Check(data is not null, "Selected passage could not create a drag payload");
                 var effect = (DragDropEffects)Call(window, "ApplyContentDrop", data!, plan.Count)!;
-                Check(effect == DragDropEffects.Copy && plan.Count == count + 2, "Dragging selection did not insert exactly one cue");
+                Check(effect == DragDropEffects.Copy && plan.Count == count + 1, "Dragging selection did not insert exactly one cue");
                 var dragged = plan[^1];
                 CheckPassage(dragged, "Génesis 1:2-4", 2, 3, 4);
-                Check(dragged.Id != added.Id && dragged.Id != combinedId && !originalIds.Contains(dragged.Id), "Dragged passage reused an existing identity");
+                Check(dragged.Id != combinedId && !originalIds.Contains(dragged.Id), "Dragged passage reused an existing identity");
                 Check(originalCues.Select(cue => cue.Id).SequenceEqual(originalIds)
                     && originalCues.Select(cue => cue.Body).SequenceEqual(originalBodies), "Adding or dragging mutated source verses");
                 Check(ReferenceEquals(live, session.Live), "Adding or dragging a passage changed live output");

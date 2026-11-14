@@ -11,14 +11,14 @@ internal static class WorkspaceLayouts
 
     internal static string Title(string id) => id switch
     {
-        "sources" => "Himnario", "bible" => "Biblia", "text" => "Texto", "youtube" => "YouTube",
+        "sources" => "Himnario", "bible" => "Biblia", "text" => "Notas", "youtube" => "YouTube",
         "preview" => "Monitores", "output" => "En pantalla", "order" => "Orden del culto",
         "playlists" => "Lista de videos", "powerpoint" => "PowerPoint", "media" => "Medios", "scenes" => "Escenas", _ => id
     };
 
     internal static double MinimumWidth(string? id) => id switch
     {
-        "scenes" => 156, "bible" => 200, "preview" => 620, "output" => 220, _ => 180
+        "scenes" => 156, "bible" => 200, "text" => 240, "preview" => 620, "output" => 220, _ => 180
     };
 
     internal static double MinimumHeight(string? id) => id switch

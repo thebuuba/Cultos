@@ -18,12 +18,12 @@
       <ControlTemplate.Triggers>
         <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="TabSurface" Property="Background" Value="{StaticResource RaisedBrush}"/></Trigger>
         <Trigger Property="IsSelected" Value="True">
-          <Setter TargetName="TabSurface" Property="Background" Value="{StaticResource FocusSurfaceBrush}"/>
-          <Setter Property="Foreground" Value="{StaticResource OnActionBrush}"/>
+          <Setter TargetName="TabSurface" Property="Background" Value="{DynamicResource PanelTabSelectionBrush}"/>
+          <Setter Property="Foreground" Value="{DynamicResource PanelTabSelectionInk}"/>
         </Trigger>
         <Trigger Property="IsKeyboardFocusWithin" Value="True">
-          <Setter TargetName="TabSurface" Property="Background" Value="{StaticResource FocusSurfaceBrush}"/>
-          <Setter Property="Foreground" Value="{StaticResource OnActionBrush}"/>
+          <Setter TargetName="TabSurface" Property="Background" Value="{DynamicResource PanelTabSelectionBrush}"/>
+          <Setter Property="Foreground" Value="{DynamicResource PanelTabSelectionInk}"/>
         </Trigger>
       </ControlTemplate.Triggers>
     </ControlTemplate>
@@ -308,7 +308,7 @@
             <MenuItem Header="Orden del culto" Tag="order" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
             <MenuItem Header="Himnario" Tag="sources" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
             <MenuItem Header="Biblia" Tag="bible" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
-            <MenuItem Header="Texto" Tag="text" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
+            <MenuItem Header="Notas" Tag="text" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
             <MenuItem Header="YouTube" Tag="youtube" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
             <MenuItem Header="Medios" Tag="media" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
             <MenuItem Header="Lista de videos" Tag="playlists" IsCheckable="True" StaysOpenOnClick="True" Click="ShowWorkspacePanelClick"/>
@@ -542,6 +542,7 @@
                 <MenuItem Header="Bajar elemento" Click="MoveDownClick"/>
                 <Separator/>
                 <MenuItem Header="Quitar del orden" Click="RemoveCueClick"/>
+                <MenuItem x:Name="ClearOrderMenuItem" Header="Eliminar todo" Click="ClearOrderClick"/>
                 <Separator/>
                 <MenuItem Header="Guardar culto…" Click="SaveServiceClick"/>
                 <MenuItem Header="Cultos guardados…" Click="SavedServicesClick"/>
@@ -567,7 +568,7 @@
                 <Button.ContextMenu><ContextMenu>
                   <MenuItem x:Name="AddOrderLibrary" Header="Himno o contenido de biblioteca…" Tag="0" Click="AddOrderSourceClick"/>
                   <MenuItem x:Name="AddOrderBible" Header="Pasaje de la Biblia…" Tag="1" Click="AddOrderSourceClick"/>
-                  <MenuItem x:Name="AddOrderText" Header="Texto o anuncio…" Tag="2" Click="AddOrderSourceClick"/>
+                  <MenuItem x:Name="AddOrderText" Header="Texto o anuncio…" Click="AddOrderTextClick"/>
                   <MenuItem Header="Colección de videos…" Click="VideoCollectionsClick"/>
                   <MenuItem Header="Culto guardado…" Click="SavedServicesClick"/>
                   <Separator/>
@@ -646,7 +647,7 @@
               </Grid>
               <ListBox x:Name="LibraryFilter" Grid.Row="1" SelectedIndex="0" SelectionChanged="LibraryFilterChanged" ItemContainerStyle="{StaticResource FilterChip}" Margin="0,10,0,2" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled" AutomationProperties.Name="Categoría de la biblioteca">
                 <ListBox.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ListBox.ItemsPanel>
-                <ListBoxItem Content="Todo"/><ListBoxItem Content="Himnos"/><ListBoxItem Content="Videos" Visibility="Collapsed"/><ListBoxItem Content="Imágenes" Visibility="Collapsed"/><ListBoxItem Content="Audio"/><ListBoxItem Content="Textos"/><ListBoxItem Content="Descargas" Visibility="Collapsed"/><ListBoxItem Content="PowerPoint"/>
+                <ListBoxItem Content="Todo" Tag="All"/><ListBoxItem Content="Himnos" Tag="Hymns"/><ListBoxItem Content="Audio" Tag="Audio"/>
               </ListBox>
               <Grid Grid.Row="2" Margin="2,4,0,8">
                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -751,29 +752,62 @@
                   </StackPanel>
                 </Grid></DataTemplate></ListBox.ItemTemplate>
               </ListBox>
-              <Grid Grid.Row="5" Margin="0,10,0,0">
-                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                <Button x:Name="AddSelectedBibleButton" Content="+ Versículo al orden" Click="AddSelectedBibleToPlanClick" FontSize="12" Padding="6,7" MinHeight="38"/>
-                <Button Grid.Row="1" x:Name="AddBiblePassageButton" Content="Pasaje" Click="AddBibleToPlanClick" Visibility="Collapsed" Margin="0,6,0,0" FontSize="12" Padding="6,7" MinHeight="38"/>
-              </Grid>
             </Grid>
           </Border>
 </ad:LayoutAnchorable>
-<ad:LayoutAnchorable Title="Texto" ContentId="text" CanClose="False" CanHide="True" CanAutoHide="False" CanDockAsTabbedDocument="False">
+<ad:LayoutAnchorable Title="Notas" ContentId="text" CanClose="False" CanHide="True" CanAutoHide="False" CanDockAsTabbedDocument="False">
 <Border x:Name="TextPanel" Background="{StaticResource PanelBrush}" CornerRadius="0" Padding="14,4,14,14">
-            <Grid>
-              <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-              <StackPanel>
-                <TextBlock Text="Título" Style="{StaticResource MutedText}"/>
-                <TextBox x:Name="TextTitleBox" Text="Bienvenidos" Margin="0,6,0,12" AutomationProperties.Name="Título del texto"/>
-              </StackPanel>
-              <TextBlock Grid.Row="1" Text="Mensaje para la congregación" Style="{StaticResource MutedText}" Margin="0,0,0,6"/>
-              <TextBox Grid.Row="2" x:Name="TextBodyBox" Text="Nos alegra compartir este culto contigo." AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top" FontSize="17" AutomationProperties.Name="Texto para proyectar"/>
-              <StackPanel Grid.Row="3" Margin="0,12,0,0">
-                <Button Content="Preparar texto" Click="PrepareTextClick" MinHeight="40"/>
-                <Button Content="+ Guardar en biblioteca y orden" Click="SaveTextClick" Margin="0,6,0,0" MinHeight="40"/>
-              </StackPanel>
-            </Grid>
+  <Grid>
+    <Grid x:Name="NotesOverview">
+      <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+      <DockPanel Margin="0,0,0,10">
+        <Button DockPanel.Dock="Right" Content="+ Nueva" Click="NewNoteClick" Background="#FFE08A" Foreground="{StaticResource OnActionBrush}" MinHeight="34" Padding="12,5" AutomationProperties.Name="Crear nota"/>
+        <TextBlock Text="Mis notas" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>
+      </DockPanel>
+      <Grid Grid.Row="1" Margin="0,0,0,10">
+        <TextBox x:Name="NotesSearchBox" TextChanged="NotesSearchChanged" AutomationProperties.Name="Buscar en las notas" ToolTip="Buscar en títulos y contenido"/>
+        <TextBlock Text="Buscar notas" Margin="13,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="12">
+          <TextBlock.Style><Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/><Setter Property="Visibility" Value="Collapsed"/>
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding Text, ElementName=NotesSearchBox}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger>
+              <DataTrigger Binding="{Binding IsKeyboardFocused, ElementName=NotesSearchBox}" Value="True"><Setter Property="Foreground" Value="{StaticResource OnActionBrush}"/></DataTrigger>
+            </Style.Triggers>
+          </Style></TextBlock.Style>
+        </TextBlock>
+      </Grid>
+      <Grid Grid.Row="2">
+        <ListBox x:Name="NotesList" SelectionChanged="NotesSelectionChanged" AutomationProperties.Name="Notas guardadas en esta PC">
+          <ListBox.ItemTemplate><DataTemplate><StackPanel>
+            <TextBlock Text="{Binding DisplayTitle}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis"/>
+            <TextBlock Text="{Binding ModifiedLabel}" FontSize="12" Style="{StaticResource ItemMetadataText}" Margin="0,4,0,0"/>
+            <TextBlock Text="{Binding Preview}" FontSize="12" Style="{StaticResource ItemMetadataText}" TextTrimming="CharacterEllipsis" Margin="0,4,0,0"/>
+          </StackPanel></DataTemplate></ListBox.ItemTemplate>
+        </ListBox>
+        <TextBlock x:Name="NotesEmptyText" Style="{StaticResource MutedText}" TextAlignment="Center" VerticalAlignment="Center" Margin="12" IsHitTestVisible="False"/>
+      </Grid>
+      <TextBlock Grid.Row="3" x:Name="NotesCountText" Style="{StaticResource MutedText}" Margin="0,10,0,0"/>
+    </Grid>
+    <Grid x:Name="NotesEditor" Visibility="Collapsed">
+      <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Content="Eliminar nota" Click="DeleteNoteClick" FontSize="12" Padding="9,5" MinHeight="32"/>
+        <Button Content="‹ Notas" Click="NotesBackClick" HorizontalAlignment="Left" FontSize="12" Padding="9,5" MinHeight="32"/>
+      </DockPanel>
+      <StackPanel Grid.Row="1" Margin="0,8,0,3">
+        <TextBlock Text="Título" Style="{StaticResource MutedText}"/>
+        <TextBox x:Name="NotesTitleBox" FontSize="18" FontWeight="SemiBold" TextChanged="NotesChanged" Background="Transparent" Foreground="{StaticResource TextBrush}" BorderThickness="0" AutomationProperties.Name="Título de la nota"/>
+      </StackPanel>
+      <TextBlock Grid.Row="2" x:Name="NotesModifiedText" Style="{StaticResource MutedText}" Margin="0,0,0,10"/>
+      <Grid Grid.Row="3">
+        <TextBox x:Name="NotesBodyBox" TextChanged="NotesChanged" AcceptsReturn="True" AcceptsTab="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top" FontSize="15" Background="Transparent" Foreground="{StaticResource TextBrush}" BorderThickness="0" AutomationProperties.Name="Contenido de la nota"/>
+        <TextBlock Text="Escribe tu nota…" Margin="13,9,0,0" VerticalAlignment="Top" IsHitTestVisible="False">
+          <TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource MutedText}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Text, ElementName=NotesBodyBox}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+        </TextBlock>
+      </Grid>
+      <TextBlock Grid.Row="4" x:Name="NotesSaveState" Style="{StaticResource MutedText}" Margin="0,8,0,0"/>
+    </Grid>
+  </Grid>
           </Border>
 </ad:LayoutAnchorable>
 <ad:LayoutAnchorable Title="YouTube" ContentId="youtube" CanClose="False" CanHide="True" CanAutoHide="False" CanDockAsTabbedDocument="False">

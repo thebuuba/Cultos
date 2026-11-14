@@ -121,48 +121,20 @@ internal static partial class Program
                 UnchangedLive();
             });
 
-            Test("Adding a selected verse and adding its whole passage are separate explicit actions", () =>
+            Test("Bible omits the selected-verse and separate-passage buttons", () =>
             {
-                var plan = Field<ObservableCollection<Cue>>(window, "_plan");
-                var oldPlan = plan.ToArray();
-                try
-                {
-                    book.SelectedItem = "Salmos";
-                    verse.SelectedItem = 176;
-                    var addSelected = (Button)window.FindName("AddSelectedBibleButton");
-                    var addPassage = (Button)window.FindName("AddBiblePassageButton");
-                    Check(addPassage.Visibility == Visibility.Visible && addPassage.Content?.ToString() == "Separados (176)",
-                        "Whole-passage action does not identify the 176 verses that it will add");
-                    addSelected.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                    Check(plan.Count == oldPlan.Length + 1 && plan[^1].Reference == "Salmos 119:176",
-                        "Adding the selected verse unexpectedly added the chapter or a different verse");
-                    UnchangedLive();
-                    addPassage.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                    var passage = plan.Skip(oldPlan.Length + 1).ToArray();
-                    Check(plan.Count == oldPlan.Length + 177 && passage.Length == 176,
-                        "Whole-passage action did not add exactly the 176 displayed verses");
-                    Check(passage[0].Reference == "Salmos 119:1" && passage[^1].Reference == "Salmos 119:176",
-                        "Whole passage was not appended in verse order");
-                    UnchangedLive();
-                    Search("marcador comun");
-                    Check(addPassage.Visibility == Visibility.Collapsed, "Phrase results offer an ambiguous add-all action");
-                }
-                finally
-                {
-                    plan.Clear(); foreach (var cue in oldPlan) plan.Add(cue);
-                    Call(window, "UpdatePlanCount"); Call(window, "SaveWorkspace");
-                }
+                Check(window.FindName("AddSelectedBibleButton") is null && window.FindName("AddBiblePassageButton") is null,
+                    "Retired Bible buttons remain");
             });
 
             Test("Invalid chapter lookup preserves prepared content and clears stale actions", () =>
             {
                 var prepared = session.Prepared;
-                var addPassage = (Button)window.FindName("AddBiblePassageButton");
                 Search("Juan 999");
                 Check(resultText.Text.Contains("capítulo", StringComparison.OrdinalIgnoreCase), "Missing chapter did not show a Spanish chapter error");
                 Check(ReferenceEquals(prepared, session.Prepared), "Invalid query discarded valid prepared content");
                 Check(results.Items.Count == 0 && results.SelectedItem is null, "Invalid query retained stale search results");
-                Check(!addPassage.IsEnabled && !((Button)window.FindName("AddSelectedBibleButton")).IsEnabled, "Invalid query retained an enabled add action");
+                Check(window.FindName("AddBiblePassageButton") is null && window.FindName("AddSelectedBibleButton") is null, "Invalid query retained an enabled add action");
                 UnchangedLive();
             });
         }

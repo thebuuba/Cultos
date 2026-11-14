@@ -101,6 +101,7 @@ public partial class MainWindow : Window
         InitializeDocking();
         _session.Changed += UpdateSessionLabels;
         _ready = true;
+        InitializeNotes();
         RefreshVideoLists();
         InitializeYouTube();
         InitializeScenes();

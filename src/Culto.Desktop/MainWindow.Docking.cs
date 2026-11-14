@@ -163,6 +163,18 @@ public partial class MainWindow
         }
         if (root is LayoutAnchorableTabItem tab)
         {
+            if (tab.Model?.ContentId is { } id)
+                for (var parent = VisualTreeHelper.GetParent(tab); parent is not null; parent = VisualTreeHelper.GetParent(parent))
+                    if (parent is TabItem container)
+                    {
+                        var color = GetPanelTabColor(id);
+                        if (!ReferenceEquals(container.Resources["PanelTabSelectionBrush"], color))
+                            container.Resources["PanelTabSelectionBrush"] = color;
+                        var ink = (Brush)FindResource(id is "youtube" or "powerpoint" ? "TextBrush" : "OnActionBrush");
+                        if (!ReferenceEquals(container.Resources["PanelTabSelectionInk"], ink))
+                            container.Resources["PanelTabSelectionInk"] = ink;
+                        break;
+                    }
             // This is the label inside the native TabItem, not a card surface.
             tab.FontSize = 13;
             tab.FontFamily = (FontFamily)FindResource("ConsoleFont");

@@ -4,6 +4,16 @@ Comprobación actualizada el 14 de noviembre de 2026 en esta PC Windows. Entrega
 
 ## Compilación y pruebas
 
+### Notas locales y vaciado del orden
+
+Notas sustituye a Texto conservando el identificador de panel para recuperar las distribuciones anteriores. Guarda una lista independiente de notas con título, cuerpo, fecha, búsqueda y autoguardado en el espacio local; el cierre también guarda la edición pendiente. Las notas no preparan ni proyectan contenido. Los anuncios siguen disponibles desde Agregar en el orden mediante su propio editor.
+
+`--notes` verifica los controles retirados, creación de varias notas, guardado automático sin botón, conservación de sangrías y tildes, búsqueda por contenido y recuperación en una segunda ventana recién iniciada. Comprueba la eliminación de una nota y que vaciar el orden persista sin eliminar notas o biblioteca ni cambiar el contenido o la instancia de salida. Capturas en `.tools/notes/`. `--bible-projection` verifica envío, rangos, selección múltiple y arrastre al orden con los botones retirados.
+
+### Colores de las pestañas seleccionadas
+
+Himnario utiliza amarillo suave; Biblia, azul; YouTube, rojo; Medios, amarillo de carpeta; PowerPoint, naranja; Texto, violeta, y Lista de videos, verde menta. El texto seleccionado cambia a claro en YouTube y PowerPoint para conservar contraste. Los paneles adicionales reciben un color aleatorio que no coincide con los colores reservados ni con los ya asignados; se conserva en `WorkspaceData.PanelTabColors` al guardar el espacio de trabajo. `--tab-text` comprueba las siete selecciones, contraste, veinte asignaciones distintas, persistencia y un panel nuevo incorporado a la tira.
+
 ### Revisión completa de tipografía de la interfaz
 
 `--text-audit` recorre las siete pestañas de fuentes a 1480×900 y 1200×680, los menús y submenús visibles, un panel desacoplado, la tarjeta de arrastre y quince ventanas y variantes de diálogo de la aplicación. Incluye tamaños compactos, el editor del mando, texto con acentos y cifras. El inventario y las capturas quedan en `.tools/text-audit/coverage.txt` y `.tools/text-audit/`. La comprobación exige la fuente de consola en las etiquetas, al menos 12 DIP y ausencia de transformaciones que reduzcan ese tamaño o sombras que rastericen contenedores con texto. Las fuentes de contenido proyectado elegidas por el usuario se verifican aparte con las pruebas de estilo y editor bíblico.

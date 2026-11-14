@@ -39,6 +39,8 @@ public sealed class WorkspaceData
     public int MediaFolderFilter { get; set; } = 2;
     public string? MediaCustomFolderPath { get; set; }
     public bool MediaSortDescending { get; set; }
+    public Dictionary<string, string> PanelTabColors { get; set; } = [];
+    public List<WorkspaceNote> Notes { get; set; } = [];
 }
 
 public sealed class WorkspaceStore
@@ -57,6 +59,9 @@ public sealed class WorkspaceStore
         if (data is not null)
         {
             data.Plan ??= new(); data.Plan.Items ??= []; data.Library ??= []; data.Deck ??= [];
+            data.PanelTabColors ??= [];
+            data.Notes = (data.Notes ?? []).Where(note => note is not null).ToList();
+            foreach (var note in data.Notes) { note.Title ??= ""; note.Body ??= ""; }
             data.YouTubeSources = (data.YouTubeSources ?? []).Where(cue => cue is not null && cue.Kind == CueKind.WindowCapture).ToList();
             data.BrowserSources = (data.BrowserSources ?? []).Where(cue => cue is not null && cue.Kind == CueKind.BrowserSource
                 && cue.Browser is not null).ToList();
