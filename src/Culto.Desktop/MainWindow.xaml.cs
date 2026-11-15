@@ -65,6 +65,8 @@ public partial class MainWindow : Window
 
     private void InitializeWorkspace()
     {
+        var workspacePath = Path.Combine(_store.DirectoryPath, "workspace.json");
+        var hadWorkspace = File.Exists(workspacePath) || File.Exists(workspacePath + ".bak");
         string? recoveryMessage = null;
         try
         {
@@ -118,6 +120,7 @@ public partial class MainWindow : Window
         _standbyOutput.PreparePlaybackEngine();
         ShowStartupLogo();
         if (recoveryMessage is not null) SetStatus(recoveryMessage, true);
+        ScheduleFirstRunSetup(hadWorkspace);
     }
 
     private void PrepareCue(Cue cue, IReadOnlyList<Cue>? reading = null)

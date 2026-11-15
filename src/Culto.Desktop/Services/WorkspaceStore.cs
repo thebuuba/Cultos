@@ -5,6 +5,17 @@ namespace Culto.Desktop.Services;
 
 public sealed class WorkspaceData
 {
+    private string _churchName = "";
+    public string ChurchName
+    {
+        get => _churchName;
+        set
+        {
+            var name = value?.Trim() ?? "";
+            _churchName = name.Length > 100 ? name[..100] : name;
+        }
+    }
+    public bool FirstRunCompleted { get; set; }
     public ServicePlan Plan { get; set; } = new();
     public List<Cue> Library { get; set; } = [];
     public List<Cue> YouTubeSources { get; set; } = [];

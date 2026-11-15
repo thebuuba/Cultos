@@ -253,6 +253,7 @@
         </Button>
         <Button x:Name="SettingsMenuButton" Content="_Configuración" Style="{StaticResource MenuBarButton}" Click="OpenActionsClick" AutomationProperties.Name="Configuración">
           <Button.ContextMenu><ContextMenu>
+            <MenuItem x:Name="ChurchSettingsMenu" Header="Datos de la iglesia…" Click="ChurchSettingsClick"/>
             <MenuItem Header="Pantallas y salida…" Click="DisplayClick"/>
             <MenuItem Header="Transición del sistema…" Click="TransitionSettingsClick"/>
             <MenuItem Header="Presentador USB">

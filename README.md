@@ -1,5 +1,7 @@
 # Culto Studio
 
+En **0.41.0**, las instalaciones nuevas muestran una bienvenida para guardar el nombre de la iglesia. Se puede cambiar desde **Configuración → Datos de la iglesia**. Los cultos y ajustes existentes se conservan. Para preparar una distribución limpia con instalación por usuario y acceso directo, usa `scripts/package-release.ps1 -SourceDirectory <carpeta-publicada>`; consulta `docs/PRIMEROS-PASOS.md`.
+
 En **0.40.14**, **Transiciones → Efecto del fundido de audio** permite elegir **Fundido con reverberación catedral**. Ajusta la intensidad y la cola, pulsa **Probar audio** y guarda. El efecto se aplica al medio o himno que sale y deja seco el siguiente. Activarlo durante una reproducción se aplica a los medios que inicies después; el fundido normal sigue siendo la opción predeterminada.
 
 Los ajustes de **Transiciones** reúnen los perfiles guardados, una vista previa independiente y tarjetas para la duración visual y los fundidos de audio, con barras verde lima, violeta y cian. **Move** incluye selectores de posición, gráficas de suavizado y controles separados de entrada y salida. Guardar aplica los cambios; Cancelar conserva la configuración anterior.
