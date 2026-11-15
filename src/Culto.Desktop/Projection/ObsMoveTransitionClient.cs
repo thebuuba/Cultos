@@ -27,7 +27,7 @@ internal sealed class ObsMoveTransitionClient : IDisposable
         && File.Exists(Path.Combine(RuntimePath, "obs-plugins", "64bit", "move-transition.dll"));
 
     public async Task RenderAsync(string outgoing, string incoming, int width, int height, int milliseconds,
-        Action<byte[]> onFrame, CancellationToken cancellationToken)
+        Action<byte[]> onFrame, CancellationToken cancellationToken, MoveOptions? move = null)
     {
         await _requestLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -37,7 +37,7 @@ internal sealed class ObsMoveTransitionClient : IDisposable
             timeout.CancelAfter(TimeSpan.FromMilliseconds(30_000L + milliseconds));
             var token = timeout.Token;
             await EnsureConnected(width, height, token).ConfigureAwait(false);
-            var command = new ObsMoveCommand(outgoing, incoming, milliseconds);
+            var command = new ObsMoveCommand(outgoing, incoming, milliseconds, move?.Normalize());
             await _protocol!.WriteAsync(ObsMoveMessageType.Command, ObsMoveProtocol.EncodeCommand(command), token).ConfigureAwait(false);
             var frameLength = ObsMoveProtocol.FrameByteCount(width, height);
             var receivedFrame = false;

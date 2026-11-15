@@ -26,6 +26,17 @@ internal static class Program
                 await capture.RunAsync(ObsCaptureCommand.Decode(command.Payload), protocol, CancellationToken.None).ConfigureAwait(false);
                 return 0;
             }
+            if (options.LiveMove)
+            {
+                using var live = new ObsLiveMoveEngine(options.Runtime, options.Width, options.Height);
+                await protocol.WriteAsync(ObsMoveMessageType.Ready, ReadOnlyMemory<byte>.Empty).ConfigureAwait(false);
+                while (await protocol.ReadAsync().ConfigureAwait(false) is { } message)
+                {
+                    if (message.Type != ObsMoveMessageType.Command) throw new InvalidDataException("Expected live Move command.");
+                    await live.RunAsync(ObsLiveMoveCommand.Decode(message.Payload), protocol, CancellationToken.None).ConfigureAwait(false);
+                }
+                return 0;
+            }
             using var engine = new ObsMoveEngine(options.Runtime, options.Width, options.Height);
             await protocol.WriteAsync(ObsMoveMessageType.Ready, ReadOnlyMemory<byte>.Empty).ConfigureAwait(false);
             while (await protocol.ReadAsync().ConfigureAwait(false) is { } message)
@@ -51,11 +62,12 @@ internal static class Program
         finally { pipe?.Dispose(); }
     }
 
-    private sealed record Options(string Pipe, string Runtime, int Width, int Height, bool CaptureWindow);
+    private sealed record Options(string Pipe, string Runtime, int Width, int Height, bool CaptureWindow, bool LiveMove);
     private static Options ParseArguments(string[] args)
     {
         bool captureWindow = args.Length == 9 && args[8] == "--capture-window";
-        if (args.Length != 8 && !captureWindow) throw new ArgumentException("Expected --pipe NAME --runtime PATH --width W --height H [--capture-window].");
+        bool liveMove = args.Length == 9 && args[8] == "--live-move";
+        if (args.Length != 8 && !captureWindow && !liveMove) throw new ArgumentException("Expected --pipe NAME --runtime PATH --width W --height H [--capture-window|--live-move].");
         var values = new Dictionary<string, string>(StringComparer.Ordinal);
         for (int index = 0; index < 8; index += 2)
             if (!values.TryAdd(args[index], args[index + 1])) throw new ArgumentException("Duplicate MoveHost argument.");
@@ -65,6 +77,6 @@ internal static class Program
             || !values.TryGetValue("--height", out var rawHeight) || !int.TryParse(rawWidth, out int width) || !int.TryParse(rawHeight, out int height))
             throw new ArgumentException("Invalid MoveHost arguments.");
         ObsMoveProtocol.FrameByteCount(width, height);
-        return new(pipe, runtime, width, height, captureWindow);
+        return new(pipe, runtime, width, height, captureWindow, liveMove);
     }
 }

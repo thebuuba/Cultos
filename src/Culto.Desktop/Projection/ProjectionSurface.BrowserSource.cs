@@ -18,7 +18,7 @@ public sealed partial class ProjectionSurface
             browser.FrameReady += () => { if (_waitingForFrame) BeginDissolve(); ApplyBrowserAudioMute(); };
             browser.Error += message => { if (!_disposed && ReferenceEquals(browser, _browserSource)) ReportError(message); };
         }
-        _root.Background = System.Windows.Media.Brushes.Black;
+        _root.Background = _transparentBackground ? System.Windows.Media.Brushes.Transparent : System.Windows.Media.Brushes.Black;
         _browserSource.Visibility = Visibility.Visible;
         _browserSource.SetSource(cue.Browser, _preview || _suppressed || _pauseRequested || _volume == 0);
     }
@@ -27,7 +27,11 @@ public sealed partial class ProjectionSurface
         if (_mixer is not null) { _mixer.ReloadBrowserSource(id); return; }
         if (_shownCue?.Id == id) _browserSource?.Reload();
     }
-    private void ApplyBrowserAudioMute() => _browserSource?.SetMuted(_preview || _suppressed || _pauseRequested || _volume == 0);
+    private void ApplyBrowserAudioMute()
+    {
+        _browserSource?.SetVolume((int)Math.Round(_volume * _mixGain));
+        _browserSource?.SetMuted(_preview || _suppressed || _pauseRequested || _volume == 0);
+    }
     private void StopBrowserSource()
     {
         if (_browserSource is not { } browser) return;

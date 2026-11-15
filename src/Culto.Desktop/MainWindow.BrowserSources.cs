@@ -66,7 +66,7 @@ public partial class MainWindow
         foreach (var source in _workspace.BrowserSources)
         {
             var item = new MenuItem { Header = source.Title, IsCheckable = true, IsChecked = source.Id == _selectedBrowserSource };
-            item.Click += (_, _) => ProjectBrowserSource(source); menu.Items.Add(item);
+            item.Click += (_, _) => WithSceneMenuTransition(menu, () => ProjectBrowserSource(source)); menu.Items.Add(item);
         }
         if (menu.Items.Count > 0) menu.Items.Add(new Separator());
         var manage = new MenuItem { Header = "Añadir / administrar navegadores…" };

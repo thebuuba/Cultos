@@ -24,7 +24,7 @@ internal static partial class Program
             {
                 host.Show(); output.TransitionTo(cue);
                 Until(() => output.IsPlaying && !output.IsTransitioning, "Browser scene never became live");
-                Check(output.PresentedTransitions.Kind == "Dissolve", "Browser Move did not use its live transition fallback");
+                Check(output.PresentedTransitions.Kind == "Move", "Browser Move was replaced by a different effect");
                 var browser = Field<BrowserSourceView>(output.ActiveSurface, "_browserSource");
                 output.TransitionTo(cue);
                 Check(ReferenceEquals(browser, Field<BrowserSourceView>(output.ActiveSurface, "_browserSource")), "Selecting the same scene recreated its browser");
@@ -62,11 +62,22 @@ internal static partial class Program
                 Check(error is null, "Browser load failed: " + error);
                 byte[] Capture(FrameworkElement element)
                 {
-                    var image = new RenderTargetBitmap(320, 180, 96, 96, PixelFormats.Pbgra32); image.Render(element);
+                    // Draw at the bitmap origin; Render(element) retains its
+                    // parent offset, putting the lower mirror outside this bitmap.
+                    var canvas = new DrawingVisual();
+                    using (var drawing = canvas.RenderOpen()) drawing.DrawRectangle(new VisualBrush(element), null, new Rect(0, 0, 320, 180));
+                    var image = new RenderTargetBitmap(320, 180, 96, 96, PixelFormats.Pbgra32); image.Render(canvas);
                     var pixels = new byte[320 * 180 * 4]; image.CopyPixels(pixels, 320 * 4, 0); return pixels;
                 }
                 bool HasGreen(byte[] p) => Enumerable.Range(0,p.Length/4).Count(i => p[i*4+1] > 200 && p[i*4] < 30) > 1000;
-                Until(() => HasGreen(Capture(mirror)), "Custom CSS or mirrored Chromium pixels missing");
+                try { Until(() => HasGreen(Capture(mirror)), "Custom CSS or mirrored Chromium pixels missing"); }
+                catch
+                {
+                    var captures = Path.Combine(Environment.CurrentDirectory, ".tools", "browser-audit"); Directory.CreateDirectory(captures);
+                    CaptureDesignWindow(host, Path.Combine(captures, "failed-browser.png"));
+                    Console.WriteLine("BROWSER DIAGNOSTIC stageGreen=" + HasGreen(Capture(stage)) + ", mirrorGreen=" + HasGreen(Capture(mirror)) + ", error=" + error);
+                    throw;
+                }
                 var first = Capture(stage);
                 Check(first[(150*320+300)*4] > 200, "Transparent HTML did not preserve blue background");
                 Until(() => !Capture(stage).SequenceEqual(first), "Local HTML animation did not update rendered WPF frames");

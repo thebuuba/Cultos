@@ -86,12 +86,14 @@ public partial class MainWindow
         _refreshingScenes = true;
         try
         {
+            RefreshTransitionPresetChoices();
             SceneTransitionPicker.SelectedItem = SceneTransitionPicker.Items.OfType<ComboBoxItem>()
-                .FirstOrDefault(item => item.Tag as string == _workspace.Transitions.Kind);
+                .FirstOrDefault(item => item.Tag as string == (_workspace.ActiveTransitionPresetId is { } id ? "preset:" + id : _workspace.Transitions.Kind));
         }
         finally { _refreshingScenes = false; }
         RefreshSceneYouTube();
         RefreshBrowserScene();
+        RefreshConfiguredScenes();
     }
 
     private static void RefreshSceneMedia(Cue? cue, CueThumbnail thumbnail, TextBlock title, string empty)
@@ -105,11 +107,15 @@ public partial class MainWindow
 
     private void SceneTransitionsChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (!_ready || _refreshingScenes || SceneTransitionPicker.SelectedItem is not ComboBoxItem { Tag: string kind }
-            || kind is not ("Cut" or "Dissolve" or "Slide" or "Zoom" or "Move") || kind == _workspace.Transitions.Kind) return;
+        if (!_ready || _refreshingScenes || SceneTransitionPicker.SelectedItem is not ComboBoxItem { Tag: string kind }) return;
+        var preset = _workspace.TransitionPresets.FirstOrDefault(p => "preset:" + p.Id == kind);
+        if (preset is null && kind is not ("Cut" or "Dissolve" or "Slide" or "Zoom" or "Move")) return;
+        if (preset is null && _workspace.ActiveTransitionPresetId is null && kind == _workspace.Transitions.Kind) return;
         var previous = _workspace.Transitions;
-        _workspace.Transitions = previous with { Kind = kind };
-        if (!SaveWorkspace()) { _workspace.Transitions = previous; RefreshSceneChoices(); return; }
+        var previousActive = _workspace.ActiveTransitionPresetId;
+        _workspace.Transitions = preset?.Options.Normalize() ?? previous with { Kind = kind };
+        _workspace.ActiveTransitionPresetId = preset?.Id;
+        if (!SaveWorkspace()) { _workspace.Transitions = previous; _workspace.ActiveTransitionPresetId = previousActive; RefreshSceneChoices(); return; }
         if (_output is not null) _output.Transitions = _workspace.Transitions;
         SetStatus("Transición del sistema guardada.");
     }

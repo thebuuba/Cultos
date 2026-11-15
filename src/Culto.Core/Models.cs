@@ -1,6 +1,6 @@
 namespace Culto.Core;
 
-public enum CueKind { Text, Bible, Image, Video, Audio, PowerPoint, WindowCapture, BrowserSource }
+public enum CueKind { Text, Bible, Image, Video, Audio, PowerPoint, WindowCapture, BrowserSource, Scene }
 
 public sealed class Cue
 {
@@ -15,6 +15,7 @@ public sealed class Cue
     public string Notes { get; set; } = "";
     public WindowCaptureOptions? Capture { get; set; }
     public BrowserSourceOptions? Browser { get; set; }
+    public SceneComposition? Scene { get; set; }
 
     public Cue Copy(bool newId = false)
     {
@@ -22,6 +23,7 @@ public sealed class Cue
         if (newId) copy.Id = Guid.NewGuid();
         copy.Capture = Capture is { } capture ? capture with { } : null;
         copy.Browser = Browser is { } browser ? browser with { } : null;
+        copy.Scene = Scene?.Copy();
         return copy;
     }
 }

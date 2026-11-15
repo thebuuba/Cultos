@@ -11,6 +11,7 @@ public sealed class WorkspaceData
     public List<Cue> BrowserSources { get; set; } = [];
     public Cue? QuickSceneImage { get; set; }
     public Cue? QuickSceneVideo { get; set; }
+    public List<SceneTile> SceneTiles { get; set; } = SceneTile.Defaults();
     public WindowCaptureLayout? YouTubeLayout { get; set; }
     public Guid? ActiveVideoListId { get; set; }
     public List<SavedSet> VideoCollections { get; set; } = [];
@@ -32,6 +33,8 @@ public sealed class WorkspaceData
     public LogoPlaybackOptions LogoPlayback { get; set; } = new();
     public BibleVisualStyle BibleStyle { get; set; } = new();
     public TransitionOptions Transitions { get; set; } = new();
+    public List<TransitionPreset> TransitionPresets { get; set; } = [];
+    public string? ActiveTransitionPresetId { get; set; }
     public int TransitionDefaultsVersion { get; set; }
     public int Volume { get; set; } = 80;
     public bool Loop { get; set; }
@@ -60,6 +63,13 @@ public sealed class WorkspaceStore
         {
             data.Plan ??= new(); data.Plan.Items ??= []; data.Library ??= []; data.Deck ??= [];
             data.PanelTabColors ??= [];
+            data.TransitionPresets = (data.TransitionPresets ?? []).Where(p => p is not null && !string.IsNullOrWhiteSpace(p.Id))
+                .DistinctBy(p => p.Id).Select(p => p with { Name = string.IsNullOrWhiteSpace(p.Name) ? "Transición" : p.Name.Trim(),
+                    Options = (p.Options ?? new()).Normalize() }).ToList();
+            if (!data.TransitionPresets.Any(p => p.Id == data.ActiveTransitionPresetId)) data.ActiveTransitionPresetId = null;
+            data.SceneTiles = (data.SceneTiles ?? SceneTile.Defaults()).Where(scene => scene is not null
+                && !string.IsNullOrWhiteSpace(scene.Id) && scene.Action is "logo" or "blackout" or "image" or "video" or "audio" or "youtube" or "browser" or "cue" or "scene")
+                .DistinctBy(scene => scene.Id).ToList();
             data.Notes = (data.Notes ?? []).Where(note => note is not null).ToList();
             foreach (var note in data.Notes) { note.Title ??= ""; note.Body ??= ""; }
             data.YouTubeSources = (data.YouTubeSources ?? []).Where(cue => cue is not null && cue.Kind == CueKind.WindowCapture).ToList();

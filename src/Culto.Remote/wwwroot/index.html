@@ -64,6 +64,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 .scene-slot .preserve-action{margin-top:0}
 .scene-key{width:100%;aspect-ratio:auto;min-height:118px;min-width:0;flex-direction:column;gap:7px;padding:12px 7px 9px;border-radius:12px;background:#F6F8FA;color:#18232F;box-shadow:0 3px 7px #0005;border:2px solid transparent;position:relative}
 .scene-key svg{width:39px;height:39px;stroke-width:1.8}
+.scene-artwork{width:44px;height:39px;object-fit:contain}
 .scene-key .tile-label{font-size:12px;line-height:1.4;max-width:100%;overflow-wrap:anywhere}
 .scene-key .scene-state{font-size:12px;line-height:1.25;min-height:12px;color:#48515D;max-width:100%;text-align:center}
 .scene-key[data-kind=logo]{background:#F5FBF3;color:#167746}
@@ -125,7 +126,6 @@ noscript{display:block;padding:20px;color:var(--amber)}
 <div class="row live-head"><span id="live-label" class="eyebrow">En pantalla</span><span id="blackout-state" class="detail">Sin confirmar</span></div>
 <div id="live-preview" class="preview" data-muted="true"><div id="preview-icon" class="preview-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/></svg></div><div id="preview-body" class="preview-body">Esperando la consola</div><p id="preview-reference" class="preview-reference" hidden></p></div>
 <div class="live-meta"><p id="visual-title" class="detail">Imagen: sin confirmar</p><p id="audio-title" class="detail">Audio: sin confirmar</p><div id="live-title" class="title">—</div><div class="row"><p id="play-state" class="detail">Esperando estado</p><span id="output-target" class="detail output-target">—</span></div></div>
-<div class="grid controls"><button data-action="previous" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 6-6 6 6 6M4 12h16"/></svg>Anterior</button><button class="next" data-action="next" disabled>Siguiente<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6 6 6-6 6M20 12H4"/></svg></button></div>
 </section>
 <section aria-labelledby="deck-label"><div class="row section-head"><h2 id="deck-label">Accesos del culto</h2><span class="section-note">Tu deck</span></div><div id="deck" class="grid"></div><p id="deck-empty" class="empty">Sin accesos configurados.</p></section>
 <div class="grid output-controls" role="group" aria-label="Salida de proyección"><button data-action="blackout" id="blackout" aria-pressed="false" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 3 18 18M4 8a2 2 0 0 0-1 2v7a2 2 0 0 0 2 2h12M8 5h11a2 2 0 0 1 2 2v9M8 22h8m-4-3v3"/></svg>Salida en negro</button><button data-action="background" id="background" aria-pressed="false" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m7 16 4-4 3 3 3-5M8 8h.01"/></svg>Logo</button></div>
@@ -151,6 +151,7 @@ noscript{display:block;padding:20px;color:var(--amber)}
 'use strict';
 const $ = id => document.getElementById(id), storageKey = 'culto.remote.token';
 let token = '', connected = false, pending = false, current = null, polling = null, deckSignature = '', orderSignature = '', sceneSignature = '', commandNotice = null;
+let volumeTarget = null, volumeSending = false, volumeTimer = null, volumeVersion = 0;
 const orderButtons = new Map(), deckButtons = new Map(), sceneButtons = new Map();
 let clientId = requestId();
 try {
@@ -249,7 +250,7 @@ function renderPreview(state) {
   $('preview-icon').hidden = !!body;
 }
 function renderDeck(state) {
-  const buttons = Array.isArray(state.buttons) ? state.buttons : [], order = Array.isArray(state.order) ? state.order : [];
+  const buttons = Array.isArray(state.buttons) ? state.buttons.filter(item => !['project', 'next', 'previous'].includes(String(item.action).toLowerCase())) : [], order = Array.isArray(state.order) ? state.order : [];
   const signature = JSON.stringify([buttons, order.map(item => [item.id, item.kind])]);
   if (signature !== deckSignature) {
     deckSignature = signature; $('deck').replaceChildren(); deckButtons.clear();
@@ -278,7 +279,7 @@ function renderDeck(state) {
 function renderScenes(state) {
   const scenes = Array.isArray(state.scenes) ? state.scenes : [];
   $('scenes-section').hidden = scenes.length === 0;
-  const signature = JSON.stringify(scenes.map(scene => [scene.id, scene.label, scene.kind, scene.detail]));
+  const signature = JSON.stringify(scenes.map(scene => [scene.id, scene.label, scene.kind, scene.detail, scene.imageData, scene.color]));
   if (signature !== sceneSignature) {
     sceneSignature = signature; $('scenes').replaceChildren(); sceneButtons.clear();
     scenes.forEach(scene => {
@@ -287,7 +288,17 @@ function renderScenes(state) {
       label.className = 'tile-label'; label.textContent = scene.label;
       status.className = 'scene-state';
       button.title = scene.detail || scene.label;
-      button.append(icon(scene.kind), label, status);
+      if (/^#[0-9a-f]{6}$/i.test(scene.color)) {
+        button.style.background = scene.color;
+        const channels = scene.color.slice(1).match(/../g).map(value => parseInt(value, 16) / 255).map(value => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4);
+        const light = channels[0] * .2126 + channels[1] * .7152 + channels[2] * .0722;
+        button.style.color = light > .179 ? '#18232F' : '#FFFFFF'; status.style.color = 'inherit';
+      }
+      let artwork = icon(scene.kind);
+      if (typeof scene.imageData === 'string' && scene.imageData.length <= 300000 && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(scene.imageData)) {
+        artwork = document.createElement('img'); artwork.src = scene.imageData; artwork.alt = ''; artwork.className = 'scene-artwork';
+      }
+      button.append(artwork, label, status);
       button.addEventListener('click', () => send('scene', { buttonId: scene.id }));
       const slot = document.createElement('div'); slot.className = 'scene-slot'; slot.append(button);
       const preserve = preserveButton(scene.kind, 'scene', { buttonId: scene.id });
@@ -340,7 +351,9 @@ function renderOrder(state) {
   $('order-empty').hidden = order.length > 0;
   $('order-empty').textContent = Array.isArray(state.order) ? 'El orden del culto está vacío.' : 'Orden no disponible en esta consola.';
 }
-function render(state, force = false) {
+function render(state, force = false, preserveVolume = false) {
+  const keepVolume = preserveVolume || volumeSending || volumeTarget !== null;
+  if (keepVolume && current) state = { ...state, volume: current.volume };
   current = state;
   $('plan').textContent = state.planName || 'Culto';
   $('live-title').textContent = state.hasOutput === false ? 'Sin contenido en pantalla' : state.isBackground ? 'Logo' : state.liveTitle || 'Sin contenido en vivo';
@@ -358,8 +371,10 @@ function render(state, force = false) {
   const liveKind = contentKind(state.liveKind ?? (Array.isArray(state.order) ? state.order.find(item => item.id === state.liveCueId)?.kind : ''));
   $('pause').textContent = liveKind === 'windowcapture' ? 'Control en YouTube' : state.isPaused ? 'Reanudar' : 'Pausar';
   $('play-state').textContent = state.hasOutput === false ? 'Sin proyección activa' : state.isBlackout ? 'Contenido oculto' : state.isBackground ? 'Logo en pantalla' : liveKind === 'windowcapture' ? 'Reproducción desde YouTube' : state.duration > 0 ? state.isPaused ? 'Reproducción pausada' : 'Reproduciendo' : 'Contenido en pantalla';
-  $('time').textContent = time(state.position) + ' / ' + time(state.duration); $('volume-value').textContent = state.volume + ' %';
-  if (force || document.activeElement !== $('volume')) $('volume').value = state.volume;
+  $('time').textContent = time(state.position) + ' / ' + time(state.duration);
+  if (!keepVolume && (force || document.activeElement !== $('volume'))) {
+    $('volume').value = state.volume; $('volume-value').textContent = state.volume + ' %';
+  }
   if (force || document.activeElement !== $('position')) $('position').value = state.duration > 0 ? Math.round(state.position / state.duration * 1000) : 0;
   renderOrder(state);
   renderPreview(state); renderDeck(state); renderScenes(state);
@@ -382,9 +397,10 @@ async function refresh(force = false) {
   if (!token) { connection(false); message('Escanea el QR del mando desde la consola para vincular este teléfono.', true); return false; }
   if (polling) return polling;
   polling = (async () => {
+    const volumeAtStart = volumeVersion;
     try {
-      const state = await request('/api/state'); render(state, force); connection(true);
-      if (!pending) message(commandNotice?.text || 'Sincronizado con el equipo', commandNotice?.error || false);
+      const state = await request('/api/state'); render(state, force, volumeAtStart !== volumeVersion); connection(true);
+      if (!pending && !volumeSending && volumeTarget === null) message(commandNotice?.text || 'Sincronizado con el equipo', commandNotice?.error || false);
       return true;
     } catch (error) {
       connection(false); message(token ? 'Sin conexión. Verifica el wifi y el mando en el equipo.' : error.message, true); return false;
@@ -395,6 +411,48 @@ async function refresh(force = false) {
 function requestId() {
   const bytes = new Uint8Array(16); crypto.getRandomValues(bytes);
   return Array.from(bytes, value => value.toString(16).padStart(2, '0')).join('');
+}
+function scheduleVolume() {
+  if (!volumeSending && volumeTimer === null && volumeTarget !== null && connected)
+    volumeTimer = setTimeout(sendVolume, 50);
+}
+function queueVolume(event) {
+  if (!connected) return;
+  volumeVersion++;
+  volumeTarget = Number(event.target.value);
+  $('volume-value').textContent = volumeTarget + ' %';
+  if (!volumeSending && volumeTarget === current?.volume) { volumeTarget = null; return; }
+  commandNotice = null; message('Ajustando volumen…');
+  scheduleVolume();
+}
+async function sendVolume() {
+  volumeTimer = null;
+  if (!connected || volumeSending || volumeTarget === null) return;
+  const value = volumeTarget;
+  volumeTarget = null; volumeSending = true;
+  try {
+    const result = await request('/api/command', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'volume', requestId: requestId(), value }) });
+    if (!result.success) {
+      volumeTarget = null;
+      commandNotice = { text: result.message || 'No se pudo ajustar el volumen.', error: true };
+      if (current) { $('volume').value = current.volume; $('volume-value').textContent = current.volume + ' %'; }
+      message(commandNotice.text, true); return;
+    }
+    volumeVersion++;
+    if (current) current.volume = value;
+    if (volumeTarget === null || volumeTarget === value) {
+      commandNotice = { text: 'Volumen actualizado.', error: false }; message(commandNotice.text);
+    }
+  } catch (error) {
+    volumeTarget = null; connection(false);
+    commandNotice = { text: token ? 'No se pudo confirmar el volumen. Revisa la conexión con la consola.' : error.message, error: true };
+    message(commandNotice.text, true);
+  } finally {
+    volumeSending = false;
+    if (volumeTarget === value) volumeTarget = null;
+    scheduleVolume();
+  }
 }
 async function send(action, extra = {}) {
   if (!connected || pending) return;
@@ -452,7 +510,8 @@ $('catalog-source').addEventListener('change', () => {
   if ($('catalog-source').value !== 'bible') searchCatalog();
 });
 
-$('volume').addEventListener('change', event => send('volume', { value: Number(event.target.value) }));
+$('volume').addEventListener('input', queueVolume);
+$('volume').addEventListener('change', queueVolume);
 $('position').addEventListener('change', event => send('seek', { value: Number(event.target.value) / 1000 }));
 $('retry').addEventListener('click', () => refresh(true));
 document.addEventListener('visibilitychange', () => { if (!document.hidden && !pending) refresh(true); });

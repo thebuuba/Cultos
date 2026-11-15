@@ -140,7 +140,7 @@ public partial class MainWindow
         {
             var item = new MenuItem { Header = source.Title, ToolTip = source.Detail,
                 IsCheckable = true, IsChecked = source.Key == SceneYouTubeSource()?.Key };
-            item.Click += (_, _) => ProjectSceneYouTube(source);
+            item.Click += (_, _) => WithSceneMenuTransition(menu, () => ProjectSceneYouTube(source));
             menu.Items.Add(item);
         }
         if (menu.Items.Count > 0) menu.Items.Add(new Separator());

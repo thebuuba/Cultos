@@ -30,6 +30,7 @@ public partial class MainWindow
             _pendingCuePlayback.Cancel(); CancelPowerPointAudioFade();
             _videoListPlayback.Cancel(); _videoListAfter.IsChecked = false;
             _preserveAudioForBackdrop = _session.IsTextHidden || _session.IsBlackout;
+            _output.Transitions = CurrentTransitions;
             _output.PlayAudioKeepingVisual(CopyCue(cue));
             _isPaused = false;
             UpdateBackgroundAudioState(); UpdateUsabilityState();

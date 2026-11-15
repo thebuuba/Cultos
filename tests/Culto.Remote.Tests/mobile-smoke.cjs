@@ -171,11 +171,13 @@ const commands = () => calls.filter(call => call.url === '/api/command');
 
   // Existing physical-console controls keep their actual action/value contracts.
   commandHandler = async () => ({ success: false });
-  for (const action of ['previous', 'next', 'blackout', 'background', 'project', 'pause', 'restart']) {
+  assert.equal(staticButtons.some(button => ['previous', 'next'].includes(button.dataset.action)), false);
+  for (const action of ['blackout', 'background', 'project', 'pause', 'restart']) {
     await staticButtons.find(button => button.dataset.action === action).dispatch('click');
     assert.equal(JSON.parse(commands().at(-1).options.body).action, action);
   }
   elements.get('volume').value = 32; await elements.get('volume').dispatch('change');
+  await run('sendVolume()'); // This harness stubs timers; flush the queued volume explicitly.
   assert.equal(JSON.parse(commands().at(-1).options.body).value, 32);
   assert.equal(JSON.parse(commands().at(-1).options.body).action, 'volume');
   elements.get('position').value = 250; await elements.get('position').dispatch('change');
@@ -193,6 +195,14 @@ const commands = () => calls.filter(call => call.url === '/api/command');
   commandHandler = async () => ({ success: false });
   await elements.get('deck').children[0].dispatch('click');
   assert.equal(JSON.parse(commands().at(-1).options.body).buttonId, 'deck-1');
+
+  const customButtons = state.buttons;
+  state.buttons = ['project', 'next', 'previous'].map(action => ({ id: action, action, label: action }));
+  await run('refresh()');
+  assert.equal(elements.get('deck').children.length, 0, 'Removed shortcuts stay hidden for saved decks');
+  assert.equal(elements.get('deck-empty').hidden, false);
+  state.buttons = customButtons;
+  await run('refresh()');
 
   state.scenes = [
     { id: 'blackout', label: 'Fondo negro', kind: 'blackout', available: true, active: false },

@@ -17,6 +17,9 @@ public sealed class BrowserSourceView : Viewbox, IDisposable
     private ChromiumWebBrowser? _browser;
     private BrowserSourceOptions? _options;
     private bool _muted = true, _disposed;
+    private int _volume;
+    private readonly BrowserAudioOutput _audio = new();
+    internal long AudioPacketsReceived => _audio.PacketsReceived;
     private volatile bool _cssReady;
     private readonly DispatcherTimer _timeout;
     public bool IsReady { get; private set; }
@@ -46,7 +49,7 @@ public sealed class BrowserSourceView : Viewbox, IDisposable
                 Background = Brushes.Transparent, Focusable = false,
                 BrowserSettings = new BrowserSettings { BackgroundColor = 0, WindowlessFrameRate = options.FramesPerSecond },
                 LifeSpanHandler = new OutputLifeSpanHandler(), JsDialogHandler = new OutputDialogHandler(),
-                DownloadHandler = new OutputDownloadHandler(), RequestHandler = new OutputRequestHandler(Fail),
+                DownloadHandler = new OutputDownloadHandler(), RequestHandler = new OutputRequestHandler(Fail), AudioHandler = _audio,
                 Address = options.GetAddress().ToString()
             };
             _browser = browser;
@@ -85,9 +88,11 @@ public sealed class BrowserSourceView : Viewbox, IDisposable
     public void SetMuted(bool muted)
     {
         _muted = muted;
+        _audio.SetGain(muted || !IsReady || _options?.AudioEnabled != true ? 0 : _volume / 100d);
         if (_browser is { IsBrowserInitialized: true } browser && !browser.IsDisposed)
-            browser.GetBrowser().GetHost().SetAudioMuted(muted || !IsReady || _options?.AudioEnabled != true);
+            browser.GetBrowser().GetHost().SetAudioMuted(false);
     }
+    public void SetVolume(int volume) { _volume = Math.Clamp(volume, 0, 100); SetMuted(_muted); }
     public void Reload()
     {
         if (_disposed || _browser is null) return;
@@ -109,7 +114,7 @@ public sealed class BrowserSourceView : Viewbox, IDisposable
         var browser = _browser; _browser = null; Child = null;
         if (browser is not null) { if (browser.IsBrowserInitialized) browser.GetBrowser().GetHost().SetAudioMuted(true); browser.Dispose(); }
     }
-    public void Dispose() { if (_disposed) return; _disposed = true; CloseBrowser(); FrameReady = null; Error = null; }
+    public void Dispose() { if (_disposed) return; _disposed = true; _audio.Close(); CloseBrowser(); FrameReady = null; Error = null; }
 
     private sealed class OutputDownloadHandler : DownloadHandler
     { protected override bool CanDownload(IWebBrowser control, IBrowser browser, string url, string requestMethod) => false; }

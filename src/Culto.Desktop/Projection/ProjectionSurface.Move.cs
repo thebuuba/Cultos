@@ -24,8 +24,15 @@ public sealed partial class ProjectionSurface
         try
         {
             if (_dissolve.Source is not BitmapSource outgoing) throw new InvalidOperationException("No hay una imagen de salida preparada para Move.");
-            var width = (int)Math.Ceiling(ActualWidth);
-            var height = (int)Math.Ceiling(ActualHeight);
+            var move = _presentedTransitions.Move.Normalize();
+            // Source changes are rendered asynchronously. Capturing in the same
+            // turn can send the old image as both the outgoing and incoming scene.
+            await Dispatcher.InvokeAsync(_root.UpdateLayout, System.Windows.Threading.DispatcherPriority.Loaded, cancellation.Token);
+            if (_disposed || generation != _dissolveGeneration) return;
+            // libobs aligns BGRA output width to four pixels and height to two.
+            // Render on that canvas; the overlay scales it back into the viewport.
+            var width = ((int)Math.Ceiling(ActualWidth) + 3) & ~3;
+            var height = ((int)Math.Ceiling(ActualHeight) + 1) & ~1;
             var incoming = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
             incoming.Render(_root); incoming.Freeze();
             Directory.CreateDirectory(folder);
@@ -49,18 +56,22 @@ public sealed partial class ProjectionSurface
                     Interlocked.Exchange(ref _moveFrameQueued, 0);
                     if (!_disposed && frame?.Generation == _dissolveGeneration) _dissolve.Source = frame.Image;
                 }));
-            }, cancellation.Token);
+            }, cancellation.Token, move);
             if (!_disposed && generation == _dissolveGeneration) CancelDissolve();
         }
         catch (OperationCanceledException)
         {
             if (!cancellation.IsCancellationRequested && !_disposed && generation == _dissolveGeneration)
-                ReportError("Move no respondió a tiempo. Revisa el motor de transiciones.");
+            {
+                FailNativeMove("Move no respondió a tiempo.");
+            }
         }
         catch (Exception error)
         {
             if (!cancellation.IsCancellationRequested && !_disposed && generation == _dissolveGeneration)
-                ReportError("No se pudo ejecutar el complemento Move. " + error.Message);
+            {
+                FailNativeMove("No se pudo ejecutar el complemento Move. " + error.Message);
+            }
         }
         finally
         {
@@ -75,6 +86,15 @@ public sealed partial class ProjectionSurface
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
         }
+    }
+
+    private void FailNativeMove(string message)
+    {
+        CancelDissolve();
+        _moveClient?.Dispose(); _moveClient = null;
+        // An optional transition failure must not stop valid destination video,
+        // silence its audio or replace its image with a media-error placeholder.
+        PlaybackError?.Invoke(message + " El contenido se muestra sin el efecto.");
     }
 
     private static void WriteMoveFrame(BitmapSource source, string path)

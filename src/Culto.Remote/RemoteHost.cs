@@ -141,7 +141,7 @@ public sealed class RemoteHost : IAsyncDisposable
             {
                 if (completed.TryGetValue(input!.RequestId, out var previous)) return Results.Json(previous, Json);
                 if (input.Action == "scene" && snapshot().Scenes?.Any(scene => scene.Id == input.ButtonId && scene.Available
-                        && (input.PreserveOther != true || scene.Kind is "logo" or "blackout" or "image" or "video" or "audio")) != true)
+                        && (input.PreserveOther != true || scene.Kind is "logo" or "blackout" or "image" or "video" or "audio" or "text" or "bible")) != true)
                     return InvalidCommand();
                 if (input.Action == "cue" && snapshot().Order?.Any(cue =>
                         Guid.TryParse(cue.Id, out var cueId) && cueId == Guid.Parse(input.CueId!)) != true)

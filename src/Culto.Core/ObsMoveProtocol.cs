@@ -4,7 +4,7 @@ using System.Text.Json;
 namespace Culto.Core;
 
 public enum ObsMoveMessageType : byte { Command = 1, Frame = 2, Complete = 3, Error = 4, Ready = 5, RefreshCapture = 6, CaptureRefreshed = 7 }
-public sealed record ObsMoveCommand(string OutgoingPath, string IncomingPath, int DurationMilliseconds);
+public sealed record ObsMoveCommand(string OutgoingPath, string IncomingPath, int DurationMilliseconds, MoveOptions? Move = null);
 public sealed record ObsMoveMessage(ObsMoveMessageType Type, byte[] Payload);
 
 /// <summary>One reader, serialized writers; byte type + signed int32 LE length + payload.</summary>

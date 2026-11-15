@@ -17,7 +17,22 @@ internal sealed class ObsMoveEngine(string runtimePath, int width, int height) :
         token = deadline.Token;
         using var outgoing = CreateScene(command.OutgoingPath, "outgoing");
         using var incoming = CreateScene(command.IncomingPath, "incoming");
-        var transition = ObsNative.obs_source_create_private("move_transition", "Culto Move", 0);
+        var settings = ObsNative.obs_data_create();
+        nint transition;
+        try
+        {
+            var move = (command.Move ?? new()).Normalize();
+            foreach (var (suffix, item) in new[] { ("in", move.In), ("out", move.Out) })
+            {
+                ObsNative.obs_data_set_int(settings, "position_" + suffix, item.Position);
+                ObsNative.obs_data_set_double(settings, "zoom_" + suffix, item.Zoom);
+                ObsNative.obs_data_set_double(settings, "curve_" + suffix, item.Curve);
+                ObsNative.obs_data_set_int(settings, "easing_" + suffix, item.Easing);
+                ObsNative.obs_data_set_int(settings, "easing_function_" + suffix, item.Function);
+            }
+            transition = ObsNative.obs_source_create_private("move_transition", "Culto Move", settings);
+        }
+        finally { ObsNative.obs_data_release(settings); }
         if (transition == 0) throw new InvalidOperationException("The real move_transition source is unavailable.");
         try
         {
@@ -31,7 +46,7 @@ internal sealed class ObsMoveEngine(string runtimePath, int width, int height) :
                 || ObsNative.obs_source_get_width(incoming.Image) == 0 || ObsNative.obs_source_get_height(incoming.Image) == 0)
                 await Task.Delay(15, token).ConfigureAwait(false);
             var timing = new ObsFrameTiming(Math.Max(outputAssignedAt, ObsNative.obs_get_video_frame_time()));
-            using var frames = new ObsFramePump(transition, width, height);
+            using var frames = new ObsFramePump(transition, width, height, activateOutput: true);
             while (true)
             {
                 using var initial = await frames.ReadAsync(token).ConfigureAwait(false);

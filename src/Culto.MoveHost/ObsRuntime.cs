@@ -61,6 +61,7 @@ internal sealed class ObsRuntime : IDisposable
                 LoadModule("obs-transitions");
                 LoadModule("move-transition");
                 ObsNative.obs_post_load_modules();
+                ObsLiveVideoSource.Register();
             }
         }
         catch { Dispose(); throw; }

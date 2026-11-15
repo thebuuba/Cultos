@@ -10,33 +10,68 @@ public partial class MainWindow
     {
         // A phone can use Scenes even while its desktop panel is hidden.
         RefreshYouTube();
-        var image = SceneMedia(CueKind.Image);
-        var video = SceneMedia(CueKind.Video);
-        var youtube = SceneYouTubeSource();
-        var live = _output is not null && !_session.IsBlackout && !_session.IsTextHidden ? _session.Live : null;
-        var sources = new List<RemoteScene>
+        return _workspace.SceneTiles.Select(scene =>
         {
-            new("logo", "Logo", "logo", AvailableLogoPaths().Any(), _output is not null && _session.IsTextHidden && !_session.IsBlackout),
-            new("blackout", "Fondo negro", "blackout", true, _output is not null && _session.IsBlackout),
-            new("image", "Imagen", "image", image is not null && File.Exists(image.FilePath), live?.Kind == CueKind.Image, image?.Title),
-            new("video", "Video", "video", video is not null && File.Exists(video.FilePath), live?.Kind == CueKind.Video, video?.Title),
-            new("youtube", "YouTube", "youtube", youtube is { IsAvailable: true },
-                live?.Kind == CueKind.WindowCapture && live.Capture is { } capture && YouTubeDiscovery.IsYouTube(capture),
-                youtube?.Title ?? "Abre YouTube en Chrome en la PC")
-        };
-        // Saved HTML scenes share the same dispatcher without exposing their URLs.
-        if (_workspace.BrowserSources.Count > 0)
-            sources.Add(new("browser", "Navegador", "browser", true, live?.Kind == CueKind.BrowserSource));
-        return sources;
+            var cue = ConfiguredSceneCue(scene);
+            var kind = scene.Action == "cue" ? cue?.Kind switch
+            {
+                CueKind.BrowserSource => "browser", CueKind.WindowCapture => "youtube",
+                { } value => value.ToString().ToLowerInvariant(), _ => "cue"
+            } : scene.Action;
+            var available = scene.Action switch
+            {
+                "logo" => AvailableLogoPaths().Any(), "blackout" => true,
+                _ => cue?.Kind switch
+                {
+                    CueKind.Image or CueKind.Video or CueKind.Audio or CueKind.PowerPoint => File.Exists(cue.FilePath),
+                    CueKind.WindowCapture => cue.Capture is { } capture && WindowCaptureCatalog.WindowStillExists(capture),
+                    CueKind.BrowserSource => cue.Browser is not null,
+                    CueKind.Scene => SceneSourcesAvailable(cue.Scene),
+                    CueKind.Text or CueKind.Bible => true, _ => false
+                }
+            };
+            return new RemoteScene(scene.Id, scene.Label, kind, available, ConfiguredSceneActive(scene), cue?.Title, scene.ImageData, scene.Color);
+        }).ToArray();
+    }
+
+    private static bool SceneSourcesAvailable(SceneComposition? scene)
+    {
+        if (scene is null) return false;
+        try { scene.Validate(); }
+        catch (ArgumentException) { return false; }
+        return scene.Layers.Where(layer => layer.Visible).All(layer => layer.Source.Kind switch
+        {
+            CueKind.Image or CueKind.Video or CueKind.Audio => File.Exists(layer.Source.FilePath),
+            CueKind.BrowserSource => layer.Source.Browser is not null,
+            CueKind.WindowCapture => layer.Source.Capture is { } capture && WindowCaptureCatalog.WindowStillExists(capture),
+            _ => true
+        });
     }
 
     private CommandResult ExecuteRemoteSceneMode(string? id, bool preserve)
     {
+        CommandResult result = new(false, "Esta escena ya no está disponible.");
+        if (_workspace.SceneTiles.FirstOrDefault(scene => scene.Id == id) is not { } configured) return result;
+        WithSceneTransition(configured, () => result = ExecuteRemoteSceneModeCore(id, preserve));
+        return result;
+    }
+
+    private CommandResult ExecuteRemoteSceneModeCore(string? id, bool preserve)
+    {
         var scene = BuildRemoteScenes().FirstOrDefault(item => item.Id == id);
         if (scene is null) return new(false, "Esta escena ya no está disponible.");
         if (!scene.Available) return new(false, scene.Detail ?? "Elige el contenido de esta escena en la PC.");
-        if (preserve && id is not ("logo" or "blackout" or "image" or "video")) return new(false, "Esta escena se controla normalmente.");
-        switch (id)
+        if (preserve && scene.Kind is not ("logo" or "blackout" or "image" or "video" or "audio" or "text" or "bible")) return new(false, "Esta escena se controla normalmente.");
+        var configured = _workspace.SceneTiles.First(item => item.Id == id);
+        if (configured.Cue is { } fixedCue)
+        {
+            if (!CheckMedia(fixedCue)) return new(false, "Revisa el contenido de esta escena en la PC.");
+            PrepareCue(CopyCue(fixedCue));
+            if (preserve) return new(ProjectPreparedPreservingOther(), StatusText.Text);
+            ProjectPrepared();
+            return new(_output is not null && _session.Live?.Id == fixedCue.Id, "Escena enviada a pantalla.");
+        }
+        switch (configured.Action)
         {
             case "blackout":
                 if (preserve) ShowBlackPreservingAudio(); else ShowBlackBackdrop();
@@ -52,7 +87,7 @@ public partial class MainWindow
                     "YouTube enviado a pantalla.");
             case "image":
             case "video":
-                var cue = SceneMedia(id == "image" ? CueKind.Image : CueKind.Video);
+                var cue = SceneMedia(configured.Action == "image" ? CueKind.Image : CueKind.Video);
                 if (cue is null || !CheckMedia(cue) || !RememberSceneMedia(cue)) return new(false, "Elige el archivo en la PC.");
                 PrepareCue(CopyCue(cue));
                 if (preserve) return new(ProjectPreparedPreservingOther(), StatusText.Text);

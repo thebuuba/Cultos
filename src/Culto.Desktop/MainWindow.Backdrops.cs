@@ -43,8 +43,8 @@ public partial class MainWindow
                 return;
             }
         }
-        var transitions = _workspace.Transitions.Normalize();
-        if (_logoSlides.IsRunning && _session.IsTextHidden && !_session.IsBlackout)
+        var transitions = CurrentTransitions;
+        if (_sceneTransitionOverride is null && _logoSlides.IsRunning && _session.IsTextHidden && !_session.IsBlackout)
             transitions = transitions with { Kind = "Dissolve", DurationMilliseconds = _workspace.LogoPlayback.Normalize().TransitionMilliseconds };
         FadePowerPointOut(() => ApplyBackdropTransitionCore(transitions), transitions.AudioFadeOutMilliseconds);
     }

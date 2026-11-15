@@ -4,6 +4,12 @@ Comprobación actualizada el 14 de noviembre de 2026 en esta PC Windows. Entrega
 
 ## Compilación y pruebas
 
+### Volumen continuo desde el mando móvil
+
+El mando envía el volumen durante el evento `input`, sin esperar a soltar el deslizador ni bloquearlo durante la petición. Agrupa los cambios con un intervalo de 50 ms, mantiene una sola petición de volumen activa y conserva únicamente el último valor pendiente. El evento `change` cubre también el valor final. Las lecturas de estado anteriores al movimiento o a su confirmación no sustituyen el porcentaje y la posición nuevos.
+
+`tests/Culto.Remote.Tests/browser/volume.cjs` se ejecutó con Playwright y Edge sin interfaz. Falló antes del cambio porque no se enviaba nada antes de soltar. Después pasaron el arrastre continuo, control habilitado durante el envío, entrega del valor final con cambios de dirección y red lenta, ausencia de peticiones simultáneas, protección ante una lectura de estado retrasada y aviso de un comando rechazado.
+
 ### Notas locales y vaciado del orden
 
 Notas sustituye a Texto conservando el identificador de panel para recuperar las distribuciones anteriores. Guarda una lista independiente de notas con título, cuerpo, fecha, búsqueda y autoguardado en el espacio local; el cierre también guarda la edición pendiente. Las notas no preparan ni proyectan contenido. Los anuncios siguen disponibles desde Agregar en el orden mediante su propio editor.

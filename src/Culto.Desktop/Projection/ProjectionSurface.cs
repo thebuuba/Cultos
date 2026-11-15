@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -42,10 +43,12 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
 
     public event Action<string>? PlaybackError;
 
-    public ProjectionSurface(bool preview = false, bool smoothTransitions = false, Func<LibVLC>? sharedVlc = null)
+    public ProjectionSurface(bool preview = false, bool smoothTransitions = false, Func<LibVLC>? sharedVlc = null, LayerSourcePool? layers = null, bool transparentBackground = false)
     {
         _preview = preview;
         _sharedVlc = sharedVlc;
+        _layerPool = layers;
+        _transparentBackground = transparentBackground;
         _words = new StackPanel { Width = 1400, VerticalAlignment = VerticalAlignment.Center };
         _words.Children.Add(_body);
         _reference.Margin = new Thickness(0, 48, 0, 0);
@@ -82,13 +85,14 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         set
         {
             if (_mixer is not null) { _mixer.Volume = value; return; }
-            _volume = Math.Clamp(value, 0, 100);
+            _mixGain = 1; _volume = Math.Clamp(value, 0, 100);
             ApplyAudioVolume();
             ApplyBrowserAudioMute();
+            ApplyScenePlayback();
         }
     }
-    public bool Loop { get => _mixer?.Loop ?? _loop; set { _loop = value; if (_mixer is not null) _mixer.Loop = value; } }
-    public Cue? AudioCue => _mixer?.AudioCue ?? (_mixer is null && HasLoadedMedia && !HasEnded && _shownCue?.Kind is CueKind.Video or CueKind.Audio ? _shownCue : null);
+    public bool Loop { get => _mixer?.Loop ?? _loop; set { _loop = value; if (_mixer is not null) _mixer.Loop = value; ApplyScenePlayback(); } }
+    public Cue? AudioCue => _mixer?.AudioCue ?? _sceneCanvas?.PrimarySurface?.AudioCue ?? (_mixer is null && HasLoadedMedia && !HasEnded && _shownCue?.Kind is CueKind.Video or CueKind.Audio ? _shownCue : null);
     public void TransitionVisual(Cue? cue, bool blackout = false, bool hideText = false)
     {
         if (_mixer is not null) _mixer.TransitionVisual(cue, blackout, hideText);
@@ -99,15 +103,18 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
     public bool HasBackgroundMedia => _mixer?.HasBackgroundMedia == true;
     public string? BackgroundImagePath { get => _mixer?.BackgroundImagePath ?? _backgroundImagePath;
         set { _backgroundImagePath = value; if (_mixer is not null) _mixer.BackgroundImagePath = value; } }
-    public double Position => _mixer?.Position ?? (_player is null || _disposed ? 0 : Math.Max(0, _player.Time / 1000d));
-    public double Duration => _mixer?.Duration ?? (_player is null || _disposed ? 0 : Math.Max(0, _player.Length / 1000d));
-    public bool IsPlaying => !_disposed && (_mixer?.IsPlaying ?? (_browserSource is not null ? _browserSource.IsReady && !_pauseRequested && !_suppressed : _captureClient is not null
+    public double Position => _mixer?.Position ?? _sceneCanvas?.PrimarySurface?.Position ?? (_player is null || _disposed ? 0 : Math.Max(0, _player.Time / 1000d));
+    public double Duration => _mixer?.Duration ?? _sceneCanvas?.PrimarySurface?.Duration ?? (_player is null || _disposed ? 0 : Math.Max(0, _player.Length / 1000d));
+    public bool IsPlaying => !_disposed && (_mixer?.IsPlaying ?? _sceneCanvas?.IsPlaying ?? (_browserSource is not null ? _browserSource.IsReady && !_pauseRequested && !_suppressed : _captureClient is not null
         ? _captureReady && !_pauseRequested && !_suppressed : _player?.IsPlaying == true));
-    public bool HasEnded => _mixer is not null ? !_mixer.IsTransitioning && _mixer.ActiveSurface.HasEnded : _ended;
+    public bool HasEnded => _mixer is not null ? !_mixer.IsTransitioning && _mixer.ActiveSurface.HasEnded : _sceneCanvas?.HasEnded ?? _ended;
     public bool IsPreparingPlaybackEngine => _mixer?.IsPreparingPlaybackEngine == true;
     public void PreparePlaybackEngine() => _mixer?.PreparePlaybackEngine();
-    internal bool HasVideoFrame => _browserSource is not null ? _browserSource.IsReady : _captureClient is not null ? _captureReady : _compositedVideo.Source is not null;
-    internal bool HasLoadedMedia => _media is not null || _captureClient is not null || _browserSource is not null;
+    internal bool HasVideoFrame => _sceneCanvas is not null ? _sceneCanvas.IsReady : _browserSource is not null ? _browserSource.IsReady : _captureClient is not null ? _captureReady : _compositedVideo.Source is not null;
+    internal bool HasLoadedMedia => _sceneCanvas is not null
+        ? GetLiveLayers().Any(x => x.Cue.Kind is CueKind.Video or CueKind.Audio or CueKind.BrowserSource or CueKind.WindowCapture)
+        : _media is not null || _captureClient is not null || _browserSource is not null;
+    internal bool HasPlaybackError => _cueFailed;
     public bool DisplayedBlackout => _mixer?.DisplayedBlackout ?? _suppressed;
     public bool DisplayedHidden => _mixer?.DisplayedHidden ?? false;
     public ProjectionSurface ActiveSurface => _mixer?.ActiveSurface ?? this;
@@ -124,13 +131,15 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
     {
         if (_disposed) return;
         _shownCue = cue;
+        if (cue?.Kind != CueKind.Scene) StopScene();
+        if (_sceneCanvas is not null) _sceneCanvas.Visibility = Visibility.Collapsed;
         if (cue?.Kind != CueKind.WindowCapture) StopWindowCapture();
         if (cue?.Kind != CueKind.BrowserSource) StopBrowserSource();
         if (_browserSource is not null) _browserSource.Visibility = Visibility.Collapsed;
         CancelDissolve();
         _cueFailed = false;
         _suppressed = blackout || hideText;
-        _root.Background = blackout || (!hideText && cue?.Kind == CueKind.Video) ? Brushes.Black : BackgroundBrush;
+        _root.Background = blackout || (!hideText && cue?.Kind == CueKind.Video) ? Brushes.Black : _transparentBackground ? Brushes.Transparent : BackgroundBrush;
         _image.Visibility = _text.Visibility = _video.Visibility = _compositedVideo.Visibility = Visibility.Collapsed;
         ResetVisualStyle();
         if (_suppressed) SetPaused(true);
@@ -166,6 +175,9 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
             }
             switch (cue.Kind)
             {
+                case CueKind.Scene:
+                    ShowScene(cue, paused);
+                    break;
                 case CueKind.Text:
                 case CueKind.PowerPoint:
                     ShowText(string.IsNullOrWhiteSpace(cue.Body) ? cue.Title : cue.Body, cue.Reference, cue.Version);
@@ -180,6 +192,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
                     break;
                 case CueKind.BrowserSource:
                     ShowBrowserSource(cue, paused);
+                    if (_transparentBackground) _root.Background = Brushes.Transparent;
                     break;
                 case CueKind.WindowCapture:
                     ShowWindowCapture(cue, paused);
@@ -383,6 +396,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
                 _pendingPresentation = queued with { PauseAfter = false };
             return;
         }
+        if (_sceneCanvas is not null) { ApplyScenePlayback(); return; }
         if (_browserSource is not null) { ApplyBrowserAudioMute(); return; }
         if (_captureClient is not null)
         {
@@ -408,6 +422,11 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
     public void Restart()
     {
         if (_mixer is not null) { _mixer.Restart(); return; }
+        if (_sceneCanvas is not null)
+        {
+            foreach (var source in GetLiveLayers().Select(x => x.Surface).Distinct()) source.Restart();
+            _pauseRequested = _suppressed; ApplyScenePlayback(); return;
+        }
         if (_disposed || _player is null || _media is null) return;
         if (_pendingPresentation is { } pending)
         {
@@ -432,6 +451,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
     public void Seek(double fraction)
     {
         if (_mixer is not null) { _mixer.Seek(fraction); return; }
+        if (_sceneCanvas is not null) { _sceneCanvas.PrimarySurface?.Seek(fraction); return; }
         if (_disposed || _player is null || _pendingPresentation is not null || !double.IsFinite(fraction)) return;
         _player.Position = (float)Math.Clamp(fraction, 0, 1);
     }
@@ -449,6 +469,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         _disposed = true;
         StopWindowCapture();
         StopBrowserSource();
+        DisposeLayers();
         _mixer?.Dispose();
         _moveClient?.Dispose(); _moveClient = null;
         if (_player is not null)

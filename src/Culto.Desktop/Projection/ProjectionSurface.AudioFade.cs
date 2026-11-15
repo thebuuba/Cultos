@@ -40,10 +40,11 @@ public sealed partial class ProjectionSurface
 
     private void ApplyAudioVolume()
     {
+        ApplyScenePlayback();
         ApplyCapturedAudioVolume();
         if (_player is null || _disposed) return;
         var silent = _preview || _suppressed || _pauseRequested || _awaitingAudioStart;
-        var volume = silent ? 0 : NativeFadeVolume(_volume, _audioGain);
+        var volume = silent ? 0 : NativeFadeVolume(_volume, _audioGain * _mixGain);
         // A preloaded surface stays natively muted even if VLC creates its
         // audio output after Playing, until the shared blend gives it gain.
         silent |= volume == 0;

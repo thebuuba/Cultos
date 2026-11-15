@@ -31,6 +31,8 @@ internal static class ObsNative
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] [return: MarshalAs(UnmanagedType.I1)] internal static extern bool obs_init_module(nint module);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void obs_post_load_modules();
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern nint obs_data_create();
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void obs_data_set_int(nint data, [MarshalAs(UnmanagedType.LPUTF8Str)] string key, long value);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void obs_data_set_double(nint data, [MarshalAs(UnmanagedType.LPUTF8Str)] string key, double value);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void obs_data_release(nint data);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void obs_data_set_string(nint data, [MarshalAs(UnmanagedType.LPUTF8Str)] string key, [MarshalAs(UnmanagedType.LPUTF8Str)] string value);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void obs_data_set_bool(nint data, [MarshalAs(UnmanagedType.LPUTF8Str)] string key, [MarshalAs(UnmanagedType.I1)] bool value);
@@ -65,4 +67,36 @@ internal static class ObsNative
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void gs_matrix_scale3f(float x, float y, float z);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void gs_set_scissor_rect(ref GraphicsRect rect);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void gs_set_scissor_rect(nint rect);
+    // OBS 33.0.1 obs-source.h: versioned registration explicitly accepts a prefix size.
+    [StructLayout(LayoutKind.Sequential)] internal struct SourceInfo
+    {
+        public nint Id;
+        public int Type;
+        public uint OutputFlags;
+        public nint GetName, Create, Destroy, GetWidth, GetHeight;
+        public nint GetDefaults, GetProperties, Update, Activate, Deactivate, Show, Hide, VideoTick, VideoRender;
+    }
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)] internal delegate nint SourceName(nint typeData);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)] internal delegate nint SourceCreate(nint settings, nint source);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)] internal delegate void SourceDestroy(nint data);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)] internal delegate uint SourceDimension(nint data);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)] internal delegate void SourceRender(nint data, nint effect);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void obs_register_source_s(ref SourceInfo info, nuint size);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern nint obs_data_get_string(nint settings, [MarshalAs(UnmanagedType.LPUTF8Str)] string name);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern long obs_data_get_int(nint settings, [MarshalAs(UnmanagedType.LPUTF8Str)] string name);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern double obs_data_get_double(nint settings, [MarshalAs(UnmanagedType.LPUTF8Str)] string name);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void obs_sceneitem_set_pos(nint item, ref Vec2 position);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void obs_sceneitem_set_scale(nint item, ref Vec2 scale);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void obs_sceneitem_set_rot(nint item, float rotation);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void obs_enter_graphics();
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void obs_leave_graphics();
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern nint gs_texture_create(uint width, uint height, int format, uint levels, nint data, uint flags);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void gs_texture_destroy(nint texture);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void gs_texture_set_image(nint texture, byte[] data, uint lineSize, [MarshalAs(UnmanagedType.I1)] bool invert);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern nint gs_effect_get_param_by_name(nint effect, [MarshalAs(UnmanagedType.LPUTF8Str)] string name);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void gs_effect_set_texture(nint parameter, nint texture);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void gs_draw_sprite(nint texture, uint flip, uint width, uint height);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void gs_blend_state_push();
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void gs_blend_state_pop();
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void gs_blend_function(int source, int destination);
 }

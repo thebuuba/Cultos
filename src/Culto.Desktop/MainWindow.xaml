@@ -173,7 +173,10 @@
       </Grid>
       <DataTemplate.Triggers>
         <DataTrigger Binding="{Binding Kind}" Value="Video">
-          <Setter TargetName="KindIcon" Property="Data" Value="M 5,3 L 17,10 L 5,17 Z"/>
+          <Setter TargetName="KindIcon" Property="Data" Value="M 4,4 L 20,4 Q 22,4 22,6 L 22,18 Q 22,20 20,20 L 4,20 Q 2,20 2,18 L 2,6 Q 2,4 4,4 Z M 10,8 L 16,12 L 10,16 Z"/>
+          <Setter TargetName="KindIcon" Property="Width" Value="18"/>
+          <Setter TargetName="KindIcon" Property="Height" Value="16"/>
+          <Setter TargetName="KindIcon" Property="StrokeLineJoin" Value="Round"/>
           <Setter TargetName="KindBadge" Property="Background" Value="{StaticResource RaisedBrush}"/>
         </DataTrigger>
         <DataTrigger Binding="{Binding Kind}" Value="Audio">
@@ -387,36 +390,37 @@
 <ad:LayoutAnchorablePane DockWidth="0.4*" DockMinWidth="156" DockMinHeight="240">
 <ad:LayoutAnchorable Title="Escenas" ContentId="scenes" CanClose="False" CanHide="True" CanAutoHide="False" CanDockAsTabbedDocument="False">
 <Border x:Name="ScenesPanel" Background="{StaticResource PanelBrush}" Padding="8,4,8,12">
-  <Grid><Grid.RowDefinitions><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-  <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+  <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+  <Button x:Name="AddSceneButton" Content="+ Añadir escena" Click="AddSceneClick" MinHeight="32" FontSize="12" Padding="8,5" Margin="3,0,3,7" AutomationProperties.Name="Añadir escena"/>
+  <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
     <StackPanel>
       <UniformGrid x:Name="OutputBackdropsPanel" Columns="2">
-        <Button x:Name="ChurchBackgroundButton" Style="{StaticResource SceneButton}" Background="#F5FBF3" Foreground="#167746" Click="ChurchBackgroundClick" PreviewMouseRightButtonUp="LogoRightClick" AutomationProperties.Name="Logo">
+        <Button x:Name="ChurchBackgroundButton" Style="{StaticResource SceneButton}" Background="#F5FBF3" Foreground="#167746" Click="ConfiguredSceneClick" AutomationProperties.Name="Logo">
           <StackPanel><TextBlock Text="&#xE80F;" FontFamily="Segoe MDL2 Assets" FontSize="30" HorizontalAlignment="Center"/><TextBlock Text="Logo" FontSize="12" HorizontalAlignment="Center" Margin="0,7,0,0"/></StackPanel>
         </Button>
-        <Button x:Name="BlackoutButton" Style="{StaticResource SceneButton}" Background="#08090C" Foreground="White" Click="BlackBackgroundClick" AutomationProperties.Name="Fondo negro">
+        <Button x:Name="BlackoutButton" Style="{StaticResource SceneButton}" Background="#08090C" Foreground="White" Click="ConfiguredSceneClick" AutomationProperties.Name="Fondo negro">
           <StackPanel><Border Width="31" Height="24" CornerRadius="4" Background="Black" BorderBrush="#5B6069" BorderThickness="1"/><TextBlock Text="Fondo negro" FontSize="12" TextWrapping="Wrap" TextAlignment="Center" Margin="0,7,0,0"/></StackPanel>
         </Button>
-        <Button x:Name="SceneImageButton" Style="{StaticResource SceneButton}" Background="#E6F3FC" Foreground="#075A87" Tag="Image" Click="SceneMediaClick" AutomationProperties.Name="Escena de imagen">
+        <Button x:Name="SceneImageButton" Style="{StaticResource SceneButton}" Background="#E6F3FC" Foreground="#075A87" Tag="Image" Click="ConfiguredSceneClick" AutomationProperties.Name="Escena de imagen">
           <Button.ContextMenu><ContextMenu><MenuItem Header="Elegir imagen…" Tag="Image" Click="ChooseSceneMediaClick"/></ContextMenu></Button.ContextMenu>
           <StackPanel><Grid Height="30" Width="50"><TextBlock Text="&#xEB9F;" FontFamily="Segoe MDL2 Assets" FontSize="29" HorizontalAlignment="Center"/><local:CueThumbnail x:Name="SceneImageThumb"/></Grid><TextBlock x:Name="SceneImageTitle" Text="Imagen" FontSize="12" TextTrimming="CharacterEllipsis" MaxWidth="100" HorizontalAlignment="Center" Margin="0,7,0,0"/></StackPanel>
         </Button>
-        <Button x:Name="SceneVideoButton" Style="{StaticResource SceneButton}" Background="#FFF0D7" Foreground="#945000" Tag="Video" Click="SceneMediaClick" AutomationProperties.Name="Escena de video">
+        <Button x:Name="SceneVideoButton" Style="{StaticResource SceneButton}" Background="#FFF0D7" Foreground="#945000" Tag="Video" Click="ConfiguredSceneClick" AutomationProperties.Name="Escena de video">
           <Button.ContextMenu><ContextMenu><MenuItem Header="Elegir video…" Tag="Video" Click="ChooseSceneMediaClick"/></ContextMenu></Button.ContextMenu>
           <StackPanel><Grid Height="30" Width="50"><Path Data="M 0,0 L 22,15 L 0,30 Z" Fill="#F39800" Width="25" Height="30" Stretch="Uniform" HorizontalAlignment="Center"/><local:CueThumbnail x:Name="SceneVideoThumb"/></Grid><TextBlock x:Name="SceneVideoTitle" Text="Video" FontSize="12" TextTrimming="CharacterEllipsis" MaxWidth="100" HorizontalAlignment="Center" Margin="0,7,0,0"/></StackPanel>
         </Button>
-      <Button x:Name="SceneYouTubeButton" Style="{StaticResource SceneButton}" Background="White" Foreground="#C90017" Click="SceneYouTubeClick" AutomationProperties.Name="Escena de YouTube">
+      <Button x:Name="SceneYouTubeButton" Style="{StaticResource SceneButton}" Background="White" Foreground="#C90017" Click="ConfiguredSceneClick" AutomationProperties.Name="Escena de YouTube">
         <Button.ContextMenu><ContextMenu Opened="SceneYouTubeMenuOpened"/></Button.ContextMenu>
         <StackPanel><Border Width="37" Height="28" CornerRadius="7" Background="#EA001B" HorizontalAlignment="Center"><Path Data="M 1,1 L 19,11 L 1,21 Z" Fill="White" Width="14" Height="16" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><TextBlock Text="YouTube" FontSize="12" TextAlignment="Center" Margin="0,7,0,0"/></StackPanel>
       </Button>
-      <Button x:Name="SceneBrowserButton" Style="{StaticResource SceneButton}" Background="#354E6D" Foreground="White" Click="SceneBrowserClick" AutomationProperties.Name="Escena de navegador HTML">
+      <Button x:Name="SceneBrowserButton" Style="{StaticResource SceneButton}" Background="#354E6D" Foreground="White" Click="ConfiguredSceneClick" AutomationProperties.Name="Escena de navegador HTML">
         <Button.ContextMenu><ContextMenu Opened="SceneBrowserMenuOpened"/></Button.ContextMenu>
         <StackPanel><TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="23" HorizontalAlignment="Center"/><TextBlock x:Name="SceneBrowserTitle" Text="Navegador" FontSize="12" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="100" Margin="0,4,0,0"/></StackPanel>
       </Button>
       </UniformGrid>
     </StackPanel>
   </ScrollViewer>
-  <StackPanel Grid.Row="1">
+  <StackPanel Grid.Row="2">
       <Button x:Name="ReturnToMediaButton" Content="Volver al video" Click="ReturnToMediaClick" Visibility="Collapsed" FontSize="12" Padding="8,5" MinHeight="30" ToolTip="Volver al video · F9"/>
       <TextBlock x:Name="BackgroundMediaText" Visibility="Collapsed" Foreground="{StaticResource MutedBrush}" FontSize="12" TextTrimming="CharacterEllipsis" Margin="3,3"/>
   </StackPanel>

@@ -19,7 +19,7 @@ public partial class MainWindow
 
     private void QueueLiveCue()
     {
-        var token = _pendingCuePlayback.Begin(_workspace.Transitions, _workspace.BibleStyle);
+        var token = _pendingCuePlayback.Begin(CurrentTransitions, _workspace.BibleStyle);
         _isPaused = false;
         FadePowerPointOut(() => CommitPendingCue(token), _pendingCuePlayback.Transitions.AudioFadeOutMilliseconds);
     }

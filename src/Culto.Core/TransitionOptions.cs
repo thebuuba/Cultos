@@ -6,6 +6,7 @@ public sealed record TransitionOptions
     public int DurationMilliseconds { get; set; } = 300;
     public int AudioFadeOutMilliseconds { get; set; } = 250;
     public int AudioFadeInMilliseconds { get; set; } = 250;
+    public MoveOptions Move { get; set; } = new();
     // Only the old factory tuple is upgraded; later deliberate choices retain their timing.
     public TransitionOptions UpgradeStoredDefaults(int defaultsVersion) => defaultsVersion < 1
         && Kind == "Dissolve" && DurationMilliseconds == 500
@@ -16,6 +17,7 @@ public sealed record TransitionOptions
         Kind = Kind is "Cut" or "Slide" or "Zoom" or "Move" ? Kind : "Dissolve",
         DurationMilliseconds = Math.Clamp(DurationMilliseconds, 100, 3000),
         AudioFadeOutMilliseconds = Math.Clamp(AudioFadeOutMilliseconds, 0, 5000),
-        AudioFadeInMilliseconds = Math.Clamp(AudioFadeInMilliseconds, 0, 5000)
+        AudioFadeInMilliseconds = Math.Clamp(AudioFadeInMilliseconds, 0, 5000),
+        Move = (Move ?? new()).Normalize()
     };
 }

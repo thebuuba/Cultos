@@ -35,6 +35,12 @@ public partial class MainWindow
     }
     private bool CheckMedia(Cue cue)
     {
+        if (cue.Kind == CueKind.Scene)
+        {
+            try { (cue.Scene ?? throw new ArgumentException("Configura las capas de la escena.")).Validate(); }
+            catch (ArgumentException error) { SetStatus(error.Message, true); return false; }
+            return cue.Scene.Layers.Where(layer => layer.Visible).All(layer => CheckMedia(layer.Source));
+        }
         if (cue.Kind == CueKind.BrowserSource)
         {
             try
