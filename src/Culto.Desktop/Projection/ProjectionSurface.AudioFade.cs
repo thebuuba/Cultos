@@ -44,6 +44,14 @@ public sealed partial class ProjectionSurface
         ApplyCapturedAudioVolume();
         if (_player is null || _disposed) return;
         var silent = _preview || _suppressed || _pauseRequested || _awaitingAudioStart;
+        if (_cathedralAudio is { } cathedral)
+        {
+            if (cathedral.HasError) { RestoreDryAudio(); return; }
+            var master = Math.Pow(_volume / 100d, 3);
+            cathedral.SetMasterGain(silent ? 0 : master);
+            cathedral.SetGain(silent ? 0 : master * _audioGain * _mixGain);
+            return;
+        }
         var volume = silent ? 0 : NativeFadeVolume(_volume, _audioGain * _mixGain);
         // A preloaded surface stays natively muted even if VLC creates its
         // audio output after Playing, until the shared blend gives it gain.

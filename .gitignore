@@ -19,3 +19,4 @@ tests/Culto.Renderer.Smoke/fixtures/audio-crossfade-*.wav
 tests/Culto.Renderer.Smoke/fixtures/audio-crossfade-*.json
 tests/Culto.Renderer.Smoke/fixtures/audio-capture-*.wav
 
+tests/Culto.Renderer.Smoke/fixtures/cathedral-*.wav

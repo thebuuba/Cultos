@@ -25,7 +25,7 @@ internal static partial class Program
         var app = new System.Windows.Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
         app.Startup += async (_, _) =>
         {
-            try { if (args.Contains("--live-media")) await RunLiveMediaMoveChecks(); else if (args.Contains("--live-layers")) await RunLiveLayerMoveChecks();
+            try { if (args.Contains("--cathedral")) await RunCathedralChecks(); else if (args.Contains("--move-video-cadence")) await RunMoveVideoCadenceChecks(); else if (args.Contains("--live-media")) await RunLiveMediaMoveChecks(); else if (args.Contains("--live-layers")) await RunLiveLayerMoveChecks();
                 else if (args.Contains("--layer-pool")) await RunLayerSourcePoolChecks();
                 else if (args.Contains("--transition-audit")) await RunTransitionAuditChecks();
                 else if (args.Contains("--native-move")) await RunNativeMoveChecks();

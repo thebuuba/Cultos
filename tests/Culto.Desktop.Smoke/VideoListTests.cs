@@ -10,6 +10,7 @@ internal static partial class Program
 {
     private static void RunVideoListTests(MainWindow window)
     {
+        if (Environment.GetCommandLineArgs().Contains("--playlist-audio")) { RunPlaylistAudioTests(window); return; }
         var workspace=Field<WorkspaceData>(window,"_workspace");
         var session=Field<PresentationSession>(window,"_session");
         Cue Video(string title)=>new(){Kind=CueKind.Video,Title=title,FilePath=Path.Combine(AppContext.BaseDirectory,"fixtures","test.mkv")};

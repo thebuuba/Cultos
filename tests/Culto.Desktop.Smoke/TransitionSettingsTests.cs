@@ -43,6 +43,42 @@ internal static partial class Program
             .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         try
         {
+            Test("Visual transition editor synchronizes timing cards, timeline and native Move controls", () =>
+            {
+                workspace.Transitions = new TransitionOptions { Kind = "Move", DurationMilliseconds = 1150,
+                    AudioFadeOutMilliseconds = 1550, AudioFadeInMilliseconds = 1300 };
+                ExerciseSettings(dialog =>
+                {
+                    var duration = Control<Slider>(dialog, "TransitionDuration");
+                    Check(Descendants(dialog).OfType<TextBlock>().Any(t => t.Text == "Todo guardado"), "New editor starts dirty");
+                    Control<Button>(dialog, "TransitionDurationIncrease").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    Check(duration.Value == 1250 && dialog.Options.DurationMilliseconds == 1250, "Timing + did not update the draft");
+                    Control<Button>(dialog, "TransitionDurationDecrease").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    Check(duration.Value == 1150, "Timing - did not restore the duration");
+                    Check(Descendants(dialog).OfType<TextBlock>().Any(t => t.Text == "Todo guardado"), "Reverting timing does not clear dirty status");
+                    Check(Control<TextBlock>(dialog, "TransitionTotal").Text.Contains("1.55"), "Timeline total does not use the longest fade");
+                    Control<Button>(dialog, "MoveInPosition26").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    Check(dialog.Options.Move.In.Position == 26, "Position grid lost native upper-right value");
+                    Control<ComboBox>(dialog, "MoveOutPosition").SelectedValue = 96;
+                    Check(dialog.Options.Move.Out.Position == 96, "Advanced native position was lost");
+                    Control<Button>(dialog, "MoveInEasing2").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    Check(dialog.Options.Move.In.Easing == 2, "Easing segment did not update native settings");
+                    Control<ComboBox>(dialog, "TransitionKind").SelectedValue = "Cut";
+                    Check(!duration.IsEnabled && !Control<Button>(dialog, "MoveInPosition26").IsEnabled, "Cut leaves visual timing or Move controls enabled");
+                    Control<ComboBox>(dialog, "TransitionKind").SelectedValue = "Move";
+                    Check(duration.Value == 1150 && dialog.Options.Move.Out.Position == 96, "Switching effects lost the draft");
+                    Control<ComboBox>(dialog, "MoveInPosition").SelectedValue = 6;
+                    Control<ComboBox>(dialog, "MoveOutPosition").SelectedValue = 10;
+                    Control<ComboBox>(dialog, "MoveInEasing").SelectedValue = 3;
+                    Control<Slider>(dialog, "MoveInCurve").Value = .66;
+                    Control<Slider>(dialog, "MoveOutCurve").Value = -.72;
+                    var folder = System.IO.Path.Combine(Environment.CurrentDirectory, ".tools", "transition-redesign");
+                    System.IO.Directory.CreateDirectory(folder);
+                    CaptureDesignWindow(dialog, System.IO.Path.Combine(folder, "editor.png"));
+                    Control<ComboBox>(dialog, "MoveInFunction").BringIntoView(); dialog.UpdateLayout();
+                    CaptureDesignWindow(dialog, System.IO.Path.Combine(folder, "move.png"));
+                });
+            });
             Test("Default transition settings expose fast independently editable fades", () =>
             {
                 var defaults = new WorkspaceData().Transitions;
@@ -172,6 +208,90 @@ internal static partial class Program
                         "Failed save changed output configuration or live cue");
                 }
                 finally { SetField(window, "_workspaceRecoveryBlocked", recoveryBlocked); }
+            });
+
+            Test("Cathedral controls edit only the draft and cancel preserves saved audio settings", () =>
+            {
+                var before = workspace.Transitions with { };
+                Check((bool)Call(window, "SaveWorkspace")!, "Could not save settings before cathedral cancel test");
+                var outputBefore = output!.Transitions; var live = session.Live; var prepared = session.Prepared;
+                ExerciseSettings(dialog =>
+                {
+                    var effect = Control<ComboBox>(dialog, "AudioFadeEffect");
+                    var intensity = Control<Slider>(dialog, "CathedralIntensity");
+                    var tail = Control<Slider>(dialog, "CathedralTail");
+                    Check(effect.SelectedValue as string == before.AudioFadeEffect, "Audio effect did not load saved settings");
+                    effect.SelectedValue = "Cathedral"; intensity.Value = 42; tail.Value = 3700;
+                    Check(intensity.IsEnabled && tail.IsEnabled && dialog.Options.AudioFadeEffect == "Cathedral"
+                        && dialog.Options.CathedralIntensityPercent == 42 && dialog.Options.CathedralTailMilliseconds == 3700,
+                        "Cathedral controls do not update normalized draft settings");
+                    Check(workspace.Transitions == before && output.Transitions == outputBefore,
+                        "Unsaved cathedral edits changed workspace or live output");
+                    effect.SelectedValue = "Normal";
+                    Check(!intensity.IsEnabled && !tail.IsEnabled && !Control<Button>(dialog, "PreviewCathedralAudio").IsEnabled,
+                        "Normal fade leaves cathedral-only controls enabled");
+                    Check(dialog.Options.AudioFadeEffect == "Normal" && dialog.Options.CathedralIntensityPercent == 42
+                        && dialog.Options.CathedralTailMilliseconds == 3700, "Changing fade mode lost the cathedral draft");
+                    Control<Button>(dialog, "CancelTransitions").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                });
+                Check(workspace.Transitions == before && new WorkspaceStore().Load().Transitions == before,
+                    "Cancel persisted cathedral draft edits");
+                Check(output.Transitions == outputBefore && ReferenceEquals(live, session.Live) && ReferenceEquals(prepared, session.Prepared),
+                    "Canceling cathedral settings changed output or cues");
+            });
+
+            Test("Cathedral audio settings save reload preview and restore normal defaults", () =>
+            {
+                var before = workspace.Transitions with { }; var outputBefore = output!.Transitions;
+                try
+                {
+                    ExerciseSettings(dialog =>
+                    {
+                        Control<ComboBox>(dialog, "AudioFadeEffect").SelectedValue = "Cathedral";
+                        Control<Slider>(dialog, "CathedralIntensity").Value = 42;
+                        Control<Slider>(dialog, "CathedralTail").Value = 3700;
+                        Save(dialog);
+                    });
+                    var expected = before with { AudioFadeEffect = "Cathedral", CathedralIntensityPercent = 42, CathedralTailMilliseconds = 3700 };
+                    Check(workspace.Transitions == expected && new WorkspaceStore().Load().Transitions == expected,
+                        "Cathedral audio settings did not survive save and reload");
+                    var live = session.Live; var prepared = session.Prepared; var presented = output.PresentedTransitions;
+                    ExerciseSettings(dialog =>
+                    {
+                        Check(Control<ComboBox>(dialog, "AudioFadeEffect").SelectedValue as string == "Cathedral"
+                            && Control<Slider>(dialog, "CathedralIntensity").Value == 42
+                            && Control<Slider>(dialog, "CathedralTail").Value == 3700,
+                            "Reopened editor did not load cathedral settings");
+                        var preview = Control<Button>(dialog, "PreviewCathedralAudio");
+                        preview.BringIntoView(); dialog.UpdateLayout(); PumpFor(100);
+                        var folder = System.IO.Path.Combine(Environment.CurrentDirectory, ".tools"); System.IO.Directory.CreateDirectory(folder);
+                        CaptureDesignWindow(dialog, System.IO.Path.Combine(folder, "cathedral-editor.png"));
+                        preview.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                        var status = Control<TextBlock>(dialog, "CathedralAudioPreviewStatus");
+                        Until(() => status.Text == "Prueba de audio finalizada." || status.Text.StartsWith("No se pudo reproducir"),
+                            "Cathedral preview did not finish or report an error within eight seconds");
+                        Check(status.Text == "Prueba de audio finalizada.", "Cathedral preview failed: " + status.Text);
+                        Check(preview.IsEnabled && !Control<Button>(dialog, "StopCathedralAudio").IsEnabled,
+                            "Cathedral preview did not restore playback controls");
+                        Check(output.Transitions == expected && presented == output.PresentedTransitions
+                            && ReferenceEquals(live, session.Live) && ReferenceEquals(prepared, session.Prepared),
+                            "Independent cathedral preview changed live output or cues");
+                        Control<Button>(dialog, "RestoreFastTransitions").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                        Check(dialog.Options.AudioFadeEffect == "Normal" && dialog.Options.CathedralIntensityPercent == 25
+                            && dialog.Options.CathedralTailMilliseconds == 2500 && !Control<Slider>(dialog, "CathedralIntensity").IsEnabled
+                            && !Control<Slider>(dialog, "CathedralTail").IsEnabled,
+                            "Restore did not reset cathedral controls to normal defaults");
+                        Check(workspace.Transitions == expected, "Restoring audio defaults changed workspace before save");
+                        Save(dialog);
+                    });
+                    Check(workspace.Transitions == new TransitionOptions() && new WorkspaceStore().Load().Transitions == new TransitionOptions(),
+                        "Restored normal audio defaults did not persist");
+                }
+                finally
+                {
+                    workspace.Transitions = before; output.Transitions = outputBefore;
+                    Call(window, "SaveWorkspace");
+                }
             });
         }
         finally

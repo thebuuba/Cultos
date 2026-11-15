@@ -17,7 +17,8 @@ namespace Culto.Desktop.Projection;
 // the process boundary; audio remains with the existing overlapping decoders.
 internal sealed class LiveMoveTransition : IDisposable
 {
-    private sealed record FrameSource(string Id, FrameworkElement Visual, SharedVideoFrame Map, int Width, int Height, bool Animated);
+    private sealed record FrameSource(string Id, FrameworkElement Visual, SharedVideoFrame Map, int Width, int Height, bool Animated,
+        CompositedVideo? Video, byte[]? Pixels);
     private readonly Dictionary<string, FrameSource> _sources = new(StringComparer.Ordinal);
     private readonly CancellationTokenSource _cancel = new();
     private readonly ObsLiveMoveClient _client;
@@ -115,7 +116,25 @@ internal sealed class LiveMoveTransition : IDisposable
     private FrameSource Add(string id, FrameworkElement visual, int width, int height, bool animated)
     {
         if (_sources.TryGetValue(id, out var existing)) return existing;
-        var frame = new FrameSource(id, visual, SharedVideoFrame.Create(width, height), width, height, animated);
+        var video = (visual as ProjectionSurface)?.LiveVideoPixels;
+        byte[]? pixels = null;
+        if (video is not null)
+        {
+            var size = video.FrameSize;
+            // Preserve the source surface's letterboxing, including a shared layer's
+            // aspect ratio before the scene stretches/rotates that layer.
+            var aspect = visual.ActualWidth > 0 && visual.ActualHeight > 0 ? visual.ActualWidth / visual.ActualHeight : width / (double)height;
+            var canvasWidth = Math.Max(size.Width, (int)Math.Ceiling(size.Height * aspect));
+            var canvasHeight = Math.Max(size.Height, (int)Math.Ceiling(size.Width / aspect));
+            if ((long)canvasWidth * canvasHeight <= ObsMoveProtocol.MaximumPayloadBytes / 4)
+            {
+                width = canvasWidth; height = canvasHeight;
+                pixels = new byte[width * height * 4];
+                for (var alpha = 3; alpha < pixels.Length; alpha += 4) pixels[alpha] = 255;
+            }
+            else video = null; // Unusual, extreme aspect ratios retain the existing compositor path.
+        }
+        var frame = new FrameSource(id, visual, SharedVideoFrame.Create(width, height), width, height, animated, video, pixels);
         _sources.Add(id, frame); return frame;
     }
     private void Capture(bool all)
@@ -126,6 +145,12 @@ internal sealed class LiveMoveTransition : IDisposable
         foreach (var source in _sources.Values)
         {
             if (!all && !source.Animated) continue;
+            if (source.Video is not null && ReferenceEquals((source.Visual as ProjectionSurface)?.LiveVideoPixels, source.Video)
+                && source.Video.CopyFrame(source.Pixels!, source.Width, source.Height, all))
+            {
+                source.Map.Write(source.Pixels!);
+                continue;
+            }
             var canvas = new DrawingVisual();
             using (var drawing = canvas.RenderOpen()) drawing.DrawRectangle(new VisualBrush(source.Visual) { Stretch = Stretch.Fill }, null, new Rect(0, 0, source.Width, source.Height));
             var bitmap = new RenderTargetBitmap(source.Width, source.Height, 96, 96, PixelFormats.Pbgra32); bitmap.Render(canvas);

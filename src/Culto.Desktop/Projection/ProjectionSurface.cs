@@ -111,6 +111,8 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
     public bool IsPreparingPlaybackEngine => _mixer?.IsPreparingPlaybackEngine == true;
     public void PreparePlaybackEngine() => _mixer?.PreparePlaybackEngine();
     internal bool HasVideoFrame => _sceneCanvas is not null ? _sceneCanvas.IsReady : _browserSource is not null ? _browserSource.IsReady : _captureClient is not null ? _captureReady : _compositedVideo.Source is not null;
+    internal CompositedVideo? LiveVideoPixels => !_cueFailed && !_suppressed && !_preview && _shownCue?.Kind == CueKind.Video
+        && _compositedVideo.Visibility == Visibility.Visible && _compositedVideo.Source is not null ? _compositedVideo : null;
     internal bool HasLoadedMedia => _sceneCanvas is not null
         ? GetLiveLayers().Any(x => x.Cue.Kind is CueKind.Video or CueKind.Audio or CueKind.BrowserSource or CueKind.WindowCapture)
         : _media is not null || _captureClient is not null || _browserSource is not null;
@@ -288,6 +290,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         if (_player is not null) return;
         _vlc = _sharedVlc?.Invoke() ?? CreatePlaybackEngine();
         _player = new MediaPlayer(_vlc) { Volume = 0, Mute = true, EnableMouseInput = false, EnableKeyInput = false };
+        AttachCathedralAudio();
         if (_preview) _video.MediaPlayer = _player;
         else _compositedVideo.Attach(_player);
         _player.EncounteredError += OnPlaybackError;
@@ -372,6 +375,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         _playbackGeneration++;
         BeginAudioPlayback();
         if (_ended) { _player.Stop(); _ended = false; }
+        _cathedralAudio?.ResetPlayback();
         _started = _player.Play();
         if (!_started) ReportError("No se pudo iniciar la reproducción del archivo.");
     }
@@ -467,6 +471,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         CancelAudioFade(silence: true);
         CancelDissolve();
         _disposed = true;
+        var cathedralAudio = _cathedralAudio; _cathedralAudio = null;
         StopWindowCapture();
         StopBrowserSource();
         DisposeLayers();
@@ -485,7 +490,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
             try { _player?.Stop(); }
             finally
             {
-                _player?.Dispose(); _media?.Dispose(); _compositedVideo.FinishDispose();
+                _player?.Dispose(); cathedralAudio?.Dispose(); _media?.Dispose(); _compositedVideo.FinishDispose();
                 if (_sharedVlc is null) _vlc?.Dispose();
             }
         }

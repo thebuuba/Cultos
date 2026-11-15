@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
@@ -22,6 +23,46 @@ internal sealed class CompositedVideo : Image, IDisposable
     public event Action? FramePresented;
 
     public CompositedVideo() => Stretch = Stretch.Uniform;
+
+    internal (int Width, int Height) FrameSize => Source is BitmapSource frame ? (frame.PixelWidth, frame.PixelHeight) : (0, 0);
+
+    // Copy already decoded CPU pixels. Capturing this Image through a VisualBrush
+    // forces a synchronous WPF render/readback for every Move tick.
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    internal bool CopyFrame(byte[] canvas, int width, int height, bool requireFrame = true)
+    {
+        if (_disposed || Source is not BitmapSource frame || frame.PixelWidth > width || frame.PixelHeight > height) return false;
+        var x = (width - frame.PixelWidth) / 2; var y = (height - frame.PixelHeight) / 2;
+        var copied = false;
+        if (_bufferGate.Wait(0))
+        {
+            try
+            {
+                if (_pixels != IntPtr.Zero && _width == frame.PixelWidth && _height == frame.PixelHeight)
+                {
+                    Array.Clear(canvas);
+                    if (_pitch == width * 4 && x == 0 && y == 0 && _height == height)
+                        Marshal.Copy(_pixels, canvas, 0, width * height * 4);
+                    else
+                        for (var row = 0; row < _height; row++)
+                            Marshal.Copy(IntPtr.Add(_pixels, row * _pitch), canvas, ((row + y) * width + x) * 4, _width * 4);
+                    copied = true;
+                }
+            }
+            finally { _bufferGate.Release(); }
+        }
+        if (!copied)
+        {
+            // Never make the UI wait for VLC's writer. Keep the last complete frame
+            // for this tick; the initial publication can use WPF's presented bitmap.
+            if (!requireFrame) return true;
+            Array.Clear(canvas);
+            frame.CopyPixels(new Int32Rect(0, 0, frame.PixelWidth, frame.PixelHeight), canvas, width * 4, (y * width + x) * 4);
+        }
+        // VLC's RV32/WPF Bgr32 ignores its fourth byte; OBS needs explicit opaque alpha.
+        for (var alpha = 3; alpha < canvas.Length; alpha += 4) canvas[alpha] = 255;
+        return true;
+    }
 
     public void Attach(MediaPlayer player)
     {

@@ -28,7 +28,7 @@ El fundido normal conserva la salida DirectSound actual de LibVLC. No se cambia 
 
 ### Ruta Catedral
 
-Para los archivos iniciados con Catedral activada, LibVLC entrega PCM mediante `SetAudioCallbacks` y `SetAudioFormat`. Estos callbacks sustituyen la salida de audio nativa: la aplicación pasa a controlar el búfer, el reloj, el volumen y la reproducción mediante WASAPI compartido. Se reutiliza el patrón local de `BrowserAudioOutput`, sin capturar el audio de Windows ni de otras aplicaciones.
+Para los archivos iniciados con Catedral activada, LibVLC entrega PCM S16N est?reo a 48 kHz mediante `SetAudioCallbacks` y `SetAudioFormat`. Estos callbacks sustituyen la salida de audio nativa: la aplicación pasa a controlar el búfer, el reloj, el volumen y la reproducción mediante WASAPI compartido. Se reutiliza el patrón local de `BrowserAudioOutput`, sin capturar el audio de Windows ni de otras aplicaciones.
 
 El sonido normal del archivo se reproduce seco. Al abandonar el archivo, se alimenta el procesador de reverberación con el audio saliente y se mantiene una cola finita después de terminar su fundido y de retirar su imagen. El siguiente archivo tiene su propia señal seca; su sonido no alimenta la cola anterior. Se limita el número de colas simultáneas y se cancela la cola anterior en cambios rápidos para evitar acumulaciones.
 

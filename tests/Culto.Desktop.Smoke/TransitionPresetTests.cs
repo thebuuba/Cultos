@@ -94,6 +94,7 @@ internal static partial class Program
             });
             var selector = (ComboBox)window.FindName("SceneTransitionPicker");
             selector.SelectedItem = selector.Items.OfType<ComboBoxItem>().Single(i => i.Tag as string == "preset:" + first.Id);
+            Check(workspace.TransitionPresets.Single(p => p.Id == first.Id).Name == first.Name, "Adding a new profile renamed its source");
             Check(workspace.Transitions.Move.In.Zoom == 75, "Selecting first profile used the second profile options");
             Editor(dialog => { Press(dialog, "RemoveTransitionPreset"); Press(dialog, "SaveTransitions"); });
             Check(workspace.TransitionPresets.Count == 1 && workspace.ActiveTransitionPresetId is null, "Deleted active profile remains selected");

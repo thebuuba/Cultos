@@ -1,5 +1,11 @@
 # Culto Studio
 
+En **0.40.14**, **Transiciones → Efecto del fundido de audio** permite elegir **Fundido con reverberación catedral**. Ajusta la intensidad y la cola, pulsa **Probar audio** y guarda. El efecto se aplica al medio o himno que sale y deja seco el siguiente. Activarlo durante una reproducción se aplica a los medios que inicies después; el fundido normal sigue siendo la opción predeterminada.
+
+Los ajustes de **Transiciones** reúnen los perfiles guardados, una vista previa independiente y tarjetas para la duración visual y los fundidos de audio, con barras verde lima, violeta y cian. **Move** incluye selectores de posición, gráficas de suavizado y controles separados de entrada y salida. Guardar aplica los cambios; Cancelar conserva la configuración anterior.
+
+En **0.40.13**, Move aprovecha directamente los fotogramas decodificados de los videos, con buffers reutilizados, para reducir los tirones durante el efecto. Conserva la proporción, las bandas negras, el audio y las fuentes compartidas entre escenas.
+
 Consola nativa para Windows destinada a preparar y proyectar cultos. Reúne el orden del culto, colecciones de videos, imágenes, textos, Biblia importable, presentaciones de PowerPoint y controles desde el teléfono o un presentador USB. No depende de OBS.
 
 Al abrir, muestra el **Logo guardado en la salida local**, sin activar HDMI ni seleccionar o reproducir el primer elemento del culto. Si las imágenes del Logo no están disponibles, mantiene un fondo negro silencioso y muestra un aviso para configurarlo. Los himnos comienzan al seleccionarlos o proyectarlos expresamente.

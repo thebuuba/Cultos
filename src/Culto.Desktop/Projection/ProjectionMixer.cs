@@ -306,6 +306,7 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
                 _background = incoming; _backgroundCue = loading.Cue;
                 _incoming = null; _loading = null;
                 _audioBlend = loading.Options; _audioClock.Restart();
+                _audioOutgoing?.BeginCathedralFade(loading.Options);
             }
             else
             {
@@ -313,6 +314,7 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
                 _current = incoming; _currentCue = loading.Cue;
                 _visible = loading;
                 _incoming = null; _loading = null; _blend = loading;
+                if (!KeepOutgoingMedia) _outgoing.BeginCathedralFade(loading.Options);
                 _clock.Restart();
                 if (loading.Options.Kind == "Move") BeginLiveMove(loading);
             }
@@ -331,7 +333,7 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
             if (sample.Complete && (_liveMove is null || _liveMove.Complete)) FinishBlend();
         }
         ApplyVolumes();
-        if (_loading is null && _blend is null && _audioBlend is null) _timer.Stop();
+        if (_loading is null && _blend is null && _audioBlend is null && _cathedralTails.Count == 0) _timer.Stop();
     }
 
     private CrossfadeSample Sample(Request request) => CrossfadeTimeline.Sample(_liveMove is { Failed: false } live ? live.Started ? live.ElapsedMilliseconds : 0 : _clock.Elapsed.TotalMilliseconds,
@@ -391,6 +393,7 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
                     source.Surface.Volume = (int)Math.Round(_volume * source.Layer.Volume / 100d);
             }
         }
+        UpdateCathedralTails();
     }
     private void FinishAudioBlend()
     {
@@ -419,6 +422,7 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
                 && outgoing.HasLoadedMedia && !outgoing.HasEnded)
             {
                 ReleaseRetained();
+                RememberTail(outgoing.CathedralAudio, owned: false);
                 outgoing.Volume = 0; outgoing.SetPaused(true);
                 _retained = outgoing; _retainedCue = _outgoingCue;
             }
@@ -428,7 +432,7 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
         if (request is not null && (ShowsMedia(request) || !request.PreserveAudio)) ReleaseBackground();
         _outgoingCue = null;
         ApplyVolumes();
-        if (_audioBlend is not null) _timer.Start();
+        if (_audioBlend is not null || _cathedralTails.Count > 0) _timer.Start();
         if (_queued is { } queued)
         {
             _queued = null;
@@ -447,7 +451,7 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
             { _background = pending; _backgroundCue = loading.Cue; }
             else Retire(pending);
         }
-        if (_blend is null) _timer.Stop();
+        if (_blend is null && _cathedralTails.Count == 0) _timer.Stop();
     }
     private void ReleaseRetained()
     {
@@ -459,6 +463,7 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
     }
     private void Retire(ProjectionSurface surface)
     {
+        RememberTail(surface.DetachCathedralTail(), owned: true);
         surface.Volume = 0;
         // Observe native cleanup failures instead of leaving unobserved tasks.
         foreach (var task in _retired.Where(task => task.IsCompleted))
@@ -556,6 +561,7 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
         if (_disposed) return;
         EndLiveMove(); _liveMoveClient?.Dispose(); _liveMoveClient = null;
         _timer.Stop(); _disposed = true;
+        StopCathedralTails();
         var surfaces = Surfaces().ToArray(); Children.Clear();
         foreach (var surface in surfaces) _retired.Add(surface.RetireAsync());
         try { Task.WhenAll(_retired).GetAwaiter().GetResult(); }

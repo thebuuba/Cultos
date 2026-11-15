@@ -417,12 +417,44 @@
             </Grid>
 
           </Grid>
-        </Border><StackPanel x:Name="TransitionCenter" Grid.Column="1" VerticalAlignment="Center" Margin="6">              <Button x:Name="ProjectButton"  Style="{StaticResource PrimaryButton}" Click="ProjectClick" MinHeight="36" Padding="14,7" AutomationProperties.Name="Proyectar contenido preparado">
-                <StackPanel Orientation="Horizontal"><TextBlock Text="Proyectar" FontSize="12"/><TextBlock Text="F5" FontSize="12" Margin="5,0,0,0" VerticalAlignment="Center"/></StackPanel>
-              </Button><TextBlock Text="Transición" FontSize="12" Margin="3,14,0,5"/>      <ComboBox x:Name="SceneTransitionPicker" SelectionChanged="SceneTransitionsChanged" AutomationProperties.Name="Transición entre escenas" Margin="3,0,3,6" MinHeight="30" Padding="8,4">
-        <ComboBoxItem Tag="Cut">Corte</ComboBoxItem><ComboBoxItem Tag="Dissolve">Fundido</ComboBoxItem><ComboBoxItem Tag="Slide">Deslizar</ComboBoxItem><ComboBoxItem Tag="Zoom">Zoom</ComboBoxItem><ComboBoxItem Tag="Move">Move</ComboBoxItem>
-      </ComboBox>
-<Button Content="Ajustes" Click="TransitionSettingsClick" FontSize="12" MinHeight="30" Padding="5"/></StackPanel><Border Grid.Column="2" x:Name="LivePanel" VerticalAlignment="Top" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="0" CornerRadius="0" Padding="10,10" SizeChanged="OutputPanelSizeChanged">
+        </Border>
+        <StackPanel x:Name="TransitionCenter" Grid.Column="1" VerticalAlignment="Center" Margin="6">
+          <StackPanel.Resources>
+            <ControlTemplate x:Key="TransitionButtonTemplate" TargetType="Button">
+              <Grid x:Name="ButtonRoot" SnapsToDevicePixels="True">
+                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6"/>
+                <Border x:Name="ButtonHighlight" Background="{StaticResource TextBrush}" CornerRadius="6" Opacity="0" IsHitTestVisible="False"/>
+                <Border x:Name="ButtonPressed" Background="Black" CornerRadius="6" Opacity="0" IsHitTestVisible="False"/>
+                <Border x:Name="ButtonFocus" BorderBrush="{StaticResource TextBrush}" BorderThickness="2" CornerRadius="6" Margin="2" Opacity="0" IsHitTestVisible="False"/>
+                <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" TextElement.Foreground="{TemplateBinding Foreground}"/>
+              </Grid>
+              <ControlTemplate.Triggers>
+                <Trigger Property="IsPressed" Value="True"><Setter TargetName="ButtonPressed" Property="Opacity" Value="0.14"/></Trigger>
+                <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="ButtonFocus" Property="Opacity" Value="1"/></Trigger>
+                <Trigger Property="IsEnabled" Value="False"><Setter TargetName="ButtonRoot" Property="Opacity" Value="0.65"/></Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </StackPanel.Resources>
+          <Button x:Name="ProjectButton" Style="{StaticResource PrimaryButton}" Template="{StaticResource TransitionButtonTemplate}" Click="ProjectClick" Height="40" Padding="10,0" ToolTip="Proyectar contenido preparado · F5" AutomationProperties.Name="Proyectar contenido preparado" AutomationProperties.AcceleratorKey="F5">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+              <TextBlock Text="Proyectar" FontSize="12" VerticalAlignment="Center"/>
+              <Border BorderBrush="{StaticResource OnActionBrush}" BorderThickness="1" CornerRadius="3" Padding="4,2" Margin="8,0,0,0" VerticalAlignment="Center">
+                <TextBlock Text="F5" FontSize="10"/>
+              </Border>
+            </StackPanel>
+          </Button>
+          <TextBlock Text="Transición" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,14,0,6"/>
+          <Grid>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="32"/></Grid.ColumnDefinitions>
+            <ComboBox x:Name="SceneTransitionPicker" SelectionChanged="SceneTransitionsChanged" AutomationProperties.Name="Transición entre escenas" FontSize="12" Height="32" MinHeight="32" Padding="8,4,26,4">
+              <ComboBoxItem Tag="Cut">Corte</ComboBoxItem><ComboBoxItem Tag="Dissolve">Fundido</ComboBoxItem><ComboBoxItem Tag="Slide">Deslizar</ComboBoxItem><ComboBoxItem Tag="Zoom">Zoom</ComboBoxItem><ComboBoxItem Tag="Move">Move</ComboBoxItem>
+            </ComboBox>
+            <Button Grid.Column="2" Template="{StaticResource TransitionButtonTemplate}" Click="TransitionSettingsClick" Height="32" MinHeight="32" Padding="0" ToolTip="Ajustes de transición" AutomationProperties.Name="Ajustes de transición">
+              <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="14"/>
+            </Button>
+          </Grid>
+        </StackPanel>
+        <Border Grid.Column="2" x:Name="LivePanel" VerticalAlignment="Top" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="0" CornerRadius="0" Padding="10,10" SizeChanged="OutputPanelSizeChanged">
           <Grid>
             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto" MinHeight="102"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <Grid x:Name="LiveHeaderGrid" MinHeight="32">
