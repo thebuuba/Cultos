@@ -28,6 +28,7 @@
         <SolidColorBrush x:Key="LiveBrush" Color="#24B27E" />
         <SolidColorBrush x:Key="LiveSurfaceBrush" Color="#243D34" />
         <CornerRadius x:Key="PanelRadius">22</CornerRadius>
+        <CornerRadius x:Key="WorkspacePanelRadius">8</CornerRadius>
         <CornerRadius x:Key="ItemRadius">14</CornerRadius>
         <CornerRadius x:Key="ControlRadius">12</CornerRadius>
         <local:CueKindConverter x:Key="CueKindConverter" />

@@ -8,7 +8,7 @@ using Culto.Core;
 
 namespace Culto.Desktop;
 
-// A fixed-height gallery with a bounded set of realized/recycled ListBoxItem
+// A gallery with a bounded set of realized/recycled ListBoxItem
 // containers. Pixel scrolling keeps layout independent of the number of files.
 public sealed class MediaTilePanel : VirtualizingPanel, IScrollInfo
 {
@@ -16,11 +16,14 @@ public sealed class MediaTilePanel : VirtualizingPanel, IScrollInfo
         typeof(MediaTilePanel), new FrameworkPropertyMetadata(184d, FrameworkPropertyMetadataOptions.AffectsMeasure), Positive);
     public static readonly DependencyProperty ItemHeightProperty = DependencyProperty.Register(nameof(ItemHeight), typeof(double),
         typeof(MediaTilePanel), new FrameworkPropertyMetadata(148d, FrameworkPropertyMetadataOptions.AffectsMeasure), Positive);
+    public static readonly DependencyProperty FitThumbnailsToWidthProperty = DependencyProperty.Register(nameof(FitThumbnailsToWidth), typeof(bool),
+        typeof(MediaTilePanel), new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsMeasure));
     private TileViewport _view;
     private double _width, _offset;
     private int _count;
     public double ItemWidth { get => (double)GetValue(ItemWidthProperty); set => SetValue(ItemWidthProperty, value); }
     public double ItemHeight { get => (double)GetValue(ItemHeightProperty); set => SetValue(ItemHeightProperty, value); }
+    public bool FitThumbnailsToWidth { get => (bool)GetValue(FitThumbnailsToWidthProperty); set => SetValue(FitThumbnailsToWidthProperty, value); }
     public int Columns => Math.Max(1, _view.Columns);
     private static bool Positive(object value) => value is double number && double.IsFinite(number) && number > 0;
 
@@ -34,6 +37,13 @@ public sealed class MediaTilePanel : VirtualizingPanel, IScrollInfo
         _width = FiniteDimension(availableSize.Width, ScrollOwner?.ViewportWidth, ActualWidth, ItemWidth);
         var height = FiniteDimension(availableSize.Height, ScrollOwner?.ViewportHeight, ActualHeight, ItemHeight * 3);
         var next = TileViewport.Calculate(_count, _width, height, ItemWidth, ItemHeight, _offset);
+        if (FitThumbnailsToWidth)
+        {
+            // Match MediaTileTemplate: 16:9 picture, 22-DIP caption, and four
+            // DIP for the outer margin and selection border.
+            var rowHeight = Math.Max(0, next.CellWidth - 4) * 9 / 16 + 26;
+            next = TileViewport.Calculate(_count, _width, height, ItemWidth, rowHeight, _offset);
+        }
         var changed = next != _view;
         _view = next; _offset = next.Offset;
         if (changed) ScrollOwner?.InvalidateScrollInfo();
@@ -69,7 +79,7 @@ public sealed class MediaTilePanel : VirtualizingPanel, IScrollInfo
                         InsertInternalChild(childIndex, child);
                         generator.PrepareItemContainer(child);
                     }
-                    child.Measure(new Size(next.CellWidth, ItemHeight));
+                    child.Measure(new Size(next.CellWidth, next.CellHeight));
                 }
             }
         }
@@ -90,7 +100,7 @@ public sealed class MediaTilePanel : VirtualizingPanel, IScrollInfo
             var index = owner.ItemContainerGenerator.IndexFromContainer(child);
             if (index < 0) continue;
             child.Arrange(new Rect((index % _view.Columns) * _view.CellWidth,
-                (index / _view.Columns) * ItemHeight - _offset, _view.CellWidth, ItemHeight));
+                (index / _view.Columns) * _view.CellHeight - _offset, _view.CellWidth, _view.CellHeight));
         }
         return finalSize;
     }
@@ -138,7 +148,7 @@ public sealed class MediaTilePanel : VirtualizingPanel, IScrollInfo
         if (index < 0 || _view.Columns == 0) return Rect.Empty;
         SetVerticalOffset(_view.OffsetForIndex(index, _count));
         var bounds = new Rect((index % _view.Columns) * _view.CellWidth,
-            (index / _view.Columns) * ItemHeight - _offset, _view.CellWidth, ItemHeight);
+            (index / _view.Columns) * _view.CellHeight - _offset, _view.CellWidth, _view.CellHeight);
         bounds.Intersect(new Rect(0, 0, ViewportWidth, ViewportHeight));
         return bounds;
     }
@@ -160,14 +170,14 @@ public sealed class MediaTilePanel : VirtualizingPanel, IScrollInfo
         if (Math.Abs(offset - _offset) < .01) return;
         _offset = offset; InvalidateMeasure(); ScrollOwner?.InvalidateScrollInfo();
     }
-    public void LineUp() => SetVerticalOffset(_offset - ItemHeight / 3);
-    public void LineDown() => SetVerticalOffset(_offset + ItemHeight / 3);
+    public void LineUp() => SetVerticalOffset(_offset - _view.CellHeight / 3);
+    public void LineDown() => SetVerticalOffset(_offset + _view.CellHeight / 3);
     public void PageUp() => SetVerticalOffset(_offset - ViewportHeight);
     public void PageDown() => SetVerticalOffset(_offset + ViewportHeight);
     public void MouseWheelUp() => Wheel(-1);
     public void MouseWheelDown() => Wheel(1);
     private void Wheel(int direction) => SetVerticalOffset(_offset + direction *
-        (SystemParameters.WheelScrollLines < 0 ? ViewportHeight : ItemHeight / 3 * SystemParameters.WheelScrollLines));
+        (SystemParameters.WheelScrollLines < 0 ? ViewportHeight : _view.CellHeight / 3 * SystemParameters.WheelScrollLines));
     public void LineLeft() { }
     public void LineRight() { }
     public void PageLeft() { }

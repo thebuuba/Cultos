@@ -12,13 +12,20 @@ public sealed class MediaThumbnail : FrameworkElement
 {
     public static readonly DependencyProperty CueProperty = DependencyProperty.Register(nameof(Cue), typeof(Cue), typeof(MediaThumbnail),
         new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, CueChanged));
+    public static readonly DependencyProperty ShowDurationProperty = DependencyProperty.Register(nameof(ShowDuration), typeof(bool), typeof(MediaThumbnail),
+        new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsRender));
+    public static readonly DependencyProperty CornerRadiusProperty = DependencyProperty.Register(nameof(CornerRadius), typeof(double), typeof(MediaThumbnail),
+        new FrameworkPropertyMetadata(12d, FrameworkPropertyMetadataOptions.AffectsRender), value => value is double radius && double.IsFinite(radius) && radius >= 0);
     private static readonly Typeface IconFace = new("Segoe MDL2 Assets");
     private static readonly Typeface LabelFace = new("Segoe UI");
     private static readonly Brush Accent = new SolidColorBrush(Color.FromRgb(36, 178, 126));
     private BitmapSource? _image;
+    private TimeSpan? _duration;
     private CancellationTokenSource? _request;
     private int _generation;
     public Cue? Cue { get => (Cue?)GetValue(CueProperty); set => SetValue(CueProperty, value); }
+    public bool ShowDuration { get => (bool)GetValue(ShowDurationProperty); set => SetValue(ShowDurationProperty, value); }
+    public double CornerRadius { get => (double)GetValue(CornerRadiusProperty); set => SetValue(CornerRadiusProperty, value); }
 
     public MediaThumbnail()
     {
@@ -31,7 +38,7 @@ public sealed class MediaThumbnail : FrameworkElement
     private static void CueChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args)
     {
         var thumbnail = (MediaThumbnail)sender;
-        thumbnail.Cancel(); thumbnail._image = null;
+        thumbnail.Cancel(); thumbnail._image = null; thumbnail._duration = null;
         thumbnail.Load();
     }
 
@@ -49,9 +56,9 @@ public sealed class MediaThumbnail : FrameworkElement
         var generation = ++_generation;
         try
         {
-            var image = await MediaThumbnailService.GetAsync(path, cue.Kind, request.Token);
+            var details = await MediaThumbnailService.GetDetailsAsync(path, cue.Kind, request.Token);
             if (generation != _generation || !IsLoaded || !IsVisible) return;
-            _image = image; InvalidateVisual();
+            _image = details?.Image; _duration = details?.Duration; InvalidateVisual();
         }
         catch (OperationCanceledException) { }
         finally
@@ -65,7 +72,8 @@ public sealed class MediaThumbnail : FrameworkElement
         base.OnRender(drawing);
         if (ActualWidth <= 0 || ActualHeight <= 0) return;
         var bounds = new Rect(0, 0, ActualWidth, ActualHeight);
-        drawing.PushClip(new RectangleGeometry(bounds, 12, 12));
+        var radius = ShowDuration ? Math.Min(3, CornerRadius) : CornerRadius;
+        drawing.PushClip(new RectangleGeometry(bounds, radius, radius));
         drawing.DrawRectangle(Brushes.Black, null, bounds);
         if (_image is { PixelWidth: > 0, PixelHeight: > 0 } image)
         {
@@ -79,16 +87,17 @@ public sealed class MediaThumbnail : FrameworkElement
             var size = Math.Min(30, Math.Max(12, ActualHeight * .30));
             var text = new FormattedText(icon, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
                 IconFace, size, Accent, VisualTreeHelper.GetDpi(this).PixelsPerDip);
-            drawing.DrawText(text, new Point((ActualWidth - text.Width) / 2, (ActualHeight - text.Height) / 2 - (ActualHeight >= 64 ? 9 : 0)));
-            if (ActualHeight >= 64 && ActualWidth >= 64)
-            {
-                var title = Cue?.Title ?? "";
-                var label = new FormattedText(title, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
-                    LabelFace, 11, Brushes.LightGray, VisualTreeHelper.GetDpi(this).PixelsPerDip)
-                { MaxTextWidth = Math.Max(1, ActualWidth - 16), MaxTextHeight = 16, TextAlignment = TextAlignment.Center,
-                    Trimming = TextTrimming.CharacterEllipsis };
-                drawing.DrawText(label, new Point(8, ActualHeight - 24));
-            }
+            drawing.DrawText(text, new Point((ActualWidth - text.Width) / 2, (ActualHeight - text.Height) / 2));
+        }
+        if (ShowDuration && _duration is { } duration)
+        {
+            var label = duration.TotalHours >= 1 ? duration.ToString(@"h\:mm\:ss") : duration.ToString(@"mm\:ss");
+            var text = new FormattedText(label, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+                LabelFace, 9, Brushes.White, VisualTreeHelper.GetDpi(this).PixelsPerDip);
+            var y = Math.Max(0, ActualHeight - text.Height - 1);
+            drawing.DrawRectangle(new SolidColorBrush(Color.FromArgb(210, 0, 0, 0)), null,
+                new Rect(Math.Max(0, ActualWidth - text.Width - 4), y, Math.Min(ActualWidth, text.Width + 4), text.Height + 1));
+            drawing.DrawText(text, new Point(Math.Max(0, ActualWidth - text.Width - 2), y));
         }
         drawing.Pop();
     }

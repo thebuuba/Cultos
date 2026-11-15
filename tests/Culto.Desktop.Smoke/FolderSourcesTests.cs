@@ -32,8 +32,9 @@ internal static partial class Program
         var importedSearch = (TextBox)window.FindName("LibrarySearch");
         var search = (TextBox)window.FindName("MediaSearch");
         var library = (ListBox)window.FindName("MediaList");
-        var refresh = Descendants((FrameworkElement)window.FindName("MediaPanel")).OfType<Button>()
-            .Single(button => AutomationProperties.GetName(button) == "Actualizar medios");
+        // Media is initially behind another source tab; its visual tree may not
+        // be realized yet. Resolve the named control rather than visible descendants.
+        var refresh = (Button)window.FindName("MediaRefreshButton");
         var session = Field<PresentationSession>(window, "_session");
         var oldPaths = paths.ToDictionary(pair => pair.Key, pair => pair.Value);
         var oldLibrary = workspace.Library.ToList();

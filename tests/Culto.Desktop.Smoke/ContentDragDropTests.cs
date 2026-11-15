@@ -64,6 +64,15 @@ internal static partial class Program
                 Check(Descendants(popup.Child).OfType<TextBlock>().Any(text => text.Text == video.Title), "Drag card shows a different title");
                 Check(Descendants(popup.Child).OfType<MediaThumbnail>().Single().Cue == video, "Drag card lost the grabbed media thumbnail");
                 Check(!popup.IsHitTestVisible && window.IsActive, "Drag card intercepts input or steals focus");
+                Check(GetDragCursorPos(out var pointer), "Cannot read drag pointer position");
+                var grabbed = ((FrameworkElement)popup.Child).PointFromScreen(new Point(pointer.X, pointer.Y));
+                Check(grabbed.X > 0 && grabbed.Y > 0 && grabbed.X < ((FrameworkElement)popup.Child).ActualWidth
+                    && grabbed.Y < ((FrameworkElement)popup.Child).ActualHeight, "Drag card floats beside the cursor instead of underneath it");
+                Check(((FrameworkElement)popup.Child).ActualHeight <= 80, "Drag card is a tall tooltip rather than a compact block");
+                var feedback = (GiveFeedbackEventArgs)Activator.CreateInstance(typeof(GiveFeedbackEventArgs),
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, new object[] { DragDropEffects.Copy, true }, null)!;
+                feedback.RoutedEvent = DragDrop.GiveFeedbackEvent; library.RaiseEvent(feedback);
+                Check(!feedback.UseDefaultCursors, "Dragging still uses the detached default OLE cursor");
                 var cancel = (QueryContinueDragEventArgs)Activator.CreateInstance(typeof(QueryContinueDragEventArgs),
                     BindingFlags.Instance | BindingFlags.NonPublic, null, new object[] { true, DragDropKeyStates.LeftMouseButton }, null)!;
                 cancel.RoutedEvent = DragDrop.QueryContinueDragEvent;
@@ -71,6 +80,31 @@ internal static partial class Program
                 Check(!popup.IsOpen && popup.Child is null && Field<object?>(window, "_contentDragPreview") is null,
                     "Escape left a floating drag card behind");
                 Check(plan.Count == 1 && plan[0] == other && ReferenceEquals(live, session.Live), "Cancelling changed the order or live output");
+            });
+            Test("Drag block preserves different grab positions without intercepting the drop", () =>
+            {
+                foreach (var anchor in new[] { new Point(.15, .25), new Point(.8, .75) })
+                {
+                    Data(library, video); SetField(window, "_contentDragAnchor", anchor);
+                    Call(window, "ShowContentDragPreview"); PumpFor(60);
+                    var popup = Field<Popup>(Field<object>(window, "_contentDragPreview"), "_popup");
+                    var block = (FrameworkElement)popup.Child;
+                    Check(GetDragCursorPos(out var pointer), "Cannot read pointer");
+                    var point = block.PointFromScreen(new Point(pointer.X, pointer.Y));
+                    Check(Math.Abs(point.X / block.ActualWidth - anchor.X) < .04
+                        && Math.Abs(point.Y / block.ActualHeight - anchor.Y) < .04, "Block changed the grabbed point");
+                    Check(!popup.IsHitTestVisible, "Block intercepts its drop target");
+                    Call(window, "ClearContentDrag");
+                    Check(!popup.IsOpen && popup.Child is null, "Released drag retained its block");
+                }
+            });
+            Test("Order selection uses a background without a green outline", () =>
+            {
+                list.SelectedItem = other; window.UpdateLayout();
+                var row = Row(list, other);
+                var border = (Border)row.Template.FindName("Row", row);
+                Check(border.BorderBrush is System.Windows.Media.SolidColorBrush { Color.A: 0 }
+                    || border.BorderThickness == new Thickness(0), "Selected order row still has a visible outline");
             });
             Test("Content drag uses the pressed library row, ignores blank space, and clears on release or cancel", () =>
             {
@@ -203,4 +237,10 @@ internal static partial class Program
             Call(window, "SaveWorkspace");
         }
     }
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct DragCursorPoint { public int X; public int Y; }
+    [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "GetCursorPos")]
+    [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+    private static extern bool GetDragCursorPos(out DragCursorPoint point);
 }

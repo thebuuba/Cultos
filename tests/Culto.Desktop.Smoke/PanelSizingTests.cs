@@ -124,6 +124,32 @@ internal static partial class Program
                 finally { splitter.RaiseEvent(new DragCompletedEventArgs(20, 0, true) { RoutedEvent = Thumb.DragCompletedEvent }); window.UpdateLayout(); }
                 Check(manager.Layout.RootPanel.Children.Select(Width).SequenceEqual(original), "Cancel did not restore all original star weights");
             });
+            Test("Vertical separators trade space on every drag and retain committed sizes", () =>
+            {
+                window.Width = 1600; window.Height = 1000; window.UpdateLayout();
+                var items = Contents();
+                Restore(new XElement("RootPanel", new XAttribute("Orientation", "Vertical"),
+                    Pane(items["order"]), Pane(items.Where(entry => entry.Key != "order").Select(entry => entry.Value).ToArray())));
+                var grid = Descendants(manager).OfType<LayoutPanelControl>().Single(control => ReferenceEquals(control.Model, manager.Layout.RootPanel));
+                var splitter = grid.Children.OfType<LayoutGridResizerControl>().Single();
+                var first = grid.RowDefinitions[0].ActualHeight;
+                var second = grid.RowDefinitions[2].ActualHeight;
+                splitter.RaiseEvent(new DragStartedEventArgs(0, 0) { RoutedEvent = Thumb.DragStartedEvent });
+                foreach (var delta in new[] { 15d, 20d, -10d })
+                {
+                    splitter.RaiseEvent(new DragDeltaEventArgs(0, delta) { RoutedEvent = Thumb.DragDeltaEvent });
+                    first += delta; second -= delta;
+                    Check(Math.Abs(grid.RowDefinitions[0].ActualHeight - first) < 2
+                        && Math.Abs(grid.RowDefinitions[2].ActualHeight - second) < 2,
+                        "Panels did not trade height before releasing the separator");
+                    AssertSession();
+                }
+                splitter.RaiseEvent(new DragCompletedEventArgs(0, 25, false) { RoutedEvent = Thumb.DragCompletedEvent });
+                var saved = (string)Call(window, "SerializeDockLayout")!;
+                Call(window, "RestoreDockLayout", saved); window.UpdateLayout();
+                var restored = Descendants(manager).OfType<LayoutPanelControl>().Single(control => ReferenceEquals(control.Model, manager.Layout.RootPanel));
+                Check(Math.Abs(restored.RowDefinitions[0].ActualHeight - first) < 2, "Releasing or restoring lost the resized height");
+            });
             Test("Himnario and Bible stack at useful short heights with every action reachable", () =>
             {
                 JsonFileStore.Save(System.IO.Path.Combine(Field<WorkspaceStore>(window, "_store").DirectoryPath, "biblia.json"), new BibleDocument

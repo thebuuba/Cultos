@@ -128,6 +128,27 @@ internal static partial class Program
                 Check(ReferenceEquals(((ListBoxItem)list.ItemContainerGenerator.ContainerFromIndex(index)).DataContext, items[index]),
                     "Container/item order diverged after mutations");
         });
+        LayoutTest("Thumbnail rows fit their width and keep scrolling geometry consistent", () =>
+        {
+            var property = typeof(MediaTilePanel).GetProperty("FitThumbnailsToWidth");
+            Check(property is not null, "Gallery does not adapt thumbnail height to its width");
+            property!.SetValue(Panel(), true);
+            items.Clear();
+            for (var index = 0; index < 10000; index++) items.Add(new Cue { Title = $"Adaptive {index}" });
+            foreach (var width in new[] { 800d, 560d, 280d, 1000d })
+            {
+                Layout(width, 360);
+                var panel = Panel();
+                var expectedHeight = (panel.ViewportWidth / panel.Columns - 4) * 9 / 16 + 26;
+                Check(Math.Abs(Realized().First().RenderSize.Height - expectedHeight) < 1, "Thumbnail cell has unused vertical space or wrong proportions");
+                var rows = Math.Ceiling(items.Count / (double)panel.Columns);
+                Check(Math.Abs(panel.ExtentHeight - rows * expectedHeight) < 1, "Scrolling still uses the old fixed row height");
+                Check(Realized().Length <= (Math.Ceiling(panel.ViewportHeight / expectedHeight) + 3) * panel.Columns + 1,
+                    "Adaptive mode stopped virtualizing a large folder");
+                panel.SetVerticalOffset(panel.ExtentHeight); Layout(width, 360);
+                Check(list.ItemContainerGenerator.ContainerFromIndex(items.Count - 1) is not null, "Adaptive gallery cannot reach its last item");
+            }
+        });
         LayoutTest("Headless media layout created no desktop window or application", () =>
         {
             Check(Application.Current is null, "A WPF application was created");

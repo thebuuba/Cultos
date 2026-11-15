@@ -154,7 +154,7 @@ public partial class MainWindow
         _workspace.MediaViewMode = thumbnails ? "Thumbnails" : "List";
         MediaList.ItemsPanel = (ItemsPanelTemplate)FindResource(thumbnails ? "MediaTilesPanel" : "MediaRowsPanel");
         MediaList.ItemTemplate = (DataTemplate)FindResource(thumbnails ? "MediaTileTemplate" : "MediaRowTemplate");
-        MediaList.ItemContainerStyle = (Style)FindResource(thumbnails ? "MediaTileItem" : typeof(ListBoxItem));
+        MediaList.ItemContainerStyle = (Style)FindResource(thumbnails ? "MediaTileItem" : "CompactCueRow");
         MediaTilesViewButton.Background = (Brush)FindResource(thumbnails ? "SelectedBrush" : "CanvasBrush");
         MediaTilesViewButton.Foreground = (Brush)FindResource(thumbnails ? "AccentBrush" : "MutedBrush");
         MediaListViewButton.Background = (Brush)FindResource(thumbnails ? "CanvasBrush" : "SelectedBrush");
@@ -181,10 +181,6 @@ public partial class MainWindow
         foreach (var button in new[] { MediaListViewButton, MediaTilesViewButton, MediaRefreshButton })
             Grid.SetRow(button, narrow ? 1 : 0);
         var compact = e.NewSize.Height < 290;
-        var height = compact ? 108d : 160d;
-        if (MediaList.Resources["MediaTileHeight"] is double previous && previous == height) return;
-        MediaList.Resources["MediaTileHeight"] = height;
-        MediaList.Resources["MediaThumbnailHeight"] = compact ? 42d : 94d;
         MediaFolderPathText.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
     }
 }

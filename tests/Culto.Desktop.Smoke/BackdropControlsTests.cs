@@ -65,7 +65,7 @@ internal static partial class Program
                 Call(window, "PrepareCue", new Cue { Kind = CueKind.Video, Title = "Previa que se conserva",
                     FilePath = Path.Combine(AppContext.BaseDirectory, "fixtures", "test.mkv") }, null);
                 var preview = Field<ProjectionSurface>(window, "_preview");
-                Check(!preview.IsPlaying && preview.Duration == 0, "Preparing video opened another player");
+                Until(() => preview.IsPlaying, "Preparing video did not autoplay silently");
                 var live = session.Live; var prepared = session.Prepared;
                 var media = Field<object>(output, "_media");
                 Click("BlackoutButton");
@@ -73,9 +73,9 @@ internal static partial class Program
                 var position = output.Position;
                 Check(session.IsBlackout && !session.IsTextHidden, "Black backdrop did not select its exclusive session state");
                 Check(ReferenceEquals(session.Live, live) && ReferenceEquals(session.Prepared, prepared), "Backdrop selection replaced live or prepared content");
-                Check(!preview.IsPlaying && preview.Duration == 0
-                    && ((FrameworkElement)window.FindName("PreparedMediaCover")).Visibility == Visibility.Visible,
-                    "Backdrop selection replaced the prepared cover or started preview playback");
+                Check(preview.DisplayedCue?.Id == prepared?.Id && preview.Volume == 0
+                    && ((FrameworkElement)window.FindName("PreviewHost")).Visibility == Visibility.Visible,
+                    "Backdrop selection replaced or unmuted the prepared preview");
                 Check(Field<ProjectionWindow?>(window, "_outputWindow") is null, "Local backdrop unnecessarily opened an HDMI window");
                 Click("BlackoutButton");
                 Until(() => !output.IsTransitioning, "Restoring content from black did not finish");

@@ -2,6 +2,18 @@
 
 Consola nativa para Windows destinada a preparar y proyectar cultos. Reúne el orden del culto, colecciones de videos, imágenes, textos, Biblia importable, presentaciones de PowerPoint y controles desde el teléfono o un presentador USB. No depende de OBS.
 
+Al abrir, muestra el **Logo guardado en la salida local**, sin activar HDMI ni seleccionar o reproducir el primer elemento del culto. Si las imágenes del Logo no están disponibles, mantiene un fondo negro silencioso y muestra un aviso para configurarlo. Los himnos comienzan al seleccionarlos o proyectarlos expresamente.
+
+El **Orden del culto** muestra filas compactas con miniaturas de imágenes y videos, y la duración del video cuando Windows puede leerla. Un clic selecciona y reproduce el video **sin audio en la vista previa**, sin cambiar la salida. Doble clic o **Proyectar** lo envía al programa. Al seguir la salida en vivo se libera el reproductor de vista previa y se refleja la salida real.
+
+Los separadores de paneles redistribuyen el espacio durante el arrastre, en horizontal y vertical. Las listas del Himnario, Medios (vista de lista) y Orden conservan filas compactas con miniatura y título en una sola línea; al estrechar un panel, el título termina en puntos suspensivos y se puede leer completo al dejar el cursor encima.
+
+La cuadrícula de **Medios** usa tarjetas con esquinas rectas, separación mínima, miniaturas en proporción 16:9 con duración y un título de una línea debajo. Su altura se ajusta al ancho del panel y mantiene la virtualización para carpetas grandes.
+
+Al arrastrar contenido, el bloque permanece bajo el cursor y conserva el punto de agarre; Escape cancela sin modificar el orden. La selección del Orden del culto se indica con un fondo, sin contorno verde.
+
+Los paneles del espacio de trabajo tienen una separación de 4 píxeles y esquinas de radio 8. Estas medidas se aplican a sus superficies exteriores; los controles y las miniaturas conservan su diseño.
+
 En **Medios**, clic derecho en un video → **Añadir a lista de reproducción** agrega directamente al final de la cola actual, sin elegir ni crear listas. La primera cola se crea automáticamente. Las colecciones anteriores permanecen accesibles en Listas guardadas.
 
 La pestaña **Lista de videos** permite agregar videos, eliminar y cambiar el orden con las flechas. Doble clic o Reproducir inicia la continuación automática hasta el final. Proyectar otro contenido cancela la lista; para continuar tras un video externo, selecciona el video de entrada en la lista y marca **Después de este video, iniciar la lista**.

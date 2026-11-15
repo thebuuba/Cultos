@@ -111,13 +111,12 @@ public partial class MainWindow : Window
         RefreshLibrary();
         LoadSavedBible();
         UpdatePlanCount();
-        if (_plan.Count > 0 && _plan[0].Kind != CueKind.WindowCapture) PlanList.SelectedIndex = 0;
         _timer.Tick += TimerTick;
         _timer.Start();
-        // Prepare native codecs before the operator's first projection, while
-        // keeping the output closed and silent until explicitly requested.
+        // Warm native codecs without selecting or starting saved media.
         _standbyOutput = new ProjectionSurface(smoothTransitions: true);
         _standbyOutput.PreparePlaybackEngine();
+        ShowStartupLogo();
         if (recoveryMessage is not null) SetStatus(recoveryMessage, true);
     }
 

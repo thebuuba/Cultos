@@ -12,12 +12,13 @@ namespace Culto.Desktop.Services;
 // and never creates a media player. Both queued work and retained pixels are bounded.
 internal static class MediaThumbnailService
 {
+    internal sealed record Thumbnail(BitmapSource? Image, TimeSpan? Duration);
     private const int CacheCapacity = 128;
     private const int ThumbnailSize = 256;
     private sealed record Work(string Path, CueKind Kind, CancellationToken Cancellation,
-        TaskCompletionSource<BitmapSource?> Completion);
+        TaskCompletionSource<Thumbnail?> Completion);
     private readonly record struct Key(string Path, long Modified, long Length);
-    private sealed record Cached(Key Key, BitmapSource? Image, long RetryAfter);
+    private sealed record Cached(Key Key, Thumbnail Result, long RetryAfter);
     private static readonly Channel<Work> Queue = Channel.CreateBounded<Work>(new BoundedChannelOptions(64)
     { SingleReader = true, FullMode = BoundedChannelFullMode.Wait, AllowSynchronousContinuations = false });
     private static readonly Dictionary<Key, LinkedListNode<Cached>> Cache = [];
@@ -31,10 +32,13 @@ internal static class MediaThumbnailService
     }
 
     public static async Task<BitmapSource?> GetAsync(string path, CueKind kind, CancellationToken cancellation)
+        => (await GetDetailsAsync(path, kind, cancellation).ConfigureAwait(false))?.Image;
+
+    public static async Task<Thumbnail?> GetDetailsAsync(string path, CueKind kind, CancellationToken cancellation)
     {
         if (kind is not (CueKind.Image or CueKind.Video) || string.IsNullOrWhiteSpace(path)) return null;
         cancellation.ThrowIfCancellationRequested();
-        var completion = new TaskCompletionSource<BitmapSource?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var completion = new TaskCompletionSource<Thumbnail?>(TaskCreationOptions.RunContinuationsAsynchronously);
         await Queue.Writer.WriteAsync(new Work(path, kind, cancellation, completion), cancellation).ConfigureAwait(false);
         return await completion.Task.WaitAsync(cancellation).ConfigureAwait(false);
     }
@@ -50,7 +54,7 @@ internal static class MediaThumbnailService
                 {
                     if (work.Cancellation.IsCancellationRequested)
                     { work.Completion.TrySetCanceled(work.Cancellation); continue; }
-                    BitmapSource? result = null;
+                    Thumbnail? result = null;
                     try { result = Read(work); }
                     catch (Exception error)
                     { System.Diagnostics.Debug.WriteLine(error); /* A bad codec must not terminate the worker or application. */ }
@@ -61,17 +65,17 @@ internal static class MediaThumbnailService
         finally { if (initialized) CoUninitialize(); }
     }
 
-    private static BitmapSource? Read(Work work)
+    private static Thumbnail? Read(Work work)
     {
         var file = new FileInfo(work.Path);
         if (!file.Exists) return null;
         var key = new Key(file.FullName.ToUpperInvariant(), file.LastWriteTimeUtc.Ticks, file.Length);
         if (Cache.TryGetValue(key, out var node))
         {
-            if (node.Value.Image is not null || Environment.TickCount64 < node.Value.RetryAfter)
+            if (node.Value.Result.Image is not null || Environment.TickCount64 < node.Value.RetryAfter)
             {
                 Recent.Remove(node); Recent.AddFirst(node);
-                return node.Value.Image;
+                return node.Value.Result;
             }
             Recent.Remove(node); Cache.Remove(key);
         }
@@ -97,12 +101,53 @@ internal static class MediaThumbnailService
         }
         if (work.Cancellation.IsCancellationRequested) return null;
         image ??= ReadShell(file.FullName, offline);
-        var cached = new LinkedListNode<Cached>(new(key, image, Environment.TickCount64 + 30000));
+        var result = new Thumbnail(image, work.Kind == CueKind.Video && !offline ? ReadDuration(file.FullName) : null);
+        var cached = new LinkedListNode<Cached>(new(key, result, Environment.TickCount64 + 30000));
         Recent.AddFirst(cached); Cache[key] = cached;
         while (Cache.Count > CacheCapacity && Recent.Last is { } oldest)
         { Recent.RemoveLast(); Cache.Remove(oldest.Value.Key); }
-        return image;
+        return result;
     }
+
+    private static TimeSpan? ReadDuration(string path)
+    {
+        var storeId = typeof(IPropertyStore).GUID;
+        IPropertyStore? store = null;
+        var value = new PropertyValue();
+        try
+        {
+            if (SHGetPropertyStoreFromParsingName(path, IntPtr.Zero, 0x40, ref storeId, out store) < 0 || store is null) return null;
+            // System.Media.Duration is a VT_UI8 count of 100-nanosecond units.
+            var key = new PropertyKey { Format = new Guid("64440490-4c8b-11d1-8b70-080036b11a03"), Id = 3 };
+            return store.GetValue(ref key, out value) >= 0 && value.Type == 21 && value.Unsigned is > 0 and <= long.MaxValue
+                ? TimeSpan.FromTicks((long)value.Unsigned) : null;
+        }
+        finally
+        {
+            PropVariantClear(ref value);
+            if (store is not null) Marshal.FinalReleaseComObject(store);
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct PropertyKey { public Guid Format; public uint Id; }
+    [StructLayout(LayoutKind.Explicit, Size = 24)]
+    private struct PropertyValue
+    {
+        [FieldOffset(0)] public ushort Type;
+        [FieldOffset(8)] public ulong Unsigned;
+    }
+    [ComImport, Guid("886d8eeb-8cf2-4446-8d02-cdba1dbdcf99"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IPropertyStore
+    {
+        [PreserveSig] int GetCount(out uint count);
+        [PreserveSig] int GetAt(uint index, out PropertyKey key);
+        [PreserveSig] int GetValue(ref PropertyKey key, out PropertyValue value);
+    }
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = true)]
+    private static extern int SHGetPropertyStoreFromParsingName(string path, IntPtr context, uint flags, ref Guid id,
+        [MarshalAs(UnmanagedType.Interface)] out IPropertyStore? store);
+    [DllImport("ole32.dll")] private static extern int PropVariantClear(ref PropertyValue value);
 
     private static BitmapSource? ReadShell(string path, bool cachedOnly)
     {

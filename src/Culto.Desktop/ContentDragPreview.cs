@@ -16,21 +16,18 @@ internal sealed class ContentDragPreview : IDisposable
 {
     private readonly Popup _popup;
     private readonly DispatcherTimer _timer;
+    private readonly Point _anchor;
     private nint _handle;
 
-    public ContentDragPreview(FrameworkElement source, Cue cue, bool moving)
+    public ContentDragPreview(FrameworkElement source, Cue cue, bool moving, Point anchor)
     {
-        var accent = (Brush)source.FindResource("AccentBrush");
+        _anchor = anchor;
         var contents = new Grid();
         contents.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(88) });
         contents.ColumnDefinitions.Add(new ColumnDefinition());
-        contents.Children.Add(new MediaThumbnail { Cue = cue, Width = 80, Height = 48, VerticalAlignment = VerticalAlignment.Center });
+        contents.Children.Add(new MediaThumbnail { Cue = cue, Width = 80, Height = 48, CornerRadius = 0, VerticalAlignment = VerticalAlignment.Center });
         var labels = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(7, 0, 0, 0) };
         Grid.SetColumn(labels, 1);
-        labels.Children.Add(new TextBlock
-        {
-            Text = moving ? "Mover" : "+ Añadir", Foreground = (Brush)source.FindResource("AccentTextBrush"), FontSize = 12, FontWeight = FontWeights.SemiBold
-        });
         labels.Children.Add(new TextBlock
         {
             Text = cue.Title, Foreground = (Brush)source.FindResource("TextBrush"), FontSize = 12, FontWeight = FontWeights.SemiBold,
@@ -38,13 +35,13 @@ internal sealed class ContentDragPreview : IDisposable
         });
         labels.Children.Add(new TextBlock
         {
-            Text = cue.Kind switch
+            Text = (moving ? "Mover · " : "Añadir · ") + (cue.Kind switch
             {
                 CueKind.Bible => cue.Reference ?? "Biblia",
                 CueKind.Video => cue.HymnNumber is { } number ? $"Himno {number:000} · Video" : "Video",
                 CueKind.Image => "Imagen", CueKind.Audio => "Audio", CueKind.WindowCapture => "YouTube · Captura",
                 _ => cue.HymnNumber is { } hymn ? $"Himno {hymn:000}" : "Texto"
-            },
+            }),
             Foreground = (Brush)source.FindResource("MutedBrush"), FontSize = 12,
             TextTrimming = TextTrimming.CharacterEllipsis
         });
@@ -58,9 +55,9 @@ internal sealed class ContentDragPreview : IDisposable
             StaysOpen = true, Focusable = false, IsHitTestVisible = false,
             Child = new Border
             {
-                Width = 282, Padding = new Thickness(10), CornerRadius = new CornerRadius(12),
+                Width = 282, Padding = new Thickness(8), CornerRadius = new CornerRadius(4), Opacity = .96,
                 Background = (Brush)source.FindResource("PanelBrush"),
-                BorderBrush = accent, BorderThickness = new Thickness(1), Child = contents,
+                BorderBrush = (Brush)source.FindResource("PanelBorderBrush"), BorderThickness = new Thickness(1), Child = contents,
                 IsHitTestVisible = false, SnapsToDevicePixels = true
             }
         };
@@ -83,10 +80,12 @@ internal sealed class ContentDragPreview : IDisposable
 
     private void FollowCursor(object? sender, EventArgs e)
     {
-        if (_handle != 0 && GetCursorPos(out var position))
-            // Native screen coordinates keep the cursor offset correct on
-            // secondary monitors, including negative origins and mixed DPI.
-            SetWindowPos(_handle, 0, position.X + 18, position.Y + 20, 0, 0, 0x0015);
+        if (_handle == 0 || !GetCursorPos(out var position) || !GetWindowRect(_handle, out var bounds)) return;
+        // Keep the grab point inside the block. Native bounds account for the
+        // current monitor's DPI, including monitors with negative origins.
+        var x = Math.Clamp((bounds.Right - bounds.Left) * _anchor.X, 8, Math.Max(8, bounds.Right - bounds.Left - 8));
+        var y = Math.Clamp((bounds.Bottom - bounds.Top) * _anchor.Y, 8, Math.Max(8, bounds.Bottom - bounds.Top - 8));
+        SetWindowPos(_handle, 0, position.X - (int)Math.Round(x), position.Y - (int)Math.Round(y), 0, 0, 0x0015);
     }
 
     public void Dispose()
@@ -101,6 +100,10 @@ internal sealed class ContentDragPreview : IDisposable
 
     [StructLayout(LayoutKind.Sequential)]
     private struct NativePoint { public int X; public int Y; }
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeRect { public int Left; public int Top; public int Right; public int Bottom; }
+    [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetWindowRect(nint window, out NativeRect rect);
     [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetCursorPos(out NativePoint point);
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]

@@ -59,6 +59,18 @@ public partial class MainWindow
         return StartLogoPresentation(_workspace.BackgroundImagePath);
     }
 
+    private void ShowStartupLogo()
+    {
+        if (ShowLogo()) return;
+        // An unavailable logo must never cause a saved hymn to start instead.
+        if (EnsureOutput())
+        {
+            _session.ShowBlackout();
+            ApplyBackdropTransition();
+        }
+        SetStatus("Logo no disponible. Configura una imagen en Logo; el inicio permanece en negro y sin audio.", true);
+    }
+
     private bool StartLogoPresentation(string? preferredPath)
     {
         var wasActive = _logoSlides.IsRunning && _session.IsTextHidden && !_session.IsBlackout;

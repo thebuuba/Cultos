@@ -12,11 +12,11 @@ internal static partial class Program
 {
     private static void RunColdPlaybackTests(MainWindow window, bool engineTests = true)
     {
-        var standby = Field<ProjectionSurface?>(window, "_standbyOutput");
+        var standby = Field<ProjectionSurface?>(window, "_output");
         Test("Startup prepares a silent output without opening projection windows", () =>
         {
-            Check(standby is not null && Field<ProjectionSurface?>(window, "_output") is null,
-                "Startup did not keep a separate standby compositor");
+            Check(standby is not null && Field<ProjectionSurface?>(window, "_standbyOutput") is null,
+                "Startup did not reuse its prepared engine for the local backdrop");
             Check(standby!.DisplayedCue is null && !standby.IsPlaying
                 && Field<ProjectionWindow?>(window, "_outputWindow") is null,
                 "Standby preparation opened or played output");

@@ -18,6 +18,7 @@ public partial class MainWindow
     private Cue? _contentDragCue;
     private ListBox? _contentMouseCapture;
     private ContentDragPreview? _contentDragPreview;
+    private Point _contentDragAnchor = new(.25, .5);
     private PlanInsertionAdorner? _planInsertionAdorner;
     private AdornerLayer? _planInsertionLayer;
     private long _lastPlanDragScroll;
@@ -33,6 +34,7 @@ public partial class MainWindow
         {
             list.AddHandler(PreviewMouseLeftButtonUpEvent, new MouseButtonEventHandler(ContentMouseUp), true);
             list.AddHandler(QueryContinueDragEvent, new QueryContinueDragEventHandler(ContentQueryContinueDrag), true);
+            list.AddHandler(GiveFeedbackEvent, new GiveFeedbackEventHandler(ContentDragFeedback), true);
         }
         foreach (var list in new ListBox[] { PlanList })
         {
@@ -105,6 +107,9 @@ public partial class MainWindow
         if (cue is null) return;
         _contentDragSource = list;
         _contentDragCue = cue;
+        var grab = e.GetPosition(row!);
+        _contentDragAnchor = new Point(Math.Clamp(grab.X / Math.Max(1, row!.ActualWidth), 0, 1),
+            Math.Clamp(grab.Y / Math.Max(1, row.ActualHeight), 0, 1));
         _dragStart = e.GetPosition(list);
         if (e.LeftButton == MouseButtonState.Pressed) CaptureContentMouse(list);
         // Do not handle the press: selection, preview and double click keep their usual behavior.
@@ -151,10 +156,20 @@ public partial class MainWindow
         if (e.EscapePressed) { e.Action = DragAction.Cancel; ClearContentDrag(); }
     }
 
+    private void ContentDragFeedback(object sender, GiveFeedbackEventArgs e)
+    {
+        if (_contentDragPreview is null) return;
+        e.UseDefaultCursors = false;
+        Mouse.SetCursor(e.Effects == DragDropEffects.None ? Cursors.No : Cursors.Hand);
+        e.Handled = true;
+    }
+
     private void ClearContentDrag()
     {
         _contentDragPreview?.Dispose();
         _contentDragPreview = null;
+        _contentDragAnchor = new Point(.25, .5);
+        Mouse.UpdateCursor();
         _contentDragSource = null;
         _contentDragCue = null;
         _orderDragCue = null;
@@ -168,7 +183,7 @@ public partial class MainWindow
     {
         _contentDragPreview?.Dispose();
         _contentDragPreview = _contentDropPayload is { } drag
-            ? new ContentDragPreview(drag.Source, drag.Cue, IsOrderDragSource(drag.Source)) : null;
+            ? new ContentDragPreview(drag.Source, drag.Cue, IsOrderDragSource(drag.Source), _contentDragAnchor) : null;
     }
 
     private void ReleaseContentMouseCapture()

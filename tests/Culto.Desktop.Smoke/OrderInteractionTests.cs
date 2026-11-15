@@ -187,7 +187,8 @@ internal static partial class Program
             {
                 list.SelectedItem = video;
                 var preview = Field<ProjectionSurface>(window, "_preview");
-                Check(!preview.IsPlaying && preview.Duration == 0, "Preparing media opened a second player");
+                Until(() => preview.IsPlaying, "Preparing media did not start its silent preview");
+                Check(preview.Volume == 0, "Prepared preview is audible");
                 DoubleClick(video);
                 var output = Field<ProjectionSurface>(window, "_output");
                 Until(() => output.IsPlaying && output.Duration > 0, "Double click did not play output video");

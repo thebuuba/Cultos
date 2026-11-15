@@ -12,8 +12,9 @@ public partial class MainWindow
         var cue = WithYouTubeLayout(_session.Prepared);
         _preview.BibleStyle = _workspace.BibleStyle.Normalize();
         PreparedMediaCover.Cue = cue;
-        // Prepared video/audio are title covers, never a second VLC player.
-        _preview.ShowCue(cue?.Kind is CueKind.Video or CueKind.Audio || (cue?.Kind is CueKind.WindowCapture or CueKind.BrowserSource && _session.PreviewFollowsLive) ? null
+        // Independent video previews use VLC's no-audio mode. Once on air,
+        // mirror the output and release the extra decoder.
+        _preview.ShowCue(cue?.Kind == CueKind.Audio || (cue?.Kind is CueKind.Video or CueKind.WindowCapture or CueKind.BrowserSource && _session.PreviewFollowsLive) ? null
             : cue?.Kind == CueKind.PowerPoint ? PowerPointPreview(cue) : cue);
         SyncPreviewSource();
     }
@@ -37,13 +38,14 @@ public partial class MainWindow
         _holdingBiblePreview = following && _session.Prepared?.Kind == CueKind.Bible
             && !_session.IsBlackout && !_session.IsTextHidden && _output?.IsTransitioning == true
             && _preview.DisplayedCue?.Id == _session.Prepared.Id;
-        if (following && _preview.DisplayedCue?.Kind is CueKind.WindowCapture or CueKind.BrowserSource) _preview.ShowCue(null);
-        var mediaCover = !following && _session.Prepared?.Kind is CueKind.Video or CueKind.Audio;
+        if (following && _preview.DisplayedCue?.Kind is CueKind.Video or CueKind.WindowCapture or CueKind.BrowserSource) _preview.ShowCue(null);
+        var mediaCover = !following && _session.Prepared?.Kind == CueKind.Audio;
         PreviewHost.Visibility = (!following && !mediaCover) || _holdingBiblePreview ? Visibility.Visible : Visibility.Collapsed;
         PreparedMediaCover.Visibility = mediaCover ? Visibility.Visible : Visibility.Collapsed;
         PreviewLiveMonitor.Visibility = following && !_holdingBiblePreview ? Visibility.Visible : Visibility.Collapsed;
         FollowLiveButton.Visibility = !following && _output is not null ? Visibility.Visible : Visibility.Collapsed;
-        PreparedTitleText.Text = following ? (_output is not null ? _session.Live?.Title : null) ?? "Sin salida"
+        PreparedTitleText.Text = following ? (_output is not null && _session.IsTextHidden && !_session.IsBlackout ? "Logo"
+            : (_output is not null ? _session.Live?.Title : null) ?? "Sin salida")
             : _session.Prepared?.Title ?? "Sin contenido";
         PreviewLiveMonitor.SetLocalSource(following && !_holdingBiblePreview ? _output : null);
         if (following && _powerPoint?.IsRunning == true && LiveMonitor.NativeSource != IntPtr.Zero)

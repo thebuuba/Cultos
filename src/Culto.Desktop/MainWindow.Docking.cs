@@ -29,7 +29,7 @@ public partial class MainWindow
     private Brush _youtubePanelBrush = Brushes.Transparent, _hymnPanelBrush = Brushes.Transparent;
     private Brush DockCardBrush(string? id) => id switch
     { "youtube" => _youtubePanelBrush, "sources" => _hymnPanelBrush, _ => _dockPanelBrush };
-    private double _dockPanelRadius = 22;
+    private double _dockPanelRadius = 8;
     private string DockLayoutPath => Path.Combine(_store.DirectoryPath, "paneles-v3.xml");
 
     private void InitializeDocking()
@@ -38,7 +38,7 @@ public partial class MainWindow
         _youtubePanelBrush = (Brush)FindResource("YouTubePanelBrush");
         _hymnPanelBrush = (Brush)FindResource("HymnPanelBrush");
         _dockTextBrush = (Brush)FindResource("TextBrush");
-        _dockPanelRadius = ((CornerRadius)FindResource("PanelRadius")).TopLeft;
+        _dockPanelRadius = ((CornerRadius)FindResource("WorkspacePanelRadius")).TopLeft;
         var resources = WorkspaceDock.Resources;
         resources[AvalonDock.Themes.Arc.Themes.ResourceKeys.ControlAccentBrushKey] = FindResource("AccentBrush");
         resources[AvalonDock.Themes.Arc.Themes.ResourceKeys.ToolWindowCaptionActiveBackground] = FindResource("PanelBrush");
@@ -51,6 +51,7 @@ public partial class MainWindow
             _dockContents[pane.ContentId] = pane.Content;
             if (pane.Content is Border body)
             {
+                if (pane.ContentId != "preview") body.CornerRadius = new CornerRadius(0, 0, _dockPanelRadius, _dockPanelRadius);
                 // These cards paint an opaque background after the outer clip/effect.
                 RenderOptions.SetClearTypeHint(body, ClearTypeHint.Enabled);
                 TextOptions.SetTextFormattingMode(body, TextFormattingMode.Display);
@@ -95,7 +96,7 @@ public partial class MainWindow
             if (!_joinedMonitorCards.TryGetValue(group, out _))
             {
                 _joinedMonitorCards.Add(group, new object());
-                group.Margin = new Thickness(4); group.Background = _dockPanelBrush;
+                group.Margin = new Thickness(0); group.Background = _dockPanelBrush;
                 group.SizeChanged += DockPaneOutlineChanged;
                 DockPaneOutlineChanged(group, new RoutedEventArgs());
             }
@@ -112,20 +113,21 @@ public partial class MainWindow
             {
                 _roundedDockPanes.Add(pane, new object());
                 // Keep AvalonDock's own template, drag targets and content presenter.
-                pane.Margin = new Thickness(4);
+                pane.Margin = new Thickness(0);
                 pane.Background = _dockPanelBrush;
                 pane.BorderThickness = new Thickness(0);
                 pane.SizeChanged += DockPaneOutlineChanged;
                 DockPaneOutlineChanged(pane, new RoutedEventArgs());
             }
-            pane.Background = DockCardBrush((pane.Model as LayoutAnchorablePane)?.SelectedContent?.ContentId);
+            pane.Background = pane.Model is LayoutAnchorablePane { Children.Count: > 1 } ? Brushes.Transparent
+                : DockCardBrush((pane.Model as LayoutAnchorablePane)?.SelectedContent?.ContentId);
             if (pane.Model is LayoutAnchorablePane fixedPane && fixedPane.Children.Any(p => p.ContentId == "preview"))
             {
                 pane.Background = Brushes.Transparent; pane.Effect = null; pane.Clip = null;
                 StyleWorkspaceTabs(pane); StyleDockCaption(pane); return;
             }
             var joined = IsMonitorPair(pane.Model.Parent);
-            pane.Margin = new Thickness(joined ? 0 : 4);
+            pane.Margin = new Thickness(0);
             pane.Effect = null;
             var shouldClip = !joined && pane.Model is LayoutAnchorablePane { Children.Count: 1 };
             if (shouldClip != (pane.Clip is not null)) DockPaneOutlineChanged(pane, new RoutedEventArgs());
@@ -157,8 +159,11 @@ public partial class MainWindow
             // Arc 5.0.1 hardcodes this margin rather than binding Padding.
             // Adjust the existing visual; retain its template and drag handlers.
             if (VisualTreeHelper.GetChildrenCount(title) > 0
-                && VisualTreeHelper.GetChild(title, 0) is Border { Child: Grid header })
+                && VisualTreeHelper.GetChild(title, 0) is Border { Child: Grid header } captionFrame)
+            {
+                captionFrame.CornerRadius = new CornerRadius(_dockPanelRadius, _dockPanelRadius, 0, 0);
                 header.Margin = title.Padding;
+            }
             return;
         }
         if (root is LayoutAnchorableTabItem tab)
