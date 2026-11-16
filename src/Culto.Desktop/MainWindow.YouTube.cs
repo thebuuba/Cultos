@@ -91,8 +91,13 @@ public partial class MainWindow
             _refreshingYouTube = true;
             try
             {
-                YouTubeList.ItemsSource = sources;
-                YouTubeList.SelectedItem = sources.FirstOrDefault(source => source.Key == selectedKey) ?? sources.FirstOrDefault(source=>source.IsAvailable);
+                // Discovery runs every second; unchanged cards must keep their capture workers.
+                var current = YouTubeList.Items.OfType<YouTubeSource>().ToArray();
+                if (!current.Select(source => (source.Key, source.Title, source.Detail, source.Cue.Capture))
+                    .SequenceEqual(sources.Select(source => (source.Key, source.Title, source.Detail, source.Cue.Capture))))
+                    YouTubeList.ItemsSource = sources;
+                YouTubeList.SelectedItem = YouTubeList.Items.OfType<YouTubeSource>().FirstOrDefault(source => source.Key == selectedKey)
+                    ?? YouTubeList.Items.OfType<YouTubeSource>().FirstOrDefault(source => source.IsAvailable);
             }
             finally { _refreshingYouTube = false; }
             var available = sources.Count(source => source.IsAvailable);

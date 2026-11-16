@@ -1,6 +1,8 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Threading;
 using Culto.Core;
 using Culto.Desktop.Services;
@@ -12,7 +14,8 @@ public partial class MainWindow
     private const int BrowserCapturePaintStyle = 0x20; // WS_EX_TRANSPARENT, without WS_EX_LAYERED.
     private nint _captureCompatibilityWindow;
     private bool _captureHadPaintStyle, _captureCompatibilityWarning;
-    private readonly DispatcherTimer _browserCaptureResizeTimer=new(){Interval=TimeSpan.FromMilliseconds(250)};
+    private readonly DispatcherTimer _browserCaptureResizeTimer=new(DispatcherPriority.Normal){Interval=TimeSpan.FromMilliseconds(250)};
+    private (nint Window, BrowserCaptureBounds Bounds)? _captureForeground;
 
     private void BrowserCaptureActivated()
     {
@@ -43,6 +46,14 @@ public partial class MainWindow
         _browserCaptureResizeTimer.Stop();
         if(_closing || _captureCompatibilityWindow==0)return;
         _output?.RefreshWindowCapture();_preview?.RefreshWindowCapture();
+        RefreshThumbnails(YouTubeList);
+
+        static void RefreshThumbnails(DependencyObject parent)
+        {
+            if (parent is WindowCaptureThumbnail thumbnail) { thumbnail.RefreshWindowCapture(); return; }
+            for (var index = 0; index < VisualTreeHelper.GetChildrenCount(parent); index++)
+                RefreshThumbnails(VisualTreeHelper.GetChild(parent, index));
+        }
     }
 
     private static bool IsChromiumCapture(Cue? cue) => cue?.Kind == CueKind.WindowCapture
@@ -54,7 +65,8 @@ public partial class MainWindow
         if (!_ready) return;
         // Live changes before the compositor: keep outgoing Chrome rendering
         // throughout preparation and its final dissolve, including retained audio.
-        var needed = !_closing && (IsChromiumCapture(_preview?.DisplayedCue)
+        var needed = !_closing && (YouTubePanel.IsVisible && YouTubeList.Items.OfType<YouTubeSource>().Any(source => source.IsAvailable)
+            || IsChromiumCapture(_preview?.DisplayedCue)
             || _output is not null && (IsChromiumCapture(_session.Live) || IsChromiumCapture(_output.DisplayedCue)
                 || IsChromiumCapture(_output.RetainedMediaCue) || _output.IsTransitioning && _captureCompatibilityWindow != 0));
         if (!needed && _captureCompatibilityWindow == 0) return;
@@ -88,8 +100,39 @@ public partial class MainWindow
             // Chromium recalculates even if it cached occlusion before capture.
             BrowserNotifyWinEvent(0x800A, handle, 0, 0); // EVENT_OBJECT_STATECHANGE, OBJID_WINDOW.
         }
-        if (!needed) { _browserCaptureResizeTimer.Stop(); _captureCompatibilityWindow = 0; _captureCompatibilityWarning = false; }
+        if (!needed)
+        {
+            _browserCaptureResizeTimer.Stop();
+            _captureCompatibilityWindow = 0; _captureCompatibilityWarning = false;
+            _captureForeground = null;
+        }
+        else
+        {
+            // Also detect entering/leaving fullscreen after focus was already lost.
+            var foreground = BrowserGetForegroundWindow();
+            if (foreground != 0 && BrowserGetWindowRect(foreground, out var bounds))
+            {
+                var current = (foreground, bounds);
+                if (!_captureForeground.Equals(current))
+                {
+                    _captureForeground = current;
+                    _browserCaptureResizeTimer.Stop(); _browserCaptureResizeTimer.Start();
+                }
+            }
+        }
     }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct BrowserCaptureBounds
+    {
+        public int Left, Top, Right, Bottom;
+    }
+
+    [DllImport("user32.dll", EntryPoint = "GetForegroundWindow")]
+    private static extern nint BrowserGetForegroundWindow();
+    [DllImport("user32.dll", EntryPoint = "GetWindowRect")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool BrowserGetWindowRect(nint window, out BrowserCaptureBounds bounds);
 
     [DllImport("user32.dll", EntryPoint = "GetWindowLongW", SetLastError = true)]
     private static extern int BrowserGetWindowStyle(nint window, int index);

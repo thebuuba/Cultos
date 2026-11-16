@@ -79,8 +79,26 @@ internal static partial class Program
             Check(ReferenceEquals(live, session.Live), "Deleting tile changed live output");
             Check(!((CommandResult)Call(window, "ExecuteRemoteSceneMode", custom.Id, false)!).Success, "Deleted ID can still project");
         });
+        Test("A scene can be saved without a visible name and keeps an accessible description", () =>
+        {
+            var dialog = new SceneTileDialog(custom with { Label = "" }, new[] { cue }) { Owner = window };
+            dialog.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
+            {
+                Call(dialog, "Save");
+                if (dialog.IsVisible) dialog.DialogResult = false;
+            }));
+            Check(dialog.ShowDialog() == true && dialog.Result?.Label == "", "Editor requires a name");
+            Check((bool)Call(window, "SaveSceneTile", dialog.Result!)!, "Unnamed scene was not persisted");
+            Check(store.Load().SceneTiles.Single(s => s.Id == custom.Id).Label == "", "Reload filled the optional name");
+            var button = panel.Children.OfType<Button>().Single(b => b.Tag as string == custom.Id);
+            Check(!string.IsNullOrWhiteSpace(System.Windows.Automation.AutomationProperties.GetName(button)), "Unnamed button has no accessible description");
+            Check(Scenes().Single(s => s.Id == custom.Id).Label == "", "Phone renamed the unnamed scene");
+        });
         Test("Built-in scenes can be deleted and empty deck stays editable", () =>
         {
+            Call(window, "SaveSceneTiles", initial.Select(scene => scene with { Label = "" }).ToList());
+            window.UpdateLayout();
+            CaptureDesignWindow(window, Path.Combine(Environment.CurrentDirectory, ".tools", "deckboard", "icon-only-scenes.png"));
             foreach (var scene in workspace.SceneTiles.ToArray()) Call(window, "RemoveSceneTile", scene.Id);
             Check(panel.Children.Count == 0 && Scenes().Length == 0 && store.Load().SceneTiles.Count == 0, "Deleted defaults returned");
             Check(((Button)window.FindName("AddSceneButton")).IsVisible, "Cannot add scenes to an empty panel");

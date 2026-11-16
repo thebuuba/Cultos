@@ -34,7 +34,14 @@ public sealed class ServicePlan
     public List<Cue> Items { get; set; } = [];
 }
 
-public sealed record BibleVerse(string Book, int Chapter, int Verse, string Text);
+public sealed record BibleVerse(string Book, int Chapter, int Verse, string Text)
+{
+    public int? EndVerse { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public int LastVerse => EndVerse ?? Verse;
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string VerseNumber => LastVerse == Verse ? Verse.ToString() : $"{Verse}-{LastVerse}";
+}
 
 public sealed class BibleDocument
 {

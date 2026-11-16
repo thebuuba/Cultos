@@ -45,18 +45,25 @@ internal static partial class Program
             var session = Field<PresentationSession>(window, "_session");
             var live = session.Live;
             var prepared = session.Prepared;
-            var button = (Button)window.FindName("ToggleOutputButton");
+            var button = (System.Windows.Controls.Primitives.ToggleButton)window.FindName("ToggleOutputButton");
             var renderer = Field<ProjectionSurface>(window, "_output");
-            Check(button.Content.ToString() == "Desactivar HDMI", "Active output has no stop control");
+            Check(button.IsChecked == true && button.ToolTip.ToString() == "Desactivar salida", "Active output switch is not synchronized");
+            Check(((TextBlock)window.FindName("OutputDisplayName")).Text.StartsWith("Pantalla "), "Selected display is absent from the output pill");
+            window.UpdateLayout();
+            var footer = (ScrollViewer)window.FindName("LiveScroll");
+            CheckWithin((FrameworkElement)window.FindName("OutputSelectorPill"), footer, new Rect(footer.RenderSize), "Output display and switch");
+            CaptureDesignWindow(window, System.IO.Path.Combine(Environment.CurrentDirectory, ".tools", "output-pill-active.png"));
             button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Check(Field<ProjectionWindow?>(window, "_outputWindow") is null && !((OutputMonitor)window.FindName("LiveMonitor")).IsConnected, "Stop left output active");
             Check(ReferenceEquals(live, session.Live) && ReferenceEquals(prepared, session.Prepared), "Stop changed the session");
-            Check(button.Content.ToString() == "Activar HDMI" && ((TextBlock)window.FindName("LiveTitleText")).Text == (live?.Title ?? "Sin contenido"), "Disabling HDMI cleared local output");
+            Check(button.IsChecked == false && ((TextBlock)window.FindName("LiveTitleText")).Text == (live?.Title ?? "Sin contenido"), "Disabling HDMI cleared local output or left the switch on");
             Check(ReferenceEquals(renderer, Field<ProjectionSurface>(window, "_output")), "Disabling HDMI replaced the player");
             if (DisplayService.GetDisplays().Count == 1)
             {
+                button.IsChecked = true;
                 button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 Check(Field<ProjectionWindow?>(window, "_outputWindow") is null, "Activate opened a rehearsal window");
+                Check(button.IsChecked == false, "Unavailable output left the switch on");
             }
             Call(window, "OpenOutput", DisplayService.GetDisplays().First(), true);
             var output = Field<ProjectionWindow>(window, "_outputWindow");

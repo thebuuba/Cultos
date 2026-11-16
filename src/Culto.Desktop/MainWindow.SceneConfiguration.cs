@@ -64,7 +64,7 @@ public partial class MainWindow
         var index = scenes.FindIndex(item => item.Id == scene.Id);
         if (index < 0) scenes.Add(scene); else scenes[index] = scene;
         if (!SaveSceneTiles(scenes)) return false;
-        SetStatus("Escena guardada: " + scene.Label); return true;
+        SetStatus("Escena guardada: " + scene.AccessibleName); return true;
     }
 
     private bool RemoveSceneTile(string id)
@@ -85,7 +85,7 @@ public partial class MainWindow
     }
 
     private void DuplicateSceneTile(SceneTile scene) => SaveSceneTile(scene with
-    { Id = Guid.NewGuid().ToString("N"), Label = scene.Label + " (copia)", Cue = scene.Cue?.Copy(newId: true) });
+    { Id = Guid.NewGuid().ToString("N"), Label = string.IsNullOrWhiteSpace(scene.Label) ? "" : scene.Label + " (copia)", Cue = scene.Cue?.Copy(newId: true) });
 
     private void RefreshConfiguredScenes()
     {
@@ -102,8 +102,8 @@ public partial class MainWindow
                 var button = builtins.GetValueOrDefault(scene.Id) ?? new Button { Style = (Style)FindResource("SceneButton") };
                 if (!builtins.ContainsKey(scene.Id)) button.Click += ConfiguredSceneClick;
                 button.Tag = scene.Id; button.Background = SceneTileVisual.Background(scene.Color); button.Foreground = SceneTileVisual.Ink(scene.Color);
-                button.Content = SceneTileVisual.Content(scene); button.ToolTip = scene.Label + "\nClic derecho: editar, duplicar, mover o eliminar";
-                AutomationProperties.SetName(button, scene.Label);
+                button.Content = SceneTileVisual.Content(scene); button.ToolTip = scene.AccessibleName + "\nClic derecho: editar, duplicar, mover o eliminar";
+                AutomationProperties.SetName(button, scene.AccessibleName);
                 button.ContextMenu = new ContextMenu();
                 button.ContextMenu.Items.Add(new MenuItem { Header = "Editar escena…" });
                 button.ContextMenu.Opened += (_, _) => FillSceneTileMenu(button, scene);

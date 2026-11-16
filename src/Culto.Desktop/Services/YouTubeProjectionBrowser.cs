@@ -27,7 +27,8 @@ public static class YouTubeProjectionBrowser
         {
             "--user-data-dir=" + profile, "--no-first-run", "--no-default-browser-check",
             "--disable-backgrounding-occluded-windows", "--disable-features=CalculateNativeWinOcclusion",
-            "--disable-background-timer-throttling", "--disable-renderer-backgrounding", "--new-window", address.AbsoluteUri
+            "--disable-background-timer-throttling", "--disable-renderer-backgrounding",
+            "--disable-background-media-suspend", "--new-window", address.AbsoluteUri
         }) start.ArgumentList.Add(argument);
         return start;
     }

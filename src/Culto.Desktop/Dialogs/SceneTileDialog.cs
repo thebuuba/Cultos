@@ -33,11 +33,11 @@ public sealed class SceneTileDialog : Window
         var panel = DialogUi.Panel(this, scene is null ? "Añadir escena" : "Editar escena",
             "Elige qué hace este botón y personaliza su nombre, color e imagen.");
         Width = 560;
-        _preview = new Border { Width = 124, Height = 90, Padding = new Thickness(8), CornerRadius = new CornerRadius(12),
+        _preview = new Border { Width = 100, Height = 100, Padding = new Thickness(6), CornerRadius = new CornerRadius(10),
             HorizontalAlignment = HorizontalAlignment.Center };
         panel.Children.Add(_preview);
         _label = new TextBox { Text = _original.Label, MaxLength = 80 };
-        DialogUi.Label(panel, "Nombre del botón", _label); panel.Children.Add(_label);
+        DialogUi.Label(panel, "Nombre del botón (opcional)", _label); panel.Children.Add(_label);
         _action = new ComboBox { SelectedValuePath = "Tag" };
         foreach (var (id, title) in new[] { ("logo", "Mostrar logo"), ("blackout", "Fondo negro / restaurar"),
             ("image", "Proyectar imagen"), ("video", "Reproducir video"), ("audio", "Reproducir audio"),
@@ -153,12 +153,11 @@ public sealed class SceneTileDialog : Window
             try { _fileCue = MediaLibrary.FromFile(dialog.FileName); }
             catch (Exception error) { _error.Text = error.Message; return; }
         }
-        if (string.IsNullOrWhiteSpace(_label.Text) || _label.Text == "Nueva escena") _label.Text = _fileCue.Title;
+        if (_label.Text == "Nueva escena") _label.Text = _fileCue.Title;
         FillContent(); UpdatePreview(); _error.Text = "";
     }
     private void Save()
     {
-        if (string.IsNullOrWhiteSpace(_label.Text)) { _error.Text = "Escribe un nombre para la escena."; return; }
         if (!System.Text.RegularExpressions.Regex.IsMatch(_color.Text.Trim(), "^#[0-9a-fA-F]{6}$"))
         { _error.Text = "Escribe un color como #24B27E."; return; }
         if (SelectedCue is null && SelectedAction is "cue" or "audio" or "scene")

@@ -278,6 +278,7 @@ function renderDeck(state) {
 }
 function renderScenes(state) {
   const scenes = Array.isArray(state.scenes) ? state.scenes : [];
+  const sceneName = scene => scene.label || scene.detail || ({ logo: 'Logo', blackout: 'Fondo negro', image: 'Imagen', video: 'Video', audio: 'Audio', youtube: 'YouTube', browser: 'Navegador' }[scene.kind] || 'Escena');
   $('scenes-section').hidden = scenes.length === 0;
   const signature = JSON.stringify(scenes.map(scene => [scene.id, scene.label, scene.kind, scene.detail, scene.imageData, scene.color]));
   if (signature !== sceneSignature) {
@@ -286,8 +287,9 @@ function renderScenes(state) {
       const button = document.createElement('button'), label = document.createElement('span'), status = document.createElement('span');
       button.className = 'scene-key'; button.dataset.action = 'scene'; button.dataset.sceneId = scene.id; button.dataset.kind = scene.kind;
       label.className = 'tile-label'; label.textContent = scene.label;
+      label.hidden = !scene.label?.trim();
       status.className = 'scene-state';
-      button.title = scene.detail || scene.label;
+      button.title = sceneName(scene);
       if (/^#[0-9a-f]{6}$/i.test(scene.color)) {
         button.style.background = scene.color;
         const channels = scene.color.slice(1).match(/../g).map(value => parseInt(value, 16) / 255).map(value => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4);
@@ -305,7 +307,7 @@ function renderScenes(state) {
       if (preserve) {
         preserve.dataset.sceneId = scene.id;
         preserve.textContent = scene.kind === 'logo' ? 'Logo + audio' : scene.kind === 'blackout' ? 'Negro + audio' : preserve.textContent;
-        preserve.setAttribute('aria-label', preserve.textContent + ': ' + scene.label);
+        preserve.setAttribute('aria-label', preserve.textContent + ': ' + sceneName(scene));
         slot.append(preserve);
       }
       $('scenes').appendChild(slot); sceneButtons.set(scene.id, { button, preserve, status, available: false });
@@ -316,7 +318,7 @@ function renderScenes(state) {
     entry.available = !!scene.available;
     entry.button.setAttribute('aria-pressed', String(!!scene.active));
     entry.status.textContent = scene.active ? 'En pantalla' : scene.available ? '' : scene.kind === 'youtube' ? 'Abre en la PC' : 'Sin configurar';
-    entry.button.setAttribute('aria-label', scene.label + (scene.active ? ', en pantalla' : scene.available ? ', proyectar escena' : ', no disponible'));
+    entry.button.setAttribute('aria-label', sceneName(scene) + (scene.active ? ', en pantalla' : scene.available ? ', proyectar escena' : ', no disponible'));
   });
 }
 function renderOrder(state) {

@@ -18,7 +18,7 @@ internal static class WorkspaceLayouts
 
     internal static double MinimumWidth(string? id) => id switch
     {
-        "scenes" => 156, "bible" => 200, "text" => 240, "preview" => 620, "output" => 220, _ => 180
+        "scenes" => 220, "bible" => 200, "text" => 240, "preview" => 620, "output" => 220, _ => 180
     };
 
     internal static double MinimumHeight(string? id) => id switch

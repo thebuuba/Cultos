@@ -55,6 +55,7 @@ public partial class MainWindow : Window
         SizeChanged += (_, _) => BrowserCaptureLayoutChanged();
         StateChanged += (_, _) => BrowserCaptureLayoutChanged();
         Activated += (_, _) => BrowserCaptureActivated();
+        Deactivated += (_, _) => BrowserCaptureLayoutChanged();
         InputBindings.Add(new KeyBinding(new ActionCommand(ProjectPrepared), Key.F5, ModifierKeys.None));
         InputBindings.Add(new KeyBinding(new ActionCommand(() => ProjectPreparedPreservingOther()), Key.F5, ModifierKeys.Shift));
         InputBindings.Add(new KeyBinding(new ActionCommand(() => AdvancePresentation(1)), Key.F6, ModifierKeys.None));

@@ -45,10 +45,12 @@ public sealed class BibleCatalog
         verses = [];
         foreach (var verse in document.Verses)
         {
-            if (verse is null || !TryBook(verse.Book, out var number) || verse.Chapter <= 0 || verse.Verse <= 0 || string.IsNullOrWhiteSpace(verse.Text))
+            if (verse is null || !TryBook(verse.Book, out var number) || verse.Chapter <= 0 || verse.Verse <= 0
+                || verse.LastVerse < verse.Verse || (long)verse.LastVerse - verse.Verse > 1000 || string.IsNullOrWhiteSpace(verse.Text))
                 throw new InvalidDataException("La Biblia contiene un libro, capítulo, versículo o texto inválido.");
-            if (!seen.Add((number, verse.Chapter, verse.Verse)))
-                throw new InvalidDataException($"Versículo duplicado: {Books[number]} {verse.Chapter}:{verse.Verse}.");
+            for (long covered = verse.Verse; covered <= verse.LastVerse; covered++)
+                if (!seen.Add((number, verse.Chapter, (int)covered)))
+                    throw new InvalidDataException($"Versículo duplicado: {Books[number]} {verse.Chapter}:{covered}.");
             verses.Add(verse with { Book = Books[number] });
         }
         verses = verses.OrderBy(v => BookNumbers[BookKey(v.Book)]).ThenBy(v => v.Chapter).ThenBy(v => v.Verse).ToList();
@@ -109,8 +111,9 @@ public sealed class BibleCatalog
         var end = start;
         if (match.Groups["end"].Success && !int.TryParse(match.Groups["end"].Value, out end)) throw InvalidReference();
         if (end < start) throw InvalidReference();
-        var result = verses.Where(v => v.Book == Books[book] && v.Chapter == chapter && v.Verse >= start && v.Verse <= end).ToArray();
-        if (result.Length != (long)end - start + 1) throw InvalidReference();
+        var result = verses.Where(v => v.Book == Books[book] && v.Chapter == chapter && v.LastVerse >= start && v.Verse <= end).ToArray();
+        var covered = result.Sum(verse => (long)Math.Min(end, verse.LastVerse) - Math.Max(start, verse.Verse) + 1);
+        if (covered != (long)end - start + 1) throw InvalidReference();
         return result;
     }
 
@@ -129,7 +132,9 @@ public sealed class BibleCatalog
     {
         query = query?.Trim() ?? "";
         referenceSearch = true;
-        if (TrySearchBook(query, out var book))
+        if (TrySearchBook(query, out var book)
+            && (BookNumbers.ContainsKey(BookKey(query)) || SearchBookKeys[book].StartsWith(BookKey(query), StringComparison.Ordinal)
+                || Search(query, 1).Count == 0))
         {
             var first = verses.FirstOrDefault(verse => verse.Book == Books[book]);
             if (first is null) throw InvalidReference();
@@ -156,7 +161,7 @@ public sealed class BibleCatalog
     public Cue ToCue(BibleVerse verse)
     {
         ArgumentNullException.ThrowIfNull(verse);
-        var reference = $"{verse.Book} {verse.Chapter}:{verse.Verse}";
+        var reference = $"{verse.Book} {verse.Chapter}:{verse.VerseNumber}";
         return new Cue { Title = reference, Kind = CueKind.Bible, Body = verse.Text, Reference = reference, Version = Document.Name, Notes = Document.Attribution };
     }
 
@@ -182,11 +187,11 @@ public sealed class BibleCatalog
         var chapters = passage.GroupBy(verse => (verse.Book, verse.Chapter)).ToArray();
         var multipleBooks = passage.Select(verse => verse.Book).Distinct().Skip(1).Any();
         var reference = string.Join("; ", chapters.Select(chapter =>
-            $"{chapter.Key.Book} {chapter.Key.Chapter}:{CompactVerseNumbers(chapter.Select(verse => verse.Verse))}"));
+            $"{chapter.Key.Book} {chapter.Key.Chapter}:{CompactVerseNumbers(chapter.SelectMany(verse => Enumerable.Range(verse.Verse, verse.LastVerse - verse.Verse + 1)))}"));
         var body = string.Join("\n", passage.Select(verse =>
         {
-            var number = multipleBooks ? $"{verse.Book} {verse.Chapter}:{verse.Verse}"
-                : chapters.Length > 1 ? $"{verse.Chapter}:{verse.Verse}" : verse.Verse.ToString();
+            var number = multipleBooks ? $"{verse.Book} {verse.Chapter}:{verse.VerseNumber}"
+                : chapters.Length > 1 ? $"{verse.Chapter}:{verse.VerseNumber}" : verse.VerseNumber;
             return $"{number} {verse.Text}";
         }));
         return new Cue { Title = reference, Kind = CueKind.Bible, Body = body, Reference = reference,

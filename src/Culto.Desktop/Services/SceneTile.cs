@@ -5,12 +5,20 @@ namespace Culto.Desktop.Services;
 public sealed record SceneTile
 {
     public string Id { get; init; } = Guid.NewGuid().ToString("N");
-    public string Label { get; init; } = "Nueva escena";
+    public string Label { get; init; } = "";
     public string Action { get; init; } = "image";
     public string Color { get; init; } = "#E6F3FC";
     public string? ImageData { get; init; }
     public Cue? Cue { get; init; }
     public string? TransitionPresetId { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string AccessibleName => !string.IsNullOrWhiteSpace(Label) ? Label : Action switch
+    {
+        "logo" => "Logo", "blackout" => "Fondo negro", "image" => "Imagen", "video" => "Video",
+        "audio" => "Audio", "youtube" => "YouTube", "browser" => "Navegador",
+        _ => string.IsNullOrWhiteSpace(Cue?.Title) ? "Escena" : Cue.Title
+    };
 
     public static List<SceneTile> Defaults() =>
     [

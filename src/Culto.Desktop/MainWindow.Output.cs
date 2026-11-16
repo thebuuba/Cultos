@@ -197,8 +197,9 @@ public partial class MainWindow
     {
         if (_outputWindow is not null) { CloseExternalOutput(); SetStatus("HDMI desactivado · reproducción local."); return; }
         var display = DisplayService.SelectOutput(DisplayService.GetDisplays(), _workspace.DisplayDevice, DisplayService.GetWindowDevice(this));
-        if (display is null) { SetStatus("Sin pantalla externa. La reproducción local sigue disponible."); return; }
+        if (display is null) { UpdateOutputSwitchLabel(); SetStatus("Sin pantalla externa. La reproducción local sigue disponible."); return; }
         OpenOutput(display, test: false);
+        UpdateOutputSwitchLabel();
         SetStatus("HDMI activado.");
     }
     private void MoveLive(int delta)
@@ -349,5 +350,6 @@ public partial class MainWindow
         _displayTick = 0;
         if (_outputDisplay is not null && !DisplayService.GetDisplays().Any(d => d.DeviceName == _outputDisplay.DeviceName))
         { CloseExternalOutput(); SetStatus("HDMI desconectado · reproducción local.", true); }
+        UpdateOutputSwitchLabel();
     }
 }

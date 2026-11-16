@@ -11,7 +11,7 @@ public sealed record YouTubeSource(string Key, Cue Cue, WindowCaptureTarget? Tar
         : "Guardada · no disponible; abre la ventana o edita la captura";
 }
 
-// Discovery only describes windows. Starting a capture always needs an operator action.
+// Discovery only describes windows; visible cards own their preview capture.
 public static class YouTubeDiscovery
 {
     public static bool UsesBrowserAudio(WindowCaptureOptions options) =>

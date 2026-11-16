@@ -10,7 +10,7 @@ namespace Culto.Desktop;
 public sealed record BibleResult(BibleVerse Verse, Cue Cue)
 {
     public bool ShowReference { get; init; }
-    public string Reference => $"{Verse.Book} {Verse.Chapter}:{Verse.Verse}";
+    public string Reference => $"{Verse.Book} {Verse.Chapter}:{Verse.VerseNumber}";
     public string Text => Verse.Text;
 }
 
@@ -22,14 +22,67 @@ public partial class MainWindow
     private bool _referenceSearch;
     private bool _updatingBiblePickers;
     private DispatcherTimer? _bibleSearchTimer;
+    private BibleVersionStore? _bibleVersions;
+    private BibleVersionStore BibleVersions => _bibleVersions ??= new(_store.DirectoryPath);
+    private bool _changingBibleVersion;
     private void LoadSavedBible()
     {
         try
         {
             var document = JsonFileStore.Load<BibleDocument>(_store.BiblePath);
-            if (document is not null) InstallBibleCatalog(new BibleCatalog(document));
+            if (document is not null)
+            {
+                var catalog = new BibleCatalog(document);
+                BibleVersions.Add(catalog);
+                InstallBibleCatalog(catalog);
+            }
         }
         catch (Exception ex) { SetStatus("La Biblia guardada no se pudo abrir. Importa de nuevo el archivo. " + ex.Message, true); }
+        RefreshBibleVersions();
+    }
+    private void RefreshBibleVersions()
+    {
+        _changingBibleVersion = true;
+        try
+        {
+            var versions = BibleVersions.List();
+            BibleVersionPicker.ItemsSource = versions;
+            BibleVersionPicker.SelectedItem = versions.FirstOrDefault(version => version.Name == _bible?.Document.Name);
+            BibleVersionPicker.IsEnabled = versions.Count > 0;
+            BibleVersionPicker.ToolTip = BibleVersions.Warnings.Count == 0 ? "Cambiar versión de la Biblia"
+                : $"{BibleVersions.Warnings.Count} archivos de versiones no se pudieron abrir.";
+        }
+        finally { _changingBibleVersion = false; }
+    }
+    private async void BibleVersionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_ready || _changingBibleVersion || BibleVersionPicker.SelectedItem is not BibleVersion version
+            || version.Name == _bible?.Document.Name) return;
+        var previous = SelectedBibleResults().Select(result => result.Verse).ToArray();
+        _changingBibleVersion = true;
+        BibleVersionPicker.IsEnabled = false;
+        try
+        {
+            var catalog = await Task.Run(() => BibleVersions.Load(version));
+            JsonFileStore.Save(_store.BiblePath, catalog.Document);
+            InstallBibleCatalog(catalog);
+            if (previous.Length > 0)
+            {
+                try
+                {
+                    var matching = previous.SelectMany(verse => catalog.FindReference($"{verse.Book} {verse.Chapter}:{verse.VerseNumber}"))
+                        .Distinct().ToArray();
+                    if (matching.Length == 1) ShowBibleChapter(matching[0].Book, matching[0].Chapter, matching[0].Verse);
+                    else SetBibleResults(matching, referenceSearch: true, selectRange: true);
+                }
+                catch (ArgumentException) { ClearBibleResults("Esta cita no está disponible en la versión elegida."); }
+            }
+            else if (!string.IsNullOrWhiteSpace(BibleQuery.Text)) SearchBible();
+            SetStatus("Versión: " + catalog.Document.Name);
+        }
+        catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException)
+        { SetStatus("No se pudo cambiar de Biblia: " + error.Message, true); }
+        finally { _changingBibleVersion = false; RefreshBibleVersions(); }
     }
     private void InstallBibleCatalog(BibleCatalog catalog)
     {
@@ -74,13 +127,13 @@ public partial class MainWindow
     }
     private async void ImportBibleClick(object sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFileDialog { Title = "Importar una Biblia autorizada", Filter = "Biblia JSON o Zefania XML|*.json;*.xml" };
+        var dialog = new OpenFileDialog { Title = "Agregar versiones de la Biblia", Filter = "Biblia JSON o Zefania XML|*.json;*.xml", Multiselect = true };
         if (dialog.ShowDialog(this) != true) return;
         try
         {
             SetStatus("Comprobando el texto bíblico…");
-            await ImportBibleFileAsync(dialog.FileName);
-            SetStatus("Biblia importada.");
+            foreach (var path in dialog.FileNames) await ImportBibleFileAsync(path);
+            SetStatus(dialog.FileNames.Length == 1 ? "Biblia agregada." : $"{dialog.FileNames.Length} versiones agregadas.");
         }
         catch (Exception ex) { SetStatus("No se pudo importar la Biblia: " + ex.Message, true); }
     }
@@ -88,10 +141,16 @@ public partial class MainWindow
     {
         // Validate the external source before touching the persisted or working Bible.
         var catalog = await Task.Run(() => BibleCatalog.Load(path));
-        try { JsonFileStore.Load<BibleDocument>(_store.BiblePath); }
+        try
+        {
+            if (JsonFileStore.Load<BibleDocument>(_store.BiblePath) is { } previous)
+                BibleVersions.Add(new BibleCatalog(previous));
+        }
         catch (InvalidDataException) { _store.ArchiveDamagedFile("biblia.json"); }
+        BibleVersions.Add(catalog);
         JsonFileStore.Save(_store.BiblePath, catalog.Document);
         InstallBibleCatalog(catalog);
+        RefreshBibleVersions();
     }
     private void BibleQueryChanged(object sender, TextChangedEventArgs e)
     {

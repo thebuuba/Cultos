@@ -112,6 +112,14 @@ Himnario/LibraryList comparte el menú contextual de Medios. El objetivo se resu
 
 --hymn-playlist simula el evento WPF de botón derecho sobre un himno diferente al seleccionado y pulsa el menú real: verifica número 37, identidad independiente, archivo, persistencia y reproducción/vista previa intactas. Falla con el binario 0.37.1 y pasa con el cambio. Registros .tools/hymn-playlist-red.log y hymn-playlist-green.log; regresión completa de listas en hymn-playlist-regression.log.
 
+### Recuperación de YouTube mientras otra aplicación está delante
+
+Deactivated ahora solicita la renovación WGC tras 250 ms, sin esperar a regresar a Culto Studio. El sondeo existente compara la identidad y los límites de la ventana en primer plano para detectar cambios posteriores de tamaño/pantalla completa. Una ventana que permanece igual no genera renovaciones continuas. Se conservan el cliente, el proceso de captura, la ventana seleccionada, el recorte y el audio; no se activa ni se mueve la aplicación que está delante. La renovación incluye las miniaturas visibles del panel YouTube.
+
+El inicio de Chrome para proyección incorpora --disable-background-media-suspend, además de las opciones existentes de oclusión. Solo afecta al Chrome abierto desde ese botón; no cambia los argumentos ni la configuración del Chrome personal ya abierto. Referencia del argumento: https://chromium.googlesource.com/chromium/src/media/+/99ecf121cd7b96a264d0c40ea8511748f6b3f0b6/base/media_switches.cc
+
+La prueba --chrome-occluded exige ahora una ventana opaca que Chromium no excluya por ser popup, herramienta, transparente o de región compleja. Verifica la confirmación de renovación mientras esa ventana sigue maximizada y conserva el foco, el mismo cliente de captura, video en movimiento durante diez segundos y ausencia de reinicios continuos. La comprobación de renovación falló antes del cambio (.tools/youtube-cover-refresh-red.log) y pasó con el cambio (.tools/youtube-cover-recovery.log, 21 cambios de color). La prueba usa video WebM local reproducido por Chrome. El intento con YouTube real no alcanzó reproducción comprobable antes de cubrirlo (.tools/youtube-live-cover-baseline.log); no se afirma haber verificado el caso particular del usuario.
+
 ### YouTube cubierto por otra aplicación - 0.37.1
 
 Se añade Abrir YouTube para proyección al panel y al menú de la escena. Inicia Chrome con perfil propio persistente en YouTubeChrome, debajo del directorio de datos de Culto Studio. Aplica --disable-backgrounding-occluded-windows, --disable-features=CalculateNativeWinOcclusion, --disable-background-timer-throttling y --disable-renderer-backgrounding. Se conserva la seguridad web y el sandbox; no se modifica ni se reinicia el Chrome personal. La sesión propia permite que Chrome acepte los argumentos al arrancar. Referencia primaria: https://github.com/GoogleChrome/chrome-launcher/blob/main/docs/chrome-flags-for-tools.md

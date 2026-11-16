@@ -38,4 +38,8 @@ Los libros pueden usar su nombre en español, por ejemplo Génesis, Salmos o 1 C
 
 `bnumber` va del 1 (Génesis) al 66 (Apocalipsis), `cnumber` identifica el capítulo y `vnumber` el versículo. El programa conserva la información de atribución y rechaza XML con DTD/entidades externas. Los archivos XML de otras aplicaciones con estructuras diferentes requieren conversión al formato documentado.
 
-Al importar, se guarda una copia normalizada en `%LOCALAPPDATA%\CultoStudio\biblia.json`; mover el archivo original después no afecta a la consulta. Una importación fallida conserva la Biblia que ya estaba disponible.
+Al importar, se conserva una copia de cada versión en `%LOCALAPPDATA%\CultoStudio\Biblias`. La versión activa se guarda también en `biblia.json`; mover el archivo original después no afecta a la consulta. Una importación nueva no elimina las versiones anteriores. El selector «Versión» del panel permite cambiarlas sin modificar el contenido que ya está proyectado. El botón `+` admite seleccionar varios archivos a la vez. Una importación fallida conserva la Biblia que ya estaba disponible.
+
+Para textos cuya fuente agrupa varios versículos en una sola unidad, JSON admite `endVerse`: por ejemplo, `verse: 5, endVerse: 6` identifica el texto conjunto 5–6. Se conserva ese texto una sola vez y se puede encontrar consultando cualquiera de los números del grupo. No se permiten rangos superpuestos. Los campos calculados para mostrar el número no se guardan en el archivo.
+
+Las versiones instaladas y sus fuentes se documentan en [versiones-biblia.md](versiones-biblia.md).

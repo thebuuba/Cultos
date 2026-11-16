@@ -5,6 +5,17 @@ namespace Culto.Core.Tests;
 
 public sealed class BibleLookupTests
 {
+    [Fact]
+    public void ARealWordMatchTakesPrecedenceOverAFuzzyBareBookName()
+    {
+        var catalog = new BibleCatalog(new BibleDocument { Verses =
+            [new("Amós", 1, 1, "Profeta sintético"), new("Juan", 3, 16, "Amor sintético")] });
+        Assert.Equal("Juan", catalog.Lookup("amor", out var referenceSearch).Single().Book);
+        Assert.False(referenceSearch);
+        Assert.Equal("Amós", catalog.Lookup("Amós", out referenceSearch).Single().Book);
+        Assert.True(referenceSearch);
+    }
+
     private static BibleCatalog Catalog() => new(new BibleDocument
     {
         Verses =

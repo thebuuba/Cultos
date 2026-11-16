@@ -7,6 +7,9 @@ using AvalonDock.Layout;
 using Culto.Core;
 using Culto.Desktop;
 using Culto.Desktop.Projection;
+using Culto.Desktop.Services;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using Culto.Remote;
 
 internal static partial class Program
@@ -20,6 +23,66 @@ internal static partial class Program
         try
         {
             volume.Value = 0;
+            Test("YouTube cards show live capture without a green selection border and release hidden previews", () =>
+            {
+                var folder = Path.Combine(Path.GetTempPath(), "CultoThumbnail-" + Guid.NewGuid().ToString("N"));
+                Directory.CreateDirectory(folder);
+                var title = "YouTube thumbnail " + Guid.NewGuid().ToString("N");
+                var page = Path.Combine(folder, "index.html");
+                File.WriteAllText(page, $"<title>{title}</title><body style='background:red'><script>setInterval(()=>document.body.style.background=document.body.style.background==='red'?'blue':'red',2000)</script>");
+                using var chrome = System.Diagnostics.Process.Start(YouTubeProjectionBrowser.CreateStartInfo(
+                    @"C:\Program Files\Google\Chrome\Application\chrome.exe", Path.Combine(folder, "profile"), new Uri(page)))!;
+                var list = (ListBox)window.FindName("YouTubeList");
+                var timer = Field<DispatcherTimer>(window, "_youTubeTimer");
+                try
+                {
+                    Until(() => WindowCaptureCatalog.List().Any(t => t.Options.WindowTitle.StartsWith(title)), "Owned Chrome did not open");
+                    Call(window, "SelectContentSource", 3); timer.Stop();
+                    var target = WindowCaptureCatalog.List().Single(t => t.Options.WindowTitle.StartsWith(title));
+                    var source = list.Items.OfType<YouTubeSource>().Single(s => s.Cue.Capture!.WindowHandle == target.Options.WindowHandle);
+                    list.SelectedItem = source; list.ScrollIntoView(source); list.UpdateLayout();
+                    var row = (ListBoxItem)list.ItemContainerGenerator.ContainerFromItem(source);
+                    var thumbnail = Descendants(row).OfType<FrameworkElement>()
+                        .SingleOrDefault(e => e.GetType().Name == "WindowCaptureThumbnail");
+                    Check(thumbnail is not null, "YouTube card still renders a title cover instead of live capture");
+                    var border = Descendants(row).OfType<Border>().First();
+                    Check(border.BorderThickness == new Thickness(0), "YouTube selection still has an outline");
+                    Until(() => Descendants(thumbnail!).OfType<ProjectionSurface>().Any(s => Field<BitmapSource?>(s, "_captureBitmap") is not null),
+                        "YouTube thumbnail received no captured frame");
+                    var surface = Descendants(thumbnail!).OfType<ProjectionSurface>().Single();
+                    int Pixel()
+                    {
+                        var pixel = new byte[4];
+                        Field<BitmapSource>(surface, "_captureBitmap").CopyPixels(new Int32Rect(640, 360, 1, 1), pixel, 4, 0);
+                        return pixel[0] | pixel[1] << 8 | pixel[2] << 16;
+                    }
+                    Until(() => Pixel() == 0xFF0000, "Thumbnail did not show the source window");
+                    Until(() => Pixel() == 0x0000FF, "Thumbnail froze instead of updating live");
+                    Check(Field<object?>(surface, "_captureAudio") is null, "Thumbnail took control of application audio");
+                    Call(window, "RefreshYouTube", (object?)null); list.UpdateLayout();
+                    Check(ReferenceEquals(list.ItemContainerGenerator.ContainerFromItem(source), row)
+                        && ReferenceEquals(Descendants(thumbnail!).OfType<ProjectionSurface>().Single(), surface),
+                        "Discovery restarted an unchanged thumbnail");
+                    var thumbnailClient = Field<object>(surface, "_captureClient");
+                    var refreshCount = Field<int>(thumbnailClient, "_refreshCount");
+                    Call(window, "RefreshBrowserCaptureAfterResize", null, EventArgs.Empty);
+                    Until(() => Field<int>(thumbnailClient, "_refreshCount") > refreshCount,
+                        "Capture recovery skipped the YouTube thumbnail");
+                    thumbnail!.Visibility = Visibility.Collapsed;
+                    Until(() => !Descendants(thumbnail).OfType<ProjectionSurface>().Any(), "Hidden thumbnail kept its capture alive");
+                    Check(Field<object?>(surface, "_captureClient") is null, "Hidden thumbnail did not dispose its worker");
+                    thumbnail.Visibility = Visibility.Visible;
+                    Until(() => Descendants(thumbnail).OfType<ProjectionSurface>().Any(s => Field<BitmapSource?>(s, "_captureBitmap") is not null),
+                        "Showing thumbnail did not resume capture");
+                }
+                finally
+                {
+                    list.ItemsSource = null;
+                    if (!chrome.HasExited) chrome.Kill(entireProcessTree: true);
+                    Call(window, "PrepareCue", new Cue { Kind = CueKind.Text, Title = "Fin de prueba" }, null);
+                    Call(window, "RefreshYouTube", (object?)null); timer.Start();
+                }
+            });
             Test("Capture playback has no fake pause in console, floating player or remote", () =>
             {
                 Call(window, "EnsureOutput");
