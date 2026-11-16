@@ -32,6 +32,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
     private readonly CompositedVideo _compositedVideo = new() { Visibility = Visibility.Collapsed };
     private LibVLC? _vlc;
     private MediaPlayer? _player;
+    private DefaultAudioDeviceFollower? _audioDeviceFollower;
     private Media? _media;
     private string? _mediaKey;
     private bool _suppressed;
@@ -182,8 +183,12 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
                     ShowScene(cue, paused);
                     break;
                 case CueKind.Text:
-                case CueKind.PowerPoint:
                     ShowText(string.IsNullOrWhiteSpace(cue.Body) ? cue.Title : cue.Body, cue.Reference, cue.Version);
+                    break;
+                case CueKind.PowerPoint:
+                    // The native slideshow supplies the pixels. Keep its waiting
+                    // and outgoing surface blank so file names never reach output.
+                    _root.Background = Brushes.Black;
                     break;
                 case CueKind.Bible:
                     ApplyBibleStyle();
@@ -298,6 +303,22 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         _player.Playing += OnPlaying;
         _player.EndReached += OnEndReached;
         _player.TimeChanged += OnAudioOutputChanged;
+        _audioDeviceFollower?.Dispose();
+        _audioDeviceFollower = new DefaultAudioDeviceFollower(DefaultAudioWaveOutput.CurrentDeviceId, id =>
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (_disposed || _player is null || _cathedralAudio is not null || id is null) return;
+                // DirectSound does not observe Windows default-device changes.
+                // Reselecting its default restarts only the audio sink, keeping
+                // the decoder's time, pause state and independent buffer volume.
+                // libVLC 3 ignores a null device ID; "" selects DirectSound's
+                // default endpoint. Leave the module null to apply it live.
+                _player.SetOutputDevice(string.Empty);
+                ApplyAudioVolume();
+            }));
+        });
+        _audioDeviceFollower.Start();
     }
 
     // VLC's default mmdevice output changes a shared Windows audio session.
@@ -472,6 +493,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         CancelAudioFade(silence: true);
         CancelDissolve();
         _disposed = true;
+        _audioDeviceFollower?.Dispose(); _audioDeviceFollower = null;
         var cathedralAudio = _cathedralAudio; _cathedralAudio = null;
         StopWindowCapture();
         StopBrowserSource();

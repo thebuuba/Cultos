@@ -13,7 +13,7 @@ internal sealed class BrowserAudioOutput : AudioHandler
 {
     private readonly object _gate = new();
     private BufferedWaveProvider? _buffer;
-    private WasapiOut? _output;
+    private DefaultAudioWaveOutput? _output;
     private int _channels;
     private volatile float _gain;
     private bool _closed;
@@ -31,8 +31,7 @@ internal sealed class BrowserAudioOutput : AudioHandler
                 Stop(); _channels = channels;
                 _buffer = new BufferedWaveProvider(WaveFormat.CreateIeeeFloatWaveFormat(parameters.SampleRate, channels))
                 { BufferDuration = TimeSpan.FromMilliseconds(500), DiscardOnBufferOverflow = true, ReadFully = true };
-                _output = new WasapiOut(NAudio.CoreAudioApi.AudioClientShareMode.Shared, 80);
-                _output.Init(_buffer); _output.Play();
+                _output = new DefaultAudioWaveOutput(_buffer, 80);
             }
             catch (Exception error) { LastError = error.Message; Stop(); }
         }
@@ -60,6 +59,6 @@ internal sealed class BrowserAudioOutput : AudioHandler
     }
     protected override void OnAudioStreamStopped(IWebBrowser chromiumWebBrowser, IBrowser browser) { lock (_gate) Stop(); }
     protected override void OnAudioStreamError(IWebBrowser chromiumWebBrowser, IBrowser browser, string errorMessage) => LastError = errorMessage;
-    private void Stop() { _output?.Stop(); _output?.Dispose(); _output = null; _buffer = null; }
+    private void Stop() { _output?.Dispose(); _output = null; _buffer = null; }
     public void Close() { lock (_gate) { _closed = true; _gain = 0; Stop(); } }
 }

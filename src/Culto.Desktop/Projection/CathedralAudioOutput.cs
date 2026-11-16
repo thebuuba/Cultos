@@ -3,7 +3,6 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using LibVLCSharp.Shared;
-using NAudio.CoreAudioApi;
 using NAudio.Wave;
 
 namespace Culto.Desktop.Projection;
@@ -19,7 +18,7 @@ internal sealed class CathedralAudioOutput : IDisposable, IWaveProvider
     private int _head, _length, _epoch;
     private int _historyHead, _historyLength;
     private float[] _dry = [], _wet = [];
-    private WasapiOut? _output;
+    private DefaultAudioWaveOutput? _output;
     private CathedralReverbProcessor? _reverb;
     private bool _closed, _paused, _ended, _hasTail, _tailComplete;
     private bool _resetEffect;
@@ -52,15 +51,8 @@ internal sealed class CathedralAudioOutput : IDisposable, IWaveProvider
     private void StartOutput()
     {
         lock (_gate) { ObjectDisposedException.ThrowIf(_closed, this); if (_output is not null) return; }
-        var output = new WasapiOut(AudioClientShareMode.Shared, 60);
-        try
-        {
-            output.Init(this);
-            output.PlaybackStopped += (_, e) => { if (e.Exception is not null) Error(e.Exception); };
-            lock (_gate) _output = output;
-            output.Play();
-        }
-        catch (Exception error) { output.Dispose(); Error(error); throw; }
+        var output = new DefaultAudioWaveOutput(this, 60);
+        lock (_gate) _output = output;
     }
 
     public void SetGain(double amplitudeGain)
@@ -275,12 +267,11 @@ internal sealed class CathedralAudioOutput : IDisposable, IWaveProvider
 
     public void Dispose()
     {
-        WasapiOut? output;
+        DefaultAudioWaveOutput? output;
         lock (_gate) { if (_closed) return; _closed = true; _epoch++; output = _output; _output = null; }
-        try { output?.Stop(); }
+        try { output?.Dispose(); }
         finally
         {
-            output?.Dispose();
             lock (_gate) { _reverb?.Dispose(); _reverb = null; }
         }
     }

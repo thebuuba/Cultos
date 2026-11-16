@@ -4,6 +4,38 @@ Comprobación actualizada el 14 de noviembre de 2026 en esta PC Windows. Entrega
 
 ## Compilación y pruebas
 
+### Panel compacto de PowerPoint — 16 de noviembre de 2026
+
+Se sustituyeron las filas de botones extendidos por acciones de ancho natural y una barra de transporte con los estilos de iconos del reproductor del sistema. El acceso al moderador es un botón de monitor con descripción y nombre accesible; las opciones del presentador USB se despliegan cuando se necesitan. La barra se ajusta al ancho disponible manteniendo sus controles agrupados. No se modificó la reproducción.
+
+`--powerpoint-card` pasó sin fallos: controles visibles, opciones USB desplegables, restauración de espacios anteriores, importación y selección que conserva la salida actual. Se comprobaron los límites de todos los controles en paneles de 280 y 780 píxeles y se revisaron las capturas `.tools/powerpoint-card-280.png` y `.tools/powerpoint-card-780.png`. Registro `.tools/powerpoint-card-compact-final.log`. La comprobación de selección compara la salida previa, porque el arranque puede haber creado ya la salida negra de espera.
+
+### Nitidez de la vista de moderador — 16 de noviembre de 2026
+
+La vista local ampliaba el reflejo del monitor pequeño de la consola: el ensayo midió una ventana nativa de 306 × 172 píxeles para un área de moderador de 624 × 409. Ahora la presentación nativa se aloja directamente en la vista de moderador y se ajusta a sus píxeles físicos; la consola y su vista previa reflejan esa superficie. Con HDMI se conserva la ventana nativa de la pantalla externa. Al minimizar o cerrar el moderador se devuelve la presentación a la consola antes de destruir el HWND, conservando diapositiva y paso de animación. La miniatura siguiente usa reducción de imagen de alta calidad.
+
+La regresión falló antes porque la superficie nativa era menor que el área mostrada. Después midió 624 × 409 para 624 × 409 y pasó el ensayo completo de moderador: cambios físicos de la animación, maximización sin ampliar una imagen menor, minimizar/restaurar sin reiniciar, notas, negro, nueva presentación y cierre sin detener la salida. Registros `.tools/powerpoint-moderator-resolution-red.log` y `.tools/powerpoint-moderator-resolution-final.log`. La comprobación corresponde al monitor local; no se realizó una comparación física de nitidez en HDMI.
+
+### Vista de moderador de PowerPoint — 16 de noviembre de 2026
+
+El botón «Vista de moderador» del panel PowerPoint abre una ventana de Culto Studio durante la presentación. Refleja la salida nativa actual sin otro reproductor y muestra una miniatura estática de la siguiente diapositiva y las notas del cuerpo de la página de notas, excluyendo cabeceras, pies y números. La lectura/exportación solo ocurre al abrir la vista o cambiar de diapositiva. Incluye navegación por animaciones, pausa/continuación, reinicio, negro y tamaño de notas ajustable. Cerrar esta ventana conserva la presentación; detener la salida borra sus notas y desactiva la navegación. No abre la ventana de edición de Office ni otra presentación.
+
+`--powerpoint-moderator` falló inicialmente por la ausencia del acceso. El ensayo final pasó sin fallos: notas y miniatura, cambios de píxeles físicos en la vista actual al avanzar una animación, navegación al final sin miniaturas/notas anteriores, negro/restauración, apertura única, cierre sin detener la presentación, nueva presentación con la vista abierta y conservación de documentos ajenos. También se comprobaron los controles a 900 × 600 con notas largas a 36 puntos. Registro `.tools/powerpoint-moderator-final.log`; capturas `.tools/powerpoint-moderator-physical.png` y `.tools/powerpoint-moderator-compact.png`. La miniatura siguiente representa la siguiente diapositiva, no el siguiente paso de animación. La prueba física se realizó en el monitor local; el proyector HDMI queda pendiente de verificación del usuario.
+
+La compilación/publicación pasó con cero advertencias y errores, 335 pruebas del núcleo y 66 del mando. El ensayo nativo completo de PowerPoint encontró inicialmente las teclas USB ocupadas mientras la aplicación habitual seguía abierta. Tras cerrarla pasó completo sin fallos, incluidos controles USB, animaciones y video con cambios de píxeles físicos (`.tools/powerpoint-moderator-regression-final.log`). Se instaló la DLL publicada en el acceso habitual y se verificó su SHA256 contra el paquete preparado.
+
+### PowerPoint sin títulos en la salida — 16 de noviembre de 2026
+
+Se reprodujo el fallo de arranque con una presentación abierta sin ventana de edición: Office reutilizaba su marco vacío al ejecutar la presentación y el programa lo descartaba porque solo aceptaba HWND nuevos. La detección ahora admite también un marco de PowerPoint existente cuyo título cambió al de la copia propia durante `Run`, conservando el rechazo de ventanas preexistentes sin cambios. La superficie de espera/salida de PowerPoint queda negra y no dibuja el nombre del archivo ni el cuerpo del cue. La ventana propia se oculta antes de cerrar la presentación.
+
+La regresión del nombre falló antes del cambio, junto con cuatro pruebas nativas de arranque. Después pasaron la ausencia de texto en entrada/salida, apertura sin ventana de edición, animaciones por clic, avance/retroceso, video incrustado con cambios de píxeles reales, pausa, negro, controles y conservación del archivo original y de las presentaciones ajenas. Registro `.tools/powerpoint-green.log`. El motor sigue siendo Microsoft PowerPoint instalado, automatizado en segundo plano; no es un lector de PPTX independiente de Office. La salida HDMI física queda pendiente de comprobación del usuario.
+
+### Cambios de salida de audio y selección de medios — 16 de noviembre de 2026
+
+DirectSound y los proveedores WASAPI quedaban ligados al dispositivo inicial. Un seguimiento del dispositivo predeterminado de Windows, cada 500 ms, vuelve a seleccionar la salida de DirectSound o sustituye únicamente el destino WASAPI; conserva decodificador, posición, pausa, ganancia y procesamiento Catedral. No escribe volumen ni silencio global de Windows. Las dos pruebas de coordinación cubren cambios, desconexión/reconexión y reintentos. `--audio-device-rebind` pasó 12 comprobaciones nativas de reconexión al mismo dispositivo, posición, pausa/continuación, ganancia y volumen/silencio global intactos. El cambio con un adaptador físico queda pendiente de verificación del usuario. Registro `.tools/audio-device-rebind-result.txt`.
+
+Se reprodujo una selección perdida cuando un escaneo de la carpeta sustituía el objeto del archivo entre pulsación y liberación: se comparaban referencias aunque el ID de archivo fuera el mismo. La liberación ahora reconoce el ID estable y utiliza los datos actualizados. La regresión falló antes y pasó después. `--bible-to-video` también verifica con eventos WPF el cambio con Biblia quieta o animada, miniaturas parcialmente visibles y actualización de carpeta; `--content-drag` comprueba los arrastres. La pérdida completa del doble clic comunicada por el usuario no se reprodujo de forma estable; no se atribuye exclusivamente a este caso. Registros `.tools/bible-to-video-regression-red.log` y `.tools/bible-to-video-green.log`.
+
 ### Catálogo de 291 efectos de texto — 16 de noviembre de 2026
 
 `BibleTextTransitionCatalogTests` comprueba los 291 IDs únicos, las doce familias, los tres alcances y las ocho variantes, persistencia, compatibilidad con los tres efectos anteriores, valores inválidos y favoritos. Pasaron las 333 pruebas de Core. `--bible-tools` verifica búsqueda sin tildes, filtros sin perder selección, favoritos, guardado y cancelación, además de capturas a 1180 y 940 píxeles con nombres largos y duración visible.

@@ -30,6 +30,7 @@ internal static partial class Program
                 else if (args.Contains("--transition-audit")) await RunTransitionAuditChecks();
                 else if (args.Contains("--native-move")) await RunNativeMoveChecks();
                 else if (args.Contains("--audio-isolation")) await RunAudioIsolationChecks();
+                else if (args.Contains("--audio-device-rebind")) await RunAudioDeviceRebindChecks();
                 else if (args.Contains("--audio-crossfade")) await RunAudioCrossfadeCaptureChecks();
                 else if (args.Contains("--youtube-gate")) await RunYouTubeGateChecks();
                 else if (args.Contains("--capture-recovery")) await RunWindowCaptureRecoveryChecks();

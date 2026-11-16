@@ -719,7 +719,7 @@
     <Grid>
       <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
       <StackPanel Margin="0,0,0,10">
-        <Button Content="+ Agregar PowerPoint" Click="ImportPowerPointClick" MinHeight="36" AutomationProperties.Name="Agregar presentaciones de PowerPoint"/>
+        <Button Content="+ Agregar PowerPoint" Click="ImportPowerPointClick" MinHeight="30" Padding="12,4" HorizontalAlignment="Left" AutomationProperties.Name="Agregar presentaciones de PowerPoint"/>
         <TextBlock Text="Archivos de presentación" Style="{StaticResource MutedText}" Margin="2,10,0,0" FontSize="12"/>
       </StackPanel>
       <Grid Grid.Row="1" MinHeight="64">
@@ -729,26 +729,33 @@
         <TextBlock x:Name="PowerPointEmpty" Text="Agrega tus archivos .pptx, .ppt, .ppsx o .pps." Style="{StaticResource MutedText}" TextAlignment="Center" Margin="16" IsHitTestVisible="False"/>
       </Grid>
       <StackPanel Grid.Row="2" Margin="0,10,0,0">
-        <Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
-          <Button x:Name="PowerPointProjectButton" Content="Proyectar" Click="ProjectPowerPointClick" Background="{StaticResource ActionBrush}" Foreground="{StaticResource OnActionBrush}" MinHeight="36" Margin="0,0,4,0"/>
-          <Button x:Name="PowerPointAddToPlanButton" Grid.Column="1" Content="+ Al orden" Click="AddPowerPointToPlanClick" MinHeight="36" Margin="4,0,0,0"/>
-        </Grid>
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+          <Button x:Name="PowerPointProjectButton" Content="Proyectar" Click="ProjectPowerPointClick" Background="{StaticResource ActionBrush}" Foreground="{StaticResource OnActionBrush}" MinHeight="32" Padding="16,4"/>
+          <Button x:Name="PowerPointAddToPlanButton" Content="+ Al orden" Click="AddPowerPointToPlanClick" MinHeight="32" Padding="10,4" Background="Transparent" BorderBrush="Transparent" Margin="6,0,0,0"/>
+        </StackPanel>
         <TextBlock x:Name="PowerPointLiveText" Style="{StaticResource MutedText}" FontSize="12" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
-        <TextBlock x:Name="PowerPointPositionText" FontSize="15" FontWeight="SemiBold" Margin="0,5,0,8"/>
-        <UniformGrid x:Name="PowerPointPlaybackPanel" Columns="2" Rows="2">
-          <Button x:Name="PowerPointPreviousButton" Content="‹ Anterior" Click="PowerPointPreviousClick" MinHeight="36" Margin="0,0,4,4" ToolTip="Retrocede una animación o diapositiva"/>
-          <Button x:Name="PowerPointNextButton" Content="Siguiente ›" Click="PowerPointNextClick" MinHeight="36" Margin="4,0,0,4" ToolTip="Avanza una animación o diapositiva"/>
-          <Button x:Name="PowerPointPauseButton" Content="Pausar" Click="PowerPointPauseClick" MinHeight="36" Margin="0,4,4,0"/>
-          <Button x:Name="PowerPointRestartButton" Content="Reiniciar" Click="PowerPointRestartClick" MinHeight="36" Margin="4,4,0,0" ToolTip="Volver a la primera diapositiva"/>
-        </UniformGrid>
+        <WrapPanel Margin="0,4,0,0" Orientation="Horizontal">
+          <TextBlock x:Name="PowerPointPositionText" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,2,12,2"/>
+          <StackPanel Orientation="Horizontal">
+          <StackPanel x:Name="PowerPointPlaybackPanel" Orientation="Horizontal">
+            <Button x:Name="PowerPointPreviousButton" Content="&#xE76B;" Click="PowerPointPreviousClick" Style="{StaticResource PlayerButton}" ToolTip="Anterior · Retrocede una animación o diapositiva" AutomationProperties.Name="Anterior en PowerPoint"/>
+            <Button x:Name="PowerPointNextButton" Content="&#xE76C;" Click="PowerPointNextClick" Style="{StaticResource PlayerButton}" ToolTip="Siguiente · Avanza una animación o diapositiva" AutomationProperties.Name="Siguiente en PowerPoint"/>
+            <Button x:Name="PowerPointPauseButton" Content="Pausar" Click="PowerPointPauseClick" MinHeight="32" MinWidth="76" Padding="8,4" FontSize="12" Background="Transparent" BorderBrush="Transparent"/>
+            <Button x:Name="PowerPointRestartButton" Content="&#xE72C;" Click="PowerPointRestartClick" Style="{StaticResource PlayerButton}" ToolTip="Reiniciar · Volver a la primera diapositiva" AutomationProperties.Name="Reiniciar PowerPoint"/>
+          </StackPanel>
+          <Button x:Name="PowerPointModeratorButton" Content="&#xE7F4;" Style="{StaticResource PlayerButton}" Click="OpenPowerPointModeratorClick" Margin="8,0,0,0" ToolTip="Vista de moderador · Diapositiva actual, siguiente y notas" AutomationProperties.Name="Abrir vista de moderador"/>
+          </StackPanel>
+        </WrapPanel>
       </StackPanel>
-      <StackPanel Grid.Row="3" Margin="0,14,0,0">
+      <Expander x:Name="PowerPointUsbOptions" Grid.Row="3" Header="Presentador USB" FontSize="12" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0">
+      <StackPanel Margin="0,8,0,0">
         <CheckBox x:Name="PowerPointUsbCheck" Content="Controlar con presentador USB" Click="TogglePresenterClick" FontSize="12" Margin="0,0,0,6"/>
         <ComboBox x:Name="PowerPointUsbKeys" SelectionChanged="PowerPointUsbKeysChanged" AutomationProperties.Name="Teclas del presentador USB" MinHeight="32">
           <ComboBoxItem Content="Av Pág / Re Pág"/><ComboBoxItem Content="Flechas derecha / izquierda"/>
         </ComboBox>
         <TextBlock x:Name="PowerPointUsbStatus" Style="{StaticResource MutedText}" FontSize="12" Margin="0,6,0,0"/>
       </StackPanel>
+      </Expander>
     </Grid>
   </Border>
 </ad:LayoutAnchorable>

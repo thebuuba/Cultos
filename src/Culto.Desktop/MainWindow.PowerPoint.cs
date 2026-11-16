@@ -74,7 +74,10 @@ public partial class MainWindow
     {
         if (_powerPoint?.IsRunning != true) return;
         var hidden = _session.IsBlackout || _session.IsTextHidden;
+        LiveMonitor.SetMirrorSource(null);
         LiveMonitor.SetNativeSource(IntPtr.Zero);
+        _powerPointModerator?.Monitor.SetMirrorSource(null);
+        _powerPointModerator?.Monitor.SetNativeSource(IntPtr.Zero);
         _powerPoint.Place(hidden ? null : _outputDisplay);
         if (hidden)
         {
@@ -84,9 +87,18 @@ public partial class MainWindow
         else
         {
             _outputWindow?.Hide();
-            LiveMonitor.SetNativeSource(_powerPoint.Handle, embedded: _outputDisplay is null);
+            if (_outputDisplay is null)
+            {
+                // Render at the moderator's full size. The smaller console and
+                // preview mirror this native surface instead of enlarging theirs.
+                var host = LocalPowerPointMonitor;
+                host.SetNativeSource(_powerPoint.Handle, embedded: true);
+                if (!ReferenceEquals(host, LiveMonitor)) LiveMonitor.SetMirrorSource(host);
+            }
+            else LiveMonitor.SetNativeSource(_powerPoint.Handle);
         }
         SyncPreviewSource();
+        UpdatePowerPointModerator();
     }
 
     private void StopPowerPointOutput(bool keepPending = false, bool keepCueRequest = false)
@@ -95,10 +107,14 @@ public partial class MainWindow
         if (!keepCueRequest) _pendingCuePlayback.Cancel();
         _powerPointTimer.Stop();
         if (!keepPending) { _pendingPowerPoint?.Dispose(); _pendingPowerPoint = null; }
+        LiveMonitor.SetMirrorSource(null);
         LiveMonitor.SetNativeSource(IntPtr.Zero);
+        _powerPointModerator?.Monitor.SetMirrorSource(null);
+        _powerPointModerator?.Monitor.SetNativeSource(IntPtr.Zero);
         PreviewLiveMonitor.SetMirrorSource(null);
         PreviewLiveMonitor.SetNativeSource(IntPtr.Zero);
         _powerPoint?.Dispose(); _powerPoint = null;
+        UpdatePowerPointModerator();
         if (_outputWindow is not null && !_outputWindow.IsVisible) _outputWindow.Show();
     }
 

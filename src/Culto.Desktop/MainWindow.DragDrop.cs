@@ -146,8 +146,9 @@ public partial class MainWindow
         ClearContentDrag();
         if (!_ready || cue is null || _session.Prepared?.Id == cue.Id || source is not ListBox list) return;
         var releasedCue = ContentCue(ContentRowAt(list, e.OriginalSource)?.DataContext);
-        if (!ReferenceEquals(cue, releasedCue)) return;
-        if (list == LibraryList || list == MediaList || list == YouTubeList) PrepareCue(cue);
+        // Folder rescans replace objects while keeping each file's stable ID.
+        if (releasedCue is null || cue.Id != releasedCue.Id) return;
+        if (list == LibraryList || list == MediaList || list == YouTubeList) PrepareCue(releasedCue);
         else if (list == BibleResults) PrepareBibleSelection();
     }
 

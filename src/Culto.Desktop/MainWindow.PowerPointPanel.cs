@@ -104,6 +104,7 @@ public partial class MainWindow
         var controllable = running && !_session.IsBlackout && !_session.IsTextHidden && !_pendingCuePlayback.IsPending;
         PowerPointPlaybackPanel.Visibility = Visibility.Visible;
         PowerPointPlaybackPanel.IsEnabled = controllable;
+        PowerPointModeratorButton.IsEnabled = running;
         PowerPointProjectButton.IsEnabled = PowerPointFiles.SelectedItem is Cue && PowerPointAvailable.Value;
         PowerPointAddToPlanButton.IsEnabled = PowerPointFiles.SelectedItem is Cue;
         PowerPointEmpty.Visibility = _powerPointFiles.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -122,5 +123,6 @@ public partial class MainWindow
                 : "Actívalo para usar los botones del presentador USB.";
         }
         finally { _updatingPowerPointPanel = false; }
+        UpdatePowerPointModerator();
     }
 }

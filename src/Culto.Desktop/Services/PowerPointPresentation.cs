@@ -58,7 +58,8 @@ public sealed partial class PowerPointPresentation : IDisposable
             }
             finally { Release(settings); }
             // Some PowerPoint versions expose HWND in the type library but reject
-            // IDispatch access. Resolve only the new slideshow created by this Run.
+            // IDispatch access. Office can reuse its empty application frame for
+            // this show, so ownership includes an existing frame renamed by Run.
             Handle = FindOwnedShowWindow(previousWindows, (string)_presentation.Name);
             if (Handle == IntPtr.Zero) throw new InvalidOperationException("PowerPoint no entregó una ventana de presentación independiente.");
             _toolbarSuppressor = PowerPointToolbarSuppressor.Capture(Handle);
@@ -196,6 +197,7 @@ public sealed partial class PowerPointPresentation : IDisposable
     public void Dispose()
     {
         _toolbarSuppressor = null;
+        if (IsRunning) ShowWindow(Handle, 0);
         try { if (_show is not null) _show.View.Exit(); } catch (COMException) { }
         try { DisposeAudioChannels(); } catch (Exception error) when (error is COMException or AggregateException) { }
         try { if (_presentation is not null) { _presentation.Saved = -1; _presentation.Close(); } } catch (COMException) { }
@@ -235,18 +237,22 @@ public sealed partial class PowerPointPresentation : IDisposable
     }
 
     [StructLayout(LayoutKind.Sequential)] private struct LastInputInfo { public uint Size, Tick; }
-    private static HashSet<IntPtr> TopLevelWindows()
+    private static Dictionary<IntPtr, string> TopLevelWindows()
     {
-        var handles = new HashSet<IntPtr>();
-        EnumWindows((handle, _) => { handles.Add(handle); return true; }, IntPtr.Zero);
+        var handles = new Dictionary<IntPtr, string>();
+        EnumWindows((handle, _) =>
+        {
+            var title = new StringBuilder(1024); GetWindowText(handle, title, title.Capacity);
+            handles.Add(handle, title.ToString());
+            return true;
+        }, IntPtr.Zero);
         return handles;
     }
-    private static IntPtr FindOwnedShowWindow(HashSet<IntPtr> before, string name)
+    private static IntPtr FindOwnedShowWindow(Dictionary<IntPtr, string> before, string name)
     {
         var candidates = new List<IntPtr>();
         EnumWindows((handle, _) =>
         {
-            if (before.Contains(handle)) return true;
             GetWindowThreadProcessId(handle, out var processId);
             try
             {
@@ -256,8 +262,10 @@ public sealed partial class PowerPointPresentation : IDisposable
             catch (ArgumentException) { return true; }
             var type = new StringBuilder(256); GetClassName(handle, type, type.Capacity);
             var title = new StringBuilder(1024); GetWindowText(handle, title, title.Capacity);
-            if (type.ToString().Equals("screenClass", StringComparison.OrdinalIgnoreCase)
-                || type.ToString() == "PPTFrameClass" && title.ToString().Contains(name, StringComparison.OrdinalIgnoreCase))
+            var existed = before.TryGetValue(handle, out var previousTitle);
+            if (!existed && type.ToString().Equals("screenClass", StringComparison.OrdinalIgnoreCase)
+                || type.ToString() == "PPTFrameClass" && title.ToString().Contains(name, StringComparison.OrdinalIgnoreCase)
+                    && (!existed || !string.Equals(previousTitle, title.ToString(), StringComparison.Ordinal)))
                 candidates.Add(handle);
             return true;
         }, IntPtr.Zero);
@@ -269,6 +277,7 @@ public sealed partial class PowerPointPresentation : IDisposable
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetClassName(IntPtr handle, StringBuilder text, int count);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowText(IntPtr handle, StringBuilder text, int count);
     [DllImport("user32.dll")] private static extern bool IsWindow(IntPtr handle);
+    [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr handle, int command);
     [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr handle);
     [DllImport("user32.dll")] private static extern bool GetLastInputInfo(ref LastInputInfo info);

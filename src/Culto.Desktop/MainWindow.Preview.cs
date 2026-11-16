@@ -48,14 +48,14 @@ public partial class MainWindow
             : (_output is not null ? _session.Live?.Title : null) ?? "Sin salida")
             : _session.Prepared?.Title ?? "Sin contenido";
         PreviewLiveMonitor.SetLocalSource(following && !_holdingBiblePreview ? _output : null);
-        if (following && _powerPoint?.IsRunning == true && LiveMonitor.NativeSource != IntPtr.Zero)
+        if (following && _powerPoint?.IsRunning == true && !_session.IsBlackout && !_session.IsTextHidden)
         {
             // The local slide show is an embedded child. Mirror its parent's
             // cropped compositor region rather than starting another Office show.
             if (_outputDisplay is null)
             {
                 PreviewLiveMonitor.SetNativeSource(IntPtr.Zero);
-                PreviewLiveMonitor.SetMirrorSource(LiveMonitor);
+                PreviewLiveMonitor.SetMirrorSource(LocalPowerPointMonitor);
             }
             else
             {

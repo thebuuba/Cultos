@@ -16,6 +16,22 @@ internal static partial class Program
     // In particular, it never calls Application.Quit or enumerates/closes user decks.
     private static void RunPowerPointTests(MainWindow window, string directory)
     {
+        Test("PowerPoint never projects the file name while entering or leaving", () =>
+        {
+            using var surface = new ProjectionSurface(smoothTransitions: true);
+            surface.Transitions = new TransitionOptions { Kind = "Dissolve", DurationMilliseconds = 120,
+                AudioFadeInMilliseconds = 0, AudioFadeOutMilliseconds = 0 };
+            var cue = new Cue { Kind = CueKind.PowerPoint, Title = "PRIVATE FILE NAME", Body = "PRIVATE SLIDE NAME" };
+            surface.ShowCue(cue);
+            Check(Field<System.Windows.Controls.Viewbox>(surface, "_text").Visibility != Visibility.Visible,
+                "The PowerPoint placeholder displays the file/slide name");
+            surface.TransitionTo(new Cue { Kind = CueKind.Text, Body = "Next content" });
+            Until(() => !surface.IsTransitioning, "Leaving PowerPoint did not finish");
+            surface.TransitionTo(cue);
+            Until(() => !surface.IsTransitioning, "Entering PowerPoint did not finish");
+            Check(Field<System.Windows.Controls.Viewbox>(surface, "_text").Visibility != Visibility.Visible,
+                "The PowerPoint transition displays the file/slide name");
+        });
         if (!PowerPointPresentation.IsAvailable)
         {
             Console.WriteLine("SKIP native PowerPoint: Microsoft PowerPoint is not installed");
@@ -57,9 +73,12 @@ internal static partial class Program
 
             Test("Native PowerPoint advances builds before slides and preserves the source file", () =>
             {
+                nint ownedShow = 0;
                 using (var presentation = new PowerPointPresentation())
                 {
                     presentation.Open(fixture);
+                    Check((int)((dynamic)Field<object>(presentation, "_presentation")).Windows.Count == 0,
+                        "Opening the deck created a PowerPoint editor window");
                     Check(presentation.SlideCount == 2, "PowerPoint did not open both fixture slides");
                     Check((int)presentations.Count == originalCount + 1, "Expected exactly one owned presentation copy");
                     presentation.ExportPreview(preview);
@@ -67,6 +86,7 @@ internal static partial class Program
                     var foreground = PowerPointTestForegroundWindow();
                     var inputTick = PowerPointTestInputTick();
                     presentation.Start(null); // Offscreen window; no external display is used.
+                    ownedShow = presentation.Handle;
                     Until(() => presentation.IsRunning && presentation.SlideIndex == 1, "Native slide show did not start");
                     CheckPowerPointForeground(foreground, inputTick, "Starting PowerPoint changed foreground ownership");
                     var firstClick = presentation.ClickIndex;
@@ -105,6 +125,7 @@ internal static partial class Program
                             "Restart retained an old paused-media entry and resumed an unstarted build");
                     }
                 }
+                Check(!PowerPointTestIsWindowVisible(ownedShow), "Closing the owned show revealed a PowerPoint window");
                 Check((int)presentations.Count == originalCount, "Disposal closed another presentation or retained its own copy");
                 Check(PowerPointFixtureHash(fixture) == sourceHash, "Read-only playback changed the source PPTX");
             });
@@ -348,6 +369,13 @@ internal static partial class Program
             dynamic slides = Track((object)fixture.Slides);
             dynamic first = Track((object)slides.Add(1, 12)); // ppLayoutBlank
             dynamic second = Track((object)slides.Add(2, 12));
+            dynamic notes = Track((object)first.NotesPage);
+            dynamic notesShapes = Track((object)notes.Shapes);
+            dynamic placeholders = Track((object)notesShapes.Placeholders);
+            dynamic notesBody = Track((object)placeholders[2]);
+            dynamic notesFrame = Track((object)notesBody.TextFrame);
+            dynamic notesText = Track((object)notesFrame.TextRange);
+            notesText.Text = "Notas privadas de la primera diapositiva";
             dynamic firstShapes = Track((object)first.Shapes);
             dynamic shape = Track((object)firstShapes.AddShape(1, 80f, 80f, 280f, 160f));
             shape.Name = "Smoke on-click rectangle";
