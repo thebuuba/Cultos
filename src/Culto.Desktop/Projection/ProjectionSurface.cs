@@ -325,7 +325,10 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
     // Muting/preloading one decoder would also mute the live decoder. DirectSound
     // controls each decoder's own buffer, including independent volume and mute.
     internal static LibVLC CreatePlaybackEngine() => new("--no-video-title-show", "--quiet",
-        "--aout=directsound", "--no-volume-save");
+        "--aout=directsound", "--no-volume-save",
+        // Memory output is S16N at 48 kHz. VLC's automatic fallback can select
+        // nearest-neighbor resampling for 44.1 kHz media, adding fine clicks.
+        "--audio-resampler=speex", "--speex-resampler-quality=10");
 
     private void OnPlaybackError(object? sender, EventArgs args)
     {
