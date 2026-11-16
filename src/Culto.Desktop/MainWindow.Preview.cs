@@ -14,7 +14,8 @@ public partial class MainWindow
         PreparedMediaCover.Cue = cue;
         // Independent video previews use VLC's no-audio mode. Once on air,
         // mirror the output and release the extra decoder.
-        _preview.ShowCue(cue?.Kind == CueKind.Audio || (cue?.Kind is CueKind.Video or CueKind.WindowCapture or CueKind.BrowserSource && _session.PreviewFollowsLive) ? null
+        _preview.ShowCue(cue is { YouTubeUrl: not null, Capture: null } ? new Cue { Kind = CueKind.Text, Title = cue.Title, Body = "YouTube\n" + cue.Title }
+            : cue?.Kind == CueKind.Audio || (cue?.Kind is CueKind.Video or CueKind.WindowCapture or CueKind.BrowserSource && _session.PreviewFollowsLive) ? null
             : cue?.Kind == CueKind.PowerPoint ? PowerPointPreview(cue) : cue);
         SyncPreviewSource();
     }

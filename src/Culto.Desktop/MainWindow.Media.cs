@@ -17,12 +17,18 @@ public partial class MainWindow
     private void InitializeMediaBrowser()
     {
         MediaList.ItemsSource = _mediaView;
-        foreach (var list in new[] { MediaList, LibraryList })
+        foreach (var list in new[] { MediaList, LibraryList, PlanList, PowerPointFiles, _videoListItems })
         list.PreviewMouseRightButtonUp += (_, e) =>
         {
             var row = ContentRowAt(list, e.OriginalSource);
             if (row?.DataContext is not Cue cue) return;
             var menu = BuildMediaPlaylistMenu(cue);
+            if (list == PlanList)
+            {
+                menu.Items.Add(new Separator());
+                var paste = new MenuItem { Header = "Pegar enlace de YouTube", InputGestureText = "Ctrl+V" };
+                paste.Click += PasteYouTubeLinkClick; menu.Items.Add(paste);
+            }
             menu.PlacementTarget = row;
             menu.IsOpen = true; e.Handled = true;
         };

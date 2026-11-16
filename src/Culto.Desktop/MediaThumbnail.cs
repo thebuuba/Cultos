@@ -50,13 +50,19 @@ public sealed class MediaThumbnail : FrameworkElement
 
     private async void Load()
     {
-        if (!IsLoaded || !IsVisible || _image is not null || _request is not null
-            || Cue is not { Kind: CueKind.Video or CueKind.Image, FilePath: { } path } cue) return;
+        if (!IsLoaded || !IsVisible || _image is not null || _request is not null || Cue is not { } cue) return;
+        if (cue.YouTubeUrl is null && (cue.Kind is not (CueKind.Video or CueKind.Image) || cue.FilePath is null)) return;
         var request = _request = new CancellationTokenSource();
         var generation = ++_generation;
         try
         {
-            var details = await MediaThumbnailService.GetDetailsAsync(path, cue.Kind, request.Token);
+            if (cue.YouTubeUrl is { } address)
+            {
+                var image = await YouTubeVideoMetadata.ReadThumbnailAsync(address, request.Token);
+                if (generation == _generation && IsLoaded && IsVisible) { _image = image; InvalidateVisual(); }
+                return;
+            }
+            var details = await MediaThumbnailService.GetDetailsAsync(cue.FilePath!, cue.Kind, request.Token);
             if (generation != _generation || !IsLoaded || !IsVisible) return;
             _image = details?.Image; _duration = details?.Duration; InvalidateVisual();
         }

@@ -26,13 +26,15 @@ También puedes usar la versión portátil abriendo `App\CultoStudio.exe` despu�
 
 ## Preparar el primer culto
 
-1. Añade tus propios videos, imágenes y textos desde las fuentes del programa.
+La **instalación completa** incluye 613 himnos en video, 11 versiones de la Biblia y 8 fondos. No necesita internet para presentar ese contenido. En la primera apertura prepara la biblioteca con las rutas de esta instalación; no contiene cultos ni ajustes de otra iglesia. Conserva la carpeta `Content` junto al programa.
+
+1. Indica el nombre de tu iglesia en la bienvenida y configura su logo y la pantalla de salida.
 2. Prepara un contenido, revisa la vista previa y luego proyéctalo.
 3. Selecciona la pantalla de salida cuando conectes un proyector o televisor.
 4. Prueba imagen y sonido antes del culto. Comprueba el volumen del programa y la salida de sonido de Windows.
-5. Para usar una Biblia local, consulta las instrucciones de importación incluidas en `App\docs`.
+5. Selecciona la versión de la Biblia que quieras usar. Para añadir otra, consulta las instrucciones de importación incluidas en `App\docs`.
 
-El paquete no incluye la biblioteca, las sesiones, las contraseñas ni la Biblia personal del equipo que lo preparó. Cada iglesia debe disponer de los permisos adecuados para los textos, canciones, videos, imágenes y versiones bíblicas que incorpore.
+El paquete completo lleva una selección de contenido para distribución; excluye el perfil del equipo que lo preparó: nombre de iglesia, cultos guardados, notas personales, sesiones de navegador, contraseñas y ajustes de pantalla o audio. La edición ligera conserva la importación manual de contenido. Al actualizar, se conserva el perfil existente; la carga automática del contenido se realiza solo para perfiles nuevos.
 
 ## Compartir y respaldar
 

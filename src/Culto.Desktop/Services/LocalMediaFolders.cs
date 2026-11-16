@@ -21,6 +21,8 @@ public static class LocalMediaFolders
         2 => Environment.GetFolderPath(Environment.SpecialFolder.MyVideos, Environment.SpecialFolderOption.DoNotVerify),
         3 => Environment.GetFolderPath(Environment.SpecialFolder.MyPictures, Environment.SpecialFolderOption.DoNotVerify),
         6 => GetDownloadsPath(),
+        9 => Environment.GetFolderPath(Environment.SpecialFolder.MyMusic, Environment.SpecialFolderOption.DoNotVerify),
+        10 => Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments, Environment.SpecialFolderOption.DoNotVerify),
         _ => throw new ArgumentOutOfRangeException(nameof(filter))
     };
 

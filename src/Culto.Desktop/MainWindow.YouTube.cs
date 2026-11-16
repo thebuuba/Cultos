@@ -22,7 +22,7 @@ public partial class MainWindow
         {
             _projectionYouTubePreviousWindows = WindowCaptureCatalog.List().Select(item => item.Options.WindowHandle).ToHashSet();
             _projectionYouTubeDeadline = DateTime.UtcNow.AddSeconds(40);
-            YouTubeProjectionBrowser.Open(_store.DirectoryPath);
+            YouTubeProjectionBrowser.Open(_store.DirectoryPath, (YouTubeList.SelectedItem as YouTubeSource)?.Cue.Capture);
             SelectContentSource(3);
             _youTubeTimer.Start();
             SetStatus("YouTube para proyección abierto. Elige el video en esa ventana y pulsa Proyectar.");
@@ -43,6 +43,7 @@ public partial class MainWindow
 
     private void DisposeYouTube()
     {
+        _youTubeLinkProjection?.Cancel();
         _youTubeTimer.Stop();
         _youTubeTimer.Tick -= YouTubeTimerTick;
         YouTubePanel.IsVisibleChanged -= YouTubePanelVisibilityChanged;

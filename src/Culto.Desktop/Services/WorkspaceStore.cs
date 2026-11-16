@@ -117,12 +117,14 @@ public sealed class WorkspaceStore
         var prayer = new Cue { Title = "Momento de oración", Body = "Unidos en oración", Kind = CueKind.Text };
         var closing = new Cue { Title = "Despedida", Body = "Que Dios te acompañe\ndurante esta semana", Kind = CueKind.Text };
         var items = new List<Cue> { welcome, prayer, closing };
-        return new WorkspaceData
+        var initial = new WorkspaceData
         {
             TransitionDefaultsVersion = 1,
             Plan = new ServicePlan { Name = "Mi primer culto", Items = items },
             Library = items.Select(c => new Cue { Title = c.Title, Body = c.Body, Kind = c.Kind }).ToList()
         };
+        BundledContent.Initialize(initial, AppContext.BaseDirectory, DirectoryPath);
+        return initial;
     }
     public void ArchiveDamagedFile(string fileName)
     {

@@ -11,6 +11,7 @@ public sealed class Cue
     public string Reference { get; set; } = "";
     public string Version { get; set; } = "";
     public string? FilePath { get; set; }
+    public string? YouTubeUrl { get; set; }
     public int? HymnNumber { get; set; }
     public string Notes { get; set; } = "";
     public WindowCaptureOptions? Capture { get; set; }

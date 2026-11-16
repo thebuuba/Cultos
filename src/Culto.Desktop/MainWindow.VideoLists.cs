@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Diagnostics;
 using AvalonDock.Layout;
 using Culto.Core;
 using Culto.Desktop.Dialogs;
@@ -28,7 +29,26 @@ public partial class MainWindow
             split.Click += (_, _) => { PrepareCue(cue); ProjectPreparedPreservingOther(); };
             menu.Items.Add(split);
         }
+        if (!string.IsNullOrWhiteSpace(cue.FilePath))
+        {
+            menu.Items.Add(new Separator());
+            var location = new MenuItem { Header = "Abrir ubicación del archivo", IsEnabled = File.Exists(cue.FilePath) };
+            location.Click += (_, _) => OpenContentFileLocation(cue);
+            menu.Items.Add(location);
+        }
         return menu;
+    }
+    private void OpenContentFileLocation(Cue cue)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(cue.FilePath) || !File.Exists(cue.FilePath))
+            { SetStatus("El archivo ya no está disponible en esa ubicación.", true); return; }
+            var path = Path.GetFullPath(cue.FilePath);
+            Process.Start(new ProcessStartInfo("explorer.exe", "/select,\"" + path + "\"") { UseShellExecute = true });
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException or System.ComponentModel.Win32Exception)
+        { SetStatus("No se pudo abrir la ubicación del archivo. " + error.Message, true); }
     }
     private void InitializeVideoListsPanel()
     {

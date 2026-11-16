@@ -14,11 +14,16 @@ public partial class MainWindow
     private void ProjectClick(object sender, RoutedEventArgs e) => ProjectPreparedFromInput();
     private void ProjectPrepared() => ProjectPreparedCore(activate: true);
     private void ProjectPreparedWithoutActivation() => ProjectPreparedCore(activate: false);
-    private void ProjectPreparedCore(bool activate, bool preserve = false)
+    private void ProjectPreparedCore(bool activate, bool preserve = false, bool resolveYouTube = true)
     {
         _preserveAudioForNextCue = false;
         var cue = _session.Prepared;
         if (cue is null) { SetStatus("Selecciona primero un contenido para preparar."); return; }
+        if (resolveYouTube)
+        {
+            _youTubeLinkProjection?.Cancel();
+            if (cue.YouTubeUrl is not null) { _ = ProjectYouTubeLinkAsync(cue, activate, preserve); return; }
+        }
         if (!CheckMedia(cue)) return;
         if (!EnsureOutput()) return;
         if (!PreparePowerPointOutput(cue)) return;
@@ -35,6 +40,12 @@ public partial class MainWindow
     }
     private bool CheckMedia(Cue cue)
     {
+        if (cue.YouTubeUrl is { } address)
+        {
+            if (cue.Kind != CueKind.WindowCapture || !YouTubeLink.TryParse(address, out _))
+            { SetStatus("El enlace de YouTube no es válido.", true); return false; }
+            if (cue.Capture is null) return true;
+        }
         if (cue.Kind == CueKind.Scene)
         {
             try { (cue.Scene ?? throw new ArgumentException("Configura las capas de la escena.")).Validate(); }
@@ -168,6 +179,7 @@ public partial class MainWindow
     }
     private void CloseOutput()
     {
+        _youTubeLinkProjection?.Cancel();
         _videoListPlayback.Cancel();
         StopLogo();
         StopPowerPointOutput();
@@ -211,6 +223,12 @@ public partial class MainWindow
         {
             var nextIndex = index + delta;
             if (nextIndex < 0 || nextIndex >= _plan.Count) { SetStatus("Has llegado al límite del orden de culto."); return; }
+            if (_plan[nextIndex].YouTubeUrl is not null)
+            {
+                _preparedReading = null; _liveReading = null;
+                PrepareCue(_plan[nextIndex]); ProjectPreparedWithoutActivation(); return;
+            }
+            _youTubeLinkProjection?.Cancel();
             if (!CheckMedia(_plan[nextIndex])) return;
             if (!PreparePowerPointOutput(_plan[nextIndex])) return;
             if (!_session.Move(_workspace.Plan, delta)) return;

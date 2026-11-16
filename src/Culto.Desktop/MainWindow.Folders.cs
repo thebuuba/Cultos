@@ -17,7 +17,7 @@ public partial class MainWindow
     private FileSystemWatcher? _folderWatcher;
     private DispatcherTimer? _folderRefreshTimer;
 
-    private static bool IsFolderFilter(int filter) => filter is 2 or 3 or 6 or 8;
+    private static bool IsFolderFilter(int filter) => filter is 2 or 3 or 6 or 8 or 9 or 10;
     private string CurrentFolderPath => _folderPaths.GetValueOrDefault(_activeFolderFilter, "");
 
     private void SetLibraryFolder(int filter)

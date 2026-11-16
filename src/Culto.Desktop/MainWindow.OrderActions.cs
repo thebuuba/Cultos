@@ -25,6 +25,15 @@ public partial class MainWindow
 
     private void InitializeOrderActions()
     {
+        var pasteMenu = new ContextMenu();
+        var paste = new MenuItem { Header = "Pegar enlace de YouTube", InputGestureText = "Ctrl+V" };
+        paste.Click += PasteYouTubeLinkClick; pasteMenu.Items.Add(paste); PlanList.ContextMenu = pasteMenu;
+        PlanList.PreviewKeyDown += (_, e) =>
+        {
+            if (!_ready || e.Key != Key.V || Keyboard.Modifiers != ModifierKeys.Control || e.OriginalSource is TextBoxBase) return;
+            e.Handled = true;
+            if (!e.IsRepeat) PasteYouTubeLinkClick(PlanList, new RoutedEventArgs());
+        };
         PlanList.PreviewKeyDown += (_, e) =>
         {
             if (!_ready || e.Key != Key.Delete || Keyboard.Modifiers != ModifierKeys.None

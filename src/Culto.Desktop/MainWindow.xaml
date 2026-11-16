@@ -586,6 +586,7 @@
             <TextBlock Grid.Column="1" x:Name="PlanCountText" Text="0" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="8,0"/>
             <Button Grid.Column="2" Content="⋯" Click="OpenActionsClick" Padding="8,2" MinHeight="30" FontSize="18" AutomationProperties.Name="Organizar el orden">
               <Button.ContextMenu><ContextMenu>
+                <MenuItem Header="Pegar enlace de YouTube" InputGestureText="Ctrl+V" Click="PasteYouTubeLinkClick"/>
                 <MenuItem Header="Subir elemento" Click="MoveUpClick"/>
                 <MenuItem Header="Bajar elemento" Click="MoveDownClick"/>
                 <Separator/>
@@ -641,6 +642,7 @@
         <ListBox x:Name="MediaFolders" SelectedValuePath="Tag" SelectionChanged="MediaFolderChanged" ItemContainerStyle="{StaticResource FilterChip}" ScrollViewer.VerticalScrollBarVisibility="Disabled" AutomationProperties.Name="Carpetas de medios">
           <ListBox.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ListBox.ItemsPanel>
           <ListBoxItem Content="Videos" Tag="2"/><ListBoxItem Content="Imágenes" Tag="3"/><ListBoxItem Content="Descargas" Tag="6"/>
+          <ListBoxItem Content="Música" Tag="9"/><ListBoxItem Content="Documentos" Tag="10"/>
           <ListBoxItem x:Name="CustomMediaFolder" Content="Mi carpeta" Tag="8" Visibility="Collapsed"/>
         </ListBox>
       </DockPanel>

@@ -31,6 +31,7 @@ public partial class MainWindow
 
     private void ApplyBackdropTransition()
     {
+        _youTubeLinkProjection?.Cancel();
         _preserveAudioForNextCue = false;
         if (_pendingCuePlayback.IsPending)
         {

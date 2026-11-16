@@ -127,7 +127,8 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
         try { return StringComparer.OrdinalIgnoreCase.Equals(Path.GetFullPath(first.FilePath), Path.GetFullPath(second.FilePath)); }
         catch (Exception error) when (error is ArgumentException or NotSupportedException or PathTooLongException) { return false; }
     }
-    private bool ReusesSource(Cue? first, Cue? second) => first?.Kind != CueKind.Scene && SameMedia(first, second);
+    private bool ReusesSource(Cue? first, Cue? second) => first?.Kind != CueKind.Scene
+        && (SameMedia(first, second) || first?.Kind == CueKind.WindowCapture && SameSource(first, second));
 
     public void TransitionVisual(Cue? cue, bool blackout, bool hidden) =>
         Enqueue(Capture(cue, blackout, hidden, false) with { PreserveAudio = true });

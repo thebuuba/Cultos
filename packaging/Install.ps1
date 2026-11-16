@@ -41,6 +41,10 @@ try {
     Write-Output "Culto Studio instalado en: $target"
     Write-Output 'Abre Culto Studio desde el acceso directo o desde CultoStudio.exe.'
     Write-Output 'Tus datos existentes se conservan en LocalAppData\CultoStudio. No se abre el programa automaticamente.'
+    if (Test-Path -LiteralPath (Join-Path $target 'Content\content-manifest.json')) {
+        Write-Output 'Instalacion completa: himnario, Biblias y fondos incluidos para usar sin internet.'
+        Write-Output 'En un perfil nuevo, la primera apertura prepara el contenido y muestra la bienvenida.'
+    }
     # NoLaunch is accepted for automation; installation never launches implicitly.
 }
 catch { Write-Error $_; exit 1 }

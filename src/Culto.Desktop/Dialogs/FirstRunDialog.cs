@@ -21,7 +21,7 @@ public sealed class FirstRunDialog : Window
         foreach (var text in new[]
         {
             "Los cultos, la biblioteca y los ajustes se guardan localmente en este equipo.",
-            "Importa tus propios himnos y tu Biblia desde el menú Biblioteca. Usa archivos que tu iglesia tenga permiso para utilizar.",
+            "La instalación completa incluye himnario, Biblias y fondos para trabajar sin internet. También puedes importar contenido desde Biblioteca.",
             "Añade el logo de tu iglesia en Configuración → Logo y elige la pantalla en Pantallas y salida.",
             "Conserva una copia de tus archivos multimedia junto con tus respaldos. No se necesita una cuenta para comenzar."
         })

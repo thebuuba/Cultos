@@ -27,7 +27,8 @@ public partial class MainWindow
         if (!_ready) return;
         var query = LibrarySearch.Text.Trim();
         var filter = (LibraryFilter.SelectedItem as ListBoxItem)?.Tag?.ToString() ?? "All";
-        var sourceItems = _workspace.Library.Where(cue => cue.Kind != CueKind.WindowCapture).ToList();
+        var sourceItems = _workspace.Library.Where(cue => cue.HymnNumber.HasValue
+            && cue.Kind is CueKind.Text or CueKind.Video or CueKind.Audio).ToList();
         var numericQuery = query.Length > 0 && query.All(char.IsAsciiDigit);
         var exactHymnSearch = numericQuery && filter is "All" or "Hymns";
         var validNumber = int.TryParse(query, out var number);
@@ -48,13 +49,13 @@ public partial class MainWindow
             LibraryList.SelectedItem = _libraryView.FirstOrDefault(c => c.Id == selectedId);
         }
         finally { _refreshingLibrary = false; }
-        LibraryCountText.Text = $"{_libraryView.Count:N0} de {sourceItems.Count:N0} contenidos";
+        LibraryCountText.Text = $"{_libraryView.Count:N0} de {sourceItems.Count:N0} himnos";
         ClearSearchButton.IsEnabled = query.Length > 0;
         RefreshPowerPointFiles();
         LibraryEmpty.Visibility = _libraryView.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         var category = (LibraryFilter.SelectedItem as ListBoxItem)?.Content?.ToString() ?? "Todo";
-        LibraryEmpty.Text = _workspace.Library.Count == 0
-            ? "Biblioteca vacía"
+        LibraryEmpty.Text = sourceItems.Count == 0
+            ? "Himnario vacío"
             : query.Length > 0
                 ? $"Sin resultados para «{query}» en {category}."
                 : $"Sin contenido en {category}.";

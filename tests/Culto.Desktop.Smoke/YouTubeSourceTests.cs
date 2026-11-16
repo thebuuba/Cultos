@@ -39,6 +39,21 @@ internal static partial class Program
             Check(rows.Select(row => row.Cue.Capture!.WindowHandle).SequenceEqual(new long[] { 1, 2 }), "Discovery lost distinct windows");
         });
 
+        Test("Link navigation uses the selected Chrome identity and rejects ambiguous windows", () =>
+        {
+            var first = Target(1); var second = Target(2);
+            Check(YouTubeProjectionBrowser.SelectExistingWindow([first]) == first, "Single existing YouTube window was ignored");
+            Check(YouTubeProjectionBrowser.SelectExistingWindow([first, second], second.Options) == second, "Selected Chrome window was ignored");
+            var otherTab = Target(2, "Other tab - Google Chrome");
+            Check(YouTubeProjectionBrowser.SelectExistingWindow([first, otherTab], second.Options) == otherTab, "Selected window lost its identity on a different tab");
+            Check(YouTubeProjectionBrowser.SelectExistingWindow([first], second.Options) == first, "Closed preferred window blocked discovery");
+            Check(YouTubeProjectionBrowser.SelectExistingWindow([Target(3, "Other app", "msedge.exe")]) is null, "Another browser was selected");
+            Check(YouTubeProjectionBrowser.SelectExistingWindow([first], first.Options with { ProcessStartTimeUtcTicks = 999 }) == first,
+                "Reused window handle was treated as the remembered identity");
+            try { YouTubeProjectionBrowser.SelectExistingWindow([first, second]); throw new Exception("Ambiguous selection was silently accepted"); }
+            catch (InvalidOperationException) { }
+        });
+
         Test("Only live YouTube windows appear, never saved video titles", () =>
         {
             var saved=new Cue {Kind=CueKind.WindowCapture,Title="Old video",Capture=Target(1).Options};

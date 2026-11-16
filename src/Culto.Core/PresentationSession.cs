@@ -10,7 +10,7 @@ public sealed class PresentationSession
         && Prepared.Id == Live.Id && Prepared.Kind == Live.Kind
         && Prepared.Title == Live.Title && Prepared.Body == Live.Body
         && Prepared.Reference == Live.Reference && Prepared.Version == Live.Version
-        && Prepared.FilePath == Live.FilePath && Prepared.Capture == Live.Capture && Prepared.Browser == Live.Browser;
+        && Prepared.FilePath == Live.FilePath && Prepared.YouTubeUrl == Live.YouTubeUrl && Prepared.Capture == Live.Capture && Prepared.Browser == Live.Browser;
     public bool IsBlackout { get; private set; }
     public bool IsTextHidden { get; private set; }
     public event Action? Changed;

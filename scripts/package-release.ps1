@@ -1,6 +1,7 @@
 param(
     [Parameter(Mandatory = $true)][string]$SourceDirectory,
-    [string]$OutputDirectory = 'artifacts\releases'
+    [string]$OutputDirectory = 'artifacts\releases',
+    [string]$ContentDirectory
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
@@ -41,6 +42,19 @@ try {
         New-Item -ItemType Directory -Path (Split-Path -Parent $destination) -Force | Out-Null
         Copy-Item -LiteralPath $entry.FullName -Destination $destination
     }
+    if ($ContentDirectory) {
+        $content = FullPath $ContentDirectory
+        if (-not (Test-Path -LiteralPath (Join-Path $content 'content-manifest.json') -PathType Leaf)) { throw 'Falta el manifiesto de contenido completo.' }
+        $contentEntries = @(Get-ChildItem -LiteralPath $content -Recurse -Force)
+        if ($contentEntries | Where-Object { $_.Attributes -band [IO.FileAttributes]::ReparsePoint -or $_.Name.ToLowerInvariant() -in $privateNames }) {
+            throw 'El contenido completo contiene enlaces o datos de perfil.'
+        }
+        foreach ($entry in $contentEntries | Where-Object { -not $_.PSIsContainer }) {
+            $destination = Join-Path $app ('Content\' + $entry.FullName.Substring($content.Length + 1))
+            New-Item -ItemType Directory -Path (Split-Path -Parent $destination) -Force | Out-Null
+            Copy-Item -LiteralPath $entry.FullName -Destination $destination
+        }
+    }
     foreach ($name in @('Install.ps1', 'Instalar Culto Studio.cmd')) {
         Copy-Item -LiteralPath (Join-Path $projectRoot ('packaging\' + $name)) -Destination $packageRoot
     }
@@ -57,10 +71,12 @@ try {
     [ordered]@{
         SchemaVersion = 1; Application = 'Culto Studio'; Version = $version; Architecture = 'win-x64'
         CreatedUtc = [DateTime]::UtcNow.ToString('o'); IncludesUserProfile = $false
+        IncludesBundledContent = [bool]$ContentDirectory
         RuntimeComponents = @($runtime.Assets | Select-Object Component, Version, Source, Sha256)
         Files = $hashes
     } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $packageRoot 'package-manifest.json') -Encoding UTF8
-    $zip = Join-Path $output ("CultoStudio-$version-Windows-x64.zip")
+    $edition = if ($ContentDirectory) { '-Completo' } else { '' }
+    $zip = Join-Path $output ("CultoStudio-$version-Windows-x64$edition.zip")
     if (Test-Path -LiteralPath $zip) { throw "Ya existe $zip. Usa otra carpeta de salida para conservar el paquete anterior." }
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     [IO.Compression.ZipFile]::CreateFromDirectory($staging, $zip, [IO.Compression.CompressionLevel]::Fastest, $false)
