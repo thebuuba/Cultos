@@ -4,6 +4,12 @@ Comprobación actualizada el 14 de noviembre de 2026 en esta PC Windows. Entrega
 
 ## Compilación y pruebas
 
+### Catálogo de 291 efectos de texto — 16 de noviembre de 2026
+
+`BibleTextTransitionCatalogTests` comprueba los 291 IDs únicos, las doce familias, los tres alcances y las ocho variantes, persistencia, compatibilidad con los tres efectos anteriores, valores inválidos y favoritos. Pasaron las 333 pruebas de Core. `--bible-tools` verifica búsqueda sin tildes, filtros sin perder selección, favoritos, guardado y cancelación, además de capturas a 1180 y 940 píxeles con nombres largos y duración visible.
+
+`--bible-styles` recorre los 288 presets nuevos y verifica fragmentos animados y cancelación. Ensaya cada familia y alcance en salida directa y mezclada, conserva el fondo y el texto nativo al terminar, y cubre pasajes extensos, negro y sustitución por otro contenido. La reconstrucción de los fragmentos compara los píxeles originales para pasaje/líneas/palabras, cursiva, sombra/resplandor y las tres alineaciones: los 18 casos registraron diferencia máxima cero. Registros `.tools/bible-catalog-editor.log` y `.tools/bible-catalog-renderer.log`; capturas en `.tools/bible-preset-coverage/`.
+
 ### Volumen continuo desde el mando móvil
 
 El mando envía el volumen durante el evento `input`, sin esperar a soltar el deslizador ni bloquearlo durante la petición. Agrupa los cambios con un intervalo de 50 ms, mantiene una sola petición de volumen activa y conserva únicamente el último valor pendiente. El evento `change` cubre también el valor final. Las lecturas de estado anteriores al movimiento o a su confirmación no sustituyen el porcentaje y la posición nuevos.

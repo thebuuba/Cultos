@@ -3,6 +3,31 @@ using Xunit;
 
 public class BibleVisualStyleTests
 {
+    [Theory]
+    [InlineData("TextRise")]
+    [InlineData("TextLines")]
+    [InlineData("TextFocus")]
+    public void TextTransitionsSurviveNormalizationAndPersistence(string transition)
+    {
+        var style = new BibleVisualStyle { Transition = transition, TransitionMilliseconds = 650 }.Normalize();
+        Assert.Equal(transition, style.Transition);
+        var restored = System.Text.Json.JsonSerializer.Deserialize<BibleVisualStyle>(System.Text.Json.JsonSerializer.Serialize(style))!.Normalize();
+        Assert.Equal(transition, restored.Transition);
+        Assert.Equal(650, restored.TransitionMilliseconds);
+    }
+
+    [Fact]
+    public void ReferenceFontIsOptionalAndNormalizesWithoutChangingThePassageFont()
+    {
+        var style = System.Text.Json.JsonSerializer.Deserialize<BibleVisualStyle>(
+            """{"FontFamily":"Georgia","ReferenceFontFamily":" Arial "}""")!;
+        var json = System.Text.Json.JsonSerializer.Serialize(style.Normalize());
+        Assert.Contains("\"ReferenceFontFamily\":\"Arial\"", json);
+        Assert.Equal("Georgia", style.Normalize().FontFamily);
+        var legacy = System.Text.Json.JsonSerializer.Deserialize<BibleVisualStyle>("""{"FontFamily":"Georgia"}""")!;
+        Assert.Equal(new BibleVisualStyle { FontFamily = "Georgia" }, legacy.Normalize());
+    }
+
     [Fact]
     public void InvalidPersistedValuesFallBackToReadableSafeStyle()
     {

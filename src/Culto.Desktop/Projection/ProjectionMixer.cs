@@ -104,7 +104,7 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
         if (cue?.Kind is CueKind.WindowCapture or CueKind.BrowserSource && !blackout && !hidden) pauseAfter = false;
         var options = _options.Normalize();
         if (cue?.Kind == CueKind.Bible && !pauseAfter && _style.Transition != "System")
-            options = options with { Kind = _style.Transition, DurationMilliseconds = _style.TransitionMilliseconds };
+            options = options with { Kind = _style.UsesTextTransition ? "Cut" : _style.Transition, DurationMilliseconds = _style.TransitionMilliseconds };
         return new(cue is null ? null : cue.Copy(), blackout, hidden, pauseAfter, options, _style.Normalize(), BackgroundImagePath);
     }
     private static bool SameMedia(Cue? first, Cue? second) => first is not null && second is not null
@@ -316,6 +316,8 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
                 _incoming = null; _loading = null; _blend = loading;
                 if (!KeepOutgoingMedia) _outgoing.BeginCathedralFade(loading.Options);
                 _clock.Restart();
+                if (!loading.Blackout && !loading.Hidden && !loading.PauseAfter && loading.Cue?.Kind == CueKind.Bible
+                    && loading.Style.UsesTextTransition) _current.BeginBibleTextTransition();
                 if (loading.Options.Kind == "Move") BeginLiveMove(loading);
             }
         }

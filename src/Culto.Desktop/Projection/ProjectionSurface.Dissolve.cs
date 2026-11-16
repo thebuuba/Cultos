@@ -25,7 +25,7 @@ public sealed partial class ProjectionSurface
         get => _mixer?.Transitions ?? _transitions with { };
         set { _transitions = (value ?? new()).Normalize(); if (_mixer is not null) _mixer.Transitions = _transitions; }
     }
-    public bool IsTransitioning => _mixer?.IsTransitioning ?? (_pendingPresentation is not null || _dissolve.Visibility == Visibility.Visible);
+    public bool IsTransitioning => _mixer?.IsTransitioning ?? (_pendingPresentation is not null || _dissolve.Visibility == Visibility.Visible || _bibleTextAnimating);
 
     private void InitializeDissolve()
     {
@@ -52,6 +52,13 @@ public sealed partial class ProjectionSurface
     private void TransitionToCore(Presentation presentation)
     {
         if (_disposed) return;
+        if (presentation.Cue?.Kind == CueKind.Bible && !presentation.Blackout && !presentation.HideText
+            && !presentation.PauseAfter && presentation.BibleStyle.UsesTextTransition)
+        {
+            ShowCueCore(presentation.Cue);
+            BeginBibleTextTransition();
+            return;
+        }
         if (_preview || ActualWidth < 1 || ActualHeight < 1)
         {
             ShowCueCore(presentation.Cue, presentation.Blackout, presentation.HideText, presentation.PauseAfter);
@@ -116,6 +123,7 @@ public sealed partial class ProjectionSurface
 
     private void CancelDissolve()
     {
+        CancelBibleTextTransition();
         _moveCancellation?.Cancel();
         _latestMoveFrame = null;
         _dissolveGeneration++;

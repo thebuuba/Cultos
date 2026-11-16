@@ -57,6 +57,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         _words.Children.Add(_version);
         var canvas = new Grid { Width = 1600, Height = 900 };
         canvas.Children.Add(_words);
+        canvas.Children.Add(_bibleTextOverlay);
         _text = new Viewbox { Stretch = Stretch.Uniform, Child = canvas, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
         _root.Children.Add(_image);
         _root.Children.Add(_bibleDim);

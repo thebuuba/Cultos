@@ -84,7 +84,12 @@ internal static partial class Program
             }
             var chapter = (FrameworkElement)window.FindName("BibleChapterPicker");
             var next = (FrameworkElement)window.FindName("NextBibleChapterButton");
-            Check(Math.Abs(BoundsWithin(chapter, panel).Right - BoundsWithin(next, panel).Right) < 1, "Chapter selector and navigation have different right edges");
+            var book = (FrameworkElement)window.FindName("BibleBookPicker");
+            var verse = (FrameworkElement)window.FindName("BibleVersePicker");
+            Check(Math.Abs(BoundsWithin(book, panel).Top - BoundsWithin(chapter, panel).Top) < 1
+                && Math.Abs(BoundsWithin(chapter, panel).Top - BoundsWithin(verse, panel).Top) < 1
+                && Math.Abs(BoundsWithin(verse, panel).Top - BoundsWithin(next, panel).Top) < 1,
+                "Bible navigation must fit on one compact row");
             CaptureDesignWindow(window, Path.Combine(folder, "bible-card.png"));
         });
         Test("YouTube source cards retain 16 by 9 thumbnails with long titles", () =>
@@ -94,7 +99,7 @@ internal static partial class Program
             list.ItemsSource = new[] { new YouTubeSource("test", new Cue { Kind = CueKind.WindowCapture, Title = "En Otro Tiempo Mas - Primera Fe (en canal Nuevo Tiempo Chile) - YouTube - Google Chrome" }, null, true) };
             ((TextBlock)window.FindName("YouTubeEmpty")).Visibility = Visibility.Collapsed;
             window.UpdateLayout(); PumpFor(80);
-            var thumbnail = Descendants(list).OfType<CueThumbnail>().Single();
+            var thumbnail = Descendants(list).OfType<WindowCaptureThumbnail>().Single();
             Check(thumbnail.ActualWidth <= 260 && Math.Abs(thumbnail.ActualWidth / thumbnail.ActualHeight - 16d / 9) < .04, "YouTube thumbnail stretches with its panel width");
             CaptureDesignWindow(window, Path.Combine(folder, "youtube-card.png"));
         });

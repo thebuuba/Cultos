@@ -25,7 +25,7 @@ internal static partial class Program
         var verse = new Cue { Kind = CueKind.Bible, Body = "Texto de prueba", Reference = "Prueba 1:1", Version = "Versión de prueba" };
         var style = new BibleVisualStyle
         {
-            FontFamily = "Georgia", FontSize = 96, Bold = true, Italic = true,
+            FontFamily = "Georgia", ReferenceFontFamily = "Arial", FontSize = 96, Bold = true, Italic = true,
             Alignment = "Left", TextColor = "#FFFF00", TextEffect = "Shadow",
             BackgroundImagePath = imagePath, BackgroundDim = .5, Transition = "Cut"
         };
@@ -50,6 +50,9 @@ internal static partial class Program
                 && Body().TextAlignment == TextAlignment.Left && ((SolidColorBrush)Body().Foreground).Color == Colors.Yellow,
                 "Bible typography applies from a copied style rather than caller mutations");
             Check(Body().Effect is DropShadowEffect { ShadowDepth: > 0 }, "Bible shadow is visible on text");
+            Check(Descendants(output).OfType<TextBlock>().Single(block => block.Text == verse.Reference).FontFamily.Source == "Arial"
+                && Descendants(output).OfType<TextBlock>().Single(block => block.Text == verse.Version).FontFamily.Source == "Georgia",
+                "Reference font applies independently of the passage and translation name");
             var red = Pixel();
             Check(red[2] is >= 120 and <= 135 && red[0] < 5 && red[1] < 5, "Bible image is composited with the selected darkness");
             Check(Descendants(preview).OfType<TextBlock>().Single(block => block.Text == verse.Body).FontSize == Body().FontSize,
@@ -106,6 +109,7 @@ internal static partial class Program
             output.TransitionTo(verse); output.ShowCue(verse, blackout: true);
             await Task.Delay(350);
             Check(!output.IsTransitioning && Pixel().Take(3).All(value => value == 0), "Blackout cancels styled Bible transitions without revealing old content");
+            await RunBibleTextTransitionChecks();
         }
         finally
         {

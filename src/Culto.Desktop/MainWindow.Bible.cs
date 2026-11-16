@@ -48,6 +48,10 @@ public partial class MainWindow
             var versions = BibleVersions.List();
             BibleVersionPicker.ItemsSource = versions;
             BibleVersionPicker.SelectedItem = versions.FirstOrDefault(version => version.Name == _bible?.Document.Name);
+            _ = BibleVersionPicker.Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
+            {
+                if (BibleVersionPicker.SelectedItem is { } selected) BibleVersionPicker.ScrollIntoView(selected);
+            }));
             BibleVersionPicker.IsEnabled = versions.Count > 0;
             BibleVersionPicker.ToolTip = BibleVersions.Warnings.Count == 0 ? "Cambiar versión de la Biblia"
                 : $"{BibleVersions.Warnings.Count} archivos de versiones no se pudieron abrir.";
@@ -63,8 +67,12 @@ public partial class MainWindow
         BibleVersionPicker.IsEnabled = false;
         try
         {
-            var catalog = await Task.Run(() => BibleVersions.Load(version));
-            JsonFileStore.Save(_store.BiblePath, catalog.Document);
+            var catalog = await Task.Run(() =>
+            {
+                var loaded = BibleVersions.Load(version);
+                JsonFileStore.Save(_store.BiblePath, loaded.Document);
+                return loaded;
+            });
             InstallBibleCatalog(catalog);
             if (previous.Length > 0)
             {
@@ -82,7 +90,18 @@ public partial class MainWindow
         }
         catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException)
         { SetStatus("No se pudo cambiar de Biblia: " + error.Message, true); }
-        finally { _changingBibleVersion = false; RefreshBibleVersions(); }
+        finally
+        {
+            // Switching changes the active version, not the installed library.
+            BibleVersionPicker.SelectedItem = BibleVersionPicker.Items.OfType<BibleVersion>()
+                .FirstOrDefault(item => item.Name == _bible?.Document.Name);
+            BibleVersionPicker.IsEnabled = BibleVersionPicker.Items.Count > 0;
+            _ = BibleVersionPicker.Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
+            {
+                if (BibleVersionPicker.SelectedItem is { } selected) BibleVersionPicker.ScrollIntoView(selected);
+            }));
+            _changingBibleVersion = false;
+        }
     }
     private void InstallBibleCatalog(BibleCatalog catalog)
     {

@@ -11,6 +11,7 @@
         MinWidth="1200" MinHeight="680" WindowStartupLocation="CenterScreen" WindowState="Maximized"
         UseLayoutRounding="True" Style="{StaticResource {x:Type Window}}">
   <Window.Resources>
+    <local:BibleVersionLabelConverter x:Key="BibleVersionLabelConverter"/>
     <ControlTemplate x:Key="WorkspaceSourceTabTemplate" TargetType="TabItem">
       <Border x:Name="TabSurface" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="6">
         <ContentPresenter ContentSource="Header" VerticalAlignment="Center"/>
@@ -130,7 +131,7 @@
                 <Setter TargetName="Chip" Property="BorderBrush" Value="{StaticResource MutedBrush}"/>
               </Trigger>
               <Trigger Property="IsKeyboardFocusWithin" Value="True">
-                <Setter TargetName="Chip" Property="Background" Value="{StaticResource FocusSurfaceBrush}" /><Setter Property="Foreground" Value="{StaticResource OnActionBrush}" />
+                <Setter TargetName="Chip" Property="BorderBrush" Value="{StaticResource FocusSurfaceBrush}"/>
               </Trigger>
             </ControlTemplate.Triggers>
           </ControlTemplate>
@@ -758,9 +759,7 @@
               <Grid Margin="0,0,0,12">
                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <StackPanel VerticalAlignment="Center" Margin="0,0,8,0">
-                  <TextBlock Text="Versión" Style="{StaticResource MutedText}" FontSize="12" Margin="0,0,0,4"/>
-                  <ComboBox x:Name="BibleVersionPicker" DisplayMemberPath="Name" SelectionChanged="BibleVersionChanged" MinHeight="34" MaxDropDownHeight="360" IsTextSearchEnabled="True" IsEnabled="False" AutomationProperties.Name="Versión de la Biblia"/>
-                  <TextBlock x:Name="BibleNameText" Text="Biblia" Visibility="Collapsed" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                  <TextBlock x:Name="BibleNameText" Text="Biblia" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
                   <TextBlock x:Name="BibleStatusText" Text="Sin Biblia cargada" Style="{StaticResource MutedText}" FontSize="12" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Margin="0,3,0,0"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
@@ -769,12 +768,11 @@
                 </StackPanel>
               </Grid>
               <Grid Grid.Row="2" Margin="0,0,0,10">
-                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="68"/></Grid.ColumnDefinitions>
-                <StackPanel Margin="0,0,6,0"><TextBlock Text="Libro" Style="{StaticResource MutedText}" Margin="0,0,0,4"/><ComboBox x:Name="BibleBookPicker" Background="{StaticResource TextBrush}" Foreground="{StaticResource OnActionBrush}" SelectionChanged="BibleBookChanged" MaxDropDownHeight="360" IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True" AutomationProperties.Name="Libro de la Biblia"/></StackPanel>
-                <StackPanel Grid.Column="1"><TextBlock Text="Cap." Style="{StaticResource MutedText}" Margin="0,0,0,4"/><ComboBox x:Name="BibleChapterPicker" SelectionChanged="BibleChapterChanged" MaxDropDownHeight="300" AutomationProperties.Name="Capítulo de la Biblia"/></StackPanel>
-                <StackPanel Grid.Row="1" Margin="0,6,6,0"><TextBlock Text="Vers." Style="{StaticResource MutedText}" Margin="0,0,0,4"/><ComboBox x:Name="BibleVersePicker" SelectionChanged="BibleVerseChanged" MaxDropDownHeight="300" AutomationProperties.Name="Versículo de la Biblia"/></StackPanel>
-                <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Bottom">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="62"/><ColumnDefinition Width="62"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <ComboBox x:Name="BibleBookPicker" Margin="0,0,5,0" Padding="10,5,28,5" MinHeight="32" FontSize="12" SelectionChanged="BibleBookChanged" MaxDropDownHeight="360" IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True" ToolTip="Libro de la Biblia" AutomationProperties.Name="Libro de la Biblia"/>
+                <ComboBox Grid.Column="1" x:Name="BibleChapterPicker" Margin="0,0,5,0" Padding="8,5,26,5" MinHeight="32" FontSize="12" SelectionChanged="BibleChapterChanged" MaxDropDownHeight="300" ToolTip="Capítulo" AutomationProperties.Name="Capítulo de la Biblia"/>
+                <ComboBox Grid.Column="2" x:Name="BibleVersePicker" Margin="0,0,5,0" Padding="8,5,26,5" MinHeight="32" FontSize="12" SelectionChanged="BibleVerseChanged" MaxDropDownHeight="300" ToolTip="Versículo" AutomationProperties.Name="Versículo de la Biblia"/>
+                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
                   <Button x:Name="PreviousBibleChapterButton" Content="‹" Style="{StaticResource CompactIconButton}" Click="PreviousBibleChapterClick" IsEnabled="False" ToolTip="Capítulo anterior" AutomationProperties.Name="Capítulo anterior"/>
                   <Button x:Name="NextBibleChapterButton" Content="›" Style="{StaticResource CompactIconButton}" Click="NextBibleChapterClick" IsEnabled="False" Margin="4,0,0,0" ToolTip="Capítulo siguiente" AutomationProperties.Name="Capítulo siguiente"/>
                 </StackPanel>
@@ -803,6 +801,34 @@
                     <TextBlock Text="{Binding Text}" TextWrapping="Wrap" FontSize="12"/>
                   </StackPanel>
                 </Grid></DataTemplate></ListBox.ItemTemplate>
+              </ListBox>
+              <ListBox Grid.Row="5" x:Name="BibleVersionPicker" SelectionChanged="BibleVersionChanged"
+                       Margin="0,10,0,0" Padding="0" Background="Transparent" BorderThickness="0"
+                       SelectionMode="Single" IsEnabled="False" IsTextSearchEnabled="True" TextSearch.TextPath="Name"
+                       ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                       AutomationProperties.Name="Versión de la Biblia">
+                <ListBox.Template>
+                  <ControlTemplate TargetType="ListBox">
+                    <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                      <ScrollViewer x:Name="PART_ScrollViewer" Focusable="False"
+                                    CanContentScroll="{TemplateBinding ScrollViewer.CanContentScroll}"
+                                    HorizontalScrollBarVisibility="{TemplateBinding ScrollViewer.HorizontalScrollBarVisibility}"
+                                    VerticalScrollBarVisibility="{TemplateBinding ScrollViewer.VerticalScrollBarVisibility}">
+                        <ItemsPresenter/>
+                      </ScrollViewer>
+                    </Border>
+                  </ControlTemplate>
+                </ListBox.Template>
+                <ListBox.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ListBox.ItemsPanel>
+                <ListBox.ItemContainerStyle>
+                  <Style TargetType="ListBoxItem" BasedOn="{StaticResource FilterChip}">
+                    <Setter Property="ToolTip" Value="{Binding Name}"/>
+                    <Setter Property="AutomationProperties.Name" Value="{Binding Name}"/>
+                    <Setter Property="Margin" Value="0,0,5,0"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                  </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Name, Converter={StaticResource BibleVersionLabelConverter}}"/></DataTemplate></ListBox.ItemTemplate>
               </ListBox>
             </Grid>
           </Border>

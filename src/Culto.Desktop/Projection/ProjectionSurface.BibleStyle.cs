@@ -85,6 +85,11 @@ public sealed partial class ProjectionSurface
                 _ => null
             };
         }
+        if (style.ReferenceFontFamily is { } referenceFont)
+        {
+            try { _reference.FontFamily = new FontFamily(referenceFont); }
+            catch (ArgumentException) { _reference.FontFamily = font; }
+        }
     }
 
     private static BitmapImage ReadBibleBackground(string path)
