@@ -27,6 +27,7 @@ public partial class MainWindow
 
     private void WireSeek(Slider slider)
     {
+        Services.SeekSliderDrag.Attach(slider);
         slider.IsMoveToPointEnabled = true;
         slider.SmallChange = .01; slider.LargeChange = .1;
         void Scrubbing(bool value)
@@ -52,13 +53,13 @@ public partial class MainWindow
         slider.AddHandler(Thumb.DragStartedEvent, new DragStartedEventHandler((_, _) => Scrubbing(true)));
         slider.AddHandler(Thumb.DragCompletedEvent, new DragCompletedEventHandler((_, e) =>
         {
-            if (!e.Canceled) { SeekOutput(); }
+            if (_outputScrubbing && !e.Canceled) { SeekOutput(); }
             Scrubbing(false);
         }));
-        slider.LostMouseCapture += (_, _) => Scrubbing(false);
+        slider.LostMouseCapture += (_, _) => { if (!slider.IsMouseCaptureWithin) Scrubbing(false); };
         slider.PreviewKeyDown += (_, e) => { if (IsSeekKey(e.Key)) Scrubbing(true); };
         slider.KeyUp += (_, e) => { if (IsSeekKey(e.Key)) Scrubbing(false); };
-        slider.LostKeyboardFocus += (_, _) => Scrubbing(false);
+        slider.LostKeyboardFocus += (_, _) => { if (!slider.IsMouseCaptureWithin) Scrubbing(false); };
         slider.ValueChanged += (_, _) =>
         {
             if (_outputScrubbing)

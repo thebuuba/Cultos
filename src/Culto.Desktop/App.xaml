@@ -656,8 +656,8 @@
                            Value="{Binding Value, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
                            IsDirectionReversed="{TemplateBinding IsDirectionReversed}" Orientation="{TemplateBinding Orientation}">
                         <Track.DecreaseRepeatButton><RepeatButton Style="{StaticResource SeekPage}" Background="{TemplateBinding Foreground}" Command="{x:Static Slider.DecreaseLarge}"/></Track.DecreaseRepeatButton>
-                        <Track.Thumb><Thumb x:Name="SeekThumb" Width="12" Height="12" Background="{TemplateBinding Foreground}">
-                            <Thumb.Template><ControlTemplate TargetType="Thumb"><Ellipse Fill="{TemplateBinding Background}" Stroke="{TemplateBinding BorderBrush}" StrokeThickness="2"/></ControlTemplate></Thumb.Template>
+                        <Track.Thumb><Thumb x:Name="SeekThumb" Width="24" Height="24" Background="{TemplateBinding Foreground}">
+                            <Thumb.Template><ControlTemplate TargetType="Thumb"><Grid Background="Transparent"><Ellipse Width="12" Height="12" Fill="{TemplateBinding Background}" Stroke="{TemplateBinding BorderBrush}" StrokeThickness="2"/></Grid></ControlTemplate></Thumb.Template>
                         </Thumb></Track.Thumb>
                         <Track.IncreaseRepeatButton><RepeatButton Style="{StaticResource SeekPage}" Background="{TemplateBinding Background}" Command="{x:Static Slider.IncreaseLarge}"/></Track.IncreaseRepeatButton>
                     </Track>

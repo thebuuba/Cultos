@@ -1,7 +1,9 @@
 param(
     [Parameter(Mandatory = $true)][string]$SourceDirectory,
     [string]$OutputDirectory = 'artifacts\releases',
-    [string]$ContentDirectory
+    [string]$ContentDirectory,
+    [switch]$Installer,
+    [string]$CompilerPath
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
@@ -11,6 +13,20 @@ function FullPath([string]$path) {
 }
 $source = FullPath $SourceDirectory
 $output = FullPath $OutputDirectory
+if ($Installer) {
+    if ($ContentDirectory) { throw 'El EXE es la edición del programa. Usa el ZIP para distribuir el contenido completo de varios GB.' }
+    if (-not $CompilerPath) {
+        $CompilerPath = @(
+            (Join-Path $projectRoot '.tools\InnoSetup\ISCC.exe'),
+            (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'),
+            (Join-Path $env:LOCALAPPDATA 'Programs\Inno Setup 6\ISCC.exe')
+        ) | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
+    }
+    if (-not $CompilerPath -or -not (Test-Path -LiteralPath $CompilerPath -PathType Leaf)) {
+        throw 'Instala Inno Setup 6 o indica su ISCC.exe con -CompilerPath.'
+    }
+    $CompilerPath = FullPath $CompilerPath
+}
 if (-not (Test-Path -LiteralPath $source -PathType Container)) { throw 'No existe la carpeta de publicacion.' }
 if ($output.Equals($source, [StringComparison]::OrdinalIgnoreCase) -or $output.StartsWith($source + '\', [StringComparison]::OrdinalIgnoreCase)) {
     throw 'La salida del paquete debe estar fuera de la carpeta de publicacion.'
@@ -60,6 +76,8 @@ try {
     }
     Copy-Item -LiteralPath (Join-Path $projectRoot 'docs\PRIMEROS-PASOS.md') -Destination $packageRoot
     Copy-Item -LiteralPath (Join-Path $projectRoot 'docs\PRIMEROS-PASOS.md') -Destination (Join-Path $app 'README.md')
+    Copy-Item -LiteralPath (Join-Path $projectRoot 'docs\instalador-exe.md') -Destination $app
+    Copy-Item -LiteralPath (Join-Path $projectRoot 'docs\actualizaciones.md') -Destination $app
     foreach ($name in @('THIRD-PARTY-NOTICES.md', 'LICENSE', 'LICENSE.md', 'LICENSE.txt')) {
         $notice = Join-Path $projectRoot $name
         if (Test-Path -LiteralPath $notice -PathType Leaf) { Copy-Item -LiteralPath $notice -Destination $packageRoot }
@@ -76,13 +94,32 @@ try {
         Files = $hashes
     } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $packageRoot 'package-manifest.json') -Encoding UTF8
     $edition = if ($ContentDirectory) { '-Completo' } else { '' }
-    $zip = Join-Path $output ("CultoStudio-$version-Windows-x64$edition.zip")
-    if (Test-Path -LiteralPath $zip) { throw "Ya existe $zip. Usa otra carpeta de salida para conservar el paquete anterior." }
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
-    [IO.Compression.ZipFile]::CreateFromDirectory($staging, $zip, [IO.Compression.CompressionLevel]::Fastest, $false)
-    $digest = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
-    "$digest  $([IO.Path]::GetFileName($zip))" | Set-Content -LiteralPath ($zip + '.sha256') -Encoding ASCII
-    Write-Output "Paquete: $zip"
+    if ($Installer) {
+        $package = Join-Path $output ("CultoStudio-$version-Windows-x64-Setup.exe")
+        if (Test-Path -LiteralPath $package) { throw "Ya existe $package. Usa otra carpeta de salida para conservar el paquete anterior." }
+        & $CompilerPath "/DPackageDirectory=$packageRoot" "/DAppVersion=$version" "/DInstallerOutput=$output" (Join-Path $projectRoot 'packaging\CultoStudio.iss')
+        if ($LASTEXITCODE -ne 0) { throw 'Falló la compilación del instalador EXE.' }
+    }
+    else {
+        $package = Join-Path $output ("CultoStudio-$version-Windows-x64$edition.zip")
+        if (Test-Path -LiteralPath $package) { throw "Ya existe $package. Usa otra carpeta de salida para conservar el paquete anterior." }
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        [IO.Compression.ZipFile]::CreateFromDirectory($staging, $package, [IO.Compression.CompressionLevel]::Fastest, $false)
+    }
+    $digest = (Get-FileHash -LiteralPath $package -Algorithm SHA256).Hash.ToLowerInvariant()
+    "$digest  $([IO.Path]::GetFileName($package))" | Set-Content -LiteralPath ($package + '.sha256') -Encoding ASCII
+    if ($Installer) {
+        $channel = Get-Content -LiteralPath (Join-Path $projectRoot 'packaging\update-channel.json') -Raw | ConvertFrom-Json
+        $updateManifest = [ordered]@{
+            version = $version
+            installerUrl = "https://github.com/$($channel.repository)/releases/download/v$version/$([IO.Path]::GetFileName($package))"
+            sha256 = $digest
+            size = (Get-Item -LiteralPath $package).Length
+            notes = 'Mejoras de Culto Studio. Consulta las novedades en GitHub Releases.'
+        } | ConvertTo-Json
+        [IO.File]::WriteAllText((Join-Path $output 'update.json'), $updateManifest, [Text.UTF8Encoding]::new($false))
+    }
+    Write-Output "Paquete: $package"
     Write-Output "SHA-256: $digest"
 }
 finally {

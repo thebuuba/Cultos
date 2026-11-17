@@ -142,6 +142,22 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
         }
         Enqueue(Capture(cue, false, false, false) with { PreserveAudio = true, AudioOnly = true });
     }
+    public void StopBackgroundMedia()
+    {
+        if (_disposed || !HasBackgroundMedia) return;
+        // Finish the visual hand-off before releasing its preserved decoder.
+        // A queued foreground change may continue, but cannot retain this audio.
+        var queued = _queued;
+        _queued = null;
+        if (_loading?.AudioOnly == true) CancelLoading();
+        if (_blend is not null) FinishBlend();
+        ReleaseBackground();
+        ReleaseRetained();
+        FinishAudioBlend();
+        StopCathedralTails();
+        ApplyVolumes();
+        if (queued is { AudioOnly: false }) Enqueue(queued with { PreserveAudio = false });
+    }
     public void TransitionTo(Cue cue) => Enqueue(Capture(cue, false, false, false));
     public void TransitionToBackdrop(Cue? cue, bool blackout, bool hidden) => Enqueue(Capture(cue, blackout, hidden, true));
 

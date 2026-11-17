@@ -147,6 +147,7 @@ public sealed class OutputPlayerWindow : Window
 
     private void WireSeek()
     {
+        SeekSliderDrag.Attach(_position);
         void Commit() { if (_scrubbing && _state?.CanSeek == true) SeekRequested?.Invoke(_position.Value); _scrubbing = false; }
         _position.AddHandler(PreviewMouseLeftButtonDownEvent, new MouseButtonEventHandler((_, e) =>
         { _scrubbing = true; if (e.Handled && !_position.IsMouseCaptureWithin) _position.CaptureMouse(); }), true);
@@ -155,10 +156,10 @@ public sealed class OutputPlayerWindow : Window
         _position.AddHandler(Thumb.DragStartedEvent, new DragStartedEventHandler((_, _) => _scrubbing = true));
         _position.AddHandler(Thumb.DragCompletedEvent, new DragCompletedEventHandler((_, e) =>
         { if (!e.Canceled) Commit(); else _scrubbing = false; }));
-        _position.LostMouseCapture += (_, _) => _scrubbing = false;
+        _position.LostMouseCapture += (_, _) => { if (!_position.IsMouseCaptureWithin) _scrubbing = false; };
         _position.PreviewKeyDown += (_, e) => { if (IsSeekKey(e.Key)) _scrubbing = true; };
         _position.PreviewKeyUp += (_, e) => { if (IsSeekKey(e.Key)) Commit(); };
-        _position.LostKeyboardFocus += (_, _) => _scrubbing = false;
+        _position.LostKeyboardFocus += (_, _) => { if (!_position.IsMouseCaptureWithin) _scrubbing = false; };
     }
 
     private static bool IsSeekKey(Key key) => key is Key.Left or Key.Right or Key.Up or Key.Down or Key.Home or Key.End or Key.PageUp or Key.PageDown;

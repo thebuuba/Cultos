@@ -1,5 +1,11 @@
 # Culto Studio
 
+Instalador Windows `.exe`: consulta [cómo instalar y generar el asistente](docs/instalador-exe.md). Incluye acceso directo, actualización y desinstalador, y conserva los cultos y ajustes del usuario.
+
+Desde 0.43.0, el programa avisa de nuevas versiones publicadas en GitHub Releases y permite descargarlas e instalarlas cuando decidas. Consulta [el uso y la publicación de actualizaciones](docs/actualizaciones.md).
+
+En 0.43.1, cuando un video o himno continúa como reproducción de fondo detrás de otra escena, aparece **Quitar video por completo** debajo de **Salidas**. Detiene esa reproducción y su audio conservando la escena en pantalla. Si vuelves a seleccionar el video, comienza desde el principio.
+
 En **0.41.0**, las instalaciones nuevas muestran una bienvenida para guardar el nombre de la iglesia. Se puede cambiar desde **Configuración → Datos de la iglesia**. Los cultos y ajustes existentes se conservan. Para preparar una distribución limpia con instalación por usuario y acceso directo, usa `scripts/package-release.ps1 -SourceDirectory <carpeta-publicada>`; consulta `docs/PRIMEROS-PASOS.md`.
 
 En **0.40.14**, **Transiciones → Efecto del fundido de audio** permite elegir **Fundido con reverberación catedral**. Ajusta la intensidad y la cola, pulsa **Probar audio** y guarda. El efecto se aplica al medio o himno que sale y deja seco el siguiente. Activarlo durante una reproducción se aplica a los medios que inicies después; el fundido normal sigue siendo la opción predeterminada.

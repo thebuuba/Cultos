@@ -12,6 +12,7 @@ internal static partial class Program
 {
     private static void RunSplitControlsTests(MainWindow window)
     {
+        RunStopBackgroundMediaTests(window);
         void UntilSplit(Func<bool> ready, string failure) { var deadline = DateTime.UtcNow.AddSeconds(30); while (!ready() && DateTime.UtcNow < deadline) PumpFor(50); Check(ready(), failure); }
         Test("One-shot image and audio commands keep logo and restore the same playing file", () =>
         {

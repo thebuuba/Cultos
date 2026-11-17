@@ -13,6 +13,10 @@ Culto Studio prepara y proyecta textos, imágenes, videos y otros contenidos par
 
 ## Instalar o actualizar
 
+Si recibiste el archivo **CultoStudio-…-Windows-x64-Setup.exe**, ábrelo y sigue el asistente. Instala para tu usuario, crea un acceso en Inicio y permite añadirlo al Escritorio. Para quitar esa instalación usa **Configuración de Windows → Aplicaciones → Culto Studio → Desinstalar**. El perfil de cultos y ajustes se conserva. Consulta [el instalador EXE](instalador-exe.md) para sus componentes y cómo generarlo.
+
+Si recibiste la distribución ZIP:
+
 1. Copia el ZIP completo al equipo y extráelo en una carpeta.
 2. Cierra Culto Studio si ya está abierto.
 3. Abre **Instalar Culto Studio.cmd**. No solicita permisos de administrador ni descarga archivos.

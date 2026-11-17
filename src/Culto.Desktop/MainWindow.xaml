@@ -273,6 +273,9 @@
             <MenuItem Header="Logo…" Click="LogoSettingsClick"/>
             <MenuItem Header="Volver al contenido" Click="RestoreLogoContentClick"/>
             <MenuItem x:Name="RemoteButton" Header="Mando móvil…" Click="RemoteClick"/>
+            <Separator/>
+            <MenuItem x:Name="CheckUpdatesMenu" Header="Buscar actualizaciones…" Click="CheckUpdatesClick"/>
+            <MenuItem x:Name="AutomaticUpdatesMenu" Header="Buscar actualizaciones al abrir" IsCheckable="True" IsChecked="True" Click="ToggleAutomaticUpdatesClick"/>
           </ContextMenu></Button.ContextMenu>
         </Button>
         <Button x:Name="WorkspaceMenuButton" Content="Espacio de trabajo" Style="{StaticResource MenuBarButton}" Click="OpenActionsClick">
@@ -519,7 +522,7 @@
               <TextBlock x:Name="OutputStatusText" Text="Una salida HDMI · tres pantallas iguales" Visibility="Collapsed"/>
             </StackPanel>
             <Grid Grid.Row="1" x:Name="OutputActionsGrid" Margin="0,4,0,6">
-              <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+              <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
               <TextBlock x:Name="NextLiveText" Text="Sin contenido en salida" Foreground="{StaticResource MutedBrush}" FontSize="12" Margin="0,0,0,8" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
               <Border Grid.Row="1" BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="0,1,0,0" Padding="0,12,0,0">
                 <Grid>
@@ -572,6 +575,10 @@
                   </Border>
                 </Grid>
               </Border>
+              <StackPanel Grid.Row="2" x:Name="StopBackgroundMediaRow" Visibility="Collapsed" Margin="0,12,0,0">
+                <TextBlock x:Name="StopBackgroundMediaTitle" Foreground="{StaticResource MutedBrush}" FontSize="12" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+                <Button x:Name="StopBackgroundMediaButton" Content="Quitar video por completo" Click="StopBackgroundMediaClick" IsEnabled="False" HorizontalAlignment="Left" Margin="0,6,0,0" MinHeight="32" Padding="10,5" FontSize="12" ToolTip="Detiene el video y su audio de fondo sin cambiar la escena en pantalla. Al seleccionarlo otra vez comenzará desde el principio." AutomationProperties.Name="Quitar reproducción de fondo por completo"/>
+              </StackPanel>
             </Grid>
 
             </Grid>
@@ -962,6 +969,7 @@
     <Grid Grid.Row="3" Margin="2,8,2,0">
       <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
       <TextBlock x:Name="StatusText" Text="Listo" Foreground="{StaticResource MutedBrush}" FontSize="12" TextTrimming="CharacterEllipsis"/>
+      <Button Grid.Column="1" x:Name="UpdateAvailableButton" Content="Actualización disponible" Click="ShowAvailableUpdateClick" Visibility="Collapsed" Margin="12,0,0,0" Padding="10,3" AutomationProperties.Name="Ver actualización disponible"/>
     </Grid>
   </Grid>
 </Window>

@@ -42,6 +42,7 @@ internal static partial class Program
                 CaptureDesignWindow(window,Path.Combine(Environment.CurrentDirectory,".tools","minimal-player.png"));
             });
 
+            RunSeekPointerTests(window);
             Test("Player scrubbing preserves the selected position and paused output", () =>
             {
                 var slider = (Slider)window.FindName("PositionSlider");

@@ -16,6 +16,7 @@ public sealed class WorkspaceData
         }
     }
     public bool FirstRunCompleted { get; set; }
+    public bool CheckForUpdatesOnStartup { get; set; } = true;
     public ServicePlan Plan { get; set; } = new();
     public List<Cue> Library { get; set; } = [];
     public List<Cue> YouTubeSources { get; set; } = [];

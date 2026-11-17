@@ -124,6 +124,7 @@ public partial class MainWindow : Window
         if (recoveryMessage is not null) SetStatus(recoveryMessage, true);
         ScheduleFirstRunSetup(hadWorkspace);
         _ = ApplyStreamDeckPluginSettingsAsync();
+        _ = InitializeUpdatesAsync();
     }
 
     private void PrepareCue(Cue cue, IReadOnlyList<Cue>? reading = null)
@@ -221,6 +222,12 @@ public partial class MainWindow : Window
 
         if (!SaveWorkspace())
         {
+            if (_pendingUpdateInstaller is not null)
+            {
+                _pendingUpdateInstaller = null;
+                SetStatus("No se puede instalar la actualización porque no se pudo guardar el culto.", true);
+                return;
+            }
             if (new UnsavedChangesDialog { Owner = this }.ShowDialog() != true)
             {
                 SetStatus("La consola sigue abierta. Usa Guardar para exportar el orden o corrige el almacenamiento antes de cerrar.", true);
@@ -229,6 +236,7 @@ public partial class MainWindow : Window
         }
         SaveDockLayout();
         _closing = true; _timer.Stop();
+        _updateCancellation.Cancel();
         UpdateBrowserCaptureCompatibility();
         DisposeYouTube();
         DisposePresenterHotkeys();
@@ -244,6 +252,7 @@ public partial class MainWindow : Window
         _preview?.Dispose();
         PreviewLiveMonitor.Dispose();
         LiveMonitor.Dispose();
+        OpenPendingUpdateInstaller();
         Application.Current.Shutdown();
     }
 }

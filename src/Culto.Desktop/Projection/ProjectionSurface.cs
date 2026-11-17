@@ -101,6 +101,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         else TransitionToBackdrop(cue, blackout, hideText);
     }
     public void PlayAudioKeepingVisual(Cue cue) => _mixer?.PlayAudioKeepingVisual(cue);
+    public void StopBackgroundMedia() => _mixer?.StopBackgroundMedia();
     public Cue? RetainedMediaCue => _mixer?.RetainedMediaCue;
     public bool HasBackgroundMedia => _mixer?.HasBackgroundMedia == true;
     public string? BackgroundImagePath { get => _mixer?.BackgroundImagePath ?? _backgroundImagePath;
