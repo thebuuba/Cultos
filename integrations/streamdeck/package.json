@@ -1,0 +1,14 @@
+{
+  "name": "cultostudio-streamdeck",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "build": "node scripts/build.js",
+    "validate": "streamdeck validate com.cultostudio.control.sdPlugin",
+    "pack": "npm run build && npm run validate && streamdeck pack com.cultostudio.control.sdPlugin --output dist --force"
+  },
+  "dependencies": { "@elgato/streamdeck": "3.0.4" },
+  "devDependencies": { "@elgato/cli": "1.10.4", "esbuild": "0.28.2" }
+}

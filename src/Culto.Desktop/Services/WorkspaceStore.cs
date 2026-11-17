@@ -28,6 +28,8 @@ public sealed class WorkspaceData
     public List<SavedSet> VideoCollections { get; set; } = [];
     public List<SavedSet> SavedServices { get; set; } = [];
     public bool PresenterEnabled { get; set; }
+    public bool StreamDeckEnabled { get; set; }
+    public bool StreamDeckPluginEnabled { get; set; }
     public bool PresenterUsesArrows { get; set; }
     public List<DeckButton> Deck { get; set; } =
     [

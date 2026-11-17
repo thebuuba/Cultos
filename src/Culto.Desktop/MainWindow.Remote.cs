@@ -75,7 +75,7 @@ public partial class MainWindow
                     return new(_output is not null && _session.Live?.Id == cue.Id, "Contenido enviado.");
                 }
             }
-            if (action is not ("project" or "volume" or "background" or "blackout") && _output is null)
+            if (action is not ("project" or "volume" or "volume-step" or "background" or "blackout") && _output is null)
                 return new(false, "La salida de proyección está cerrada.");
             if (action is "pause" or "restart" or "seek" && !HasBackgroundFileAudio)
             {
@@ -113,6 +113,7 @@ public partial class MainWindow
                 case "pause": TogglePause(); break;
                 case "restart": RestartMedia(); break;
                 case "volume": VolumeSlider.Value = Math.Clamp(command.Value ?? 80, 0, 100); break;
+                case "volume-step": VolumeSlider.Value = Math.Clamp(VolumeSlider.Value + (command.Value ?? 0), 0, 100); break;
                 case "seek": _output?.Seek(Math.Clamp(command.Value ?? 0, 0, 1)); break;
                 default: return new(false, "Acción no disponible.");
             }

@@ -111,6 +111,7 @@ public partial class MainWindow : Window
         InitializeMediaBrowser();
         InitializeSplitMediaActions();
         SetupPresenterHotkeys();
+        SetupStreamDeckHotkeys();
         RefreshLibrary();
         LoadSavedBible();
         UpdatePlanCount();
@@ -122,6 +123,7 @@ public partial class MainWindow : Window
         ShowStartupLogo();
         if (recoveryMessage is not null) SetStatus(recoveryMessage, true);
         ScheduleFirstRunSetup(hadWorkspace);
+        _ = ApplyStreamDeckPluginSettingsAsync();
     }
 
     private void PrepareCue(Cue cue, IReadOnlyList<Cue>? reading = null)
@@ -230,6 +232,9 @@ public partial class MainWindow : Window
         UpdateBrowserCaptureCompatibility();
         DisposeYouTube();
         DisposePresenterHotkeys();
+        DisposeStreamDeckHotkeys();
+        try { await DisposeStreamDeckPluginAsync(); }
+        catch (Exception) { /* Continue releasing media even if local bridge cleanup fails. */ }
         _bibleSearchTimer?.Stop();
         DisposeLibraryFolders();
         try { if (_remote is not null) await _remote.DisposeAsync(); }

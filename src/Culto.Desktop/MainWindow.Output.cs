@@ -12,7 +12,7 @@ namespace Culto.Desktop;
 public partial class MainWindow
 {
     private void ProjectClick(object sender, RoutedEventArgs e) => ProjectPreparedFromInput();
-    private void ProjectPrepared() => ProjectPreparedCore(activate: true);
+    private void ProjectPrepared() => ProjectPreparedCore(activate: !_handlingStreamDeck);
     private void ProjectPreparedWithoutActivation() => ProjectPreparedCore(activate: false);
     private void ProjectPreparedCore(bool activate, bool preserve = false, bool resolveYouTube = true)
     {

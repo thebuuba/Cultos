@@ -6,6 +6,9 @@ artifacts/
 *.user
 *.suo
 TestResults/
+**/node_modules/
+integrations/streamdeck/*.sdPlugin/
+integrations/streamdeck/dist/
 tests/Culto.Renderer.Smoke/fixtures/result.txt
 tests/Culto.Renderer.Smoke/fixtures/text.png
 tests/Culto.Renderer.Smoke/fixtures/image.png

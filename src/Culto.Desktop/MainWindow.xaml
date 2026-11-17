@@ -262,6 +262,14 @@
               <MenuItem x:Name="PresenterEnabledMenu" Header="Control en segundo plano" IsCheckable="True" Click="TogglePresenterClick" ToolTip="Captura Av Pág y Re Pág aunque otra aplicación esté activa."/>
               <MenuItem x:Name="PresenterArrowsMenu" Header="Usar flechas izquierda y derecha" IsCheckable="True" Click="TogglePresenterArrowsClick" ToolTip="Estas teclas del teclado también controlarán la salida mientras esté activado."/>
             </MenuItem>
+            <MenuItem Header="Stream Deck">
+              <MenuItem x:Name="StreamDeckPluginEnabledMenu" Header="Integración nativa con Elgato" IsCheckable="True" Click="ToggleStreamDeckPluginClick"/>
+              <MenuItem Header="Instalar plugin en Elgato…" Click="InstallStreamDeckPluginClick"/>
+              <MenuItem Header="Configurar plugin nativo…" Click="StreamDeckPluginHelpClick"/>
+              <Separator/>
+              <MenuItem x:Name="StreamDeckEnabledMenu" Header="Alternativa: teclas F13–F24" IsCheckable="True" Click="ToggleStreamDeckClick" ToolTip="Permite asignar F13 a F24 a los botones de tu Stream Deck."/>
+              <MenuItem Header="Ver teclas alternativas…" Click="StreamDeckHelpClick"/>
+            </MenuItem>
             <MenuItem Header="Logo…" Click="LogoSettingsClick"/>
             <MenuItem Header="Volver al contenido" Click="RestoreLogoContentClick"/>
             <MenuItem x:Name="RemoteButton" Header="Mando móvil…" Click="RemoteClick"/>

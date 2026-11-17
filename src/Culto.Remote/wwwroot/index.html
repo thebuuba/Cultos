@@ -153,19 +153,37 @@ const $ = id => document.getElementById(id), storageKey = 'culto.remote.token';
 let token = '', connected = false, pending = false, current = null, polling = null, deckSignature = '', orderSignature = '', sceneSignature = '', commandNotice = null;
 let volumeTarget = null, volumeSending = false, volumeTimer = null, volumeVersion = 0;
 const orderButtons = new Map(), deckButtons = new Map(), sceneButtons = new Map();
+const activeRequests = new Set();
+let pollTimer = null, resuming = null;
+function remembered(key) {
+  try { if (sessionStorage.getItem(key + '.fallback') === 'true') return sessionStorage.getItem(key) || ''; } catch (_) {}
+  try { const value = localStorage.getItem(key); if (value) return value; } catch (_) {}
+  try { return sessionStorage.getItem(key) || ''; } catch (_) { return ''; }
+}
+function remember(key, value) {
+  let persistent = false;
+  try { localStorage.setItem(key, value); persistent = true; } catch (_) {}
+  try { sessionStorage.setItem(key, value); sessionStorage.setItem(key + '.fallback', String(!persistent)); } catch (_) {}
+}
+function forgetPairing() {
+  try { if (localStorage.getItem(storageKey) === token) localStorage.removeItem(storageKey); } catch (_) {}
+  try { sessionStorage.removeItem(storageKey); sessionStorage.removeItem(storageKey + '.fallback'); } catch (_) {}
+  token = '';
+}
 let clientId = requestId();
-try {
-  const saved = sessionStorage.getItem('culto.remote.client');
-  if (/^[0-9a-f]{32}$/.test(saved || '')) clientId = saved;
-  else sessionStorage.setItem('culto.remote.client', clientId);
-} catch (_) {}
+const savedClient = remembered('culto.remote.client');
+if (/^[0-9a-f]{32}$/.test(savedClient)) clientId = savedClient;
+remember('culto.remote.client', clientId);
 try {
   const fragment = location.hash.slice(1);
   if (fragment) {
     token = fragment.startsWith('token=') ? new URLSearchParams(fragment).get('token') || '' : fragment;
     history.replaceState(null, '', location.pathname + location.search);
-    if (/^[a-zA-Z0-9_-]{40,128}$/.test(token)) sessionStorage.setItem(storageKey, token); else token = '';
-  } else token = sessionStorage.getItem(storageKey) || '';
+    if (/^[a-zA-Z0-9_-]{40,128}$/.test(token)) remember(storageKey, token); else token = '';
+  } else {
+    token = remembered(storageKey);
+    if (/^[a-zA-Z0-9_-]{40,128}$/.test(token)) remember(storageKey, token); else token = '';
+  }
 } catch (_) { if (location.hash) history.replaceState(null, '', location.pathname + location.search); }
 function message(text, error = false) { $('notice').textContent = text; $('notice').classList.toggle('error', error); }
 function enableControls() {
@@ -384,16 +402,20 @@ function render(state, force = false, preserveVolume = false) {
 }
 async function request(path, options = {}) {
   const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 5000);
+  activeRequests.add(controller);
   try {
     const response = await fetch(path, { ...options, cache: 'no-store', credentials: 'omit', signal: controller.signal,
       headers: { ...(options.headers || {}), Authorization: 'Bearer ' + token, 'X-Culto-Client': clientId } });
+    if (controller.signal.aborted) throw new Error('Solicitud interrumpida.');
     if (response.status === 401) {
-      token = ''; try { sessionStorage.removeItem(storageKey); } catch (_) {}
+      forgetPairing();
       throw new Error('La vinculación venció. Escanea el QR de la consola.');
     }
     if (!response.ok) throw new Error('La consola rechazó la solicitud. Revisa el mando en el equipo.');
-    return await response.json();
-  } finally { clearTimeout(timeout); }
+    const result = await response.json();
+    if (controller.signal.aborted) throw new Error('Solicitud interrumpida.');
+    return result;
+  } finally { clearTimeout(timeout); activeRequests.delete(controller); }
 }
 async function refresh(force = false) {
   if (!token) { connection(false); message('Escanea el QR del mando desde la consola para vincular este teléfono.', true); return false; }
@@ -515,9 +537,34 @@ $('catalog-source').addEventListener('change', () => {
 $('volume').addEventListener('input', queueVolume);
 $('volume').addEventListener('change', queueVolume);
 $('position').addEventListener('change', event => send('seek', { value: Number(event.target.value) / 1000 }));
-$('retry').addEventListener('click', () => refresh(true));
-document.addEventListener('visibilitychange', () => { if (!document.hidden && !pending) refresh(true); });
-async function poll() { if (!document.hidden && !pending) await refresh(); setTimeout(poll, 1500); }
+$('retry').addEventListener('click', resumeConnection);
+function schedulePoll() {
+  clearTimeout(pollTimer); pollTimer = null;
+  if (!document.hidden && token) pollTimer = setTimeout(poll, 1500);
+}
+function suspendConnection() {
+  clearTimeout(pollTimer); pollTimer = null;
+  clearTimeout(volumeTimer); volumeTimer = null; volumeTarget = null;
+  for (const controller of activeRequests) controller.abort();
+  connection(false);
+}
+async function resumeConnection() {
+  if (document.hidden) return;
+  if (resuming) return resuming;
+  const previousPoll = polling;
+  suspendConnection();
+  resuming = (async () => {
+    if (previousPoll) await previousPoll;
+    await refresh(true);
+  })();
+  try { await resuming; } finally { resuming = null; schedulePoll(); }
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) suspendConnection(); else resumeConnection(); });
+addEventListener('pagehide', suspendConnection);
+addEventListener('pageshow', event => { if (event.persisted) resumeConnection(); });
+addEventListener('online', resumeConnection);
+addEventListener('offline', suspendConnection);
+async function poll() { try { if (!document.hidden && !pending) await refresh(); } finally { schedulePoll(); } }
 poll();
 </script>
 </body>

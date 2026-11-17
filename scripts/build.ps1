@@ -42,6 +42,13 @@ try {
         $documentation = Join-Path $destination 'docs'
         New-Item -ItemType Directory -Path $documentation -Force | Out-Null
         Copy-Item -LiteralPath (Join-Path $projectRoot 'docs\formato-biblia.md'), (Join-Path $projectRoot 'docs\validacion.md'), (Join-Path $projectRoot 'docs\importacion-biblia-local.md'), (Join-Path $projectRoot 'docs\obs-move-native.md') -Destination $documentation
+        Copy-Item -LiteralPath (Join-Path $projectRoot 'docs\stream-deck.md'), (Join-Path $projectRoot 'docs\mando-movil.md') -Destination $documentation
+        $streamDeckInstaller = Join-Path $projectRoot 'artifacts\StreamDeck\com.cultostudio.control.streamDeckPlugin'
+        if (Test-Path -LiteralPath $streamDeckInstaller) {
+            $streamDeckDirectory = Join-Path $destination 'StreamDeck'
+            New-Item -ItemType Directory -Path $streamDeckDirectory -Force | Out-Null
+            Copy-Item -LiteralPath $streamDeckInstaller -Destination $streamDeckDirectory -Force
+        }
         Write-Output ('Aplicación disponible en: ' + (Join-Path $destination 'CultoStudio.exe'))
     }
 }

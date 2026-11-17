@@ -25,7 +25,7 @@ public sealed class RemoteHost : IAsyncDisposable
     private bool disposed;
     private const int BodyLimit = 16 * 1024;
     private static readonly HashSet<string> Actions = new(StringComparer.Ordinal)
-        { "project", "next", "previous", "blackout", "background", "pause", "restart", "volume", "seek", "deck", "cue", "library", "scene", "return-media" };
+        { "project", "next", "previous", "blackout", "background", "pause", "restart", "volume", "volume-step", "seek", "deck", "cue", "library", "scene", "return-media" };
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
         UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
@@ -224,6 +224,7 @@ public sealed class RemoteHost : IAsyncDisposable
             "cue" or "library" => input.ButtonId is null && input.Value is null
                 && Guid.TryParse(input.CueId, out var cueId) && cueId != Guid.Empty,
             "volume" => input.ButtonId is null && input.Value is >= 0 and <= 100,
+            "volume-step" => input.ButtonId is null && input.Value is { } step && double.IsFinite(step) && step is >= -100 and <= 100,
             "seek" => input.ButtonId is null && input.Value is >= 0 and <= 1,
             "deck" or "scene" => input.Value is null && !string.IsNullOrWhiteSpace(input.ButtonId) && input.ButtonId.Length <= 128,
             _ => input.ButtonId is null && input.Value is null
