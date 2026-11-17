@@ -16,7 +16,7 @@ public sealed record SceneTile
     public string AccessibleName => !string.IsNullOrWhiteSpace(Label) ? Label : Action switch
     {
         "logo" => "Logo", "blackout" => "Fondo negro", "image" => "Imagen", "video" => "Video",
-        "audio" => "Audio", "youtube" => "YouTube", "browser" => "Navegador",
+        "audio" => "Audio", "youtube" => "YouTube", "browser" => "Navegador", "powerpoint" => "PowerPoint",
         _ => string.IsNullOrWhiteSpace(Cue?.Title) ? "Escena" : Cue.Title
     };
 

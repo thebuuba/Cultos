@@ -82,7 +82,7 @@ public sealed class WorkspaceStore
                     Options = (p.Options ?? new()).Normalize() }).ToList();
             if (!data.TransitionPresets.Any(p => p.Id == data.ActiveTransitionPresetId)) data.ActiveTransitionPresetId = null;
             data.SceneTiles = (data.SceneTiles ?? SceneTile.Defaults()).Where(scene => scene is not null
-                && !string.IsNullOrWhiteSpace(scene.Id) && scene.Action is "logo" or "blackout" or "image" or "video" or "audio" or "youtube" or "browser" or "cue" or "scene")
+                && !string.IsNullOrWhiteSpace(scene.Id) && scene.Action is "logo" or "blackout" or "image" or "video" or "audio" or "youtube" or "browser" or "cue" or "scene" or "powerpoint")
                 .DistinctBy(scene => scene.Id).ToList();
             data.Notes = (data.Notes ?? []).Where(note => note is not null).ToList();
             foreach (var note in data.Notes) { note.Title ??= ""; note.Body ??= ""; }

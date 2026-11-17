@@ -71,6 +71,31 @@ internal static partial class Program
             if (!File.Exists(fixture)) return;
             var sourceHash = PowerPointFixtureHash(fixture);
 
+            Test("A saved PowerPoint scene opens its presentation through the scene button", () =>
+            {
+                var workspace = Field<WorkspaceData>(window, "_workspace");
+                var scenes = workspace.SceneTiles.ToList();
+                var cue = MediaLibrary.FromFile(fixture);
+                var tile = new SceneTile { Action = "powerpoint", Label = "Presentación de prueba", Cue = cue };
+                try
+                {
+                    Check((bool)Call(window, "SaveSceneTile", tile)!, "PowerPoint scene could not be saved");
+                    var button = ((System.Windows.Controls.Panel)window.FindName("OutputBackdropsPanel")).Children
+                        .OfType<System.Windows.Controls.Button>().Single(item => item.Tag as string == tile.Id);
+                    button.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
+                    Until(() => Field<PowerPointPresentation?>(window, "_powerPoint")?.IsRunning == true,
+                        "The PowerPoint scene button did not start its presentation");
+                    Check(Field<PresentationSession>(window, "_session").Live?.Id == cue.Id,
+                        "PowerPoint scene projected another prepared cue");
+                    Check(PowerPointFixtureHash(fixture) == sourceHash, "Scene playback modified its presentation file");
+                }
+                finally
+                {
+                    Call(window, "CloseOutput");
+                    Call(window, "SaveSceneTiles", scenes);
+                }
+            });
+
             Test("Native PowerPoint advances builds before slides and preserves the source file", () =>
             {
                 nint ownedShow = 0;

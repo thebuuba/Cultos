@@ -39,7 +39,7 @@ public partial class MainWindow
             .Concat(_workspace.SceneTiles.Select(tile => tile.Cue).OfType<Cue>())
             .Concat(_workspace.SceneTiles.SelectMany(tile => tile.Cue?.Scene?.Layers.Select(layer => layer.Source) ?? Enumerable.Empty<Cue>()))
             .Concat(YouTubeList.Items.OfType<YouTubeSource>().Select(source => source.Cue))
-            .Concat(new[] { _workspace.QuickSceneImage, _workspace.QuickSceneVideo }.OfType<Cue>());
+            .Concat(new[] { _workspace.QuickSceneImage, _workspace.QuickSceneVideo, _session.Prepared }.OfType<Cue>());
         var dialog = new SceneTileDialog(scene, sources, _workspace.TransitionPresets, composition =>
         {
             var preview = new Projection.ProjectionSurface(smoothTransitions: true) { Volume = 0 };

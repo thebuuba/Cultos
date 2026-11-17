@@ -22,6 +22,51 @@ internal static partial class Program
         var cue = new Cue { Kind = CueKind.Text, Title = "Escena fija", Body = "Bienvenidos" };
         var custom = new SceneTile { Id = "own-scene", Label = "Bienvenida propia", Action = "cue", Color = "#4274F4", Cue = cue };
         RemoteScene[] Scenes() => ((IReadOnlyList<RemoteScene>)Call(window, "BuildRemoteScenes")!).ToArray();
+        Test("Scene editor offers PowerPoint and persists a selected presentation", () =>
+        {
+            var file = Path.Combine(store.DirectoryPath, "scene-presentation.pptx");
+            File.WriteAllBytes(file, []);
+            var presentation = new Cue { Kind = CueKind.PowerPoint, Title = "Presentación del culto", FilePath = file };
+            var dialog = new SceneTileDialog(null, new[] { cue, presentation }) { Owner = window };
+            Exception? callbackError = null;
+            dialog.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
+            {
+                try
+                {
+                    var action = Field<ComboBox>(dialog, "_action");
+                    Check(action.Items.OfType<ComboBoxItem>().Any(item => item.Tag as string == "powerpoint"), "PowerPoint is absent from scene actions");
+                    action.SelectedValue = "powerpoint";
+                    action.Focus(); dialog.UpdateLayout();
+                    Check(((Border)action.Template.FindName("ComboFrame", action)).Background is SolidColorBrush focused
+                        && focused.Color == Color.FromRgb(48, 48, 48), "Focused scene action uses a light background");
+                    Call(dialog, "Save");
+                    Check(dialog.IsVisible && !string.IsNullOrEmpty(Field<TextBlock>(dialog, "_error").Text), "PowerPoint scene accepted an empty presentation");
+                    var content = Field<ComboBox>(dialog, "_content");
+                    Check(content.Items.OfType<ComboBoxItem>().Where(item => item.Tag is Cue)
+                        .All(item => ((Cue)item.Tag).Kind == CueKind.PowerPoint), "PowerPoint selector includes unrelated content");
+                    content.SelectedItem = content.Items.OfType<ComboBoxItem>().Single(item => (item.Tag as Cue)?.Id == presentation.Id);
+                    Check(Field<TextBlock>(dialog, "_error").Text == "", "Choosing a presentation retained its validation error");
+                    Field<TextBox>(dialog, "_label").Text = "Presentación";
+                    dialog.Width = 800; dialog.Height = 620; dialog.UpdateLayout();
+                    foreach (var name in new[] { "SaveScene", "CancelScene" })
+                        CheckWithin(Descendants(dialog).OfType<Button>().Single(button => button.Name == name),
+                            dialog, new Rect(dialog.RenderSize), name);
+                    CaptureDesignWindow(dialog, Path.Combine(Environment.CurrentDirectory, ".tools", "scene-powerpoint-compact.png"));
+                    Call(dialog, "Save");
+                }
+                catch (Exception error) { callbackError = error; }
+                finally { if (dialog.IsVisible) dialog.DialogResult = false; }
+            }));
+            var saved = dialog.ShowDialog();
+            if (callbackError is not null) throw callbackError;
+            Check(saved == true && dialog.Result is { Action: "powerpoint", Cue.Kind: CueKind.PowerPoint }, "Presentation scene was not saved");
+            Check((bool)Call(window, "SaveSceneTile", dialog.Result!)!, "Presentation tile was not persisted");
+            var restored = store.Load().SceneTiles.SingleOrDefault(scene => scene.Id == dialog.Result!.Id);
+            Check(restored?.Cue?.FilePath == file && restored.Action == "powerpoint", "Reload discarded the presentation scene");
+            Check(Scenes().Single(scene => scene.Id == restored!.Id).Available, "Presentation scene is unavailable on remote controls");
+            Call(window, "RemoveSceneTile", dialog.Result!.Id);
+            File.Delete(file);
+        });
         Test("Scene CRUD updates desktop, saved workspace and phone with stable IDs", () =>
         {
             Check((bool)Call(window, "SaveSceneTile", custom)!, "Add failed");

@@ -1,9 +1,11 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Automation;
+using System.Windows.Media;
 using Culto.Core;
 using Culto.Desktop.Services;
 using Microsoft.Win32;
+using static Culto.Desktop.Dialogs.TransitionEditorUi;
 
 namespace Culto.Desktop.Dialogs;
 
@@ -30,55 +32,144 @@ public sealed class SceneTileDialog : Window
         _imageData = _original.ImageData;
         _fileCue = _original.Cue?.Copy();
         _sources = sources.DistinctBy(c => c.Id).ToArray();
-        var panel = DialogUi.Panel(this, scene is null ? "Añadir escena" : "Editar escena",
-            "Elige qué hace este botón y personaliza su nombre, color e imagen.");
-        Width = 560;
-        _preview = new Border { Width = 100, Height = 100, Padding = new Thickness(6), CornerRadius = new CornerRadius(10),
-            HorizontalAlignment = HorizontalAlignment.Center };
-        panel.Children.Add(_preview);
-        _label = new TextBox { Text = _original.Label, MaxLength = 80 };
-        DialogUi.Label(panel, "Nombre del botón (opcional)", _label); panel.Children.Add(_label);
-        _action = new ComboBox { SelectedValuePath = "Tag" };
+        ConfigureTheme();
+        Title = scene is null ? "Añadir escena" : "Editar escena";
+        Width = Math.Min(980, SystemParameters.WorkArea.Width - 48);
+        Height = Math.Min(800, SystemParameters.WorkArea.Height - 48);
+        MinWidth = Math.Min(760, Width); MinHeight = Math.Min(600, Height);
+        MaxHeight = SystemParameters.WorkArea.Height - 24;
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        Background = Brush("#191919"); Foreground = Brushes.WhiteSmoke;
+        FontFamily = new FontFamily("Segoe UI");
+
+        var root = new Grid();
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        root.RowDefinitions.Add(new RowDefinition());
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        Content = root;
+        var header = new StackPanel { Margin = new Thickness(28, 24, 28, 0) };
+        header.Children.Add(Text(Title, 27, bold: true));
+        var description = Text("Elige el contenido y personaliza su acceso en Escenas.", 13, Muted);
+        description.Margin = new Thickness(0, 6, 0, 0); header.Children.Add(description);
+        root.Children.Add(header);
+
+        var body = new Grid { Margin = new Thickness(28, 22, 28, 24) };
+        body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(290) });
+        body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(20) });
+        body.ColumnDefinitions.Add(new ColumnDefinition());
+        var scroll = new ScrollViewer { Content = body, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+        Grid.SetRow(scroll, 1); root.Children.Add(scroll);
+
+        var appearance = new StackPanel();
+        appearance.Children.Add(Text("Vista previa del botón", 17, bold: true));
+        _preview = new Border { Name = "ScenePreview", Width = 144, Height = 144, Padding = new Thickness(12),
+            CornerRadius = new CornerRadius(24), HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 24, 0, 22) };
+        appearance.Children.Add(_preview);
+        var artwork = new WrapPanel(); appearance.Children.Add(artwork);
+        var chooseArtwork = Button("Cambiar imagen…", "SceneArtwork", ChooseArtwork);
+        chooseArtwork.Margin = new Thickness(0, 0, 8, 8); artwork.Children.Add(chooseArtwork);
+        var removeArtwork = Button("Quitar", "RemoveSceneArtwork", () => { _imageData = null; UpdatePreview(); });
+        removeArtwork.Margin = new Thickness(0, 0, 0, 8); artwork.Children.Add(removeArtwork);
+        appearance.Children.Add(Text("La imagen del botón es independiente del contenido que se proyecta.", 12, Muted));
+        _color = new TextBox { Name = "SceneColor", Text = _original.Color, MaxLength = 7 };
+        DialogUi.Label(appearance, "Color del botón · #RRGGBB", _color); appearance.Children.Add(_color);
+        var colors = new WrapPanel { Margin = new Thickness(0, 12, 0, 0) }; appearance.Children.Add(colors);
+        foreach (var color in new[] { "#F5FBF3", "#08090C", "#E6F3FC", "#FFF0D7", "#FFFFFF", "#354E6D", "#4274F4", "#BEF264" })
+        {
+            var swatch = Button("", "", () => _color.Text = color);
+            swatch.Width = 36; swatch.Height = 36; swatch.MinHeight = 36; swatch.Padding = new Thickness(0);
+            swatch.Background = SceneTileVisual.Background(color); swatch.BorderBrush = Brush("#555555");
+            swatch.ToolTip = color; swatch.Margin = new Thickness(0, 0, 12, 10);
+            AutomationProperties.SetName(swatch, "Color " + color); colors.Children.Add(swatch);
+        }
+        var previewCard = Card(appearance, 20); previewCard.VerticalAlignment = VerticalAlignment.Top;
+        body.Children.Add(previewCard);
+
+        var settings = new StackPanel(); Grid.SetColumn(settings, 2); body.Children.Add(settings);
+        var contentFields = new StackPanel();
+        contentFields.Children.Add(Text("Contenido de la escena", 17, bold: true));
+        _label = new TextBox { Name = "SceneLabel", Text = _original.Label, MaxLength = 80 };
+        DialogUi.Label(contentFields, "Nombre del botón (opcional)", _label); contentFields.Children.Add(_label);
+        _action = new ComboBox { Name = "SceneAction", SelectedValuePath = "Tag" };
         foreach (var (id, title) in new[] { ("logo", "Mostrar logo"), ("blackout", "Fondo negro / restaurar"),
             ("image", "Proyectar imagen"), ("video", "Reproducir video"), ("audio", "Reproducir audio"),
-            ("youtube", "YouTube"), ("browser", "Navegador"), ("scene", "Escena por capas"), ("cue", "Contenido guardado") })
+            ("powerpoint", "Proyectar PowerPoint"), ("youtube", "YouTube"), ("browser", "Navegador"),
+            ("scene", "Escena por capas"), ("cue", "Contenido guardado") })
             _action.Items.Add(new ComboBoxItem { Tag = id, Content = title });
         _action.SelectedValue = _original.Action;
-        DialogUi.Label(panel, "Acción", _action); panel.Children.Add(_action);
-        _content = new ComboBox(); DialogUi.Label(panel, "Contenido de esta escena", _content); panel.Children.Add(_content);
-        _browse = DialogUi.Button("Elegir archivo…", ChooseContent); panel.Children.Add(_browse);
-        _contentHint = new TextBlock { TextWrapping = TextWrapping.Wrap, Style = (Style)FindResource("MutedText"), FontSize = 12 };
-        panel.Children.Add(_contentHint);
-        var artwork = new WrapPanel { Margin = new Thickness(0, 12, 0, 0) }; panel.Children.Add(artwork);
-        artwork.Children.Add(DialogUi.Button("Imagen del botón…", ChooseArtwork));
-        artwork.Children.Add(DialogUi.Button("Quitar imagen", () => { _imageData = null; UpdatePreview(); }));
-        panel.Children.Add(new TextBlock { Text = "La imagen del botón no cambia el contenido que se proyecta.", FontSize = 12,
-            TextWrapping = TextWrapping.Wrap, Style = (Style)FindResource("MutedText") });
-        _color = new TextBox { Text = _original.Color, MaxLength = 7 };
+        DialogUi.Label(contentFields, "Acción", _action); contentFields.Children.Add(_action);
+        _content = new ComboBox { Name = "SceneContent" };
+        DialogUi.Label(contentFields, "Contenido", _content); contentFields.Children.Add(_content);
+        _browse = Button("Elegir archivo…", "ChooseSceneContent", ChooseContent);
+        _browse.HorizontalAlignment = HorizontalAlignment.Stretch; _browse.Margin = new Thickness(0, 12, 0, 10);
+        contentFields.Children.Add(_browse);
+        _contentHint = Text("", 12, Muted); contentFields.Children.Add(_contentHint);
+        settings.Children.Add(Card(contentFields, 20));
+
+        var transitionFields = new StackPanel();
+        transitionFields.Children.Add(Text("Transición", 17, bold: true));
         _transition = new ComboBox { Name = "SceneTransitionPreset", SelectedValuePath = "Tag" };
         _transition.Items.Add(new ComboBoxItem { Content = "Usar transición del sistema", Tag = "" });
         foreach (var preset in transitions ?? []) _transition.Items.Add(new ComboBoxItem { Content = preset.Name, Tag = preset.Id });
         _transition.SelectedValue = _transition.Items.OfType<ComboBoxItem>().Any(i => i.Tag as string == _original.TransitionPresetId) ? _original.TransitionPresetId : "";
-        DialogUi.Label(panel, "Transición al mostrar esta escena", _transition); panel.Children.Add(_transition);
-        DialogUi.Label(panel, "Color de fondo (#RRGGBB)", _color); panel.Children.Add(_color);
-        var colors = new WrapPanel { Margin = new Thickness(0, 6, 0, 0) }; panel.Children.Add(colors);
-        foreach (var color in new[] { "#F5FBF3", "#08090C", "#E6F3FC", "#FFF0D7", "#FFFFFF", "#354E6D", "#4274F4", "#24B27E" })
-        {
-            var swatch = new Button { Width = 36, Height = 32, MinWidth = 32, MinHeight = 32, Padding = new Thickness(0),
-                Background = SceneTileVisual.Background(color), ToolTip = color, Margin = new Thickness(0, 0, 6, 0) };
-            AutomationProperties.SetName(swatch, "Color " + color);
-            swatch.Click += (_, _) => _color.Text = color; colors.Children.Add(swatch);
-        }
-        _error = new TextBlock { TextWrapping = TextWrapping.Wrap, Foreground = (System.Windows.Media.Brush)FindResource("AmberBrush"), Margin = new Thickness(0, 8, 0, 0) };
-        panel.Children.Add(_error);
-        var actions = DialogUi.Actions(panel);
-        var cancel = DialogUi.Button("Cancelar", () => DialogResult = false); cancel.IsCancel = true; actions.Children.Add(cancel);
-        var save = DialogUi.Button("Guardar escena", Save, true); save.IsDefault = true; actions.Children.Add(save);
-        _action.SelectionChanged += (_, _) => { _fileCue = null; FillContent(); UpdatePreview(); };
-        _content.SelectionChanged += (_, _) => UpdatePreview();
+        DialogUi.Label(transitionFields, "Al mostrar esta escena", _transition); transitionFields.Children.Add(_transition);
+        var transitionCard = Card(transitionFields, 20); transitionCard.Margin = new Thickness(0, 16, 0, 0);
+        settings.Children.Add(transitionCard);
+
+        var footer = new Grid { Margin = new Thickness(24, 16, 24, 16) };
+        footer.ColumnDefinitions.Add(new ColumnDefinition()); footer.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        _error = Text("", 12, Brush("#F3C779")); _error.Margin = new Thickness(0, 0, 16, 0);
+        AutomationProperties.SetLiveSetting(_error, AutomationLiveSetting.Polite);
+        footer.Children.Add(_error);
+        var actions = new StackPanel { Orientation = Orientation.Horizontal };
+        var cancel = Button("Cancelar", "CancelScene", () => DialogResult = false); cancel.IsCancel = true;
+        cancel.Margin = new Thickness(0, 0, 10, 0); actions.Children.Add(cancel);
+        var save = Button("Guardar escena", "SaveScene", Save, true); save.IsDefault = true; actions.Children.Add(save);
+        Grid.SetColumn(actions, 1); footer.Children.Add(actions);
+        var footerHost = new Border { Background = Brush("#242424"), BorderBrush = Brush("#353535"),
+            BorderThickness = new Thickness(0, 1, 0, 0), Child = footer };
+        Grid.SetRow(footerHost, 2); root.Children.Add(footerHost);
+        _action.SelectionChanged += (_, _) => { _error.Text = ""; _fileCue = null; FillContent(); UpdatePreview(); };
+        _content.SelectionChanged += (_, _) => { _error.Text = ""; UpdatePreview(); };
         _label.TextChanged += (_, _) => UpdatePreview(); _color.TextChanged += (_, _) => UpdatePreview();
         FillContent(); UpdatePreview();
         Loaded += (_, _) => { _label.Focus(); _label.SelectAll(); };
+    }
+
+    private void ConfigureTheme()
+    {
+        Style = (Style)Application.Current.FindResource(typeof(Window));
+        Resources.MergedDictionaries.Add(new ResourceDictionary
+            { Source = new Uri("/CultoStudio;component/Dialogs/TransitionEditorTheme.xaml", UriKind.Relative) });
+        Resources.MergedDictionaries.Add(new ResourceDictionary
+            { Source = new Uri("/CultoStudio;component/Dialogs/SceneTileDialogTheme.xaml", UriKind.Relative) });
+        foreach (var type in new[] { typeof(TextBox), typeof(ComboBox) })
+        {
+            var style = new Style(type, (Style)Application.Current.FindResource(type));
+            style.Setters.Add(new Setter(Control.BackgroundProperty, Brush("#303030")));
+            style.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.WhiteSmoke));
+            style.Setters.Add(new Setter(Control.BorderBrushProperty, Brush("#454545")));
+            style.Setters.Add(new Setter(Control.MinHeightProperty, 42d));
+            style.Setters.Add(new Setter(Control.FontSizeProperty, 14d));
+            var focus = new Trigger { Property = IsKeyboardFocusWithinProperty, Value = true };
+            focus.Setters.Add(new Setter(Control.BackgroundProperty, Brush("#303030")));
+            focus.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.WhiteSmoke));
+            focus.Setters.Add(new Setter(Control.BorderBrushProperty, Lime));
+            style.Triggers.Add(focus);
+            if (type == typeof(TextBox))
+            {
+                style.Setters.Add(new Setter(TextBox.CaretBrushProperty, Lime));
+                style.Setters.Add(new Setter(TextBox.SelectionBrushProperty, Lime));
+                style.Setters.Add(new Setter(TextBox.SelectionTextBrushProperty, Brush("#191919")));
+            }
+            else
+            {
+                style.Setters.Add(new Setter(Control.TemplateProperty, FindResource("SceneEditorComboTemplate")));
+                style.Setters.Add(new Setter(ItemsControl.ItemContainerStyleProperty, FindResource("SceneEditorOption")));
+            }
+            Resources[type] = style;
+        }
     }
 
     private string SelectedAction => _action.SelectedValue as string ?? "image";
@@ -87,26 +178,29 @@ public sealed class SceneTileDialog : Window
     {
         "image" => cue.Kind == CueKind.Image, "video" => cue.Kind == CueKind.Video, "audio" => cue.Kind == CueKind.Audio,
         "browser" => cue.Kind == CueKind.BrowserSource, "youtube" => cue.Kind == CueKind.WindowCapture,
-        "scene" => cue.Kind == CueKind.Scene,
+        "scene" => cue.Kind == CueKind.Scene, "powerpoint" => cue.Kind == CueKind.PowerPoint,
         "cue" => true, _ => false
     };
     private void FillContent()
     {
         _content.Items.Clear();
-        _content.Items.Add(new ComboBoxItem { Content = "Usar la selección actual del equipo" });
+        _content.Items.Add(new ComboBoxItem { Content = SelectedAction == "powerpoint"
+            ? "Selecciona una presentación…" : "Usar la selección actual del equipo" });
         foreach (var cue in (_fileCue is null ? _sources : new[] { _fileCue }.Concat(_sources)).Where(Matches).DistinctBy(c => c.Id))
             _content.Items.Add(new ComboBoxItem { Content = cue.Title, Tag = cue });
         _content.SelectedItem = _content.Items.OfType<ComboBoxItem>().FirstOrDefault(i => (i.Tag as Cue)?.Id == _fileCue?.Id && i.Tag is not null)
             ?? _content.Items[0];
         _content.IsEnabled = SelectedAction is not ("logo" or "blackout");
         _browse.IsEnabled = SelectedAction is not ("logo" or "blackout" or "youtube");
-        _browse.Content = SelectedAction switch { "scene" => "Editar capas…", "browser" => "Crear navegador…", _ => "Elegir archivo…" };
+        _browse.Content = SelectedAction switch { "scene" => "Editar capas…", "browser" => "Crear navegador…",
+            "powerpoint" => "Elegir presentación…", _ => "Elegir archivo…" };
         _contentHint.Text = SelectedAction switch
         {
             "logo" => "Muestra las imágenes elegidas en Configurar logo, desde el menú de la escena.",
             "blackout" => "Muestra el fondo negro; al pulsar de nuevo restaura el contenido.",
             "youtube" => "Elige una ventana de YouTube detectada o usa la selección actual del equipo.",
             "scene" => "Combina imagen, video, audio, texto, Biblia, navegador y captura en capas independientes.",
+            "powerpoint" => "La presentación se abrirá con PowerPoint al pulsar esta escena.",
             _ => "Puedes fijar un archivo o contenido guardado para que esta escena siempre proyecte lo mismo."
         };
     }
@@ -146,7 +240,9 @@ public sealed class SceneTileDialog : Window
             var dialog = new OpenFileDialog { Title = "Contenido de la escena", Filter = SelectedAction switch
             {
                 "image" => "Imágenes|*.png;*.jpg;*.jpeg;*.bmp", "video" => "Videos|*.mp4;*.mkv;*.mov;*.webm;*.avi;*.wmv",
-                "audio" => "Audio|*.mp3;*.wav;*.m4a;*.flac;*.ogg;*.wma", _ => "Contenido|*.png;*.jpg;*.jpeg;*.bmp;*.mp4;*.mkv;*.mov;*.webm;*.mp3;*.wav;*.m4a;*.pptx;*.ppt"
+                "audio" => "Audio|*.mp3;*.wav;*.m4a;*.flac;*.ogg;*.wma",
+                "powerpoint" => "PowerPoint|*.pptx;*.ppt;*.ppsx;*.pps",
+                _ => "Contenido|*.png;*.jpg;*.jpeg;*.bmp;*.mp4;*.mkv;*.mov;*.webm;*.mp3;*.wav;*.m4a;*.pptx;*.ppt;*.ppsx;*.pps"
             } };
             if (SelectedAction == "youtube") { _error.Text = "Elige una ventana de YouTube detectada en la lista."; return; }
             if (dialog.ShowDialog(this) != true) return;
@@ -160,7 +256,7 @@ public sealed class SceneTileDialog : Window
     {
         if (!System.Text.RegularExpressions.Regex.IsMatch(_color.Text.Trim(), "^#[0-9a-fA-F]{6}$"))
         { _error.Text = "Escribe un color como #24B27E."; return; }
-        if (SelectedCue is null && SelectedAction is "cue" or "audio" or "scene")
+        if (SelectedCue is null && SelectedAction is "cue" or "audio" or "scene" or "powerpoint")
         { _error.Text = "Elige el contenido que quieres proyectar."; return; }
         if (SelectedCue?.FilePath is { } path && !File.Exists(path)) { _error.Text = "No se encuentra el archivo de esta escena."; return; }
         Result = Draft(); DialogResult = true;

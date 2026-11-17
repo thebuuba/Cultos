@@ -10,7 +10,7 @@
     <RootNamespace>Culto.Desktop</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets/CultoStudio.ico</ApplicationIcon>
-    <Version>0.43.4</Version>
+    <Version>0.43.5</Version>
     <Authors>Culto Studio</Authors>
     <Description>Consola local para preparar y proyectar cultos.</Description>
     <!-- WPF owns startup/DPI; WinForms is referenced only for display enumeration. -->
