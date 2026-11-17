@@ -1,4 +1,4 @@
-﻿<Window x:Class="Culto.Desktop.MainWindow"
+<Window x:Class="Culto.Desktop.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:Culto.Desktop"
@@ -12,6 +12,7 @@
         UseLayoutRounding="True" Style="{StaticResource {x:Type Window}}">
   <Window.Resources>
     <local:BibleVersionLabelConverter x:Key="BibleVersionLabelConverter"/>
+    <SolidColorBrush x:Key="BibleSelectionBrush" Color="#395B88"/>
     <Thickness x:Key="SourcePanelPadding">14,24,14,14</Thickness>
     <ControlTemplate x:Key="WorkspaceSourceTabTemplate" TargetType="TabItem">
       <Grid>
@@ -789,7 +790,6 @@
                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <StackPanel VerticalAlignment="Center" Margin="0,0,8,0">
                   <TextBlock x:Name="BibleNameText" Text="Biblia" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
-                  <TextBlock x:Name="BibleStatusText" Text="Sin Biblia cargada" Style="{StaticResource MutedText}" FontSize="12" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Margin="0,3,0,0"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                   <Button Content="+" Style="{StaticResource CompactIconButton}" ToolTip="Agregar versiones de la Biblia" Click="ImportBibleClick" AutomationProperties.Name="Agregar versiones de la Biblia"/>
@@ -798,7 +798,7 @@
               </Grid>
               <Grid Grid.Row="2" Margin="0,0,0,10">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="62"/><ColumnDefinition Width="62"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                <ComboBox x:Name="BibleBookPicker" Margin="0,0,5,0" Padding="10,5,28,5" MinHeight="32" FontSize="12" SelectionChanged="BibleBookChanged" MaxDropDownHeight="360" IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True" ToolTip="Libro de la Biblia" AutomationProperties.Name="Libro de la Biblia"/>
+                <ComboBox x:Name="BibleBookPicker" Margin="0,0,5,0" Padding="10,5,28,5" MinHeight="32" FontSize="12" SelectionChanged="BibleBookChanged" PreviewKeyDown="BibleBookKeyDown" LostKeyboardFocus="BibleBookLostFocus" MaxDropDownHeight="360" IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True" ToolTip="Libro o cita completa, como Lucas 5:14. Pulsa Enter para buscar." AutomationProperties.Name="Libro de la Biblia"/>
                 <ComboBox Grid.Column="1" x:Name="BibleChapterPicker" Margin="0,0,5,0" Padding="8,5,26,5" MinHeight="32" FontSize="12" SelectionChanged="BibleChapterChanged" MaxDropDownHeight="300" ToolTip="Capítulo" AutomationProperties.Name="Capítulo de la Biblia"/>
                 <ComboBox Grid.Column="2" x:Name="BibleVersePicker" Margin="0,0,5,0" Padding="8,5,26,5" MinHeight="32" FontSize="12" SelectionChanged="BibleVerseChanged" MaxDropDownHeight="300" ToolTip="Versículo" AutomationProperties.Name="Versículo de la Biblia"/>
                 <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
@@ -822,6 +822,38 @@
                 <TextBlock x:Name="BibleSelectionText" Foreground="{StaticResource AccentTextBrush}" FontSize="12" Margin="0,3,0,0" TextTrimming="CharacterEllipsis" Visibility="Collapsed" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
               </StackPanel>
               <ListBox Grid.Row="4" x:Name="BibleResults" SelectionMode="Extended" SelectionChanged="BibleSelectionChanged" MouseDoubleClick="BibleResultsDoubleClick" PreviewKeyDown="BibleResultsKeyDown" AutomationProperties.Name="Resultados de Biblia">
+                <ListBox.ItemContainerStyle>
+                  <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                    <Setter Property="Template">
+                      <Setter.Value>
+                        <ControlTemplate TargetType="ListBoxItem">
+                          <Border x:Name="VerseRow" Background="Transparent" CornerRadius="2"
+                                  BorderBrush="Transparent" BorderThickness="1" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
+                          </Border>
+                          <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                              <Setter TargetName="VerseRow" Property="Background" Value="#303136"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                              <Setter TargetName="VerseRow" Property="Background" Value="{StaticResource BibleSelectionBrush}"/>
+                            </Trigger>
+                            <MultiTrigger>
+                              <MultiTrigger.Conditions>
+                                <Condition Property="IsKeyboardFocusWithin" Value="True"/>
+                                <Condition Property="IsSelected" Value="False"/>
+                              </MultiTrigger.Conditions>
+                              <Setter TargetName="VerseRow" Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+                            </MultiTrigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                              <Setter Property="Opacity" Value="0.65"/>
+                            </Trigger>
+                          </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                      </Setter.Value>
+                    </Setter>
+                  </Style>
+                </ListBox.ItemContainerStyle>
                 <ListBox.ItemTemplate><DataTemplate><Grid ToolTip="{Binding Reference}">
                   <Grid.ColumnDefinitions><ColumnDefinition Width="44"/><ColumnDefinition/></Grid.ColumnDefinitions>
                   <Border MinWidth="23" Height="23" Padding="3,0" CornerRadius="12" Background="{StaticResource RaisedBrush}" VerticalAlignment="Top"><TextBlock Text="{Binding Verse.VerseNumber}" FontSize="12" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
@@ -853,8 +885,31 @@
                   <Style TargetType="ListBoxItem" BasedOn="{StaticResource FilterChip}">
                     <Setter Property="ToolTip" Value="{Binding Name}"/>
                     <Setter Property="AutomationProperties.Name" Value="{Binding Name}"/>
-                    <Setter Property="Margin" Value="0,0,5,0"/>
+                    <Setter Property="Margin" Value="0,0,2,0"/>
+                    <Setter Property="Padding" Value="7,7"/>
                     <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="Template">
+                      <Setter.Value>
+                        <ControlTemplate TargetType="ListBoxItem">
+                          <Border x:Name="VersionChip" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"
+                                  CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter/>
+                          </Border>
+                          <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                              <Setter TargetName="VersionChip" Property="Background" Value="{StaticResource HoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                              <Setter TargetName="VersionChip" Property="Background" Value="{StaticResource BibleSelectionBrush}"/>
+                              <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                              <Setter TargetName="VersionChip" Property="BorderBrush" Value="{StaticResource MutedBrush}"/>
+                            </Trigger>
+                          </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                      </Setter.Value>
+                    </Setter>
                   </Style>
                 </ListBox.ItemContainerStyle>
                 <ListBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Name, Converter={StaticResource BibleVersionLabelConverter}}"/></DataTemplate></ListBox.ItemTemplate>

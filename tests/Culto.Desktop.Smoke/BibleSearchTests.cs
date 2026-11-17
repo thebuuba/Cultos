@@ -66,6 +66,24 @@ internal static partial class Program
                     "Phrase search lost the full visible Bible reference");
                 Check(ReferenceEquals(live, session.Live), "Typing projected a Bible result");
             });
+            Test("Editable book picker resolves a complete citation without projecting", () =>
+            {
+                var book = (ComboBox)window.FindName("BibleBookPicker");
+                var previousLive = session.Live;
+                book.Text = "Jn 3 17";
+                book.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(window)!, 0, Key.Enter)
+                    { RoutedEvent = Keyboard.PreviewKeyDownEvent });
+                Check(session.Prepared?.Reference == "Juan 3:17", "Book picker ignored chapter and verse");
+                Check(((ComboBox)window.FindName("BibleChapterPicker")).SelectedItem is 3
+                    && ((ComboBox)window.FindName("BibleVersePicker")).SelectedItem is 17, "Book picker did not synchronize citation");
+                Check(ReferenceEquals(previousLive, session.Live), "Book entry projected without an explicit send");
+                book.Text = "Juan 3 16-17";
+                Call(window, "ResolveBibleBookText");
+                Check(results.SelectedItems.Count == 2 && session.Prepared?.Reference == "Juan 3:16-17", "Book entry lost a verse range");
+                book.Text = "Juan 99 99";
+                Call(window, "ResolveBibleBookText");
+                Check(results.Items.Count == 0 && ReferenceEquals(previousLive, session.Live), "Invalid book entry retained stale results or projected");
+            });
             Test("Incomplete Bible citations clear stale results and Escape clears the query", () =>
             {
                 var lastPrepared = session.Prepared;

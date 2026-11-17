@@ -97,7 +97,11 @@ public partial class MainWindow
         AddMediaToPlanButton.IsEnabled = MediaList.SelectedItem is Cue;
     }
 
-    private void MediaSearchChanged(object sender, TextChangedEventArgs e) => RefreshMedia();
+    private void MediaSearchChanged(object sender, TextChangedEventArgs e)
+    {
+        CancelSearchReset(MediaSearch);
+        RefreshMedia();
+    }
     private void MediaSearchKeyDown(object sender, KeyEventArgs e)
     {
         if (!_ready) return;

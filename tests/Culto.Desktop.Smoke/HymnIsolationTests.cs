@@ -7,6 +7,67 @@ internal static partial class Program
 {
     private static void RunHymnIsolationTests(MainWindow window)
     {
+        Test("Played searches clear after five seconds and edits cancel the pending reset", () =>
+        {
+            var workspace = Field<WorkspaceData>(window, "_workspace");
+            var hymn = new Cue { Title = "Prueba de borrado", HymnNumber = 9876, Kind = CueKind.Text, Body = "Prueba" };
+            var search = (TextBox)window.FindName("LibrarySearch");
+            var media = (TextBox)window.FindName("MediaSearch");
+            var list = (ListBox)window.FindName("LibraryList");
+            var session = Field<PresentationSession>(window, "_session");
+            workspace.Library.Add(hymn);
+            try
+            {
+                search.Text = "9876";
+                list.SelectedItem = hymn;
+                Call(window, "PrepareCue", hymn, null);
+                Call(window, "ProjectPrepared");
+                var live = session.Live;
+                PumpFor(4500);
+                Check(search.Text == "9876", "Search cleared before five seconds");
+                PumpFor(700);
+                Check(search.Text == "" && ReferenceEquals(live, session.Live), "Search reset failed or interrupted playback");
+                search.Text = "9876";
+                list.SelectedItem = hymn;
+                Call(window, "SchedulePlayedSearchReset", hymn);
+                search.Text = "otra";
+                search.Text = "9876";
+                PumpFor(5200);
+                Check(search.Text == "9876", "A new query was cleared by the old playback timer");
+                media.Text = "otro medio";
+                list.SelectedItem = hymn;
+                Call(window, "SchedulePlayedSearchReset", hymn);
+                media.Text = "nueva busqueda";
+                PumpFor(5200);
+                Check(search.Text == "" && media.Text == "nueva busqueda", "Playback reset touched a different source search");
+                var folders = Field<IReadOnlyList<Cue>>(window, "_folderItems");
+                var mediaCue = new Cue { Title = "medio sintetico", Kind = CueKind.Text, Body = "Medio" };
+                try
+                {
+                    SetField(window, "_folderItems", new[] { mediaCue });
+                    media.Text = "medio";
+                    ((ListBox)window.FindName("MediaList")).SelectedItem = mediaCue;
+                    Call(window, "PrepareCue", mediaCue, null);
+                    Call(window, "ProjectPrepared");
+                    PumpFor(5200);
+                    Check(media.Text == "", "Media playback did not reset its search");
+                    media.Text = "medio";
+                    ((ListBox)window.FindName("MediaList")).SelectedItem = mediaCue;
+                    Call(window, "SchedulePlayedSearchReset", mediaCue);
+                    media.Text = "otra";
+                    PumpFor(5200);
+                    Check(media.Text == "otra", "Media playback cleared a new query");
+                }
+                finally { SetField(window, "_folderItems", folders); }
+            }
+            finally
+            {
+                Call(window, "CancelSearchReset", search);
+                Call(window, "CancelSearchReset", media);
+                workspace.Library.Remove(hymn);
+                search.Clear(); media.Clear();
+            }
+        });
         Test("Hymnal excludes ordinary media, presentations and generic text without deleting library content", () =>
         {
             var workspace = Field<WorkspaceData>(window, "_workspace");

@@ -3,19 +3,41 @@
   <DrawingImage.Drawing>
     <DrawingGroup>
       <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z" />
-      <GeometryDrawing Brush="#147D5B">
+      <GeometryDrawing>
+        <GeometryDrawing.Brush>
+          <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#30256B" Offset="0"/>
+            <GradientStop Color="#151C46" Offset="1"/>
+          </LinearGradientBrush>
+        </GeometryDrawing.Brush>
         <GeometryDrawing.Geometry>
           <RectangleGeometry Rect="8,8,240,240" RadiusX="52" RadiusY="52" />
         </GeometryDrawing.Geometry>
       </GeometryDrawing>
-      <GeometryDrawing>
-        <GeometryDrawing.Pen><Pen Brush="#FFFFFF" Thickness="12" /></GeometryDrawing.Pen>
+      <GeometryDrawing Geometry="M146,71 A55,64 0 1 0 146,181 L135,162 A34,43 0 1 1 135,90 Z">
+        <GeometryDrawing.Brush>
+          <LinearGradientBrush StartPoint="0,0" EndPoint="0.7,1">
+            <GradientStop Color="#A895FF" Offset="0"/>
+            <GradientStop Color="#F06AD8" Offset="0.52"/>
+            <GradientStop Color="#FF9D8A" Offset="1"/>
+          </LinearGradientBrush>
+        </GeometryDrawing.Brush>
+      </GeometryDrawing>
+      <GeometryDrawing Brush="#58CFFF">
         <GeometryDrawing.Geometry>
-          <RectangleGeometry Rect="48,56,160,120" RadiusX="12" RadiusY="12" />
+          <RectangleGeometry Rect="141,89,58,20" RadiusX="7" RadiusY="7" />
         </GeometryDrawing.Geometry>
       </GeometryDrawing>
-      <GeometryDrawing Brush="#FFFFFF" Geometry="M121,79 H135 V102 H156 V116 H135 V149 H121 V116 H100 V102 H121 Z" />
-      <GeometryDrawing Brush="#FFFFFF" Geometry="M122,182 H134 V200 H164 V212 H92 V200 H122 Z" />
+      <GeometryDrawing Brush="#51E3BB">
+        <GeometryDrawing.Geometry>
+          <RectangleGeometry Rect="141,119,44,20" RadiusX="7" RadiusY="7" />
+        </GeometryDrawing.Geometry>
+      </GeometryDrawing>
+      <GeometryDrawing Brush="#FFD166">
+        <GeometryDrawing.Geometry>
+          <RectangleGeometry Rect="141,149,58,20" RadiusX="7" RadiusY="7" />
+        </GeometryDrawing.Geometry>
+      </GeometryDrawing>
     </DrawingGroup>
   </DrawingImage.Drawing>
 </DrawingImage>

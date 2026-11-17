@@ -32,6 +32,7 @@ public partial class MainWindow
             _preserveAudioForBackdrop = _session.IsTextHidden || _session.IsBlackout;
             _output.Transitions = CurrentTransitions;
             _output.PlayAudioKeepingVisual(CopyCue(cue));
+            SchedulePlayedSearchReset(cue);
             _isPaused = false;
             UpdateBackgroundAudioState(); UpdateUsabilityState();
             SetStatus("Solo audio: " + cue.Title + ". La imagen continúa.");

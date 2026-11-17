@@ -139,10 +139,8 @@ public partial class MainWindow
     {
         if (_bible is null) return;
         BibleNameText.Text = _bible.Document.Name;
-        BibleStatusText.Text = _bible.Document.Verses.Count == 1
-            ? "1 versículo disponible sin internet."
-            : $"{_bible.Document.Verses.Count:N0} versículos disponibles sin internet.";
-        BibleStatusText.ToolTip = _bible.Document.Attribution;
+        BibleNameText.ToolTip = string.IsNullOrWhiteSpace(_bible.Document.Attribution)
+            ? _bible.Document.Name : $"{_bible.Document.Name}\n{_bible.Document.Attribution}";
     }
     private async void ImportBibleClick(object sender, RoutedEventArgs e)
     {
@@ -214,6 +212,25 @@ public partial class MainWindow
         BibleQuery.Focus();
     }
     private void SearchBibleClick(object sender, RoutedEventArgs e) => SearchBible();
+    private void BibleBookKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter) return;
+        e.Handled = true;
+        if (!e.IsRepeat) ResolveBibleBookText();
+    }
+    private void BibleBookLostFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (!BibleBookPicker.IsKeyboardFocusWithin) ResolveBibleBookText();
+    }
+    private void ResolveBibleBookText()
+    {
+        if (_updatingBiblePickers || _bible is null) return;
+        var text = BibleBookPicker.Text.Trim();
+        if (!text.Any(char.IsDigit) || BibleCatalog.IsKnownBook(text)) return;
+        // Reuse the reference parser, range selection and validation of the search field.
+        BibleQuery.Text = text;
+        SearchBible();
+    }
     private void BibleBookChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_updatingBiblePickers || _bible is null || BibleBookPicker.SelectedItem is not string book) return;

@@ -33,6 +33,7 @@ public partial class MainWindow
         _preparedBibleStyleChanged = false;
         _session.GoLive();
         ShowLiveCue();
+        SchedulePlayedSearchReset(cue);
         _isPaused = false;
         UpdateSessionLabels();
         SetStatus($"{(_outputWindow is null ? "Local" : "En pantalla")}: {cue.Title}");

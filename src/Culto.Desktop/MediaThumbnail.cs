@@ -19,6 +19,10 @@ public sealed class MediaThumbnail : FrameworkElement
     private static readonly Typeface IconFace = new("Segoe MDL2 Assets");
     private static readonly Typeface LabelFace = new("Segoe UI");
     private static readonly Brush Accent = new SolidColorBrush(Color.FromRgb(36, 178, 126));
+    private static readonly Geometry BibleCover = (Geometry)Geometry.Parse("M 4,1 H 20 V 23 H 5 C 2.8,23 1,21.2 1,19 V 4 C 1,2.3 2.3,1 4,1 Z").GetAsFrozen();
+    private static readonly Geometry BibleDetails = (Geometry)Geometry.Parse("M 8,8 H 16 M 12,4 V 14 M 4,19 H 18").GetAsFrozen();
+    private static readonly Brush BibleBlue = new SolidColorBrush(Color.FromRgb(146, 192, 255));
+    private static readonly Pen BibleDetailPen = new(Brushes.Black, 1.5);
     private BitmapSource? _image;
     private TimeSpan? _duration;
     private CancellationTokenSource? _request;
@@ -86,6 +90,16 @@ public sealed class MediaThumbnail : FrameworkElement
             var scale = Math.Min(ActualWidth / image.PixelWidth, ActualHeight / image.PixelHeight);
             var width = image.PixelWidth * scale; var height = image.PixelHeight * scale;
             drawing.DrawImage(image, new Rect((ActualWidth - width) / 2, (ActualHeight - height) / 2, width, height));
+        }
+        else if (Cue?.Kind == CueKind.Bible)
+        {
+            var scale = Math.Min(1.2, Math.Min(ActualWidth, ActualHeight) / 34);
+            drawing.PushTransform(new TranslateTransform((ActualWidth - 21 * scale) / 2, (ActualHeight - 24 * scale) / 2));
+            drawing.PushTransform(new ScaleTransform(scale, scale));
+            drawing.DrawGeometry(BibleBlue, null, BibleCover);
+            drawing.DrawGeometry(null, BibleDetailPen, BibleDetails);
+            drawing.Pop();
+            drawing.Pop();
         }
         else
         {

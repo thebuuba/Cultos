@@ -60,7 +60,11 @@ public partial class MainWindow
                 ? $"Sin resultados para «{query}» en {category}."
                 : $"Sin contenido en {category}.";
     }
-    private void LibrarySearchChanged(object sender, TextChangedEventArgs e) => RefreshLibrary();
+    private void LibrarySearchChanged(object sender, TextChangedEventArgs e)
+    {
+        CancelSearchReset(LibrarySearch);
+        RefreshLibrary();
+    }
     private void LibrarySearchKeyDown(object sender, KeyEventArgs e)
     {
         if (!_ready || e.Key != Key.Enter) return;

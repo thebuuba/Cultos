@@ -2,6 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -20,6 +21,7 @@ internal sealed class CompositedVideo : Image, IDisposable
     private int _width, _height, _pitch, _bytes, _queued, _epoch;
     private bool _disposed;
     private WriteableBitmap? _bitmap;
+    private MediaPlayer? _player;
     public event Action? FramePresented;
 
     public CompositedVideo() => Stretch = Stretch.Uniform;
@@ -66,6 +68,7 @@ internal sealed class CompositedVideo : Image, IDisposable
 
     public void Attach(MediaPlayer player)
     {
+        _player = player;
         player.SetVideoFormatCallbacks(Configure, Cleanup);
         player.SetVideoCallbacks(Lock, Unlock, Display);
     }
@@ -77,6 +80,15 @@ internal sealed class CompositedVideo : Image, IDisposable
         {
             FreeBuffer();
             if (_disposed || width == 0 || height == 0) return 0;
+            // Decoder buffers can include padded rows (VP9 may report 1152 for 1080).
+            // Ask VLC to convert into the visible track dimensions, not the allocation size.
+            using var media = _player?.Media;
+            var track = media?.Tracks.FirstOrDefault(item => item.TrackType == LibVLCSharp.Shared.TrackType.Video);
+            if (track is { } video && video.Data.Video.Width > 0 && video.Data.Video.Height > 0)
+            {
+                width = video.Data.Video.Width;
+                height = video.Data.Video.Height;
+            }
             // Bound frame copying to full HD while retaining the source aspect ratio.
             double scale = Math.Min(1, Math.Min(1920d / width, 1080d / height));
             width = (uint)Math.Max(1, Math.Round(width * scale));
