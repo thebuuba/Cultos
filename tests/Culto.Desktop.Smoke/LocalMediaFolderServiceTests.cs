@@ -37,6 +37,19 @@ internal static partial class Program
                 Check(images.Items.Count == 1 && images.Items[0].Kind == CueKind.Image, "Images filter includes other kinds");
             });
 
+            Test("Folder discovery publishes usable files before finishing its recursive scan", () =>
+            {
+                var snapshots = new List<LocalMediaScan>();
+                var result = LocalMediaFolders.Scan(fixtureRoot, progress: snapshots.Add);
+                Check(snapshots.Count > 0 && snapshots[0].Items.Count > 0
+                    && snapshots[0].Items.Count < result.Items.Count, "Folder stayed empty until the full scan finished");
+                using var cancellation = new CancellationTokenSource();
+                var canceled = false;
+                try { LocalMediaFolders.Scan(fixtureRoot, cancellationToken: cancellation.Token, progress: _ => cancellation.Cancel()); }
+                catch (OperationCanceledException) { canceled = true; }
+                Check(canceled, "Cancellation after partial discovery did not stop the scan");
+            });
+
             Test("PC folder scan distinguishes unavailable folders from empty folders and accepts cancellation", () =>
             {
                 var empty = Path.Combine(fixtureRoot, "Vacia");

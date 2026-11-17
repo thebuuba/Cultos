@@ -89,7 +89,7 @@ public partial class MainWindow
         MediaFolderPathText.Text = CurrentFolderPath;
         ChooseMediaFolderButton.ToolTip = _activeFolderFilter == 8 ? CurrentFolderPath : "Elegir carpeta";
         ChooseMediaFolderButton.Foreground = (Brush)FindResource(_activeFolderFilter == 8 ? "AccentBrush" : "MutedBrush");
-        MediaCountText.Text = _folderLoading ? "Cargando…" : $"{_mediaView.Count:N0} archivos";
+        MediaCountText.Text = _folderLoading ? $"{_mediaView.Count:N0} archivos · Buscando…" : $"{_mediaView.Count:N0} archivos";
         MediaCountText.ToolTip = _folderError;
         MediaEmptyText.Text = _folderLoading ? "Cargando archivos…" : _folderError
             ?? (query.Length > 0 ? "Sin resultados" : "No hay archivos multimedia en esta carpeta");

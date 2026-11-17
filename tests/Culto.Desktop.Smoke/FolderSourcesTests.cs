@@ -82,6 +82,7 @@ internal static partial class Program
             Call(window, "SetLibraryFolder", -1);
             filter.SelectedIndex = -1;
             paths[2] = videos; paths[3] = pictures; paths[6] = downloads;
+            paths[9] = downloads; paths[10] = pictures;
             Call(window, "SelectContentSource", 0);
             importedSearch.Clear();
             File.WriteAllText(nestedVideo, "Synthetic discovery fixture; never played");
@@ -109,6 +110,18 @@ internal static partial class Program
                 CheckLibraryUnchanged();
                 Check(refresh.Visibility == Visibility.Visible,
                     "Windows folder source has no refresh action");
+            });
+
+            Test("Music and Documents retain their discovered files immediately when revisited", () =>
+            {
+                SelectFolder(9, downloadAudio, downloadImage, downloadVideo);
+                SelectFolder(10, imagePath, Path.Combine(pictures, "Wrong category.mp4"));
+                filter.SelectedValue = "9";
+                Check(HasPaths(downloadAudio, downloadImage, downloadVideo), "Returning to Music cleared its discovered files");
+                Until(Ready, "Music did not finish revalidating its files");
+                filter.SelectedValue = "10";
+                Check(HasPaths(imagePath, Path.Combine(pictures, "Wrong category.mp4")), "Returning to Documents cleared its discovered files");
+                Until(Ready, "Documents did not finish revalidating its files");
             });
 
             Test("Folder search and refresh retain file identity and selection", () =>
@@ -273,6 +286,18 @@ internal static partial class Program
                 Until(() => Ready() && HasPaths(imagePath), "Watcher did not settle after restoring the image fixture");
             });
 
+            Test("Unrelated document edits do not restart media discovery", () =>
+            {
+                SelectFolder(10, imagePath, Path.Combine(pictures, "Wrong category.mp4"));
+                var scan = Field<CancellationTokenSource>(window, "_folderScanCancellation");
+                var log = Path.Combine(pictures, "Unrelated.log");
+                File.WriteAllText(log, "First log entry");
+                File.AppendAllText(log, "Another log entry");
+                PumpFor(800);
+                Check(ReferenceEquals(scan, Field<CancellationTokenSource>(window, "_folderScanCancellation"))
+                    && Ready(), "An unsupported document restarted media discovery");
+            });
+
             Test("Switching folder categories cancels obsolete results and loading state", () =>
             {
                 SelectFolder(2, nestedVideo);
@@ -285,7 +310,9 @@ internal static partial class Program
                 importedFilter.SelectedIndex = 0;
                 Call(window, "RefreshLibrary");
                 Wait(pictureScan);
-                Check(Ready() && HasPaths(imagePath) && importedView.Select(cue => cue.Id).ToHashSet().SetEquals(oldLibrary.Select(cue => cue.Id)),
+                var expectedHymns = oldLibrary.Where(cue => cue.HymnNumber.HasValue
+                    && cue.Kind is CueKind.Text or CueKind.Video or CueKind.Audio);
+                Check(Ready() && HasPaths(imagePath) && importedView.Select(cue => cue.Id).ToHashSet().SetEquals(expectedHymns.Select(cue => cue.Id)),
                     "Imported library selection changed media browsing or mixed its files with imported contents");
                 Check(((Button)window.FindName("RefreshFolderButton")).Visibility == Visibility.Collapsed,
                     "Imported library retained a folder-only refresh action");

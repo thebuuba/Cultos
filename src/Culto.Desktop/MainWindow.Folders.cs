@@ -9,6 +9,7 @@ namespace Culto.Desktop;
 public partial class MainWindow
 {
     private readonly Dictionary<int, string> _folderPaths = [];
+    private readonly Dictionary<int, (string Path, LocalMediaScan Scan)> _folderCache = [];
     private IReadOnlyList<Cue> _folderItems = [];
     private int _activeFolderFilter = -1;
     private bool _folderLoading;
@@ -30,6 +31,12 @@ public partial class MainWindow
         _folderLoading = false;
         if (!IsFolderFilter(filter)) return;
         if (!_folderPaths.ContainsKey(filter)) _folderPaths[filter] = LocalMediaFolders.GetPath(filter);
+        if (_folderCache.TryGetValue(filter, out var cached)
+            && string.Equals(cached.Path, CurrentFolderPath, StringComparison.OrdinalIgnoreCase))
+        {
+            _folderItems = cached.Scan.Items;
+            _folderError = cached.Scan.Error;
+        }
         WatchLibraryFolder();
         _ = LoadLibraryFolderAsync();
     }
@@ -43,6 +50,7 @@ public partial class MainWindow
         var token = cancellation.Token;
         var filter = _activeFolderFilter;
         var path = CurrentFolderPath;
+        var showProgress = _folderItems.Count == 0;
         _folderLoading = true;
         // Keep folder changes responsive before scanning files off the UI thread.
         await Task.Yield();
@@ -51,10 +59,18 @@ public partial class MainWindow
         try
         {
             CueKind? kind = filter switch { 2 => CueKind.Video, 3 => CueKind.Image, _ => null };
-            var result = await Task.Run(() => LocalMediaFolders.Scan(path, kind, token), token);
+            IProgress<LocalMediaScan> progress = new Progress<LocalMediaScan>(partial =>
+            {
+                if (!showProgress || token.IsCancellationRequested || _closing || filter != _activeFolderFilter || !_folderLoading) return;
+                _folderItems = partial.Items;
+                RefreshMedia();
+            });
+            var result = await Task.Run(() => LocalMediaFolders.Scan(path, kind, token,
+                showProgress ? progress.Report : null), token);
             if (token.IsCancellationRequested || _closing || filter != _activeFolderFilter) return;
             _folderItems = result.Items;
             _folderError = result.Error;
+            _folderCache[filter] = (path, result);
         }
         catch (OperationCanceledException) { return; }
         catch (Exception)
@@ -114,7 +130,18 @@ public partial class MainWindow
         return timer;
     }
 
-    private void FolderFilesChanged(object sender, FileSystemEventArgs e) => QueueFolderRefresh();
+    private void FolderFilesChanged(object sender, FileSystemEventArgs e)
+    {
+        if (!ReferenceEquals(sender, _folderWatcher)) return;
+        var supported = MediaLibrary.IsSupported(e.FullPath);
+        // Logs, source files and application caches inside Documents must not
+        // repeatedly cancel discovery of the operator's media.
+        if (e.ChangeType == WatcherChangeTypes.Changed && !supported) return;
+        var oldPath = e is RenamedEventArgs renamed ? renamed.OldFullPath : e.FullPath;
+        if (supported || MediaLibrary.IsSupported(oldPath) || Directory.Exists(e.FullPath)
+            || _folderItems.Any(cue => cue.FilePath?.StartsWith(oldPath + Path.DirectorySeparatorChar,
+                StringComparison.OrdinalIgnoreCase) == true)) QueueFolderRefresh();
+    }
 
     private void QueueFolderRefresh()
     {

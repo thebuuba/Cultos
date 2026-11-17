@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Security;
@@ -26,7 +27,8 @@ public static class LocalMediaFolders
         _ => throw new ArgumentOutOfRangeException(nameof(filter))
     };
 
-    public static LocalMediaScan Scan(string path, CueKind? kind = null, CancellationToken cancellationToken = default)
+    public static LocalMediaScan Scan(string path, CueKind? kind = null, CancellationToken cancellationToken = default,
+        Action<LocalMediaScan>? progress = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(path))
@@ -45,6 +47,8 @@ public static class LocalMediaFolders
         }
 
         var items = new List<Cue>();
+        var progressClock = Stopwatch.StartNew();
+        var publishedCount = 0;
         var pending = new Stack<string>();
         pending.Push(root);
         string? error = null;
@@ -54,27 +58,34 @@ public static class LocalMediaFolders
             var directory = pending.Pop();
             try
             {
-                foreach (var entry in Directory.EnumerateFileSystemEntries(directory))
+                foreach (var entry in new DirectoryInfo(directory).EnumerateFileSystemInfos())
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     try
                     {
-                        var attributes = File.GetAttributes(entry);
+                        // Enumeration already supplies attributes on Windows.
+                        var attributes = entry.Attributes;
                         if ((attributes & FileAttributes.Directory) != 0)
                         {
                             // Junctions and symbolic links can loop or lead outside the chosen source.
                             // OneDrive cloud placeholders also have ReparsePoint; they are not links.
-                            if ((attributes & FileAttributes.ReparsePoint) == 0 || new DirectoryInfo(entry).LinkTarget is null)
-                                pending.Push(entry);
+                            if ((attributes & FileAttributes.ReparsePoint) == 0 || entry.LinkTarget is null)
+                                pending.Push(entry.FullName);
                             continue;
                         }
 
-                        if (!MediaLibrary.IsSupported(entry)) continue;
-                        var cue = MediaLibrary.FromFile(entry);
+                        if (!MediaLibrary.IsSupported(entry.Name)) continue;
+                        var cue = MediaLibrary.FromFile(entry.FullName);
                         if (kind is not null && cue.Kind != kind) continue;
                         cue.HymnNumber = null;
                         cue.Id = StableId(cue.FilePath!);
                         items.Add(cue);
+                        if (progress is not null && (publishedCount == 0 || progressClock.ElapsedMilliseconds >= 250))
+                        {
+                            progress(new(items.ToArray(), error));
+                            publishedCount = items.Count;
+                            progressClock.Restart();
+                        }
                     }
                     catch (Exception ex) when (IsFileSystemError(ex))
                     {
