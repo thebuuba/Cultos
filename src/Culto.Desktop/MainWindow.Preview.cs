@@ -39,7 +39,8 @@ public partial class MainWindow
         _holdingBiblePreview = following && _session.Prepared?.Kind == CueKind.Bible
             && !_session.IsBlackout && !_session.IsTextHidden && _output?.IsTransitioning == true
             && _preview.DisplayedCue?.Id == _session.Prepared.Id;
-        if (following && _preview.DisplayedCue?.Kind is CueKind.Video or CueKind.WindowCapture or CueKind.BrowserSource) _preview.ShowCue(null);
+        if (following && (_session.Prepared?.Kind is CueKind.Video or CueKind.WindowCapture or CueKind.BrowserSource
+            || _preview.DisplayedCue?.Kind is CueKind.Video or CueKind.WindowCapture or CueKind.BrowserSource)) _preview.ShowCue(null);
         var mediaCover = !following && _session.Prepared?.Kind == CueKind.Audio;
         PreviewHost.Visibility = (!following && !mediaCover) || _holdingBiblePreview ? Visibility.Visible : Visibility.Collapsed;
         PreparedMediaCover.Visibility = mediaCover ? Visibility.Visible : Visibility.Collapsed;

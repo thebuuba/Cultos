@@ -31,6 +31,8 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
     private readonly VideoView _video = new() { Visibility = Visibility.Collapsed };
     private readonly CompositedVideo _compositedVideo = new() { Visibility = Visibility.Collapsed };
     private LibVLC? _vlc;
+    private Task<LibVLC>? _previewInitialization;
+    private int _previewPresentationGeneration;
     private MediaPlayer? _player;
     private DefaultAudioDeviceFollower? _audioDeviceFollower;
     private Media? _media;
@@ -295,7 +297,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
     private void EnsurePlayer()
     {
         if (_player is not null) return;
-        _vlc = _sharedVlc?.Invoke() ?? CreatePlaybackEngine();
+        _vlc ??= _sharedVlc?.Invoke() ?? CreatePlaybackEngine();
         _player = new MediaPlayer(_vlc) { Volume = 0, Mute = true, EnableMouseInput = false, EnableKeyInput = false };
         AttachCathedralAudio();
         if (_preview) _video.MediaPlayer = _player;
@@ -410,6 +412,11 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
     {
         if (_mixer is not null) { _mixer.SetPaused(paused); return; }
         if (_disposed) return;
+        if (_preview && _vlc is null && _previewInitialization is not null && _pendingPresentation is { } preparing)
+        {
+            _pendingPresentation = preparing with { PauseAfter = paused };
+            return;
+        }
         var wasPaused = _pauseRequested;
         _pauseRequested = paused || _suppressed;
         if (_pauseRequested)
@@ -497,6 +504,12 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         CancelAudioFade(silence: true);
         CancelDissolve();
         _disposed = true;
+        if (_previewInitialization is { } initialization && _vlc is null)
+            _ = initialization.ContinueWith(task =>
+            {
+                if (task.Status == TaskStatus.RanToCompletion && _sharedVlc is null) task.Result.Dispose();
+                else if (task.Exception is { } error) System.Diagnostics.Debug.WriteLine(error);
+            }, TaskScheduler.Default);
         _audioDeviceFollower?.Dispose(); _audioDeviceFollower = null;
         var cathedralAudio = _cathedralAudio; _cathedralAudio = null;
         StopWindowCapture();

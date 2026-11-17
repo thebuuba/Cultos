@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Threading.Tasks;
 using System.Windows.Threading;
 using Culto.Core;
 
@@ -106,11 +107,20 @@ public sealed partial class ProjectionSurface
     private void Present(Presentation presentation)
     {
         if (_disposed) return;
+        var previewGeneration = ++_previewPresentationGeneration;
         _pendingPresentation = null;
         CancelAudioFade();
         var cue = presentation.Cue;
         var key = cue?.Kind is CueKind.Video or CueKind.Audio ? $"{cue.Id}|{cue.Kind}|{cue.FilePath}" : null;
         var suppress = presentation.Blackout || presentation.HideText;
+        if (_preview && _vlc is null && !suppress && cue?.Kind is CueKind.Video or CueKind.Audio)
+        {
+            // Selecting the first video runs before WPF receives its double click.
+            // Native plugin loading must leave that input route free to continue.
+            _pendingPresentation = presentation;
+            PreparePreviewAsync(previewGeneration);
+            return;
+        }
         var fadeOutgoing = suppress ? presentation.AnimateAudio : key != _mediaKey || presentation.PauseAfter;
         if (!_preview && !_suppressed && !_pauseRequested && fadeOutgoing
             && _player?.IsPlaying == true && _audioGain > 0)
@@ -126,6 +136,26 @@ public sealed partial class ProjectionSurface
             return;
         }
         ApplyPresentation(presentation);
+    }
+
+    private async void PreparePreviewAsync(int generation)
+    {
+        var initialization = _previewInitialization ??= Task.Run(() => _sharedVlc?.Invoke() ?? CreatePlaybackEngine());
+        try
+        {
+            var engine = await initialization;
+            if (_disposed) return;
+            _vlc = engine;
+            if (generation != _previewPresentationGeneration || _pendingPresentation is not { } pending) return;
+            _pendingPresentation = null;
+            ApplyPresentation(pending);
+        }
+        catch (Exception error)
+        {
+            if (ReferenceEquals(_previewInitialization, initialization)) _previewInitialization = null;
+            if (!_disposed && generation == _previewPresentationGeneration)
+                ReportError("No se pudo preparar la vista previa. " + error.Message);
+        }
     }
 
     private void ApplyPresentation(Presentation presentation, bool paused = false)

@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows.Threading;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Threading;
 using Culto.Core;
 using Culto.Desktop;
@@ -23,6 +24,37 @@ internal static partial class Program
         });
         if (engineTests)
         {
+            Test("A slow preview engine keeps input responsive and cannot replay a superseded video", () =>
+            {
+                using var release = new ManualResetEventSlim(false);
+                LibVLCSharp.Shared.LibVLC? engine = null;
+                using var preview = new ProjectionSurface(preview: true, sharedVlc: () =>
+                {
+                    release.Wait();
+                    return engine = (LibVLCSharp.Shared.LibVLC)typeof(ProjectionSurface)
+                        .GetMethod("CreatePlaybackEngine", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+                        .Invoke(null, null)!;
+                });
+                var safetyRelease = Task.Run(async () => { await Task.Delay(1200); release.Set(); });
+                try
+                {
+                    var elapsed = Stopwatch.StartNew();
+                    preview.ShowCue(new Cue { Kind = CueKind.Video, FilePath = Path.Combine(AppContext.BaseDirectory, "fixtures", "test.mkv") });
+                    var blockedFor = elapsed.ElapsedMilliseconds;
+                    var replacement = new Cue { Kind = CueKind.Text, Body = "Latest selection" };
+                    preview.ShowCue(replacement);
+                    release.Set();
+                    Until(() => engine is not null, "Preview engine did not finish");
+                    PumpFor(100);
+                    Check(preview.DisplayedCue?.Id == replacement.Id && !preview.IsPlaying, "Delayed preview replayed the discarded video");
+                    Check(blockedFor < 500, $"Preview initialization blocked input for {blockedFor} ms");
+                }
+                finally
+                {
+                    release.Set(); Wait(safetyRelease);
+                    preview.Dispose(); engine?.Dispose();
+                }
+            });
             Test("Standby playback engine warms silently and preserves the first request during loading", () =>
             {
                 var type = typeof(ProjectionSurface).Assembly.GetType("Culto.Desktop.Projection.ProjectionMixer")!;
@@ -173,10 +205,21 @@ internal static partial class Program
             Test("First playback keeps the UI responsive and reaches moving video", () =>
             {
                 ((Slider)window.FindName("VolumeSlider")).Value = 0;
+                Call(window, "ActivateWorkspacePanel", "media");
+                var media = (ListBox)window.FindName("MediaList");
+                var items = Field<System.Collections.ObjectModel.ObservableCollection<Cue>>(window, "_mediaView");
+                var firstVideo = new Cue { Title = "Primer video", Kind = CueKind.Video, FilePath = file };
+                items.Clear(); items.Add(firstVideo);
+                media.UpdateLayout();
                 Console.WriteLine($"START first prepare {clock.ElapsedMilliseconds} ms");
-                Call(window, "PrepareCue", new Cue { Title = "Primer video", Kind = CueKind.Video, FilePath = file }, null);
+                var preparation = Stopwatch.StartNew();
+                media.SelectedItem = firstVideo;
+                var preparationMilliseconds = preparation.ElapsedMilliseconds;
                 Console.WriteLine($"START first project {clock.ElapsedMilliseconds} ms");
-                Call(window, "ProjectPrepared");
+                media.ScrollIntoView(firstVideo); media.UpdateLayout();
+                var row = (ListBoxItem)media.ItemContainerGenerator.ContainerFromItem(firstVideo);
+                media.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+                    { RoutedEvent = Control.MouseDoubleClickEvent, Source = row });
                 Console.WriteLine($"RETURN first project {clock.ElapsedMilliseconds} ms");
                 var output = Field<ProjectionSurface>(window, "_output");
                 Check(ReferenceEquals(output, standby), "First request discarded the engine prepared at startup");
@@ -194,6 +237,8 @@ internal static partial class Program
                         }
                 }
                 Console.WriteLine($"PLAYING {clock.ElapsedMilliseconds} ms; maximum UI gap {maximumGap} ms");
+                Check(preparationMilliseconds < 500, $"Selecting the first video blocked input for {preparationMilliseconds} ms");
+                Check(output.DisplayedCue?.Id == firstVideo.Id, "First media double click did not project its row");
                 Check(maximumGap < 500, $"First playback blocked the UI for {maximumGap} ms");
                 output.SetPaused(true);
             });
