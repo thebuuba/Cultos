@@ -21,27 +21,55 @@ public sealed partial class ProjectionSurface
     private static readonly Vector[] BibleEntryDirections =
     [new(0, 1), new(0, -1), new(-1, 0), new(1, 0), new(-.707, .707), new(.707, .707), new(-.707, -.707), new(.707, -.707)];
 
-    private void BeginBiblePresetTransition(BibleTextTransitionPreset preset, int milliseconds)
+    private void BeginBiblePresetTransition(int milliseconds, string systemTransition)
     {
-        if (_body.ActualWidth < 1 || _body.ActualHeight < 1) { FadeBibleText(_body, 0, milliseconds); return; }
-        var textCanvas = (FrameworkElement)_text.Child;
-        // Capture the padded ink in canvas coordinates, including italic overhang and effects.
-        var bitmap = new RenderTargetBitmap((int)textCanvas.ActualWidth, (int)textCanvas.ActualHeight, 96, 96, PixelFormats.Pbgra32);
-        bitmap.Render(textCanvas); bitmap.Freeze();
+        var textKind = _presentedBibleStyle.Transition == "System" ? systemTransition : _presentedBibleStyle.Transition;
+        var referenceKind = _presentedBibleStyle.ReferenceTransition ?? textKind;
+        RenderTargetBitmap? bitmap = null;
+        if (textKind.StartsWith("TextPreset:", StringComparison.Ordinal) || referenceKind.StartsWith("TextPreset:", StringComparison.Ordinal))
+        {
+            var textCanvas = (FrameworkElement)_text.Child;
+            // Capture before hiding or animating any block, retaining each one's own style.
+            bitmap = new RenderTargetBitmap((int)textCanvas.ActualWidth, (int)textCanvas.ActualHeight, 96, 96, PixelFormats.Pbgra32);
+            bitmap.Render(textCanvas); bitmap.Freeze();
+        }
+        var blocks = new[] { _body, _reference, _version }
+            .Where(block => block.Visibility == Visibility.Visible && block.ActualWidth >= 1 && block.ActualHeight >= 1).ToArray();
+        for (var blockIndex = 0; blockIndex < blocks.Length; blockIndex++)
+        {
+            var block = blocks[blockIndex];
+            var kind = ReferenceEquals(block, _reference) ? referenceKind : textKind;
+            if (bitmap is null || !kind.StartsWith("TextPreset:", StringComparison.Ordinal) || !BibleTextTransitionCatalog.TryGet(kind, out var preset))
+            {
+                BeginBibleBlockTransition(block, kind, milliseconds);
+                continue;
+            }
+            var origin = block.TranslatePoint(new Point(), _bibleTextOverlay);
+            // Partition the gaps too, so shadows never appear twice in adjacent fragments.
+            var top = blockIndex == 0 ? 0 : (origin.Y + blocks[blockIndex - 1].TranslatePoint(new Point(), _bibleTextOverlay).Y
+                + blocks[blockIndex - 1].ActualHeight) / 2;
+            var bottom = blockIndex + 1 == blocks.Length ? bitmap.PixelHeight
+                : (origin.Y + block.ActualHeight + blocks[blockIndex + 1].TranslatePoint(new Point(), _bibleTextOverlay).Y) / 2;
+            var canvasBounds = new Rect(0, top, bitmap.PixelWidth, bottom - top);
+            BeginBiblePresetBlock(block, bitmap, canvasBounds, preset, milliseconds);
+        }
+    }
+
+    private void BeginBiblePresetBlock(TextBlock block, BitmapSource bitmap, Rect canvasBounds, BibleTextTransitionPreset preset, int milliseconds)
+    {
         var bounds = new Rect(-BiblePresetPadding, -BiblePresetPadding,
-            _body.ActualWidth + BiblePresetPadding * 2, _body.ActualHeight + BiblePresetPadding * 2);
-        var canvasBounds = new Rect(0, 0, bitmap.PixelWidth, bitmap.PixelHeight);
+            block.ActualWidth + BiblePresetPadding * 2, block.ActualHeight + BiblePresetPadding * 2);
         var fragments = preset.Scope switch
         {
-            BibleTextScope.Words => BibleWordBounds(),
-            BibleTextScope.Lines => BibleLineBounds(),
+            BibleTextScope.Words => BibleWordBounds(block),
+            BibleTextScope.Lines => BibleLineBounds(block),
             _ => new List<Rect> { bounds }
         };
         // Bound the active visuals for large selected passages; never omit text.
-        if (fragments.Count > 80) fragments = BibleLineBounds();
+        if (fragments.Count > 80) fragments = BibleLineBounds(block);
         if (fragments.Count is 0 or > 80) fragments = [bounds];
-        var origin = _body.TranslatePoint(new Point(), _bibleTextOverlay);
-        _body.Opacity = 0;
+        var origin = block.TranslatePoint(new Point(), _bibleTextOverlay);
+        block.Opacity = 0;
         for (var index = 0; index < fragments.Count; index++)
         {
             var rect = fragments[index]; rect.Offset(origin.X, origin.Y);
@@ -55,19 +83,19 @@ public sealed partial class ProjectionSurface
             if (width < 1 || height < 1) continue;
             var crop = new CroppedBitmap(bitmap, new Int32Rect(left, top, width, height)); crop.Freeze();
             var image = new Image { Source = crop, Width = width, Height = height, Opacity = 0,
-                RenderTransformOrigin = new Point(.5, .5) };
+                RenderTransformOrigin = new Point(.5, .5), Tag = block };
             Canvas.SetLeft(image, left); Canvas.SetTop(image, top);
             _bibleTextOverlay.Children.Add(image);
             var delay = fragments.Count == 1 ? 0 : milliseconds * .50 * index / (fragments.Count - 1);
             AnimateBiblePreset(image, OpacityProperty, PresetFade(0, 1, delay, milliseconds - delay));
-            ApplyBiblePresetMotion(image, preset, delay, milliseconds - delay);
+            ApplyBiblePresetMotion(image, preset, delay, milliseconds - delay, block.FontSize);
         }
     }
 
-    private List<Rect> BibleLineBounds()
+    private static List<Rect> BibleLineBounds(TextBlock block)
     {
         var tops = new List<double>();
-        var pointer = _body.ContentStart.GetLineStartPosition(0);
+        var pointer = block.ContentStart.GetLineStartPosition(0);
         while (pointer is not null)
         {
             var rect = pointer.GetCharacterRect(LogicalDirection.Forward);
@@ -77,16 +105,16 @@ public sealed partial class ProjectionSurface
             pointer = next;
         }
         return tops.Select((top, index) => new Rect(-BiblePresetPadding, index == 0 ? -BiblePresetPadding : top,
-            _body.ActualWidth + BiblePresetPadding * 2,
-            Math.Max(0, (index + 1 < tops.Count ? tops[index + 1] : _body.ActualHeight + BiblePresetPadding)
+            block.ActualWidth + BiblePresetPadding * 2,
+            Math.Max(0, (index + 1 < tops.Count ? tops[index + 1] : block.ActualHeight + BiblePresetPadding)
                 - (index == 0 ? -BiblePresetPadding : top)))).ToList();
     }
 
-    private List<Rect> BibleWordBounds()
+    private static List<Rect> BibleWordBounds(TextBlock block)
     {
         var result = new List<Rect>();
-        var pointer = _body.ContentStart;
-        while (pointer is not null && pointer.CompareTo(_body.ContentEnd) < 0)
+        var pointer = block.ContentStart;
+        while (pointer is not null && pointer.CompareTo(block.ContentEnd) < 0)
         {
             if (pointer.GetPointerContext(LogicalDirection.Forward) == TextPointerContext.Text)
             {
@@ -96,11 +124,11 @@ public sealed partial class ProjectionSurface
                     var first = pointer.GetPositionAtOffset(word.Index)!.GetCharacterRect(LogicalDirection.Forward);
                     var last = pointer.GetPositionAtOffset(word.Index + word.Length)!.GetCharacterRect(LogicalDirection.Backward);
                     // WPF can wrap an unusually long unbroken word. Lines preserve its full shape.
-                    if (Math.Abs(first.Top - last.Top) > 1) return BibleLineBounds();
+                    if (Math.Abs(first.Top - last.Top) > 1) return BibleLineBounds(block);
                     if (!first.IsEmpty && !last.IsEmpty)
                         result.Add(new Rect(new Point(Math.Min(first.Left, last.Left), Math.Min(first.Top, last.Top)),
                             new Point(Math.Max(first.Right, last.Right), Math.Max(first.Bottom, last.Bottom))));
-                    if (result.Count > 80) return BibleLineBounds();
+                    if (result.Count > 80) return BibleLineBounds(block);
                 }
             }
             pointer = pointer.GetNextContextPosition(LogicalDirection.Forward);
@@ -111,11 +139,11 @@ public sealed partial class ProjectionSurface
         {
             var words = rows[rowIndex].OrderBy(rect => rect.Left).ToArray();
             var top = rowIndex == 0 ? -BiblePresetPadding : rows[rowIndex].Key;
-            var bottom = rowIndex + 1 < rows.Length ? rows[rowIndex + 1].Key : _body.ActualHeight + BiblePresetPadding;
+            var bottom = rowIndex + 1 < rows.Length ? rows[rowIndex + 1].Key : block.ActualHeight + BiblePresetPadding;
             for (var wordIndex = 0; wordIndex < words.Length; wordIndex++)
             {
                 var left = wordIndex == 0 ? -BiblePresetPadding : (words[wordIndex - 1].Right + words[wordIndex].Left) / 2;
-                var right = wordIndex + 1 == words.Length ? _body.ActualWidth + BiblePresetPadding
+                var right = wordIndex + 1 == words.Length ? block.ActualWidth + BiblePresetPadding
                     : (words[wordIndex].Right + words[wordIndex + 1].Left) / 2;
                 partitions.Add(new Rect(left, top, Math.Max(0, right - left), Math.Max(0, bottom - top)));
             }
@@ -123,11 +151,11 @@ public sealed partial class ProjectionSurface
         return partitions;
     }
 
-    private void ApplyBiblePresetMotion(Image image, BibleTextTransitionPreset preset, double delay, double duration)
+    private void ApplyBiblePresetMotion(Image image, BibleTextTransitionPreset preset, double delay, double duration, double fontSize)
     {
         var variant = preset.Variant;
         var direction = BibleEntryDirections[variant];
-        var distance = Math.Clamp(_body.FontSize * .6, 18, 44);
+        var distance = Math.Clamp(fontSize * .6, 18, 44);
         var transforms = new TransformGroup(); image.RenderTransform = transforms;
         var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
         void Animate(IAnimatable target, DependencyProperty property, double from, double to, IEasingFunction? easing = null) =>

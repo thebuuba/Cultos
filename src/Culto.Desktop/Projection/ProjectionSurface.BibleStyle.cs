@@ -90,6 +90,12 @@ public sealed partial class ProjectionSurface
             try { _reference.FontFamily = new FontFamily(referenceFont); }
             catch (ArgumentException) { _reference.FontFamily = font; }
         }
+        if (style.ReferenceColor is { } referenceColor)
+        {
+            var referenceBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(referenceColor));
+            _reference.Foreground = referenceBrush;
+            if (_reference.Effect is DropShadowEffect glow && style.TextEffect == "Glow") glow.Color = referenceBrush.Color;
+        }
     }
 
     private static BitmapImage ReadBibleBackground(string path)

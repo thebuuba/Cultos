@@ -52,6 +52,8 @@ internal static partial class Program
             Check(cue?.Kind == CueKind.Bible && cue.Reference == expectedReference,
                 $"Expected grouped {expectedReference}, got {cue?.Reference}");
             Check(cue!.Body.Split('\n').Length == verseNumbers.Length, "Grouped body lost or duplicated a verse");
+            Check(cue.Body == string.Join("\n", verseNumbers.Select(number => $"Texto sintético {number}")),
+                "Grouped passage includes verse numbers before its text");
             foreach (var number in verseNumbers) Check(cue.Body.Contains($"Texto sintético {number}"), "Grouped body lost a selected verse");
         }
         try

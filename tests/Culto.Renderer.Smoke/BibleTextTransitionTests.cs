@@ -43,7 +43,7 @@ internal static partial class Program
                     Check(kind switch
                     {
                         "TextRise" => body.RenderTransform is TranslateTransform { Y: > 0 } && body.Opacity < 1,
-                        "TextFocus" => words.Effect is BlurEffect { Radius: > 0 },
+                        "TextFocus" => body.Effect is BlurEffect { Radius: > 0 },
                         _ => body.OpacityMask is DrawingBrush { Drawing: DrawingGroup lines } && lines.Children.Count > 1
                             && lines.Children.OfType<GeometryDrawing>().First().Brush.Opacity > lines.Children.OfType<GeometryDrawing>().Last().Brush.Opacity
                     }, $"{kind} animates actual text rather than the whole slide");
@@ -80,7 +80,44 @@ internal static partial class Program
             }
             finally { host.Close(); }
         }
+        await RunIndependentBibleTransitionChecks();
         await RunBiblePresetCatalogChecks();
+    }
+
+    private static async Task RunIndependentBibleTransitionChecks()
+    {
+        foreach (var mixed in new[] { false, true })
+        {
+            using var surface = new ProjectionSurface(smoothTransitions: mixed);
+            var host = new Window { Content = surface, Width = 960, Height = 600 };
+            host.Show();
+            var verse = new Cue { Kind = CueKind.Bible, Body = "Texto independiente", Reference = "Salmos 23:1", Version = "Prueba" };
+            TextBlock Block(string text) => Descendants(surface.ActiveSurface).OfType<TextBlock>().Single(block => block.Text == text);
+            var preset = BibleTextTransitionCatalog.All.First(item => item.Id.StartsWith("TextPreset:") && item.Motion == BibleTextMotion.Rotate);
+            try
+            {
+                foreach (var (text, reference) in new[] { ("Cut", preset.Id), (preset.Id, "Cut"), ("TextFocus", "TextRise"), ("System", preset.Id) })
+                {
+                    surface.BibleStyle = new BibleVisualStyle { Transition = text, ReferenceTransition = reference, TransitionMilliseconds = 600, ShowVersion = false };
+                    surface.TransitionTo(verse); surface.UpdateLayout();
+                    var body = Block(verse.Body); var citation = Block(verse.Reference);
+                    Check(surface.IsTransitioning, $"Independent Bible effects start ({mixed}/{text}/{reference})");
+                    if (text == "System") Check(body.HasAnimatedProperties, "Independent reference retains the system dissolve on the passage");
+                    if (text == "Cut") Check(body.Opacity == 1 && !body.HasAnimatedProperties && body.RenderTransform.Value.IsIdentity,
+                        "Reference animation leaves a cut passage static");
+                    if (reference == "Cut") Check(citation.Opacity == 1 && !citation.HasAnimatedProperties && citation.RenderTransform.Value.IsIdentity,
+                        "Passage animation leaves a cut reference static");
+                    if (text == "TextFocus") Check(body.Effect is BlurEffect && citation.Effect is not BlurEffect && citation.RenderTransform is TranslateTransform,
+                        "Focus and rise effects target their own blocks");
+                    await Task.Delay(800);
+                    Check(!surface.IsTransitioning && body.Opacity == 1 && citation.Opacity == 1
+                        && body.RenderTransform.Value.IsIdentity && citation.RenderTransform.Value.IsIdentity && body.Effect is null
+                        && Block(verse.Version).Visibility == Visibility.Collapsed,
+                        "Independent Bible animations restore text and preserve the hidden version");
+                }
+            }
+            finally { host.Close(); }
+        }
     }
 
     private static async Task RunBiblePresetCatalogChecks()
@@ -93,7 +130,7 @@ internal static partial class Program
             host.Show(); host.Activate();
             var verse = new Cue { Kind = CueKind.Bible, Reference = "Prueba 1:2", Version = "Prueba",
                 Body = "Texto sintético con tildes y claridad.\nLas palabras conservan su posición, su fuente y su alineación durante la animación. Esta frase permite comprobar varias líneas del pasaje." };
-            var style = new BibleVisualStyle { FontFamily = "Georgia", ReferenceFontFamily = "Arial", TextEffect = "Shadow",
+            var style = new BibleVisualStyle { FontFamily = "Georgia", ReferenceFontFamily = "Arial", ReferenceColor = "#FFE08A", TextEffect = "Shadow",
                 BackgroundColor = "#204080", BackgroundDim = 0, TransitionMilliseconds = 250 };
             Canvas Overlay() => (Canvas)typeof(ProjectionSurface).GetField("_bibleTextOverlay",
                 System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(surface.ActiveSurface)!;
@@ -130,7 +167,7 @@ internal static partial class Program
                         var expectedBytes = new byte[1600 * 900 * 4]; var actualBytes = new byte[expectedBytes.Length];
                         expected.CopyPixels(expectedBytes, 1600 * 4, 0); actual.CopyPixels(actualBytes, 1600 * 4, 0);
                         var largestError = 0;
-                        for (var y = Math.Max(0, (int)Math.Round(position.Y - 32)); y < Math.Min(900, (int)Math.Round(position.Y + bodyHeight + 32)); y++)
+                        for (var y = 0; y < 900; y++)
                         for (var x = 0; x < 1600 * 4; x++)
                             largestError = Math.Max(largestError, Math.Abs(expectedBytes[y * 1600 * 4 + x] - actualBytes[y * 1600 * 4 + x]));
                         Check(largestError <= 2, $"Fragment reconstruction preserves italic {effect} ink for {scope}/{alignment} (error {largestError})");
@@ -139,7 +176,10 @@ internal static partial class Program
                     foreach (var preset in presets)
                     {
                         Select(preset);
-                        Check(surface.IsTransitioning && Overlay().Children.Count is > 0 and <= 80,
+                        var reference = Descendants(surface.ActiveSurface).OfType<TextBlock>().Single(block => block.Text == verse.Reference);
+                        Check(reference.Opacity == 0 && !reference.HasAnimatedProperties,
+                            "Reference uses preset fragments instead of a separate fade: " + preset.Id);
+                        Check(surface.IsTransitioning && Overlay().Children.Count is > 0 and <= 240,
                             "Preset renders bounded animated fragments: " + preset.Id);
                         var images = Overlay().Children.OfType<Image>().ToArray();
                         Check(images.All(image => image.HasAnimatedProperties && image.Source is CroppedBitmap),
@@ -154,7 +194,7 @@ internal static partial class Program
                 {
                     var preset = presets.Single(item => item.Motion == motion && item.Scope == scope && item.Variant == 0);
                     Select(preset);
-                    var count = Overlay().Children.Count;
+                    var count = Overlay().Children.OfType<Image>().Count(image => ReferenceEquals(image.Tag, Body()));
                     Check(scope == BibleTextScope.Passage ? count == 1 : count > 1, "Preset respects its fragment scope: " + preset.Id);
                     await Task.Delay(60);
                     Check(surface.IsTransitioning && surface.ActiveSurface.Opacity == 1, "Preset keeps the backdrop stable: " + preset.Id);
@@ -167,15 +207,27 @@ internal static partial class Program
                         var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(frame));
                         using var file = System.IO.File.Create(System.IO.Path.Combine(folder, motion + ".png")); encoder.Save(file);
                     }
-                    await Task.Delay(300);
+                    var deadline = DateTime.UtcNow.AddSeconds(2);
+                    while (surface.IsTransitioning && DateTime.UtcNow < deadline) await Task.Delay(20);
                     Check(!surface.IsTransitioning && Overlay().Children.Count == 0 && Body().Opacity == 1
                         && Body().FontFamily.Source == "Georgia" && Body().Effect is DropShadowEffect,
+                        "Preset restores native body text: " + preset.Id);
+                    Check(Descendants(surface.ActiveSurface).OfType<TextBlock>().Single(block => block.Text == verse.Reference)
+                            is { Opacity: 1, FontFamily.Source: "Arial", Foreground: SolidColorBrush { Color: var referenceColor } }
+                        && referenceColor == (Color)ColorConverter.ConvertFromString("#FFE08A"),
                         "Preset restores native styled text: " + preset.Id);
                 }
                 var wordPreset = presets.Single(item => item.Motion == BibleTextMotion.Blur && item.Scope == BibleTextScope.Words && item.Variant == 7);
+                surface.BibleStyle = style with { Transition = wordPreset.Id, ShowVersion = false };
+                surface.TransitionTo(verse); surface.UpdateLayout();
+                var hiddenVersion = Descendants(surface.ActiveSurface).OfType<TextBlock>().Single(block => block.Text == verse.Version);
+                Check(hiddenVersion.Visibility == Visibility.Collapsed
+                    && Overlay().Children.OfType<Image>().All(image => !ReferenceEquals(image.Tag, hiddenVersion)),
+                    "Preset never captures a hidden Bible version");
+                surface.ShowCue(verse);
                 verse.Body = string.Join(" ", Enumerable.Repeat("Lectura sintética extensa", 160));
                 Select(wordPreset);
-                Check(Overlay().Children.Count is > 0 and <= 80 && surface.DisplayedCue?.Body == verse.Body,
+                Check(Overlay().Children.Count is > 0 and <= 240 && surface.DisplayedCue?.Body == verse.Body,
                     "Long passages bound animation work without losing words");
                 surface.ShowCue(verse, blackout: true);
                 await Task.Delay(300);

@@ -272,7 +272,8 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         _text.Visibility = Visibility.Visible;
         _body.Text = body; _reference.Text = reference; _version.Text = version;
         _reference.Visibility = string.IsNullOrWhiteSpace(reference) ? Visibility.Collapsed : Visibility.Visible;
-        _version.Visibility = string.IsNullOrWhiteSpace(version) ? Visibility.Collapsed : Visibility.Visible;
+        _version.Visibility = string.IsNullOrWhiteSpace(version) || bible && !_presentedBibleStyle.ShowVersion
+            ? Visibility.Collapsed : Visibility.Visible;
         // Fit wrapped text to a full-width 16:9 canvas, keeping room for citations.
         void SetSizes(double size)
         {

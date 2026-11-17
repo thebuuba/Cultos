@@ -23,14 +23,14 @@ public sealed class BiblePassageTests
     private static Cue Combine(BibleCatalog catalog, IEnumerable<BibleVerse> verses) => catalog.ToCue(verses);
 
     [Fact]
-    public void ExplicitRangeBecomesOneNumberedCueWithVersionAndAttribution()
+    public void ExplicitRangeUsesUnnumberedTextWithVersionAndAttribution()
     {
         var catalog = Catalog();
         var cue = Combine(catalog, catalog.FindReference("Gn 1:1-3"));
         Assert.Equal(CueKind.Bible, cue.Kind);
         Assert.Equal("Génesis 1:1-3", cue.Reference);
         Assert.Equal(cue.Reference, cue.Title);
-        Assert.Equal("1 Primero sintético\n2 Segundo sintético\n3 Tercero sintético", cue.Body);
+        Assert.Equal("Primero sintético\nSegundo sintético\nTercero sintético", cue.Body);
         Assert.Equal(catalog.Document.Name, cue.Version);
         Assert.Equal(catalog.Document.Attribution, cue.Notes);
     }
@@ -42,7 +42,7 @@ public sealed class BiblePassageTests
         var verses = catalog.Document.Verses;
         var cue = Combine(catalog, [verses[4], verses[1], verses[0], verses[1]]);
         Assert.Equal("Génesis 1:1-2,5", cue.Reference);
-        Assert.Equal("1 Primero sintético\n2 Segundo sintético\n5 Quinto sintético", cue.Body);
+        Assert.Equal("Primero sintético\nSegundo sintético\nQuinto sintético", cue.Body);
     }
 
     [Fact]
@@ -58,12 +58,12 @@ public sealed class BiblePassageTests
     }
 
     [Fact]
-    public void MultiChapterSelectionLabelsEachLineUnambiguously()
+    public void MultiChapterSelectionKeepsReferencesOutsideThePassageText()
     {
         var catalog = Catalog();
         var cue = Combine(catalog, [catalog.Document.Verses[5], catalog.Document.Verses[0]]);
         Assert.Equal("Génesis 1:1; Génesis 2:1", cue.Reference);
-        Assert.Equal("1:1 Primero sintético\n2:1 Capítulo siguiente sintético", cue.Body);
+        Assert.Equal("Primero sintético\nCapítulo siguiente sintético", cue.Body);
     }
 
     [Fact]
@@ -72,7 +72,7 @@ public sealed class BiblePassageTests
         var catalog = Catalog();
         var cue = Combine(catalog, [catalog.Document.Verses[6], catalog.Document.Verses[0]]);
         Assert.Equal("Génesis 1:1; Juan 3:16", cue.Reference);
-        Assert.Equal("Génesis 1:1 Primero sintético\nJuan 3:16 Otro libro sintético", cue.Body);
+        Assert.Equal("Primero sintético\nOtro libro sintético", cue.Body);
     }
 
     [Fact]

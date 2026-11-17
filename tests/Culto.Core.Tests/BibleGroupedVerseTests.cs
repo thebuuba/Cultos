@@ -16,7 +16,7 @@ public sealed class BibleGroupedVerseTests
         Assert.Equal("Números 26:5-6", catalog.ToCue(passage[0]).Reference);
         var cue = catalog.ToCue(passage);
         Assert.Equal("Números 26:5-7", cue.Reference);
-        Assert.Equal("5-6 Grupo sintético\n7 Siguiente sintético", cue.Body);
+        Assert.Equal("Grupo sintético\nSiguiente sintético", cue.Body);
         Assert.Throws<ArgumentException>(() => catalog.FindReference("Números 26:5-8"));
     }
 

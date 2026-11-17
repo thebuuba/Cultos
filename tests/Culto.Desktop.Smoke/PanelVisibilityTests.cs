@@ -17,6 +17,26 @@ internal static partial class Program
         void Visible(string id, bool value) => Call(window, "SetWorkspacePanelVisible", id, value);
         try
         {
+            Test("Grouped panel menu sits in the tab header and operates on the selected panel", () =>
+            {
+                Call(window, "ActivateWorkspacePanel", "bible"); window.UpdateLayout(); PumpFor(80);
+                var pane = Descendants(dock).OfType<AvalonDock.Controls.LayoutAnchorablePaneControl>()
+                    .Single(item => ReferenceEquals(item.Model, Panel("bible").Parent));
+                var button = Descendants(pane).OfType<Button>().SingleOrDefault(item => item.Name == "WorkspacePanelMenu");
+                Check(button is { IsVisible: true }, "Grouped panel has no menu in its tab header");
+                var title = Descendants(pane).OfType<AvalonDock.Controls.AnchorablePaneTitle>().First(item => item.Model == Panel("bible"));
+                Check(!title.IsVisible, "Grouped panel repeats its selected tab name below the header");
+                Check(BoundsWithin(button!, pane).Bottom <= BoundsWithin((FrameworkElement)Panel("bible").Content, pane).Top,
+                    "Panel menu is below the tab header");
+                Check(!Descendants(title).OfType<Button>().Any(item => item.IsVisible), "Caption duplicates the header menu");
+                button!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                var menu = title.ContextMenu;
+                Check(menu?.IsOpen == true, "Header menu did not open the selected panel's actions");
+                var close = menu!.Items.OfType<MenuItem>().Single(item => (string)item.Header == "Cerrar panel");
+                menu.IsOpen = false; close.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+                Check(Panel("bible").IsHidden && !Panel("sources").IsHidden, "Header menu closed a different panel");
+                Visible("bible", true); Call(window, "RestoreDockLayout", initial); window.UpdateLayout();
+            });
             Test("Panel caption has one menu button with working float dock and close actions", () =>
             {
                 var title = Descendants(dock).OfType<AvalonDock.Controls.AnchorablePaneTitle>().First(t => t.IsVisible && t.Model?.ContentId == "scenes");

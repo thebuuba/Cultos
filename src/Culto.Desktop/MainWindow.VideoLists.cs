@@ -94,7 +94,8 @@ public partial class MainWindow
         _videoListItems.PreviewKeyDown += (_,e)=> { if(e.Key==Key.Delete){EditVideoList(remove:true);e.Handled=true;} else if(e.Key==Key.Enter){PlaySelectedVideoListItem();e.Handled=true;} };
         grid.Children.Add(new TextBlock { Text = "Lista de reproducci\u00f3n", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0,0,0,10) }); Grid.SetRow(actions,1); grid.Children.Add(actions);
         Grid.SetRow(_videoListItems,2); grid.Children.Add(_videoListItems); Grid.SetRow(footer,3); grid.Children.Add(footer);
-        var body = new Border { Background = (System.Windows.Media.Brush)FindResource("PanelBrush"), Padding = new Thickness(14), Child = grid };
+        var body = new Border { Background = (System.Windows.Media.Brush)FindResource("PanelBrush"),
+            Padding = (Thickness)FindResource("SourcePanelPadding"), Child = grid };
         var source = WorkspaceDock.Layout.Descendents().OfType<LayoutAnchorable>().Single(p=>p.ContentId=="sources");
         ((LayoutAnchorablePane)source.Parent).Children.Add(new LayoutAnchorable { Title = "Lista de videos", ContentId = "playlists", Content = body, CanClose = false, CanHide = true, CanAutoHide = false });
     }

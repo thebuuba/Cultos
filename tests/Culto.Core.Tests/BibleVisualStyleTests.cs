@@ -3,6 +3,37 @@ using Xunit;
 
 public class BibleVisualStyleTests
 {
+    [Fact]
+    public void ReferenceTransitionCanFollowTextOrPersistAnIndependentChoice()
+    {
+        var legacy = System.Text.Json.JsonSerializer.Deserialize<BibleVisualStyle>("""{"Transition":"Cut"}""")!.Normalize();
+        Assert.Null(legacy.ReferenceTransition);
+        Assert.False(legacy.UsesTextTransition);
+        var separate = (legacy with { ReferenceTransition = "TextFocus" }).Normalize();
+        Assert.True(separate.UsesTextTransition);
+        var restored = System.Text.Json.JsonSerializer.Deserialize<BibleVisualStyle>(System.Text.Json.JsonSerializer.Serialize(separate))!.Normalize();
+        Assert.Equal("Cut", restored.Transition);
+        Assert.Equal("TextFocus", restored.ReferenceTransition);
+        Assert.Equal("Cut", (separate with { ReferenceTransition = "Cut" }).Normalize().ReferenceTransition);
+        Assert.Null((separate with { ReferenceTransition = "Invalid" }).Normalize().ReferenceTransition);
+        Assert.Equal("System", (separate with { Transition = "Invalid" }).Normalize().Transition);
+    }
+
+    [Fact]
+    public void IndependentReferenceColorAndHiddenVersionSurvivePersistenceWithLegacyDefaults()
+    {
+        var legacy = System.Text.Json.JsonSerializer.Deserialize<BibleVisualStyle>("""{"TextColor":"#aabbcc"}""")!.Normalize();
+        Assert.Null(legacy.ReferenceColor);
+        Assert.True(legacy.ShowVersion);
+        var style = legacy with { ReferenceColor = "#ffe08a", ShowVersion = false };
+        var restored = System.Text.Json.JsonSerializer.Deserialize<BibleVisualStyle>(
+            System.Text.Json.JsonSerializer.Serialize(style))!.Normalize();
+        Assert.Equal("#FFE08A", restored.ReferenceColor);
+        Assert.Equal("#AABBCC", restored.TextColor);
+        Assert.False(restored.ShowVersion);
+        Assert.Null((style with { ReferenceColor = "invalid" }).Normalize().ReferenceColor);
+    }
+
     [Theory]
     [InlineData("TextRise")]
     [InlineData("TextLines")]

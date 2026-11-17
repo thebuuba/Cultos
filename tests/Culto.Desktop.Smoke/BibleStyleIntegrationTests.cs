@@ -30,21 +30,29 @@ internal static partial class Program
                 var live = session.Live;
                 var prepared = session.Prepared;
                 var style = new BibleVisualStyle { FontFamily = "Georgia", ReferenceFontFamily = "Arial", FontSize = 88, TextColor = "#FFC080",
+                    ReferenceColor = "#A7C7FF", ShowVersion = false,
                     BackgroundColor = "#243850", Bold = true, Italic = true, Alignment = "Left", TextEffect = "Shadow", Transition = "Cut" };
                 Check((bool)Call(window, "ApplyBibleStyle", style)!, "Saving Bible style failed");
                 Check(ReferenceEquals(live, session.Live) && ReferenceEquals(prepared, session.Prepared), "Style editing changed cue identities");
                 Check(Field<TextBlock>(preview, "_body").FontFamily.Source == "Georgia", "Prepared Bible did not adopt saved font");
                 Check(Field<TextBlock>(preview, "_reference").FontFamily.Source == "Arial", "Prepared reference did not adopt its own font");
+                Check(((SolidColorBrush)Field<TextBlock>(preview, "_reference").Foreground).Color == Color.FromRgb(167, 199, 255)
+                    && Field<TextBlock>(preview, "_version").Visibility == Visibility.Collapsed,
+                    "Prepared Bible lost the reference color or hidden version");
                 Check(Field<TextBlock>(output, "_body").FontFamily.Source == "Segoe UI", "Saving style changed the projected verse prematurely");
                 style.FontFamily = "Arial";
                 Check(workspace.BibleStyle.FontFamily == "Georgia", "Saved style is aliased to the editor's mutable draft");
                 var loaded = new WorkspaceStore().Load().BibleStyle;
                 Check(loaded.FontFamily == "Georgia" && loaded.ReferenceFontFamily == "Arial" && loaded.Bold && loaded.Italic && loaded.TextEffect == "Shadow"
-                    && loaded.TextColor == "#FFC080" && loaded.BackgroundColor == "#243850", "Saved workspace lost Bible style fields");
+                    && loaded.TextColor == "#FFC080" && loaded.ReferenceColor == "#A7C7FF" && !loaded.ShowVersion
+                    && loaded.BackgroundColor == "#243850", "Saved workspace lost Bible style fields");
                 Call(window, "ProjectPrepared");
                 Check(Field<TextBlock>(output, "_body").FontFamily.Source == "Georgia" && !output.IsTransitioning,
                     "Explicit projection did not apply saved style with Cut");
                 Check(Field<TextBlock>(output, "_reference").FontFamily.Source == "Arial", "Projected reference lost its saved font");
+                Check(((SolidColorBrush)Field<TextBlock>(output, "_reference").Foreground).Color == Color.FromRgb(167, 199, 255)
+                    && Field<TextBlock>(output, "_version").Visibility == Visibility.Collapsed,
+                    "Projection lost the reference color or hidden version");
             });
 
             Test("Bible navigation uses the saved transition and ordinary texts retain their own appearance", () =>

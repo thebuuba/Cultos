@@ -8,6 +8,8 @@ public sealed record BibleVisualStyle
     public string? ReferenceFontFamily { get; set; }
     public double FontSize { get; set; } = 76;
     public string TextColor { get; set; } = "#FFFFFF";
+    public string? ReferenceColor { get; set; }
+    public bool ShowVersion { get; set; } = true;
     public bool Bold { get; set; }
     public bool Italic { get; set; }
     public string Alignment { get; set; } = "Center";
@@ -16,10 +18,11 @@ public sealed record BibleVisualStyle
     public string? BackgroundImagePath { get; set; }
     public double BackgroundDim { get; set; } = .35;
     public string Transition { get; set; } = "System";
+    public string? ReferenceTransition { get; set; }
     public string FavoriteTransitions { get; set; } = "";
     public int TransitionMilliseconds { get; set; } = 400;
     [System.Text.Json.Serialization.JsonIgnore]
-    public bool UsesTextTransition => BibleTextTransitionCatalog.TryGet(Transition, out _);
+    public bool UsesTextTransition => BibleTextTransitionCatalog.TryGet(Transition, out _) || ReferenceTransition is not null;
 
     public BibleVisualStyle Normalize() => this with
     {
@@ -27,11 +30,14 @@ public sealed record BibleVisualStyle
         ReferenceFontFamily = string.IsNullOrWhiteSpace(ReferenceFontFamily) ? null : ReferenceFontFamily.Trim(),
         FontSize = double.IsFinite(FontSize) ? Math.Clamp(FontSize, 28, 120) : 76,
         TextColor = ValidColor(TextColor) ? TextColor.ToUpperInvariant() : "#FFFFFF",
+        ReferenceColor = ValidColor(ReferenceColor) ? ReferenceColor!.ToUpperInvariant() : null,
         BackgroundColor = ValidColor(BackgroundColor) ? BackgroundColor.ToUpperInvariant() : "#101722",
         BackgroundDim = double.IsFinite(BackgroundDim) ? Math.Clamp(BackgroundDim, 0, .9) : .35,
         Alignment = Alignment is "Left" or "Right" ? Alignment : "Center",
         TextEffect = TextEffect is "Shadow" or "Glow" ? TextEffect : "None",
-        Transition = Transition is "Cut" or "Dissolve" || UsesTextTransition ? Transition : "System",
+        Transition = Transition is "Cut" or "Dissolve" || BibleTextTransitionCatalog.TryGet(Transition, out _) ? Transition : "System",
+        ReferenceTransition = ReferenceTransition is "Cut" or "Dissolve" || BibleTextTransitionCatalog.TryGet(ReferenceTransition, out _)
+            ? ReferenceTransition : null,
         FavoriteTransitions = string.Join('|', (FavoriteTransitions ?? "")
             .Split('|', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
             .Where(id => BibleTextTransitionCatalog.TryGet(id, out _))

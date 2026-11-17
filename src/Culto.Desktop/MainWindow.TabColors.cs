@@ -7,8 +7,8 @@ public partial class MainWindow
 {
     private static readonly Dictionary<string, string> PanelTabPalette = new()
     {
-        ["sources"] = "#FFE08A", ["bible"] = "#A7C7FF", ["youtube"] = "#D32F2F",
-        ["media"] = "#F6C453", ["powerpoint"] = "#C43E1C", ["text"] = "#D3B6F0",
+        ["sources"] = "#FFE08A", ["bible"] = "#A7C7FF", ["youtube"] = "#FF7474",
+        ["media"] = "#F6C453", ["powerpoint"] = "#FF9A76", ["text"] = "#D3B6F0",
         ["playlists"] = "#9CDEC9"
     };
     private readonly Dictionary<string, SolidColorBrush> _panelTabBrushes = [];

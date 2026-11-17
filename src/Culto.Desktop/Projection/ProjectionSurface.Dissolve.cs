@@ -40,7 +40,7 @@ public sealed partial class ProjectionSurface
     {
         if (_mixer is not null) { _mixer.TransitionTo(cue); return; }
         var kind = cue.Kind == CueKind.Bible && _bibleStyle.Transition != "System" ? _bibleStyle.Transition : _transitions.Kind;
-        Present(CreatePresentation(cue, false, false, kind != "Cut") with { AnimateAudio = true });
+        Present(CreatePresentation(cue, false, false, (kind != "Cut" || cue.Kind == CueKind.Bible && _bibleStyle.UsesTextTransition)) with { AnimateAudio = true });
     }
 
     public void TransitionToBackdrop(Cue? live, bool blackout, bool hideText)

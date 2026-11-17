@@ -53,7 +53,11 @@ public partial class MainWindow
 
     private void PanelMenuClick(object sender, RoutedEventArgs e)
     {
-        if (sender is not Button { TemplatedParent: AnchorablePaneTitle { ContextMenu: { } menu } } button) return;
+        if (sender is not Button button) return;
+        var title = button.TemplatedParent as AnchorablePaneTitle;
+        if (title is null && button.Tag is LayoutAnchorablePaneControl pane)
+            title = DragVisualChild<AnchorablePaneTitle>(pane);
+        if (title?.ContextMenu is not { } menu) return;
         menu.PlacementTarget = button;
         menu.Placement = PlacementMode.Bottom;
         menu.IsOpen = true;

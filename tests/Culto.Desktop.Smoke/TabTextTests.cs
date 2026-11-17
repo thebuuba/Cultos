@@ -22,8 +22,13 @@ internal static partial class Program
                 Call(window, "ActivateWorkspacePanel", id); window.UpdateLayout(); PumpFor(40);
                 var native = Descendants(dock).OfType<LayoutAnchorableTabItem>().Single(t => t.Model?.ContentId == id);
                 var outer = Descendants(dock).OfType<TabItem>().Single(t => t.IsAncestorOf(native));
-                var background = ((Border)outer.Template.FindName("TabSurface", outer)).Background;
-                Check(background is SolidColorBrush brush && colors.Add(brush.Color), "Tabs repeat a selection color: " + id);
+                var indicator = (Border)outer.Template.FindName("TabIndicator", outer);
+                Check(indicator.Background is SolidColorBrush brush && colors.Add(brush.Color), "Tabs repeat a selection color: " + id);
+                Check(Descendants(native).OfType<TextBlock>().All(label => label.Foreground is SolidColorBrush text
+                    && indicator.Background is SolidColorBrush accent && text.Color == accent.Color),
+                    "Selected tab text does not match its accent color: " + id);
+                var background = Descendants(dock).OfType<LayoutAnchorablePaneControl>()
+                    .Single(pane => ReferenceEquals(pane.Model, native.Model.Parent)).Background;
                 foreach (var label in Descendants(native).OfType<TextBlock>())
                     Check(ThemeContrast(label.Foreground, background) >= 4.5, "Selection color makes the label unreadable: " + id);
             }
@@ -50,8 +55,8 @@ internal static partial class Program
                 pane.Children.Add(added); added.IsSelected = true; window.UpdateLayout(); PumpFor(60);
                 var native = Descendants(dock).OfType<LayoutAnchorableTabItem>().Single(t => t.Model == added);
                 var outer = Descendants(dock).OfType<TabItem>().Single(t => t.IsAncestorOf(native));
-                var surface = (Border)outer.Template.FindName("TabSurface", outer);
-                Check(surface.Background is SolidColorBrush color && colors.Add(color.Color), "A newly grouped panel did not get an unused selection color");
+                var indicator = (Border)outer.Template.FindName("TabIndicator", outer);
+                Check(indicator.Background is SolidColorBrush color && colors.Add(color.Color), "A newly grouped panel did not get an unused selection color");
             }
             finally { pane.Children.Remove(added); window.UpdateLayout(); }
         });
@@ -71,9 +76,10 @@ internal static partial class Program
                 var outer = Descendants(dock).OfType<TabItem>().Single(item => item.IsAncestorOf(tab));
                 if (outer.IsSelected)
                 {
-                    var surface = (Border)outer.Template.FindName("TabSurface", outer);
-                    Check(labels.All(label => ThemeContrast(label.Foreground, surface.Background) >= 4.5),
-                        "Selected source tab text lacks contrast on its pastel surface");
+                    var background = Descendants(dock).OfType<LayoutAnchorablePaneControl>()
+                        .Single(pane => ReferenceEquals(pane.Model, tab.Model.Parent)).Background;
+                    Check(labels.All(label => ThemeContrast(label.Foreground, background) >= 4.5),
+                        "Selected source tab text lacks contrast on its panel");
                 }
             }
             var folder = System.IO.Path.Combine(Environment.CurrentDirectory, ".tools", "visual-theme");

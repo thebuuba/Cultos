@@ -18,7 +18,7 @@ namespace Culto.Desktop.Projection;
 internal sealed partial class ProjectionMixer : Grid, IDisposable
 {
     private sealed record Request(Cue? Cue, bool Blackout, bool Hidden, bool PauseAfter,
-        TransitionOptions Options, BibleVisualStyle Style, string? Background, bool ReusedLiveMedia = false, bool PreserveAudio = false, bool AudioOnly = false);
+        TransitionOptions Options, BibleVisualStyle Style, string? Background, bool ReusedLiveMedia = false, bool PreserveAudio = false, bool AudioOnly = false, string SystemTransition = "Dissolve");
     private readonly DispatcherTimer _timer;
     private readonly Stopwatch _clock = new();
     private readonly Stopwatch _audioClock = new();
@@ -103,9 +103,9 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
         // capture must resume frames/audio automatically; files keep paused restore.
         if (cue?.Kind is CueKind.WindowCapture or CueKind.BrowserSource && !blackout && !hidden) pauseAfter = false;
         var options = _options.Normalize();
-        if (cue?.Kind == CueKind.Bible && !pauseAfter && _style.Transition != "System")
+        if (cue?.Kind == CueKind.Bible && !pauseAfter && (_style.Transition != "System" || _style.UsesTextTransition))
             options = options with { Kind = _style.UsesTextTransition ? "Cut" : _style.Transition, DurationMilliseconds = _style.TransitionMilliseconds };
-        return new(cue is null ? null : cue.Copy(), blackout, hidden, pauseAfter, options, _style.Normalize(), BackgroundImagePath);
+        return new(cue is null ? null : cue.Copy(), blackout, hidden, pauseAfter, options, _style.Normalize(), BackgroundImagePath, SystemTransition: _options.Kind);
     }
     private static bool SameMedia(Cue? first, Cue? second) => first is not null && second is not null
         && first.Id == second.Id && first.Kind == second.Kind && first.FilePath == second.FilePath && first.Capture == second.Capture && first.Browser == second.Browser
@@ -180,7 +180,7 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
             && SameMedia(loading.Cue, request.Cue) && loading.Cue?.Title == request.Cue.Title
             && loading.Blackout == request.Blackout && loading.Hidden == request.Hidden
             && loading.AudioOnly == request.AudioOnly && loading.PreserveAudio == request.PreserveAudio
-            && loading.Options == request.Options && loading.Style == request.Style && loading.Background == request.Background)
+            && loading.Options == request.Options && loading.Style == request.Style && loading.Background == request.Background && loading.SystemTransition == request.SystemTransition)
         {
             // Repeated projection of a loading file must not discard its decoder
             // and restart the wait for its first frame.
@@ -334,7 +334,7 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
                 if (!KeepOutgoingMedia) _outgoing.BeginCathedralFade(loading.Options);
                 _clock.Restart();
                 if (!loading.Blackout && !loading.Hidden && !loading.PauseAfter && loading.Cue?.Kind == CueKind.Bible
-                    && loading.Style.UsesTextTransition) _current.BeginBibleTextTransition();
+                    && loading.Style.UsesTextTransition) _current.BeginBibleTextTransition(loading.SystemTransition);
                 if (loading.Options.Kind == "Move") BeginLiveMove(loading);
             }
         }

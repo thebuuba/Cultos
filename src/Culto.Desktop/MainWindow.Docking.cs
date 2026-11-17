@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Automation;
 using System.Windows.Data;
 using System.Xml;
 using System.Xml.Linq;
@@ -119,8 +120,7 @@ public partial class MainWindow
                 pane.SizeChanged += DockPaneOutlineChanged;
                 DockPaneOutlineChanged(pane, new RoutedEventArgs());
             }
-            pane.Background = pane.Model is LayoutAnchorablePane { Children.Count: > 1 } ? Brushes.Transparent
-                : DockCardBrush((pane.Model as LayoutAnchorablePane)?.SelectedContent?.ContentId);
+            pane.Background = DockCardBrush((pane.Model as LayoutAnchorablePane)?.SelectedContent?.ContentId);
             if (pane.Model is LayoutAnchorablePane fixedPane && fixedPane.Children.Any(p => p.ContentId == "preview"))
             {
                 pane.Background = Brushes.Transparent; pane.Effect = null; pane.Clip = null;
@@ -129,7 +129,7 @@ public partial class MainWindow
             var joined = IsMonitorPair(pane.Model.Parent);
             pane.Margin = new Thickness(0);
             pane.Effect = null;
-            var shouldClip = !joined && pane.Model is LayoutAnchorablePane { Children.Count: 1 };
+            var shouldClip = !joined;
             if (shouldClip != (pane.Clip is not null)) DockPaneOutlineChanged(pane, new RoutedEventArgs());
             StyleWorkspaceTabs(pane);
             StyleDockCaption(pane);
@@ -155,13 +155,16 @@ public partial class MainWindow
             RenderOptions.SetClearTypeHint(title, ClearTypeHint.Enabled);
             title.Foreground = _dockTextBrush;
             title.BorderThickness = new Thickness(0);
+            title.Tag = title.Model?.Parent is LayoutAnchorablePane { Children.Count: > 1 } ? "Grouped" : null;
+            title.Visibility = title.Tag as string == "Grouped" ? Visibility.Collapsed : Visibility.Visible;
             InitializePanelPlacementMenu(title);
             // Arc 5.0.1 hardcodes this margin rather than binding Padding.
             // Adjust the existing visual; retain its template and drag handlers.
             if (VisualTreeHelper.GetChildrenCount(title) > 0
                 && VisualTreeHelper.GetChild(title, 0) is Border { Child: Grid header } captionFrame)
             {
-                captionFrame.CornerRadius = new CornerRadius(_dockPanelRadius, _dockPanelRadius, 0, 0);
+                captionFrame.CornerRadius = title.Model?.Parent is LayoutAnchorablePane { Children.Count: > 1 }
+                    ? new CornerRadius(0) : new CornerRadius(_dockPanelRadius, _dockPanelRadius, 0, 0);
                 header.Margin = title.Padding;
             }
             return;
@@ -175,9 +178,6 @@ public partial class MainWindow
                         var color = GetPanelTabColor(id);
                         if (!ReferenceEquals(container.Resources["PanelTabSelectionBrush"], color))
                             container.Resources["PanelTabSelectionBrush"] = color;
-                        var ink = (Brush)FindResource(id is "youtube" or "powerpoint" ? "TextBrush" : "OnActionBrush");
-                        if (!ReferenceEquals(container.Resources["PanelTabSelectionInk"], ink))
-                            container.Resources["PanelTabSelectionInk"] = ink;
                         break;
                     }
             // This is the label inside the native TabItem, not a card surface.
@@ -201,8 +201,7 @@ public partial class MainWindow
     private void DockPaneOutlineChanged(object sender, RoutedEventArgs e)
     {
         if (sender is not FrameworkElement pane || pane.ActualWidth <= 0 || pane.ActualHeight <= 0) return;
-        if (pane is LayoutAnchorablePaneControl native && (IsMonitorPair(native.Model.Parent)
-            || native.Model is LayoutAnchorablePane sources && sources.Children.Count > 1))
+        if (pane is LayoutAnchorablePaneControl native && IsMonitorPair(native.Model.Parent))
         { pane.Clip = null; return; }
         var radius = _dockPanelRadius;
         pane.Clip = new RectangleGeometry(new Rect(0, 0, pane.ActualWidth, pane.ActualHeight), radius, radius);
@@ -232,15 +231,37 @@ public partial class MainWindow
             Grid.SetRow(tabScroller, 1);
             grid.Children.Add(tabScroller);
         }
+        var grouped = pane.Model is LayoutAnchorablePane { Children.Count: > 1 };
+        tabScroller.Background = DockCardBrush((pane.Model as LayoutAnchorablePane)?.SelectedContent?.ContentId);
+        tabScroller.Padding = grouped ? new Thickness(12, 6, 56, 0) : new Thickness(0);
+        tabScroller.BorderBrush = (Brush)FindResource("PanelBorderBrush");
+        tabScroller.BorderThickness = grouped ? new Thickness(0, 0, 0, 1) : new Thickness(0);
         foreach (var border in grid.Children.OfType<Border>()) border.CornerRadius = new CornerRadius(0);
         if (Grid.GetRow(tabScroller) != 0)
         {
             grid.RowDefinitions[0].Height = GridLength.Auto; grid.RowDefinitions[1].Height = new GridLength(1, GridUnitType.Star);
             foreach (UIElement child in grid.Children) Grid.SetRow(child, child == tabScroller ? 0 : 1);
         }
+        var menuButton = grid.Children.OfType<Button>().FirstOrDefault(button => button.Name == "WorkspacePanelMenu");
+        if (menuButton is null)
+        {
+            menuButton = new Button
+            {
+                Name = "WorkspacePanelMenu", Content = "≡", FontSize = 20, FontWeight = FontWeights.Normal,
+                Width = 28, Height = 28, MinWidth = 28, MinHeight = 28, Padding = new Thickness(0),
+                HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0, 10, 12, 0), Background = Brushes.Transparent,
+                BorderThickness = new Thickness(0), Foreground = _dockTextBrush, ToolTip = "Opciones del panel", Tag = pane
+            };
+            AutomationProperties.SetName(menuButton, "Opciones del panel");
+            menuButton.Click += PanelMenuClick;
+            grid.Children.Add(menuButton);
+        }
+        Grid.SetRow(menuButton, 0);
+        menuButton.Visibility = grouped ? Visibility.Visible : Visibility.Collapsed;
         foreach (var tab in tabs.Children.OfType<TabItem>())
         {
-            tab.FontSize = 13; tab.MinHeight = 34; tab.Padding = new Thickness(10, 8, 10, 8);
+            tab.FontSize = 13; tab.MinHeight = 40; tab.Padding = new Thickness(12, 10, 12, 10);
             tab.Template = (ControlTemplate)FindResource("WorkspaceSourceTabTemplate");
             tab.ClearValue(ForegroundProperty);
             tab.Background = Brushes.Transparent;

@@ -64,7 +64,8 @@ internal static partial class Program
             Call(window, "ActivateWorkspacePanel", "sources"); window.UpdateLayout();
             var pane = Descendants(dock).OfType<AvalonDock.Controls.LayoutAnchorablePaneControl>().Single(p => p.IsAncestorOf(source));
             var strip = Descendants(pane).OfType<AvalonDock.Controls.AnchorablePaneTabPanel>().Single();
-            Check(BoundsWithin(strip, dock).Bottom <= BoundsWithin(source, dock).Top && pane.Clip is null, "Source tabs are below the body or have curved top clipping");
+            Check(BoundsWithin(strip, dock).Bottom <= BoundsWithin(source, dock).Top
+                && pane.Clip is RectangleGeometry { RadiusX: > 0 }, "Source tabs are outside the shared rounded panel");
             var preview = (FrameworkElement)window.FindName("PreviewPanel"); var output = (FrameworkElement)window.FindName("LivePanel");
             var shared = (Border)window.FindName("ProductionPanel");
             Check(shared.IsAncestorOf(preview) && shared.IsAncestorOf(output) && shared.Background is SolidColorBrush,

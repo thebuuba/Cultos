@@ -21,6 +21,7 @@ public sealed partial class BibleStyleDialog : Window
     private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap, FontSize = 12 };
     private readonly TextBlock _imageName = new() { TextWrapping = TextWrapping.Wrap, FontSize = 12 };
     private readonly TextBox _textColor;
+    private readonly TextBox _referenceColor;
     private readonly TextBox _backgroundColor;
     private readonly Slider _duration;
     private readonly ListBox _sections;
@@ -114,6 +115,31 @@ public sealed partial class BibleStyleDialog : Window
         };
         AddField(controls, "Fuente de la referencia", referenceFamily);
         controls.Children.Add(Text("Se aplica al libro, capítulo y versículo, como «Génesis 1:5».", 12, Muted));
+        var sameColor = new CheckBox { Name = "BibleReferenceSameColor", Content = "Usar el color del texto",
+            IsChecked = _draft.ReferenceColor is null, Margin = new Thickness(0, 16, 0, 12) };
+        AutomationProperties.SetName(sameColor, "Usar el color del texto en la referencia");
+        controls.Children.Add(sameColor);
+        _referenceColor = ColorField(controls, "Color de la referencia", "BibleReferenceColor",
+            _draft.ReferenceColor ?? _draft.TextColor, value => { if (sameColor.IsChecked != true) _draft.ReferenceColor = value; });
+        var referenceColorRow = (FrameworkElement)_referenceColor.Parent;
+        referenceColorRow.IsEnabled = sameColor.IsChecked != true;
+        sameColor.Checked += (_, _) =>
+        {
+            _draft.ReferenceColor = null; referenceColorRow.IsEnabled = false; RefreshPreview();
+        };
+        sameColor.Unchecked += (_, _) =>
+        {
+            referenceColorRow.IsEnabled = true;
+            _draft.ReferenceColor = BibleVisualStyle.ValidColor(_referenceColor.Text.Trim())
+                ? _referenceColor.Text.Trim() : _draft.TextColor;
+            RefreshPreview();
+        };
+        var showVersion = new CheckBox { Name = "BibleShowVersion", Content = "Mostrar versión de la Biblia",
+            IsChecked = _draft.ShowVersion, Margin = new Thickness(0, 8, 0, 0) };
+        AutomationProperties.SetName(showVersion, "Mostrar versión de la Biblia");
+        showVersion.Checked += (_, _) => { _draft.ShowVersion = true; RefreshPreview(); };
+        showVersion.Unchecked += (_, _) => { _draft.ShowVersion = false; RefreshPreview(); };
+        controls.Children.Add(showVersion);
 
         controls = Section("fondo", "Fondo", "Fondo del pasaje");
         _backgroundColor = ColorField(controls, "Color del fondo", "BibleBackgroundColor", _draft.BackgroundColor, value => _draft.BackgroundColor = value);
@@ -125,11 +151,11 @@ public sealed partial class BibleStyleDialog : Window
         controls.Children.Add(imageActions);
         AddField(controls, "Oscurecer imagen", CreateSlider("BibleBackgroundDim", 0, .9, _draft.BackgroundDim, .05, value => { _draft.BackgroundDim = value; RefreshPreview(); }, "P0"));
 
-        controls = Section("transicion", "Transición", "Entrada del versículo");
+        controls = Section("transicion", "Transición", "Texto y referencia");
         CreateTransitionSelector(controls);
         var durationField = CreateSlider("BibleTransitionDuration", 100, 2000, _draft.TransitionMilliseconds, 50, value => { _draft.TransitionMilliseconds = (int)value; RefreshPreview(); }, "0' ms'");
         _duration = (Slider)((DockPanel)durationField).Children[1];
-        AddField(controls, "Duración", durationField);
+        AddField(controls, "Duración de ambas", durationField);
 
         var previewPanel = new Grid();
         previewPanel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -186,7 +212,8 @@ public sealed partial class BibleStyleDialog : Window
     private void UpdateDurationState()
     {
         if (!_ready) return;
-        _duration.IsEnabled = _draft.Transition == "Dissolve" || _draft.UsesTextTransition;
+        _duration.IsEnabled = _draft.Transition == "Dissolve" || BibleTextTransitionCatalog.TryGet(_draft.Transition, out _)
+            || _draft.ReferenceTransition == "Dissolve" || BibleTextTransitionCatalog.TryGet(_draft.ReferenceTransition, out _);
         RefreshPreview();
     }
 
@@ -200,7 +227,9 @@ public sealed partial class BibleStyleDialog : Window
 
     private void Save()
     {
-        if (!ValidateColor(_textColor, "texto") || !ValidateColor(_backgroundColor, "fondo")) return;
+        if (!ValidateColor(_textColor, "texto")
+            || _referenceColor.IsEnabled && !ValidateColor(_referenceColor, "referencia")
+            || !ValidateColor(_backgroundColor, "fondo")) return;
         if (!string.IsNullOrWhiteSpace(_draft.BackgroundImagePath) && !CanReadImage(_draft.BackgroundImagePath))
         {
             _draft.BackgroundImagePath = null; UpdateImageName(); RefreshPreview();
@@ -214,7 +243,7 @@ public sealed partial class BibleStyleDialog : Window
     private bool ValidateColor(TextBox field, string label)
     {
         if (BibleVisualStyle.ValidColor(field.Text.Trim())) return true;
-        _sections.SelectedIndex = ReferenceEquals(field, _textColor) ? 0 : 2;
+        _sections.SelectedIndex = ReferenceEquals(field, _textColor) ? 0 : ReferenceEquals(field, _referenceColor) ? 1 : 2;
         SetStatus($"Revisa el color del {label}: usa #RRGGBB."); field.Focus(); field.SelectAll(); return false;
     }
 

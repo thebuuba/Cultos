@@ -40,6 +40,38 @@ internal static partial class Program
                 var selector = (FrameworkElement)window.FindName("OutputSelectorPill");
                 Check(row.TranslatePoint(new Point(), actions).Y >= selector.TranslatePoint(new Point(), actions).Y + selector.ActualHeight,
                     "Stop action is not below Salidas");
+                var previousSize = new Size(window.Width, window.Height);
+                var productionPanel = (FrameworkElement)window.FindName("ProductionPanel");
+                var previousHeight = productionPanel.Height;
+                try
+                {
+                    productionPanel.Height = 340;
+                    foreach (var size in new[] { new Size(1280, 680), new Size(1480, 900), new Size(1920, 1080) })
+                    {
+                        window.Width = size.Width; window.Height = size.Height; window.UpdateLayout(); PumpFor(100);
+                        var production = (FrameworkElement)window.FindName("ProductionPanel");
+                        var scroll = (ScrollViewer)window.FindName("LiveScroll");
+                        var viewport = (FrameworkElement)window.FindName("OutputViewport");
+                        var previewViewport = (FrameworkElement)window.FindName("PreviewViewport");
+                        var pictureSize = viewport.RenderSize;
+                        var previewSize = previewViewport.RenderSize;
+                        row.Visibility = Visibility.Collapsed;
+                        Call(window, "UpdateOutputPanelLayout"); window.UpdateLayout(); PumpFor(30);
+                        Check(Math.Abs(viewport.ActualHeight - pictureSize.Height) < 1
+                            && Math.Abs(previewViewport.ActualHeight - previewSize.Height) < 1,
+                            "Showing background controls changes monitor size");
+                        Call(window, "UpdateBackgroundAudioState"); window.UpdateLayout(); PumpFor(30);
+                        CheckWithin(scroll, production, new Rect(production.RenderSize), "Output actions viewport");
+                        scroll.ScrollToTop(); window.UpdateLayout(); PumpFor(30);
+                        CheckWithin(button!, scroll, new Rect(scroll.RenderSize), "Stop video visible without scrolling");
+                        button!.BringIntoView(); window.UpdateLayout(); PumpFor(30);
+                        CheckWithin(button, scroll, new Rect(scroll.RenderSize), "Stop background video button");
+                        CheckWithin(button, production, new Rect(production.RenderSize), "Stop video inside production card");
+                        if (size.Width == 1480)
+                            CaptureDesignWindow(window, Path.Combine(Environment.CurrentDirectory, ".tools", "output-bottom-fixed.png"));
+                    }
+                }
+                finally { productionPanel.Height = previousHeight; window.Width = previousSize.Width; window.Height = previousSize.Height; window.UpdateLayout(); }
                 button!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 Ready(() => !output.IsPlaying && !output.HasBackgroundMedia, "Hidden playback did not stop");
                 Check(output.RetainedMediaCue is null && output.AudioCue is null, "Stopped video is still retained");

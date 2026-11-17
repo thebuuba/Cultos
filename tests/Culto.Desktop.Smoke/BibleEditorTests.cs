@@ -11,7 +11,17 @@ internal static partial class Program
     private static void RunBibleEditorTests(MainWindow window)
     {
         var example = new Cue { Kind = CueKind.Bible, Title = "Ejemplo", Body = "El Señor es mi pastor; nada me faltará.", Reference = "Salmos 23:1", Version = "Ejemplo de prueba" };
-        T Control<T>(BibleStyleDialog dialog, string name) where T : FrameworkElement => Descendants(dialog).OfType<T>().Single(control => control.Name == name);
+        T Control<T>(BibleStyleDialog dialog, string name) where T : FrameworkElement
+        {
+            if (name is "BibleTransitionSearch" or "BibleTransitionFamily" or "BibleTransitionFavoritesOnly" or "BibleTransitionMatches")
+            {
+                Descendants(dialog).OfType<ListBox>().Single(control => control.Name == "BibleStyleSections").SelectedIndex = 3;
+                dialog.UpdateLayout();
+                Descendants(dialog).OfType<Expander>().Single(control => control.Name == "BibleTransitionFilters").IsExpanded = true;
+                dialog.UpdateLayout();
+            }
+            return Descendants(dialog).OfType<T>().Single(control => control.Name == name);
+        }
         void Click(BibleStyleDialog dialog, string name) => Control<Button>(dialog, name).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         bool? Exercise(BibleStyleDialog dialog, Action<BibleStyleDialog> action)
         {
@@ -26,6 +36,48 @@ internal static partial class Program
             if (error is not null) throw error;
             return result;
         }
+
+        Test("Bible editor saves independent text and reference transitions and can link them again", () =>
+        {
+            var preset = BibleTextTransitionCatalog.All.First(item => item.Id.StartsWith("TextPreset:") && item.Motion == BibleTextMotion.Rotate);
+            var dialog = new BibleStyleDialog(new BibleVisualStyle(), example);
+            Check(Exercise(dialog, editor =>
+            {
+                var text = Control<ComboBox>(editor, "BibleTransition");
+                var reference = Control<ComboBox>(editor, "BibleReferenceTransition");
+                Check(reference.SelectedValue as string == "Same", "Reference should initially follow text");
+                text.SelectedValue = "Cut";
+                reference.SelectedValue = preset.Id;
+                Check(editor.EditedStyle.Transition == "Cut" && editor.EditedStyle.ReferenceTransition == preset.Id,
+                    "Independent reference choice changed the passage effect");
+                Check(Control<Slider>(editor, "BibleTransitionDuration").IsEnabled, "Animated reference needs duration even with a cut passage");
+                Click(editor, "TestBibleTransitionButton");
+                var preview = Field<ProjectionSurface>(editor, "_preview");
+                Check(preview.IsTransitioning && Field<TextBlock>(preview, "_body").Opacity == 1,
+                    "Preview did not animate only the reference");
+                Until(() => !preview.IsTransitioning, "Separate reference preview did not finish");
+                Control<TextBox>(editor, "BibleTransitionSearch").Text = "no matching transition";
+                Check(editor.EditedStyle.ReferenceTransition == preset.Id
+                    && Control<TextBlock>(editor, "BibleReferenceTransitionSelected").Text.Contains(preset.Name),
+                    "Filtering lost the independent selection");
+                Click(editor, "SaveBibleStyleButton");
+            }) == true, "Independent effects were not saved");
+            var reopened = new BibleStyleDialog(dialog.EditedStyle, example);
+            Exercise(reopened, editor =>
+            {
+                var reference = Control<ComboBox>(editor, "BibleReferenceTransition");
+                Check(reference.SelectedValue as string == preset.Id, "Reopening lost the reference effect");
+                reference.SelectedValue = "Same";
+                Control<ComboBox>(editor, "BibleTransition").SelectedValue = "TextRise";
+                Check(editor.EditedStyle.ReferenceTransition is null, "Reference cannot follow text again");
+                Click(editor, "TestBibleTransitionButton");
+                var preview = Field<ProjectionSurface>(editor, "_preview");
+                Check(Field<TextBlock>(preview, "_body").RenderTransform is System.Windows.Media.TranslateTransform
+                    && Field<TextBlock>(preview, "_reference").RenderTransform is System.Windows.Media.TranslateTransform,
+                    "Linked reference does not use the passage effect");
+                Click(editor, "CancelBibleStyleButton");
+            });
+        });
 
         Test("Bible editor previews real controls and cancellation preserves source and live output", () =>
         {
@@ -56,6 +108,56 @@ internal static partial class Program
             });
             Check(result == false && original == unchanged, "Cancel changed the supplied style");
             Check(Field<bool>(Field<ProjectionSurface>(dialog, "_preview"), "_disposed"), "Closing editor did not dispose preview");
+        });
+
+        Test("Bible reference color and version visibility are independent of passage typography", () =>
+        {
+            var dialog = new BibleStyleDialog(new BibleVisualStyle(), example);
+            var result = Exercise(dialog, editor =>
+            {
+                Control<ComboBox>(editor, "BibleFontFamily").SelectedItem = "Arial";
+                Control<TextBox>(editor, "BibleTextColor").Text = "#AABBCC";
+                Control<ComboBox>(editor, "BibleReferenceFontFamily").SelectedItem = "Georgia";
+                Control<CheckBox>(editor, "BibleReferenceSameColor").IsChecked = false;
+                Control<TextBox>(editor, "BibleReferenceColor").Text = "#NOPE";
+                Click(editor, "SaveBibleStyleButton");
+                Check(editor.IsVisible && Control<ListBox>(editor, "BibleStyleSections").SelectedIndex == 1,
+                    "Invalid reference color did not reveal its validation field");
+                Control<TextBox>(editor, "BibleReferenceColor").Text = "#FFE08A";
+                var preview = Field<ProjectionSurface>(editor, "_preview");
+                var body = Field<TextBlock>(preview, "_body");
+                var reference = Field<TextBlock>(preview, "_reference");
+                Check(body.FontFamily.Source == "Arial" && reference.FontFamily.Source == "Georgia",
+                    "Passage and reference fonts are not independent");
+                Check(((System.Windows.Media.SolidColorBrush)body.Foreground).Color == System.Windows.Media.Color.FromRgb(170, 187, 204)
+                    && ((System.Windows.Media.SolidColorBrush)reference.Foreground).Color == System.Windows.Media.Color.FromRgb(255, 224, 138),
+                    "Reference color changed the passage color");
+                var version = Control<CheckBox>(editor, "BibleShowVersion");
+                version.IsChecked = false;
+                Check(Field<TextBlock>(preview, "_version").Visibility == Visibility.Collapsed,
+                    "Hidden Bible version remains visible in the preview");
+                Control<ComboBox>(editor, "BibleTransition").SelectedValue = "TextRise";
+                Click(editor, "TestBibleTransitionButton");
+                Until(() => !preview.IsTransitioning, "Independent reference transition did not finish");
+                Check(Field<TextBlock>(preview, "_version").Visibility == Visibility.Collapsed
+                    && example.Version == "Ejemplo de prueba", "Transition revealed the version or changed its source");
+                version.IsChecked = true;
+                Check(Field<TextBlock>(preview, "_version").Visibility == Visibility.Visible, "Version cannot be shown again");
+                version.IsChecked = false;
+                Click(editor, "SaveBibleStyleButton");
+            });
+            Check(result == true, "Reference style changes were not saved");
+            var reloaded = new BibleStyleDialog(dialog.EditedStyle, example);
+            Exercise(reloaded, editor =>
+            {
+                Check(Control<TextBox>(editor, "BibleReferenceColor").Text == "#FFE08A"
+                    && Control<CheckBox>(editor, "BibleShowVersion").IsChecked == false, "Reopening lost reference settings");
+                Control<CheckBox>(editor, "BibleReferenceSameColor").IsChecked = true;
+                Control<TextBox>(editor, "BibleTextColor").Text = "#FFFFFF";
+                Check(((System.Windows.Media.SolidColorBrush)Field<TextBlock>(Field<ProjectionSurface>(editor, "_preview"), "_reference").Foreground).Color
+                    == System.Windows.Media.Colors.White, "Reference cannot follow the passage color again");
+                Click(editor, "CancelBibleStyleButton");
+            });
         });
 
         Test("Bible editor saves normalized choices without mutating source", () =>

@@ -185,15 +185,9 @@ public sealed class BibleCatalog
         if (passage.Length == 1) return ToCue(passage[0]);
 
         var chapters = passage.GroupBy(verse => (verse.Book, verse.Chapter)).ToArray();
-        var multipleBooks = passage.Select(verse => verse.Book).Distinct().Skip(1).Any();
         var reference = string.Join("; ", chapters.Select(chapter =>
             $"{chapter.Key.Book} {chapter.Key.Chapter}:{CompactVerseNumbers(chapter.SelectMany(verse => Enumerable.Range(verse.Verse, verse.LastVerse - verse.Verse + 1)))}"));
-        var body = string.Join("\n", passage.Select(verse =>
-        {
-            var number = multipleBooks ? $"{verse.Book} {verse.Chapter}:{verse.VerseNumber}"
-                : chapters.Length > 1 ? $"{verse.Chapter}:{verse.VerseNumber}" : verse.VerseNumber;
-            return $"{number} {verse.Text}";
-        }));
+        var body = string.Join("\n", passage.Select(verse => verse.Text));
         return new Cue { Title = reference, Kind = CueKind.Bible, Body = body, Reference = reference,
             Version = Document.Name, Notes = Document.Attribution };
     }

@@ -5,15 +5,21 @@ namespace Culto.Desktop;
 
 public partial class MainWindow
 {
-    private void OutputPanelSizeChanged(object sender, SizeChangedEventArgs e)
+    private void OutputPanelSizeChanged(object sender, SizeChangedEventArgs e) => UpdateOutputPanelLayout();
+
+    private void UpdateOutputPanelLayout()
     {
-        if (OutputTransportGrid is null) return;
-        // The transport is inside the picture; only the short output actions scroll.
+        if (OutputDetails is null || ProductionPanel.ActualHeight <= 0) return;
         var available = Math.Max(0, ProductionPanel.ActualHeight - ProductionPanel.Padding.Top - ProductionPanel.Padding.Bottom
             - LivePanel.Padding.Top - LivePanel.Padding.Bottom
             - Math.Max(24, LiveHeaderGrid.ActualHeight));
-        var picture = Math.Max(102, Math.Min((LivePanel.ActualWidth - LivePanel.Padding.Left - LivePanel.Padding.Right) * 9 / 16 + 22, available - 44));
-        LiveScroll.MaxHeight = Math.Max(44, available - picture);
+        // A fixed controls area keeps both monitors stable when background
+        // playback actions appear. Compact layouts scroll within this area.
+        var actions = Math.Max(44, Math.Min(160, available - 102));
+        var picture = Math.Max(80, available - actions - LivePicture.Margin.Top - LivePicture.Margin.Bottom);
+        LivePicture.MaxHeight = picture;
+        PreviewPicture.MaxHeight = picture;
+        LiveScroll.MaxHeight = actions;
     }
 
     private void UpdateOutputSwitchLabel()
