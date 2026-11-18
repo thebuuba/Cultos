@@ -942,7 +942,7 @@
             <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/><Setter Property="Visibility" Value="Collapsed"/>
             <Style.Triggers>
               <DataTrigger Binding="{Binding Text, ElementName=NotesSearchBox}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger>
-              <DataTrigger Binding="{Binding IsKeyboardFocused, ElementName=NotesSearchBox}" Value="True"><Setter Property="Foreground" Value="{StaticResource OnActionBrush}"/></DataTrigger>
+              <DataTrigger Binding="{Binding IsKeyboardFocused, ElementName=NotesSearchBox}" Value="True"><Setter Property="Foreground" Value="{StaticResource TextBrush}"/></DataTrigger>
             </Style.Triggers>
           </Style></TextBlock.Style>
         </TextBlock>

@@ -7,6 +7,12 @@ namespace Culto.Desktop;
 
 public partial class App : Application
 {
+    static App()
+    {
+        // Draw the selection behind glyphs so opaque highlights honor SelectionTextBrush.
+        AppContext.SetSwitch("Switch.System.Windows.Controls.Text.UseAdornerForTextboxSelectionRendering", false);
+    }
+
     protected override void OnExit(ExitEventArgs e)
     {
         Services.CapturedApplicationAudio.ShutdownShared();

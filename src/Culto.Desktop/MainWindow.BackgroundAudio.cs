@@ -48,7 +48,7 @@ public partial class MainWindow
         BackgroundMediaText.Visibility = _output is not null ? Visibility.Visible : Visibility.Collapsed;
         BackgroundMediaText.Text = "Imagen: " + VisualChannelTitle + " · Audio: " + AudioChannelTitle;
         BackgroundMediaText.ToolTip = BackgroundMediaText.Text;
-        MediaPlaybackPanel.Visibility = HasVisibleMediaOutput
-            ? Visibility.Visible : Visibility.Collapsed;
+        UpdatePlaybackAvailability();
+        UpdatePlaybackOverlay();
     }
 }

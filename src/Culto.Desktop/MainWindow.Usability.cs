@@ -63,6 +63,15 @@ public partial class MainWindow
     private void UpdateUsabilityState()
     {
         if (!_ready) return;
+        UpdatePlaybackAvailability();
+        UpdatePowerPointPanel();
+        PlanList.LiveCueId = _output is not null ? _session.Live?.Id : null;
+        if (FindName("NextLiveText") is TextBlock next)
+            next.Text = NextLiveHint();
+    }
+
+    private void UpdatePlaybackAvailability()
+    {
         var capture = !HasBackgroundFileAudio && _output is not null && _session.Live?.Kind == CueKind.WindowCapture;
         OutputTransportGrid.Visibility = CanControlFileMedia ? Visibility.Visible : Visibility.Collapsed;
         PauseButton.IsEnabled = HasVisibleMediaOutput && !capture;
@@ -71,12 +80,8 @@ public partial class MainWindow
             RestartOutputButton, OutputSkipBackButton, OutputSkipForwardButton, LoopCheck })
             control.Visibility = capture ? Visibility.Collapsed : Visibility.Visible;
         if (capture) UpdateCapturePlayButton();
-        UpdatePowerPointPanel();
         if (FindName("MediaPlaybackPanel") is FrameworkElement mediaPanel)
             mediaPanel.Visibility = HasVisibleMediaOutput ? Visibility.Visible : Visibility.Collapsed;
-        PlanList.LiveCueId = _output is not null ? _session.Live?.Id : null;
-        if (FindName("NextLiveText") is TextBlock next)
-            next.Text = NextLiveHint();
     }
 
     private void UpdateCapturePlayButton()

@@ -37,6 +37,34 @@ internal static partial class Program
             finally { Call(window, "CloseOutput"); workspace.QuickSceneVideo = remembered; }
         });
         void UntilSplit(Func<bool> ready, string failure) { var deadline = DateTime.UtcNow.AddSeconds(30); while (!ready() && DateTime.UtcNow < deadline) PumpFor(50); Check(ready(), failure); }
+        Test("Shift music shows enabled playback controls without mouse hover", () =>
+        {
+            var path = Path.Combine(Field<WorkspaceStore>(window, "_store").DirectoryPath, "shift-music.wav");
+            using (var writer = new NAudio.Wave.WaveFileWriter(path, new NAudio.Wave.WaveFormat(8000, 16, 1)))
+                writer.Write(new byte[160000], 0, 160000);
+            try
+            {
+                Call(window, "CloseOutput");
+                Call(window, "PrepareCue", new Cue { Title = "Imagen conservada", Body = "Bienvenidos" }, null);
+                Call(window, "ProjectPrepared");
+                var output = Field<ProjectionSurface>(window, "_output");
+                UntilSplit(() => !output.IsTransitioning, "Foreground never settled");
+                Call(window, "PrepareCue", new Cue { Kind = CueKind.Audio, Title = "Música con Shift", FilePath = path }, null);
+                Check((bool)Call(window, "ProjectPreparedPreservingOther")!, "Shift music was rejected");
+                UntilSplit(() => output.HasBackgroundMedia && output.IsPlaying && output.Duration > 0, "Shift music did not load");
+                Call(window, "ShowPlaybackOverlay", false);
+                Call(window, "UpdateBackgroundAudioState");
+                var transport = (FrameworkElement)window.FindName("MediaPlaybackPanel");
+                UntilSplit(() => transport.IsHitTestVisible && transport.Opacity > .9, "Music player is hidden without mouse hover");
+                Check(((FrameworkElement)window.FindName("OutputTransportGrid")).Visibility == Visibility.Visible
+                    && ((Button)window.FindName("PauseButton")).IsEnabled, "Music player has no enabled transport after loading");
+                Call(window, "PrepareCue", new Cue { Title = "Siguiente lectura", Body = "Otro contenido" }, null);
+                Check(transport.IsHitTestVisible, "Preparing another cue hides the background player");
+                Call(window, "TogglePause"); Check(output.IsPaused, "Shift music cannot pause");
+                Call(window, "TogglePause"); Check(!output.IsPaused, "Shift music cannot resume");
+            }
+            finally { Call(window, "CloseOutput"); }
+        });
         Test("One-shot image and audio commands keep logo and restore the same playing file", () =>
         {
             var workspace = Field<WorkspaceData>(window, "_workspace");
@@ -98,6 +126,12 @@ internal static partial class Program
             Call(window, "UpdateBackgroundAudioState");
             Check(((TextBlock)window.FindName("BackgroundMediaText")).Text.Contains("Himno para audio"), "Separate audio label missing");
             Check(((FrameworkElement)window.FindName("MediaPlaybackPanel")).Visibility == Visibility.Visible, "Logo background audio has no volume/transport");
+            Call(window, "ShowPlaybackOverlay", false);
+            Call(window, "UpdateBackgroundAudioState");
+            var transport = (FrameworkElement)window.FindName("MediaPlaybackPanel");
+            UntilSplit(() => transport.IsHitTestVisible && transport.Opacity > .9, "Shift video keeps its player hidden until mouse hover");
+            Check(ReferenceEquals(Field<ContentControl>(window, "_playbackOverlayHost"), window.FindName("LiveOverlayHost")),
+                "Shift playback controls are attached to a different preview");
             Call(window, "TogglePause"); Check(output.IsPaused, "Background audio pause ignored under Logo");
             Call(window, "TogglePause"); Check(!output.IsPaused, "Background audio resume ignored under Logo");
             var snapshot = (Culto.Remote.RemoteSnapshot)Call(window, "BuildRemoteState")!;

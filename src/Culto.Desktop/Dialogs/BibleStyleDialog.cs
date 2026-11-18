@@ -16,6 +16,7 @@ namespace Culto.Desktop.Dialogs;
 public sealed partial class BibleStyleDialog : Window
 {
     private BibleVisualStyle _draft;
+    private readonly BibleVisualStyle _savedStyle;
     private readonly Cue _example;
     private readonly ProjectionSurface _preview = new(preview: false) { Width = 1600, Height = 900 };
     private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap, FontSize = 12 };
@@ -28,11 +29,13 @@ public sealed partial class BibleStyleDialog : Window
     private bool _ready;
 
     public BibleVisualStyle EditedStyle => _draft.Normalize();
+    public Func<BibleVisualStyle, bool>? PersistStyle { private get; init; }
 
     public BibleStyleDialog(BibleVisualStyle style, Cue example, TransitionOptions? transitions = null)
     {
         _preview.Transitions = (transitions ?? new()).Normalize();
         _draft = (style with { }).Normalize();
+        _savedStyle = _draft with { };
         // A Bible-only copy keeps the editor isolated from live content and media playback.
         _example = new Cue { Kind = CueKind.Bible, Body = example.Body, Reference = example.Reference, Version = example.Version, Title = example.Title };
         base.Style = (System.Windows.Style)Application.Current.FindResource(typeof(Window));
@@ -193,6 +196,15 @@ public sealed partial class BibleStyleDialog : Window
             controlsScroll.ScrollToTop();
         };
         sections.SelectedIndex = 0;
+        Closing += (_, e) =>
+        {
+            if (DialogResult is not null || !_ready) return;
+            if (EditedStyle == _savedStyle && BibleVisualStyle.ValidColor(_textColor.Text.Trim())
+                && (!_referenceColor.IsEnabled || BibleVisualStyle.ValidColor(_referenceColor.Text.Trim()))
+                && BibleVisualStyle.ValidColor(_backgroundColor.Text.Trim())) return;
+            e.Cancel = true;
+            SetStatus("Tienes cambios sin guardar. Pulsa Guardar para conservarlos o Cancelar para descartarlos.");
+        };
         Closed += (_, _) => _preview.Dispose();
         if (!string.IsNullOrWhiteSpace(_draft.BackgroundImagePath) && !CanReadImage(_draft.BackgroundImagePath))
         {
@@ -237,6 +249,11 @@ public sealed partial class BibleStyleDialog : Window
             return;
         }
         _draft = _draft.Normalize();
+        if (PersistStyle?.Invoke(EditedStyle) == false)
+        {
+            SetStatus("No se pudo guardar. Tus cambios siguen aquí; revisa el almacenamiento y vuelve a pulsar Guardar.");
+            return;
+        }
         DialogResult = true;
     }
 

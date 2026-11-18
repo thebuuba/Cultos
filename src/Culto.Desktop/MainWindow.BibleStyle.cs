@@ -11,8 +11,9 @@ public partial class MainWindow
         var example = _session.Prepared?.Kind == CueKind.Bible ? _session.Prepared
             : (BibleResults.SelectedItem as BibleResult)?.Cue ?? _bibleReading.FirstOrDefault()
                 ?? new Cue { Kind = CueKind.Bible, Title = "Vista previa", Body = "Texto bíblico", Reference = "Referencia", Version = "Biblia" };
-        var dialog = new BibleStyleDialog(_workspace.BibleStyle, example, _workspace.Transitions) { Owner = this };
-        if (dialog.ShowDialog() == true) ApplyBibleStyle(dialog.EditedStyle);
+        var dialog = new BibleStyleDialog(_workspace.BibleStyle, example, _workspace.Transitions)
+        { Owner = this, PersistStyle = ApplyBibleStyle };
+        dialog.ShowDialog();
     }
 
     private bool ApplyBibleStyle(BibleVisualStyle style)

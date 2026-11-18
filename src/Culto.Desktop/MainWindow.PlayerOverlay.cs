@@ -55,6 +55,13 @@ public partial class MainWindow
     private void UpdatePlaybackOverlay()
     {
         if (MediaPlaybackPanel is null || LiveOverlayHost is null) return;
+        if (HasBackgroundFileAudio)
+        {
+            if (!_outputScrubbing && !MediaPlaybackPanel.IsMouseCaptureWithin && !PlaybackKeyboardFocusHeld)
+                PlacePlaybackOverlay(LiveOverlayHost);
+            ShowPlaybackOverlay(true);
+            return;
+        }
         if (_playbackOverlayHost is null || ReferenceEquals(_playbackOverlayHost, PreviewOverlayHost) && !PreviewCanHostPlayback)
             PlacePlaybackOverlay(LiveOverlayHost);
 
