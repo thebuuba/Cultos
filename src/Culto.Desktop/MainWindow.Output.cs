@@ -53,6 +53,8 @@ public partial class MainWindow
             catch (ArgumentException error) { SetStatus(error.Message, true); return false; }
             return cue.Scene.Layers.Where(layer => layer.Visible).All(layer => CheckMedia(layer.Source));
         }
+        if (cue.ProgramTitle is { } program && (!File.Exists(program.ThemeImagePath) || !File.Exists(program.PurposeImagePath)))
+        { SetStatus("No se encuentra una de las imágenes del tema o del propósito. Edita la escena y vuelve a elegirla.", true); return false; }
         if (cue.Kind == CueKind.BrowserSource)
         {
             try
@@ -220,7 +222,13 @@ public partial class MainWindow
         if (_output is null || _session.Live is null) { SetStatus("Proyecta primero un elemento del culto."); return; }
         _workspace.Plan.Items = _plan.ToList();
         var index = _plan.ToList().FindIndex(c => c.Id == _session.Live.Id);
-        if (index >= 0)
+        if (_session.Live.ProgramTitle is not null)
+        {
+            if (!CheckMedia(_session.Live)) return;
+            if (!_session.MoveProgramTitle(delta)) { SetStatus("El título del programa tiene dos pantallas: Tema y Propósito."); return; }
+            _preparedReading = null; _liveReading = null;
+        }
+        else if (index >= 0)
         {
             var nextIndex = index + delta;
             if (nextIndex < 0 || nextIndex >= _plan.Count) { SetStatus("Has llegado al límite del orden de culto."); return; }
@@ -252,6 +260,8 @@ public partial class MainWindow
         UpdateSessionLabels();
         SetStatus("En pantalla: " + _session.Live!.Title);
     }
+    private void ProgramTitlePreviousClick(object sender, RoutedEventArgs e) => AdvancePresentation(-1);
+    private void ProgramTitleNextClick(object sender, RoutedEventArgs e) => AdvancePresentation(1);
     private void ToggleBlackout()
     {
         if (_output is null) { SetStatus("La salida ya está cerrada."); return; }

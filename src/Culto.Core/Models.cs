@@ -2,6 +2,8 @@ namespace Culto.Core;
 
 public enum CueKind { Text, Bible, Image, Video, Audio, PowerPoint, WindowCapture, BrowserSource, Scene }
 
+public sealed record ProgramTitle(string ThemeImagePath, string PurposeImagePath);
+
 public sealed class Cue
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -14,6 +16,10 @@ public sealed class Cue
     public string? YouTubeUrl { get; set; }
     public int? HymnNumber { get; set; }
     public string Notes { get; set; } = "";
+    public string Announcer { get; set; } = "";
+    public ProgramTitle? ProgramTitle { get; set; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public int ProgramTitlePage { get; set; }
     public WindowCaptureOptions? Capture { get; set; }
     public BrowserSourceOptions? Browser { get; set; }
     public SceneComposition? Scene { get; set; }

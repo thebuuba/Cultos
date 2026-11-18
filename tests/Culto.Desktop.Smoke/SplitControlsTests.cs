@@ -13,6 +13,29 @@ internal static partial class Program
     private static void RunSplitControlsTests(MainWindow window)
     {
         RunStopBackgroundMediaTests(window);
+        Test("Video scene uses the prepared video and disables without an active or prepared clip", () =>
+        {
+            Call(window, "CloseOutput");
+            var workspace = Field<WorkspaceData>(window, "_workspace");
+            var remembered = workspace.QuickSceneVideo;
+            var clip = new Cue { Kind = CueKind.Video, Title = "Video preparado", FilePath = Path.Combine(AppContext.BaseDirectory, "fixtures", "test.mkv") };
+            try
+            {
+                workspace.QuickSceneVideo = clip;
+                Call(window, "PrepareCue", new Cue { Title = "Texto", Body = "Lectura" }, null);
+                var state = (Culto.Remote.RemoteSnapshot)Call(window, "BuildRemoteState")!;
+                Check(!state.Scenes!.Single(scene => scene.Id == "video").Available, "Video scene fell back to an old remembered clip");
+                Call(window, "PrepareCue", clip, null);
+                state = (Culto.Remote.RemoteSnapshot)Call(window, "BuildRemoteState")!;
+                Check(state.Scenes!.Single(scene => scene.Id == "video") is { Available: true, Detail: "Video preparado" },
+                    "Video scene did not advertise the prepared video");
+                ((Slider)window.FindName("VolumeSlider")).Value = 0;
+                var result = (Culto.Remote.CommandResult)Call(window, "ExecuteRemote",
+                    new Culto.Remote.RemoteCommand("scene", "scene-start-prepared", ButtonId: "video"))!;
+                Check(result.Success && Field<PresentationSession>(window, "_session").Live?.Id == clip.Id, "Video scene did not start the prepared clip");
+            }
+            finally { Call(window, "CloseOutput"); workspace.QuickSceneVideo = remembered; }
+        });
         void UntilSplit(Func<bool> ready, string failure) { var deadline = DateTime.UtcNow.AddSeconds(30); while (!ready() && DateTime.UtcNow < deadline) PumpFor(50); Check(ready(), failure); }
         Test("One-shot image and audio commands keep logo and restore the same playing file", () =>
         {
@@ -34,6 +57,30 @@ internal static partial class Program
             UntilSplit(() => !output.IsTransitioning && output.HasBackgroundMedia && session.IsTextHidden, "Visual-only logo lost playing audio");
             var playing = output.ActiveSurface;
             Check(output.IsPlaying, "Logo paused the preserved file");
+            var otherVideo = clip.Copy(newId: true); otherVideo.Title = "Otro video preparado";
+            Call(window, "PrepareCue", otherVideo, null);
+            var videoScene = ((Culto.Remote.RemoteSnapshot)Call(window, "BuildRemoteState")!).Scenes!.Single(scene => scene.Id == "video");
+            Check(videoScene.Available && videoScene.Detail == clip.Title, "Video scene did not prefer the already playing clip");
+            var position = output.Position;
+            var videoResult = (Culto.Remote.CommandResult)Call(window, "ExecuteRemote",
+                new Culto.Remote.RemoteCommand("scene", "scene-playing-video", ButtonId: "video"))!;
+            UntilSplit(() => !output.IsTransitioning && !session.IsTextHidden, "Video scene did not restore the picture");
+            Check(videoResult.Success && ReferenceEquals(playing, output.ActiveSurface) && output.Position >= position - .2,
+                "Video scene restarted the playing clip or chose the prepared clip");
+            Call(window, "TogglePause");
+            position = output.Position;
+            Call(window, "ExecuteRemote", new Culto.Remote.RemoteCommand("scene", "scene-repeat-paused", ButtonId: "video"));
+            PumpFor(300);
+            Check(output.IsPaused && Math.Abs(output.Position - position) < .3, "Tapping active Video resumed a paused clip");
+            Call(window, "ShowLogoPreservingAudio");
+            UntilSplit(() => !output.IsTransitioning && output.HasBackgroundMedia, "Paused video did not remain behind the logo");
+            playing = output.ActiveSurface;
+            Call(window, "ExecuteRemote", new Culto.Remote.RemoteCommand("scene", "scene-return-paused", ButtonId: "video"));
+            UntilSplit(() => !output.IsTransitioning && !session.IsTextHidden, "Paused video did not return from logo");
+            Check(output.IsPaused && ReferenceEquals(playing, output.ActiveSurface), "Returning paused Video resumed or replaced the decoder");
+            Call(window, "TogglePause");
+            Call(window, "ShowLogoPreservingAudio");
+            UntilSplit(() => !output.IsTransitioning && output.HasBackgroundMedia, "Video did not return behind logo");
             Call(window, "ShowLogo");
             UntilSplit(() => !output.IsTransitioning && !output.HasBackgroundMedia, "Normal repeat Logo retained audio");
             Call(window, "PrepareCue", clip, null); Call(window, "ProjectPreparedPreservingOther");

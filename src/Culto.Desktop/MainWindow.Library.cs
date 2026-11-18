@@ -99,7 +99,7 @@ public partial class MainWindow
     private async void ImportFilesClick(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFileDialog { Title = "Importar contenido", Multiselect = true,
-            Filter = "Contenido multimedia y PowerPoint|*.mkv;*.mp4;*.mov;*.webm;*.avi;*.wmv;*.mp3;*.wav;*.flac;*.ogg;*.jpg;*.jpeg;*.png;*.bmp;*.pptx;*.ppt;*.ppsx;*.pps|PowerPoint|*.pptx;*.ppt;*.ppsx;*.pps|Todos los archivos|*.*" };
+            Filter = MediaLibrary.FileFilter };
         if (dialog.ShowDialog(this) == true) await ImportMediaAsync(dialog.FileNames);
     }
     private async void ImportFolderClick(object sender, RoutedEventArgs e)
@@ -187,7 +187,7 @@ public partial class MainWindow
     {
         var i = PlanList.SelectedIndex; var target = i + delta;
         if (i < 0 || target < 0 || target >= _plan.Count) return;
-        _plan.Move(i, target); SaveWorkspace();
+        MovePlanItem(i, target); SaveWorkspace();
     }
     private void RemoveCueClick(object sender, RoutedEventArgs e)
     {

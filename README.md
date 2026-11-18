@@ -251,18 +251,18 @@ Un presentador que envíe esas teclas puede recorrer el orden o los pasos de Pow
 
 1. Conecta PC y teléfono a la misma red local.
 2. Abre **Configuración → Mando móvil → Activar mando**.
-3. Selecciona la dirección IP de la PC que corresponde a esa red y escanea el QR con el teléfono.
+3. Selecciona la dirección IP de la PC que corresponde a esa red. Abre `http://IP:18765/` en el teléfono o escanea el QR para abrir esa misma dirección.
 4. En el teléfono aparece el **orden del culto** con los mismos títulos y posiciones que en la PC. Toca un elemento para enviarlo a **En pantalla** y reproducirlo; funciona también en salida local sin HDMI. La marca del elemento activo se actualiza desde la consola, junto con el estado Local/HDMI, Negro o Fondo.
 5. Desde el teléfono puedes usar **Anterior, Siguiente, Negro, Fondo, Pausar/Continuar, Reiniciar, posición y volumen**, además de proyectar lo preparado en la PC. Los cambios del orden realizados en la PC aparecen automáticamente en el teléfono. Si se pierde conexión, las acciones no se reenvían solas.
 6. En **Organizar botones** selecciona un acceso a la izquierda y edita su nombre, acción y color a la derecha. Para vincular un himno, elige **Proyectar un contenido** y escribe el comienzo de su número o título en el selector de contenido. Pulsa **Guardar botón** para aplicar los cambios.
 
 Si cambias de Wi-Fi, pulsa **Actualizar red** y escanea el QR actualizado. El selector prioriza conexiones con puerta de enlace y excluye direcciones locales que no sirven para conectar el teléfono.
 
-El mando utiliza el puerto TCP **18765**. No necesita internet y sólo permite acciones propias de la consola. La vinculación cambia al desactivar y activar el mando. No compartas el enlace fuera del equipo que dirige el culto. Usa una red local de confianza; esta versión usa HTTP dentro de esa red.
+El mando utiliza el puerto TCP **18765**. No necesita internet y sólo permite acciones propias de la consola. El acceso funciona por IP, sin token ni clave de vinculación. Cualquier dispositivo de esa red que conozca la dirección puede controlar el programa mientras el mando esté activado. Guarda la dirección en el teléfono: la página abierta reintenta la conexión cada 1,5 segundos al reactivar el mando, siempre que la IP siga siendo la misma. Usa una red local de confianza; esta versión usa HTTP dentro de esa red.
 
 La aplicación no configura el firewall. Si Windows solicita acceso, el usuario debe decidir si permite el programa en su **red privada**. Si el teléfono no abre el mando, comprueba la misma Wi-Fi, dirección elegida, aislamiento de clientes del router y permiso del firewall. No hace falta abrir puertos del router hacia internet.
 
-Si el teléfono pierde conexión, la proyección continúa y los controles de la PC siguen disponibles. **Desactivar mando** invalida el enlace sin cerrar la salida.
+Si el teléfono pierde conexión, la proyección continúa y los controles de la PC siguen disponibles. **Desactivar mando** detiene el servidor. Al reactivarlo, el teléfono se reconecta a la misma dirección.
 
 ## Guardado y copias
 

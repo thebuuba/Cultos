@@ -11,6 +11,39 @@ namespace Culto.Remote.Tests;
 public sealed class RemoteTests
 {
     [Fact]
+    public async Task ExplicitTokenModeRemainsAvailableForTheStreamDeckBridge()
+    {
+        await using var host = new RemoteHost();
+        await host.StartAsync(0, () => Snapshot("Bridge"), _ => Task.FromResult(new CommandResult(true, "OK")),
+            loopbackOnly: true, requireToken: true);
+        using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{host.Port}") };
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/state")).StatusCode);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", host.Token);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/state")).StatusCode);
+    }
+
+    [Fact]
+    public async Task ReactivatingOnTheSameAddressNeedsNoNewPairing()
+    {
+        var first = new RemoteHost();
+        await first.StartAsync(0, () => Snapshot("Primera"), _ => Task.FromResult(new CommandResult(true, "OK")), true);
+        var port = first.Port;
+        using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{port}") };
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/state")).StatusCode);
+        await first.DisposeAsync();
+        await using var second = new RemoteHost();
+        var calls = 0;
+        await second.StartAsync(port, () => Snapshot("Segunda"), _ =>
+        {
+            calls++;
+            return Task.FromResult(new CommandResult(true, "OK"));
+        }, true);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/state")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync("/api/command", new RemoteCommand("next", "after-restart"))).StatusCode);
+        Assert.Equal(1, calls);
+    }
+
+    [Fact]
     public async Task CatalogRequiresAuthenticationValidatesQueriesAndDispatchesLibraryIdsOnce()
     {
         await using var host = new RemoteHost();
@@ -18,8 +51,7 @@ public sealed class RemoteTests
         await host.StartAsync(0, () => Snapshot(), command => { calls++; return Task.FromResult(new CommandResult(true, command.CueId!)); }, true,
             (source, query) => Task.FromResult<IReadOnlyList<RemoteCue>>([new(id, source + query, "Bible", "Texto de prueba")]));
         using var http = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{host.Port}") };
-        Assert.Equal(HttpStatusCode.Unauthorized, (await http.GetAsync("/api/catalog?source=bible&q=Juan")).StatusCode);
-        http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", host.Token);
+        Assert.Equal(HttpStatusCode.OK, (await http.GetAsync("/api/catalog?source=bible&q=Juan")).StatusCode);
         var items = await http.GetFromJsonAsync<RemoteCue[]>("/api/catalog?source=bible&q=Juan");
         Assert.Equal(id, Assert.Single(items!).Id);
         Assert.Equal(HttpStatusCode.BadRequest, (await http.GetAsync("/api/catalog?source=files")).StatusCode);
@@ -31,7 +63,7 @@ public sealed class RemoteTests
     }
 
     [Fact]
-    public async Task OnlyAuthenticatedSameOriginClientsAppearInConnectionStatus()
+    public async Task SameOriginClientsAppearInConnectionStatus()
     {
         var (host, client) = await Start();
         await using var cleanup = host; using var http = client;
@@ -39,9 +71,7 @@ public sealed class RemoteTests
         client.DefaultRequestHeaders.Add("X-Culto-Client", clientId);
         client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)");
         client.DefaultRequestHeaders.Authorization = null;
-        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/state")).StatusCode);
-        Assert.Empty(host.Clients);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", host.Token);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/state")).StatusCode);
         await client.GetStringAsync("/api/state");
         await client.GetStringAsync("/api/state");
         var connected = Assert.Single(host.Clients);
@@ -91,7 +121,6 @@ public sealed class RemoteTests
         var host = new RemoteHost();
         await host.StartAsync(0, snapshot ?? (() => Snapshot()), command ?? (_ => Task.FromResult(new CommandResult(true, "Listo"))), true);
         var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{host.Port}") };
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", host.Token);
         return (host, client);
     }
 
@@ -200,29 +229,28 @@ public sealed class RemoteTests
     }
 
     [Fact]
-    public async Task CueSelectionRequiresAuthenticationAndSameOrigin()
+    public async Task CueSelectionWorksByAddressAndRejectsOtherOrigins()
     {
         var calls = 0;
         var (host, client) = await Start(_ => { calls++; return Task.FromResult(new CommandResult(true, "No ejecutar")); }, OrderSnapshot);
         await using var cleanup = host; using var http = client;
         var payload = new { action = "cue", requestId = "protected-cue", cueId = FirstCueId };
         client.DefaultRequestHeaders.Authorization = null;
-        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/command", payload)).StatusCode);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", host.Token);
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync("/api/command", payload)).StatusCode);
         client.DefaultRequestHeaders.Add("Origin", "https://evil.example");
         Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/command", payload)).StatusCode);
-        Assert.Equal(0, calls);
+        Assert.Equal(1, calls);
     }
 
     [Fact]
-    public async Task StateAndCommandsRequireBearerToken()
+    public async Task StateAndCommandsWorkByAddressWithoutBearerToken()
     {
         var (host, client) = await Start(); await using var cleanup = host; using var http = client;
         client.DefaultRequestHeaders.Authorization = null;
-        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/state")).StatusCode);
-        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/command", new RemoteCommand("next", "one"))).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/state")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync("/api/command", new RemoteCommand("next", "one"))).StatusCode);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "incorrecto");
-        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/state")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/state")).StatusCode);
     }
 
     [Fact]
@@ -296,17 +324,14 @@ public sealed class RemoteTests
     }
 
     [Fact]
-    public async Task MobilePageIsAvailableWithoutTokenAndTokenIsRandomPerSession()
+    public async Task MobilePageIsAvailableByAddress()
     {
         var (host, client) = await Start(); await using var cleanup = host; using var http = client;
         await using var second = new RemoteHost();
-        Assert.NotEqual(host.Token, second.Token);
-        Assert.True(host.Token.Length >= 43);
         client.DefaultRequestHeaders.Authorization = null;
         var response = await client.GetAsync("/");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("text/html", response.Content.Headers.ContentType!.MediaType);
-        Assert.DoesNotContain(host.Token, await response.Content.ReadAsStringAsync());
     }
 
     [Fact]

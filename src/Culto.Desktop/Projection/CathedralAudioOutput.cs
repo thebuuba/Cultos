@@ -26,6 +26,10 @@ internal sealed class CathedralAudioOutput : IDisposable, IWaveProvider
     private long _completeAfter;
     private int _tailMilliseconds;
     private double _gain, _master = 1, _sendGain, _intensity;
+    private const int DeClickFrames = Rate / 200; // 5 ms, independent of scene transitions.
+    private double _renderGain;
+    private float _lastLeft, _lastRight;
+    private int _pauseFrames;
     private double _lastAudibleSend = 1;
     private string? _lastError;
     private Func<long>? _clock;
@@ -132,7 +136,9 @@ internal sealed class CathedralAudioOutput : IDisposable, IWaveProvider
             lock (_gate)
             {
                 if (_ended) return;
+                if (!_paused) _pauseFrames = DeClickFrames;
                 _paused = true; _epoch++; _head = _length = 0;
+                _renderGain = 0;
                 // Retained logo/blackout decoders pause their dry stream while
                 // the independently controlled room continues its finite decay.
                 if (!_hasTail) { _historyHead = _historyLength = 0; _resetEffect = true; }
@@ -177,8 +183,19 @@ internal sealed class CathedralAudioOutput : IDisposable, IWaveProvider
             lock (_gate)
             {
                 if (_closed || _lastError is not null) return 0;
-                if (_paused && !_hasTail) return count;
                 var samples = count / (Channels * sizeof(float)) * Channels;
+                if (_paused && !_hasTail)
+                {
+                    // The decoder has already stopped. Release its last output
+                    // sample instead of cutting an arbitrary waveform to zero.
+                    for (var i = 0; i < samples && _pauseFrames > 0; i += Channels)
+                    {
+                        var gain = --_pauseFrames / (float)DeClickFrames;
+                        BitConverter.TryWriteBytes(buffer.AsSpan(offset + i * sizeof(float)), _lastLeft * gain);
+                        BitConverter.TryWriteBytes(buffer.AsSpan(offset + (i + 1) * sizeof(float)), _lastRight * gain);
+                    }
+                    return count;
+                }
                 if (_dry.Length < samples) { _dry = new float[samples]; _wet = new float[samples]; }
                 Array.Clear(_dry, 0, samples); Array.Clear(_wet, 0, samples);
                 var feeding = !_paused && (!_hasTail || _fadePosition < _fadeFrames);
@@ -225,8 +242,14 @@ internal sealed class CathedralAudioOutput : IDisposable, IWaveProvider
                         if (_historyLength == _history.Length) { _historyHead = (_historyHead + 1) % _history.Length; _historyLength--; }
                         _history[(_historyHead + _historyLength++) % _history.Length] = _dry[i];
                     }
-                    _dry[i] = (float)Math.Clamp(_dry[i] * _gain, -1, 1);
+                    // Smooth gain changes at sample rate, including a resume
+                    // with a zero-duration user transition. Advance the attack
+                    // only when decoded samples arrive.
+                    if (i % Channels == 0 && (i < read || _gain < _renderGain))
+                        _renderGain += Math.Clamp(_gain - _renderGain, -1d / DeClickFrames, 1d / DeClickFrames);
+                    _dry[i] = (float)Math.Clamp(_dry[i] * _renderGain, -1, 1);
                 }
+                if (samples >= Channels) { _lastLeft = _dry[samples - Channels]; _lastRight = _dry[samples - 1]; }
                 Buffer.BlockCopy(_dry, 0, buffer, offset, samples * sizeof(float));
                 if (_ended && !_hasTail && !_tailComplete && _length == 0)
                 { _tailComplete = true; _completeAfter = Environment.TickCount64 + 120; }

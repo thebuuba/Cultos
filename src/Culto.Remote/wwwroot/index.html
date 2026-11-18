@@ -20,9 +20,7 @@ header{display:flex;gap:16px;align-items:center;justify-content:space-between;ma
 .status.connected::before{background:var(--accent);box-shadow:0 0 0 4px #8BE9AD0C}
 .remote-layout,.control-column,.support-column{min-width:0}
 .eyebrow{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:600}
-h1{font-size:24px;line-height:1.3;letter-spacing:-.7px;margin:6px 0 10px;overflow-wrap:anywhere}
 h2{font-size:16px;font-weight:600;letter-spacing:-.3px;margin:0}
-.plan-heading{margin-bottom:18px}
 .message{color:var(--muted);margin:0;font-size:12px;min-height:18px;overflow-wrap:anywhere}
 .message.error{color:var(--danger)}
 .row{display:flex;align-items:center;justify-content:space-between;gap:12px}
@@ -53,9 +51,9 @@ button:disabled{opacity:.4;cursor:not-allowed}
 :focus-visible{outline:3px solid var(--accent);outline-offset:4px}
 .section-head{margin:27px 2px 14px}
 .section-note{font-size:12px;color:var(--muted)}
-#deck{grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
-#deck button{background:var(--tile-bg,#24B27E);color:var(--tile-ink,#FFF);aspect-ratio:auto;min-height:118px;padding:12px 8px;border-radius:12px;flex-direction:column;gap:10px;box-shadow:0 3px 7px #0004;outline-offset:3px;font-size:12px;line-height:1.35;text-align:center}
-#deck button svg{width:27px;height:27px;stroke-width:1.7}
+#deck{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#deck button{background:var(--tile-bg,#24B27E);color:var(--tile-ink,#FFF);aspect-ratio:auto;min-height:78px;padding:9px 7px;border-radius:12px;flex-direction:column;gap:6px;box-shadow:0 3px 7px #0004;outline-offset:3px;font-size:12px;line-height:1.35;text-align:center}
+#deck button svg{width:22px;height:22px;stroke-width:1.7}
 #deck button .tile-label{overflow-wrap:anywhere}
 #deck button[aria-pressed=true]{box-shadow:inset 0 0 0 2px currentColor,0 8px 20px #0000001A}
 .scene-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:24px}
@@ -63,10 +61,11 @@ button:disabled{opacity:.4;cursor:not-allowed}
 .preserve-action{min-height:44px;font-size:12px;padding:8px;border-radius:12px;width:100%;margin-top:6px}
 .scene-slot .preserve-action{margin-top:0}
 .scene-key{width:100%;aspect-ratio:auto;min-height:118px;min-width:0;flex-direction:column;gap:7px;padding:12px 7px 9px;border-radius:12px;background:#F6F8FA;color:#18232F;box-shadow:0 3px 7px #0005;border:2px solid transparent;position:relative}
-.scene-key svg{width:39px;height:39px;stroke-width:1.8}
-.scene-artwork{width:44px;height:39px;object-fit:contain}
+.scene-key svg{width:58px;height:58px;max-width:100%;flex-shrink:0;stroke-width:2.1}
+.scene-artwork{width:64px;height:58px;max-width:100%;object-fit:contain;flex-shrink:0}
 .scene-key .tile-label{font-size:12px;line-height:1.4;max-width:100%;overflow-wrap:anywhere}
 .scene-key .scene-state{font-size:12px;line-height:1.25;min-height:12px;color:#48515D;max-width:100%;text-align:center}
+.scene-key .scene-detail{font-size:11px;line-height:1.35;max-width:100%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
 .scene-key[data-kind=logo]{background:#F5FBF3;color:#167746}
 .scene-key[data-kind=image]{background:#E6F3FC;color:#075A87}
 .scene-key[data-kind=video]{background:#FFF0D7;color:#945000}
@@ -78,13 +77,14 @@ button:disabled{opacity:.4;cursor:not-allowed}
 .scene-key[aria-pressed=true]::after{content:'✓';position:absolute;top:5px;right:6px;color:#082918;background:#54E79C;border-radius:50%;width:17px;height:17px;font-size:12px;line-height:17px}
 .scene-key:disabled{opacity:.55;box-shadow:none}
 @media(prefers-reduced-motion:reduce){button{transition:none}}
-.output-controls{margin-top:18px}
-.output-controls button{font-size:12px;background:var(--surface)}
+.output-controls{margin-top:10px;gap:8px}
+.output-controls button{min-height:44px;padding:9px 10px;font-size:12px;background:var(--surface)}
 .panel{background:var(--surface);border-radius:24px;padding:21px;margin-top:24px;box-shadow:var(--shadow)}
-.playback-head{display:flex;align-items:center;gap:9px;margin-bottom:16px}
+.playback-panel{padding:16px;border-radius:18px}
+.playback-head{display:flex;align-items:center;gap:9px;margin-bottom:10px;font-size:14px}
 .playback-head svg{width:18px;height:18px;color:var(--muted)}
-.playback-buttons button{min-height:46px;font-size:12px}
-.field{margin-top:16px}
+.playback-buttons button{min-height:44px;padding:9px 12px;font-size:12px}
+.field{margin-top:8px}
 label{display:block;font-size:12px;color:var(--muted)}
 input[type=range]{display:block;width:100%;min-height:44px;margin:1px 0 0;accent-color:var(--accent);cursor:pointer}
 input:disabled{opacity:.4}
@@ -109,8 +109,8 @@ output{font-size:12px;font-variant-numeric:tabular-nums;color:var(--text)}
 footer{font-size:12px;color:var(--muted);text-align:center;margin-top:14px}
 noscript{display:block;padding:20px;color:var(--amber)}
 [hidden]{display:none!important}
-@media(min-width:960px){main{max-width:960px;padding:40px 32px}.remote-layout{display:grid;grid-template-columns:minmax(0,500px) minmax(0,304px);justify-content:center;gap:40px}header{max-width:844px;margin:0 auto 32px}.support-column{padding-top:0}.support-column .section-head{margin-top:0}.support-column .panel{margin-top:20px}.preview{min-height:280px}.preview-body{font-size:23px}.preview[data-text=true] .preview-body{font-size:23px}h1{font-size:27px}footer{max-width:500px}}
-@media(max-width:370px){main{padding-left:16px;padding-right:16px}.brand{font-size:21px;gap:8px}.brand-mark{width:28px;height:28px}.status{font-size:12px;gap:5px}#deck{gap:9px}#deck button{padding-left:7px;padding-right:7px;border-radius:23px;font-size:12px}.preview{padding:20px}.cue{gap:9px;padding:12px}}
+@media(min-width:960px){main{max-width:960px;padding:40px 32px}.remote-layout{display:grid;grid-template-columns:minmax(0,500px) minmax(0,304px);justify-content:center;gap:40px}header{max-width:844px;margin:0 auto 32px}.support-column{padding-top:0}.support-column .section-head{margin-top:0}.support-column .panel{margin-top:20px}.preview{min-height:280px}.preview-body{font-size:23px}.preview[data-text=true] .preview-body{font-size:23px}footer{max-width:500px}}
+@media(max-width:370px){main{padding-left:16px;padding-right:16px}.brand{font-size:21px;gap:8px}.brand-mark{width:28px;height:28px}.status{font-size:12px;gap:5px}.preview{padding:20px}.cue{gap:9px;padding:12px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -120,20 +120,20 @@ noscript{display:block;padding:20px;color:var(--amber)}
 <header><div class="brand"><svg class="brand-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="m16 1 15 15-15 15L1 16Z" fill="#8BE9AD"/><path d="m16 8 8 8-8 8-8-8Z" fill="#1F2023"/><path d="m16 12 4 4-4 4-4-4Z" fill="#8BE9AD"/></svg>Culto Deck</div><span id="connection" class="status" role="status">Conectando…</span></header>
 <div class="remote-layout">
 <div class="control-column">
-<div class="plan-heading"><div class="eyebrow">Mando del culto</div><h1 id="plan">Esperando la consola</h1><div id="notice" class="message" role="status" aria-live="polite">Conectando con el equipo…</div></div>
 <section id="scenes-section" aria-labelledby="scenes-label" hidden><div class="row section-head"><h2 id="scenes-label">Escenas</h2><span class="section-note">Toca para proyectar</span></div><div id="scenes" class="scene-grid" role="group" aria-label="Escenas de la consola"></div></section>
 <section class="live" aria-labelledby="live-label">
 <div class="row live-head"><span id="live-label" class="eyebrow">En pantalla</span><span id="blackout-state" class="detail">Sin confirmar</span></div>
 <div id="live-preview" class="preview" data-muted="true"><div id="preview-icon" class="preview-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/></svg></div><div id="preview-body" class="preview-body">Esperando la consola</div><p id="preview-reference" class="preview-reference" hidden></p></div>
 <div class="live-meta"><p id="visual-title" class="detail">Imagen: sin confirmar</p><p id="audio-title" class="detail">Audio: sin confirmar</p><div id="live-title" class="title">—</div><div class="row"><p id="play-state" class="detail">Esperando estado</p><span id="output-target" class="detail output-target">—</span></div></div>
 </section>
+<div id="program-title-controls" class="panel" role="group" aria-label="Título del programa" hidden><p id="program-title-page" class="detail"></p><div class="grid playback-buttons"><button id="program-title-previous" data-action="previous" disabled>‹ Anterior</button><button id="program-title-next" data-action="next" disabled>Siguiente ›</button></div></div>
 <section aria-labelledby="deck-label"><div class="row section-head"><h2 id="deck-label">Accesos del culto</h2><span class="section-note">Tu deck</span></div><div id="deck" class="grid"></div><p id="deck-empty" class="empty">Sin accesos configurados.</p></section>
 <div class="grid output-controls" role="group" aria-label="Salida de proyección"><button data-action="blackout" id="blackout" aria-pressed="false" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 3 18 18M4 8a2 2 0 0 0-1 2v7a2 2 0 0 0 2 2h12M8 5h11a2 2 0 0 1 2 2v9M8 22h8m-4-3v3"/></svg>Salida en negro</button><button data-action="background" id="background" aria-pressed="false" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m7 16 4-4 3 3 3-5M8 8h.01"/></svg>Logo</button></div>
 <button id="return-media" data-action="return-media" class="preserve-action" disabled>Volver al video completo (F9)</button>
-<section class="panel" aria-labelledby="playback-label"><h2 id="playback-label" class="playback-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 5 11 7-11 7Z"/></svg>Reproducción</h2>
+<section class="panel playback-panel" aria-labelledby="playback-label"><h2 id="playback-label" class="playback-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 5 11 7-11 7Z"/></svg>Reproducción</h2>
 <div class="grid playback-buttons"><button data-action="pause" id="pause" disabled>Reanudar</button><button data-action="restart" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10a9 9 0 1 1 2 8M3 4v6h6"/></svg>Reiniciar</button></div>
 <div class="field"><div class="row"><label for="position">Posición</label><output id="time" for="position">0:00 / 0:00</output></div><input id="position" type="range" min="0" max="1000" step="1" value="0" disabled aria-label="Posición de reproducción"></div>
-<div class="field"><div class="row"><label for="volume">Volumen del programa</label><output id="volume-value" for="volume">—</output></div><input id="volume" type="range" min="0" max="100" step="1" value="70" disabled><p class="detail">YouTube conserva su audio; ajústalo en Chrome o Windows.</p></div>
+<div class="field"><div class="row"><label for="volume">Volumen del programa</label><output id="volume-value" for="volume">—</output></div><input id="volume" type="range" min="0" max="100" step="1" value="70" disabled></div>
 </section>
 </div>
 <aside class="support-column" aria-label="Orden y contenido preparado">
@@ -145,12 +145,13 @@ noscript{display:block;padding:20px;color:var(--amber)}
 <section class="panel" aria-labelledby="prepared-label"><span id="prepared-label" class="eyebrow">Preparado en el equipo</span><div id="prepared-title" class="title prepared-title">—</div><button class="primary" data-action="project" disabled>Proyectar preparado<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 5 10 7-10 7Z"/></svg></button><button id="prepared-preserve" class="preserve-action" data-action="project" data-preserve-other="true" hidden disabled>Conservar audio</button></section>
 </aside>
 </div>
+<div id="notice" class="message" role="status" aria-live="polite" hidden></div>
 <div class="remote-footer"><button id="retry" type="button">Volver a conectar</button><footer>Culto Studio · Control local</footer></div>
 </main>
 <script>
 'use strict';
-const $ = id => document.getElementById(id), storageKey = 'culto.remote.token';
-let token = '', connected = false, pending = false, current = null, polling = null, deckSignature = '', orderSignature = '', sceneSignature = '', commandNotice = null;
+const $ = id => document.getElementById(id);
+let connected = false, pending = false, current = null, polling = null, deckSignature = '', orderSignature = '', sceneSignature = '', commandNotice = null;
 let volumeTarget = null, volumeSending = false, volumeTimer = null, volumeVersion = 0;
 const orderButtons = new Map(), deckButtons = new Map(), sceneButtons = new Map();
 const activeRequests = new Set();
@@ -165,33 +166,20 @@ function remember(key, value) {
   try { localStorage.setItem(key, value); persistent = true; } catch (_) {}
   try { sessionStorage.setItem(key, value); sessionStorage.setItem(key + '.fallback', String(!persistent)); } catch (_) {}
 }
-function forgetPairing() {
-  try { if (localStorage.getItem(storageKey) === token) localStorage.removeItem(storageKey); } catch (_) {}
-  try { sessionStorage.removeItem(storageKey); sessionStorage.removeItem(storageKey + '.fallback'); } catch (_) {}
-  token = '';
-}
 let clientId = requestId();
 const savedClient = remembered('culto.remote.client');
 if (/^[0-9a-f]{32}$/.test(savedClient)) clientId = savedClient;
 remember('culto.remote.client', clientId);
-try {
-  const fragment = location.hash.slice(1);
-  if (fragment) {
-    token = fragment.startsWith('token=') ? new URLSearchParams(fragment).get('token') || '' : fragment;
-    history.replaceState(null, '', location.pathname + location.search);
-    if (/^[a-zA-Z0-9_-]{40,128}$/.test(token)) remember(storageKey, token); else token = '';
-  } else {
-    token = remembered(storageKey);
-    if (/^[a-zA-Z0-9_-]{40,128}$/.test(token)) remember(storageKey, token); else token = '';
-  }
-} catch (_) { if (location.hash) history.replaceState(null, '', location.pathname + location.search); }
-function message(text, error = false) { $('notice').textContent = text; $('notice').classList.toggle('error', error); }
+if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+function message(text, error = false) { $('notice').textContent = text; $('notice').hidden = !text; $('notice').classList.toggle('error', error); }
 function enableControls() {
   document.querySelectorAll('[data-action],#volume,#position').forEach(element => element.disabled = !connected || pending);
   sceneButtons.forEach(({ button, preserve, available }) => { if (!available) { button.disabled = true; if (preserve) preserve.disabled = true; } });
   if (!current?.canReturnToMedia) $('return-media').disabled = true;
   if (connected && !pending && (!current || current.duration <= 0)) $('position').disabled = true;
   if (current?.canPause === false) document.querySelectorAll('[data-action="pause"],[data-action="restart"],[data-playback],#position').forEach(element => element.disabled = true);
+  $('program-title-previous').disabled = !connected || pending || current?.programTitlePage !== 1;
+  $('program-title-next').disabled = !connected || pending || current?.programTitlePage !== 0;
   $('retry').disabled = pending;
   $('order').setAttribute('aria-busy', String(pending));
   $('deck').setAttribute('aria-busy', String(pending));
@@ -256,6 +244,8 @@ function preserveButton(kind, action, extra) {
   return button;
 }
 function renderPreview(state) {
+  $('program-title-controls').hidden = ![0, 1].includes(state.programTitlePage);
+  $('program-title-page').textContent = state.programTitlePage === 1 ? '2/2 · Propósito' : '1/2 · Tema';
   const live = Array.isArray(state.order) ? state.order.find(item => item.id === state.liveCueId) : null;
   const kind = contentKind(state.liveKind ?? live?.kind), hidden = state.isBlackout || state.hasOutput === false;
   const body = !hidden && !state.isBackground && ['text', 'bible'].includes(kind) ? state.liveBody : '';
@@ -318,7 +308,12 @@ function renderScenes(state) {
       if (typeof scene.imageData === 'string' && scene.imageData.length <= 300000 && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(scene.imageData)) {
         artwork = document.createElement('img'); artwork.src = scene.imageData; artwork.alt = ''; artwork.className = 'scene-artwork';
       }
-      button.append(artwork, label, status);
+      button.append(artwork, label);
+      if (scene.kind === 'video' && scene.detail) {
+        const detail = document.createElement('span'); detail.className = 'scene-detail'; detail.textContent = scene.detail;
+        button.append(detail); button.title = scene.detail;
+      }
+      button.append(status);
       button.addEventListener('click', () => send('scene', { buttonId: scene.id }));
       const slot = document.createElement('div'); slot.className = 'scene-slot'; slot.append(button);
       const preserve = preserveButton(scene.kind, 'scene', { buttonId: scene.id });
@@ -351,7 +346,9 @@ function renderOrder(state) {
       number.className = 'cue-number'; number.textContent = String(index + 1).padStart(2, '0'); number.setAttribute('aria-hidden', 'true');
       copy.className = 'cue-copy'; title.className = 'cue-title'; title.textContent = item.title || 'Sin título';
       kind.className = 'cue-kind'; kind.textContent = kindLabel(item.kind); marker.className = 'cue-state';
-      copy.append(title, kind); button.append(number, copy, marker); row.appendChild(button); $('order').appendChild(row);
+      copy.append(title, kind);
+      if (item.announcer) { const announcer = document.createElement('span'); announcer.className = 'cue-kind'; announcer.textContent = 'Anuncia: ' + item.announcer; copy.append(announcer); }
+      button.append(number, copy, marker); row.appendChild(button); $('order').appendChild(row);
       button.addEventListener('click', () => send('cue', { cueId: item.id }));
       const preserve = preserveButton(item.kind, 'cue', { cueId: item.id });
       if (preserve) { preserve.setAttribute('aria-label', preserve.textContent + ': ' + (item.title || 'Sin título')); row.append(preserve); }
@@ -375,7 +372,6 @@ function render(state, force = false, preserveVolume = false) {
   const keepVolume = preserveVolume || volumeSending || volumeTarget !== null;
   if (keepVolume && current) state = { ...state, volume: current.volume };
   current = state;
-  $('plan').textContent = state.planName || 'Culto';
   $('live-title').textContent = state.hasOutput === false ? 'Sin contenido en pantalla' : state.isBackground ? 'Logo' : state.liveTitle || 'Sin contenido en vivo';
   $('prepared-title').textContent = state.preparedTitle || 'Sin contenido preparado';
   const preparedKind = state.preparedKind ?? (Array.isArray(state.order) ? state.order.find(item => item.id === state.preparedCueId)?.kind : '');
@@ -405,12 +401,9 @@ async function request(path, options = {}) {
   activeRequests.add(controller);
   try {
     const response = await fetch(path, { ...options, cache: 'no-store', credentials: 'omit', signal: controller.signal,
-      headers: { ...(options.headers || {}), Authorization: 'Bearer ' + token, 'X-Culto-Client': clientId } });
+      headers: { ...(options.headers || {}), 'X-Culto-Client': clientId } });
     if (controller.signal.aborted) throw new Error('Solicitud interrumpida.');
-    if (response.status === 401) {
-      forgetPairing();
-      throw new Error('La vinculación venció. Escanea el QR de la consola.');
-    }
+
     if (!response.ok) throw new Error('La consola rechazó la solicitud. Revisa el mando en el equipo.');
     const result = await response.json();
     if (controller.signal.aborted) throw new Error('Solicitud interrumpida.');
@@ -418,16 +411,15 @@ async function request(path, options = {}) {
   } finally { clearTimeout(timeout); activeRequests.delete(controller); }
 }
 async function refresh(force = false) {
-  if (!token) { connection(false); message('Escanea el QR del mando desde la consola para vincular este teléfono.', true); return false; }
   if (polling) return polling;
   polling = (async () => {
     const volumeAtStart = volumeVersion;
     try {
       const state = await request('/api/state'); render(state, force, volumeAtStart !== volumeVersion); connection(true);
-      if (!pending && !volumeSending && volumeTarget === null) message(commandNotice?.text || 'Sincronizado con el equipo', commandNotice?.error || false);
+      if (!pending && !volumeSending && volumeTarget === null) message(commandNotice?.text || '', commandNotice?.error || false);
       return true;
     } catch (error) {
-      connection(false); message(token ? 'Sin conexión. Verifica el wifi y el mando en el equipo.' : error.message, true); return false;
+      connection(false); message('Sin conexión. Verifica el wifi y activa el mando en el equipo.', true); return false;
     }
   })();
   try { return await polling; } finally { polling = null; }
@@ -470,7 +462,7 @@ async function sendVolume() {
     }
   } catch (error) {
     volumeTarget = null; connection(false);
-    commandNotice = { text: token ? 'No se pudo confirmar el volumen. Revisa la conexión con la consola.' : error.message, error: true };
+    commandNotice = { text: 'No se pudo confirmar el volumen. Revisa la conexión con la consola.', error: true };
     message(commandNotice.text, true);
   } finally {
     volumeSending = false;
@@ -500,7 +492,7 @@ async function send(action, extra = {}) {
     }
   } catch (error) {
     connection(false); if (current) render(current, true);
-    commandNotice = { text: token ? 'No se confirmó la acción. Revisa la salida en la consola antes de repetirla.' : error.message, error: true };
+    commandNotice = { text: 'No se confirmó la acción. Revisa la salida en la consola antes de repetirla.', error: true };
     message(commandNotice.text, true);
   } finally { pending = false; enableControls(); }
 }
@@ -540,7 +532,7 @@ $('position').addEventListener('change', event => send('seek', { value: Number(e
 $('retry').addEventListener('click', resumeConnection);
 function schedulePoll() {
   clearTimeout(pollTimer); pollTimer = null;
-  if (!document.hidden && token) pollTimer = setTimeout(poll, 1500);
+  if (!document.hidden) pollTimer = setTimeout(poll, 1500);
 }
 function suspendConnection() {
   clearTimeout(pollTimer); pollTimer = null;

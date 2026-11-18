@@ -1,6 +1,5 @@
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using Culto.Core;
@@ -19,8 +18,8 @@ public partial class MainWindow
     private ListBox? _contentMouseCapture;
     private ContentDragPreview? _contentDragPreview;
     private Point _contentDragAnchor = new(.25, .5);
-    private PlanInsertionAdorner? _planInsertionAdorner;
-    private AdornerLayer? _planInsertionLayer;
+    private int? _planPreviewIndex;
+    private readonly Dictionary<ListBoxItem, double> _planPreviewRows = [];
     private long _lastPlanDragScroll;
 
     private void InitializeContentDragDrop()
@@ -134,6 +133,7 @@ public partial class MainWindow
         try
         {
             ShowContentDragPreview();
+            if (moving) ShowOrderInsertion(PlanList, _plan.IndexOf(cue));
             DragDrop.DoDragDrop(list, data, moving ? DragDropEffects.Move : DragDropEffects.Copy);
         }
         finally { ClearContentDrag(); }
@@ -243,12 +243,15 @@ public partial class MainWindow
 
     private int PlanInsertionIndex(Point point)
     {
-        var row = ContentRowAt(PlanList, PlanList.InputHitTest(point));
-        if (row is null) return _plan.Count;
-        var index = PlanList.ItemContainerGenerator.IndexFromContainer(row);
-        if (index < 0) return _plan.Count;
-        var top = row.TranslatePoint(new Point(), PlanList).Y;
-        return index + (point.Y >= top + row.ActualHeight / 2 ? 1 : 0);
+        // Use layout positions, not the animated hit boxes, to avoid oscillating gaps.
+        for (var index = 0; index < _plan.Count; index++)
+        {
+            if (PlanList.ItemContainerGenerator.ContainerFromIndex(index) is not ListBoxItem row) continue;
+            var translation = row.RenderTransform is TranslateTransform move ? move.Y : 0;
+            var top = row.TranslatePoint(new Point(), PlanList).Y - translation;
+            if (point.Y < top + row.ActualHeight / 2) return index;
+        }
+        return _plan.Count;
     }
 
     private void PlanDrop(object sender, DragEventArgs e)
@@ -256,8 +259,8 @@ public partial class MainWindow
         var effect = ContentDropEffect(e.Data) & e.AllowedEffects;
         var target = (ListBox)sender;
         var point = e.GetPosition(target);
-        e.Effects = effect == DragDropEffects.None ? effect : ApplyContentDrop(e.Data,
-            PlanInsertionIndex(point));
+        var index = _planPreviewIndex ?? PlanInsertionIndex(point);
+        e.Effects = effect == DragDropEffects.None ? effect : ApplyContentDrop(e.Data, index);
         e.Handled = true;
         ClearPlanInsertion();
     }
@@ -268,6 +271,14 @@ public partial class MainWindow
         if (!_ready || effect == DragDropEffects.None || ReadContentDrag(data) is not ContentDrag drag)
             return DragDropEffects.None;
 
+        var previewed = _planPreviewIndex.HasValue;
+        if (effect == DragDropEffects.Move)
+        {
+            foreach (var row in _planPreviewRows.Keys) row.Opacity = 1;
+            _planPreviewRows.Clear();
+            _planPreviewIndex = null;
+        }
+        else ClearPlanInsertion();
         var index = Math.Clamp(insertionIndex, 0, _plan.Count);
         Cue item;
         if (effect == DragDropEffects.Move)
@@ -275,7 +286,9 @@ public partial class MainWindow
             item = drag.Cue;
             var from = _plan.IndexOf(item);
             if (from < index) index--;
-            if (from != index) _plan.Move(from, index);
+            MovePlanItem(from, index);
+            if (previewed && PlanList.ItemContainerGenerator.ContainerFromItem(item) is ListBoxItem dropped)
+                dropped.RenderTransform = Transform.Identity;
         }
         else
         {
@@ -313,52 +326,41 @@ public partial class MainWindow
 
     private void ShowOrderInsertion(ListBox target, int index)
     {
-        if (_planInsertionAdorner is not null && _planInsertionAdorner.AdornedElement != target) ClearPlanInsertion();
-        var point = new Point(8, 8);
-        if (target.ItemContainerGenerator.ContainerFromIndex(index) is ListBoxItem next)
+        if (_contentDropPayload is not { } drag) return;
+        var from = IsOrderDragSource(drag.Source) ? _plan.IndexOf(drag.Cue) : -1;
+        var destination = from >= 0 && from < index ? index - 1 : index;
+        var sourceRow = from >= 0 ? target.ItemContainerGenerator.ContainerFromIndex(from) as ListBoxItem : null;
+        var height = sourceRow is not null ? sourceRow.ActualHeight + sourceRow.Margin.Top + sourceRow.Margin.Bottom : 38;
+        _planPreviewIndex = index;
+        for (var rowIndex = 0; rowIndex < _plan.Count; rowIndex++)
         {
-            point = next.TranslatePoint(new Point(), target);
+            if (target.ItemContainerGenerator.ContainerFromIndex(rowIndex) is not ListBoxItem row) continue;
+            if (!_planPreviewRows.ContainsKey(row)) _planPreviewRows.Add(row, double.NaN);
+            row.Opacity = rowIndex == from ? 0 : 1;
+            var offset = from < 0 ? (rowIndex >= index ? height : 0)
+                : from < destination && rowIndex > from && rowIndex <= destination ? -height
+                : destination < from && rowIndex >= destination && rowIndex < from ? height : 0;
+            if (_planPreviewRows[row] == offset) continue;
+            _planPreviewRows[row] = offset;
+            var current = row.RenderTransform is TranslateTransform previous ? previous.Y : 0;
+            var move = new TranslateTransform(0, offset);
+            row.RenderTransform = move;
+            if (SystemParameters.ClientAreaAnimation)
+                move.BeginAnimation(TranslateTransform.YProperty,
+                    new System.Windows.Media.Animation.DoubleAnimation(current, offset, TimeSpan.FromMilliseconds(180))
+                    { EasingFunction = new System.Windows.Media.Animation.CubicEase
+                        { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut } });
         }
-        else if (index > 0 && target.ItemContainerGenerator.ContainerFromIndex(index - 1) is ListBoxItem previous)
-        {
-            point = previous.TranslatePoint(new Point(0, previous.ActualHeight), target);
-        }
-        else if (_plan.Count > 0) point.Y = target.ActualHeight - 5;
-        _planInsertionLayer ??= AdornerLayer.GetAdornerLayer(target);
-        if (_planInsertionLayer is null) return;
-        if (_planInsertionAdorner is null)
-        {
-            _planInsertionAdorner = new PlanInsertionAdorner(target, (Brush)FindResource("AccentBrush"));
-            _planInsertionLayer.Add(_planInsertionAdorner);
-        }
-        var y = Math.Clamp(point.Y, 3, Math.Max(3, target.ActualHeight - 3));
-        _planInsertionAdorner.Start = new Point(8, y);
-        _planInsertionAdorner.End = new Point(Math.Max(8, target.ActualWidth - 8), y);
-        _planInsertionAdorner.InvalidateVisual();
     }
 
     private void ClearPlanInsertion()
     {
-        if (_planInsertionAdorner is not null) _planInsertionLayer?.Remove(_planInsertionAdorner);
-        _planInsertionAdorner = null;
-        _planInsertionLayer = null;
-    }
-
-    private sealed class PlanInsertionAdorner : Adorner
-    {
-        private readonly Pen _pen;
-        public PlanInsertionAdorner(UIElement element, Brush brush) : base(element)
+        foreach (var row in _planPreviewRows.Keys)
         {
-            IsHitTestVisible = false;
-            _pen = new Pen(brush, 2);
+            row.Opacity = 1;
+            row.RenderTransform = Transform.Identity;
         }
-        public Point Start { get; set; }
-        public Point End { get; set; }
-        protected override void OnRender(DrawingContext context)
-        {
-            context.DrawLine(_pen, Start, End);
-            context.DrawEllipse(_pen.Brush, null, Start, 3, 3);
-            context.DrawEllipse(_pen.Brush, null, End, 3, 3);
-        }
+        _planPreviewRows.Clear();
+        _planPreviewIndex = null;
     }
 }

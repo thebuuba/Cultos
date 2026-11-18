@@ -52,7 +52,7 @@ public sealed class PromptDialog : Window
 {
     private readonly TextBox _text;
     public string Value => _text.Text.Trim();
-    private PromptDialog(string title, string label, string value)
+    private PromptDialog(string title, string label, string value, bool allowEmpty)
     {
         var panel = DialogUi.Panel(this, title, label);
         _text = new TextBox { Text = value };
@@ -60,11 +60,11 @@ public sealed class PromptDialog : Window
         panel.Children.Add(_text);
         var actions = DialogUi.Actions(panel);
         var cancel = DialogUi.Button("Cancelar", () => DialogResult = false); cancel.IsCancel = true; cancel.Margin = new Thickness(0, 0, 8, 0); actions.Children.Add(cancel);
-        var accept = DialogUi.Button("Aceptar", () => { if (Value.Length > 0) DialogResult = true; }, true); accept.IsDefault = true; accept.Margin = new Thickness(0); actions.Children.Add(accept);
+        var accept = DialogUi.Button("Aceptar", () => { if (allowEmpty || Value.Length > 0) DialogResult = true; }, true); accept.IsDefault = true; accept.Margin = new Thickness(0); actions.Children.Add(accept);
         Loaded += (_, _) => { _text.Focus(); _text.SelectAll(); };
     }
-    public static string? Ask(Window owner, string title, string label, string value)
-    { var dialog = new PromptDialog(title, label, value) { Owner = owner }; return dialog.ShowDialog() == true ? dialog.Value : null; }
+    public static string? Ask(Window owner, string title, string label, string value, bool allowEmpty = false)
+    { var dialog = new PromptDialog(title, label, value, allowEmpty) { Owner = owner }; return dialog.ShowDialog() == true ? dialog.Value : null; }
 }
 
 public sealed class CueEditDialog : Window

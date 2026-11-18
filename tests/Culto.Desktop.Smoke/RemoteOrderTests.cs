@@ -199,7 +199,6 @@ internal static partial class Program
                         () => (RemoteSnapshot)Call(window, "GetRemoteState")!,
                         command => (Task<CommandResult>)Call(window, "HandleRemote", command)!, loopbackOnly: true));
                     using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{host.Port}"), Timeout = TimeSpan.FromSeconds(10) };
-                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", host.Token);
                     void Post(string action, string? id = null)
                     {
                         using var response = Receive(client.PostAsJsonAsync("/api/command",

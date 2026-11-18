@@ -62,7 +62,6 @@ public sealed class VolumeStepTests
     private static HttpClient Client(RemoteHost host)
     {
         var http = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{host.Port}") };
-        http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", host.Token);
         return http;
     }
 }

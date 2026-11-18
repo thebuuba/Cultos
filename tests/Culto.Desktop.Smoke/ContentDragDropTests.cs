@@ -50,6 +50,59 @@ internal static partial class Program
             SetField(window, "_bible", null);
             bible.ItemsSource = new[] { result };
 
+            Test("Order drag opens an animated gap before drop and cancellation restores rows", () =>
+            {
+                ResetPlan(hymn, other, verse);
+                var original = plan.ToArray();
+                var live = session.Live;
+                var source = Row(list, hymn);
+                var middle = Row(list, other);
+                var tail = Row(list, verse);
+                var data = Data(list, hymn);
+                Call(window, "ShowOrderInsertion", list, 3);
+                Check(source.Opacity == 0, "Dragged row is still drawn at its original position");
+                Check(middle.RenderTransform is System.Windows.Media.TranslateTransform { HasAnimatedProperties: true }
+                    || !SystemParameters.ClientAreaAnimation, "Other rows did not animate while hovering");
+                PumpFor(240);
+                Check(middle.RenderTransform is System.Windows.Media.TranslateTransform { Y: < 0 }
+                    && tail.RenderTransform is System.Windows.Media.TranslateTransform { Y: < 0 }, "Rows did not open a gap before drop");
+                Check(plan.SequenceEqual(original) && ReferenceEquals(live, session.Live), "Hover changed the saved order or output");
+                Call(window, "ClearPlanInsertion");
+                Check(source.Opacity == 1 && middle.RenderTransform.Value.IsIdentity && tail.RenderTransform.Value.IsIdentity,
+                    "Cancelled preview left a hidden or shifted row");
+                Call(window, "ShowOrderInsertion", list, 3);
+                PumpFor(240);
+                Drop(data, 3);
+                Call(window, "ClearPlanInsertion");
+                PumpFor(300);
+                Check(plan.SequenceEqual(new[] { other, verse, hymn }) && Row(list, hymn).Opacity == 1,
+                    "Dropping into the gap lost or misplaced the dragged row");
+                Data(library, hymn);
+                Call(window, "ShowOrderInsertion", list, 1);
+                PumpFor(240);
+                Check(Row(list, verse).RenderTransform is System.Windows.Media.TranslateTransform { Y: > 0 },
+                    "Incoming library item did not open a gap");
+                Call(window, "ClearContentDrag");
+                Check(Row(list, verse).RenderTransform.Value.IsIdentity, "External drag cancellation left a gap");
+            });
+
+            Test("Reordering animates displaced rows and preserves live content", () =>
+            {
+                ResetPlan(hymn, other, verse);
+                var live = session.Live;
+                Call(window, "MovePlanItem", 0, 2);
+                Check(plan.SequenceEqual(new[] { other, verse, hymn }), "Animated move changed the wrong positions");
+                if (SystemParameters.ClientAreaAnimation)
+                    Check(Row(list, hymn).RenderTransform is System.Windows.Media.TranslateTransform { HasAnimatedProperties: true },
+                        "Moved row has no position animation");
+                // Retarget while the first movement is still running.
+                Call(window, "MovePlanItem", 2, 1);
+                PumpFor(350);
+                Check(plan.SequenceEqual(new[] { other, hymn, verse }) && ReferenceEquals(live, session.Live),
+                    "Rapid movement changed live content or the final order");
+                Check(Row(list, hymn).RenderTransform.Value.IsIdentity, "Completed movement left the row displaced");
+            });
+
             Test("Drag card identifies the grabbed content and closes on Escape without changing the order", () =>
             {
                 Call(window, "SelectContentSource", 0);

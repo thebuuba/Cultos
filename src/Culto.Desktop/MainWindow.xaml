@@ -150,16 +150,21 @@
       </Setter>
     </Style>
     <DataTemplate x:Key="OrderItemTemplate">
-      <Grid ToolTip="{Binding Title}" Height="34">
+      <Grid ToolTip="{Binding Title}" MinHeight="34">
         <Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="52"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
         <TextBlock x:Name="OrderNumber" Text="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(local:OrderListBox.AbsoluteIndex), Converter={StaticResource OrderNumberConverter}}"
                    FontSize="10" Style="{StaticResource ItemMetadataText}" VerticalAlignment="Center"/>
         <local:MediaThumbnail Grid.Column="1" Cue="{Binding}" Width="46" Height="34" ShowDuration="True"/>
-        <TextBlock Grid.Column="2" Text="{Binding Title}" FontSize="13" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+        <StackPanel Grid.Column="2" VerticalAlignment="Center">
+          <TextBlock Text="{Binding Title}" FontSize="13" TextTrimming="CharacterEllipsis"/>
+          <TextBlock x:Name="OrderAnnouncer" Text="{Binding Announcer, StringFormat='Anuncia: {0}'}" FontSize="11" TextTrimming="CharacterEllipsis" ToolTip="{Binding Announcer}" Opacity="0.8"/>
+        </StackPanel>
         <TextBlock Grid.Column="3" Text="EN VIVO" FontSize="9" FontWeight="Bold" Foreground="{StaticResource OnActionBrush}" Margin="6,0,0,0" VerticalAlignment="Center"
                    Visibility="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(local:OrderListBox.IsLive), Converter={StaticResource BoolToVisibility}}"/>
       </Grid>
       <DataTemplate.Triggers>
+        <DataTrigger Binding="{Binding Announcer}" Value=""><Setter TargetName="OrderAnnouncer" Property="Visibility" Value="Collapsed"/></DataTrigger>
+        <DataTrigger Binding="{Binding Announcer}" Value="{x:Null}"><Setter TargetName="OrderAnnouncer" Property="Visibility" Value="Collapsed"/></DataTrigger>
         <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(local:OrderListBox.IsLive)}" Value="True">
           <Setter TargetName="OrderNumber" Property="Foreground" Value="{StaticResource OnActionBrush}"/>
         </DataTrigger>
@@ -416,7 +421,7 @@
 </ad:LayoutAnchorablePane>
 <ad:LayoutAnchorablePane DockWidth="*" DockHeight="*" DockMinWidth="280" DockMinHeight="260">
 <ad:LayoutAnchorable Title="Vista Previa" ContentId="preview" CanClose="False" CanHide="True" CanAutoHide="False" CanDockAsTabbedDocument="False">
-<Border x:Name="ProductionPanel" SizeChanged="OutputPanelSizeChanged" VerticalAlignment="Stretch" Background="{StaticResource PanelBrush}" CornerRadius="{StaticResource WorkspacePanelRadius}" Padding="4"><Grid VerticalAlignment="Top"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="140"/><ColumnDefinition/></Grid.ColumnDefinitions><Border x:Name="PreviewPanel" VerticalAlignment="Top" Background="{StaticResource PanelBrush}" CornerRadius="0" Padding="10,10">
+<Border x:Name="ProductionPanel" SizeChanged="OutputPanelSizeChanged" VerticalAlignment="Stretch" Background="{StaticResource PanelBrush}" CornerRadius="{StaticResource WorkspacePanelRadius}" Padding="4"><Grid VerticalAlignment="Top"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="124"/><ColumnDefinition/></Grid.ColumnDefinitions><Border x:Name="PreviewPanel" VerticalAlignment="Top" Background="{StaticResource PanelBrush}" CornerRadius="0" Padding="4,10">
           <Grid>
             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <Grid>
@@ -426,7 +431,7 @@
               </StackPanel>
             </Grid>
             <local:AspectRatioBox x:Name="PreviewPicture" Grid.Row="1" Margin="0,10,0,12" VerticalAlignment="Top">
-              <Border x:Name="PreviewViewport" CornerRadius="0" SizeChanged="MonitorFrameSizeChanged" BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="0" Background="#000000" MouseEnter="PlaybackViewportMouseEnter" MouseLeave="PlaybackViewportMouseLeave" GotKeyboardFocus="PlaybackViewportGotKeyboardFocus" LostKeyboardFocus="PlaybackViewportLostKeyboardFocus">
+              <Border x:Name="PreviewViewport" CornerRadius="6" SizeChanged="MonitorFrameSizeChanged" BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="0" Background="#000000" MouseEnter="PlaybackViewportMouseEnter" MouseLeave="PlaybackViewportMouseLeave" GotKeyboardFocus="PlaybackViewportGotKeyboardFocus" LostKeyboardFocus="PlaybackViewportLostKeyboardFocus">
                 <Grid MinHeight="80">
                   <ContentControl x:Name="PreviewHost" MinHeight="80"/>
                   <local:CueThumbnail x:Name="PreparedMediaCover" Visibility="Collapsed" IsHitTestVisible="False"/>
@@ -474,7 +479,7 @@
             </Button>
           </Grid>
         </StackPanel>
-        <Border Grid.Column="2" x:Name="LivePanel" VerticalAlignment="Top" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="0" CornerRadius="0" Padding="10,10" SizeChanged="OutputPanelSizeChanged">
+        <Border Grid.Column="2" x:Name="LivePanel" VerticalAlignment="Top" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="0" CornerRadius="0" Padding="4,10" SizeChanged="OutputPanelSizeChanged">
           <Grid>
             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto" MinHeight="102"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <Grid x:Name="LiveHeaderGrid" MinHeight="32">
@@ -485,7 +490,7 @@
               <TextBlock Grid.Column="2" x:Name="OutputModeText" Text="SIN SALIDA" Foreground="{StaticResource MutedBrush}" FontSize="12" VerticalAlignment="Center" Margin="8,0,0,0" ToolTip="{Binding Text, ElementName=OutputStatusText}"/>
             </Grid>
             <local:AspectRatioBox x:Name="LivePicture" Grid.Row="1" Margin="0,10,0,12" VerticalAlignment="Top">
-              <Border x:Name="OutputViewport" CornerRadius="0" SizeChanged="MonitorFrameSizeChanged" BorderBrush="Transparent" BorderThickness="0" Background="#000000" MouseEnter="PlaybackViewportMouseEnter" MouseLeave="PlaybackViewportMouseLeave" GotKeyboardFocus="PlaybackViewportGotKeyboardFocus" LostKeyboardFocus="PlaybackViewportLostKeyboardFocus">
+              <Border x:Name="OutputViewport" CornerRadius="6" SizeChanged="MonitorFrameSizeChanged" BorderBrush="Transparent" BorderThickness="0" Background="#000000" MouseEnter="PlaybackViewportMouseEnter" MouseLeave="PlaybackViewportMouseLeave" GotKeyboardFocus="PlaybackViewportGotKeyboardFocus" LostKeyboardFocus="PlaybackViewportLostKeyboardFocus">
                 <Grid>
                   <projection:OutputMonitor x:Name="LiveMonitor" MinHeight="80" MouseLeftButtonDown="OutputMonitorMouseDown" ToolTip="Abrir reproductor · doble clic" AutomationProperties.Name="Monitor de la salida real"/>
                   <ContentControl x:Name="LiveOverlayHost" VerticalAlignment="Bottom" Margin="4">
@@ -518,6 +523,11 @@
             </local:AspectRatioBox>
             <ScrollViewer Grid.Row="2" x:Name="LiveScroll" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" CanContentScroll="False" MaxHeight="200">
             <StackPanel x:Name="OutputDetails">
+            <WrapPanel x:Name="ProgramTitleControls" Visibility="Collapsed" Margin="0,0,0,8">
+              <Button x:Name="ProgramTitlePrevious" Content="‹ Anterior" Click="ProgramTitlePreviousClick" MinWidth="0" MinHeight="30" Padding="9,4" FontSize="12" Margin="0,0,6,0"/>
+              <TextBlock x:Name="ProgramTitlePageText" VerticalAlignment="Center" FontSize="12" Margin="0,0,6,0"/>
+              <Button x:Name="ProgramTitleNext" Content="Siguiente ›" Click="ProgramTitleNextClick" MinWidth="0" MinHeight="30" Padding="9,4" FontSize="12"/>
+            </WrapPanel>
             <Grid>
             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <StackPanel Margin="0,5,0,0">
@@ -624,17 +634,17 @@
                      SelectionChanged="PlanSelectionChanged" AllowDrop="True" PreviewMouseLeftButtonDown="PlanMouseDown" PreviewMouseLeftButtonUp="PlanMouseUp" MouseDoubleClick="PlanDoubleClick" MouseMove="PlanMouseMove" Drop="PlanDrop" AutomationProperties.Name="Orden de culto"/>
             <TextBlock x:Name="PlanEmptyText" Text="Orden vacío" Style="{StaticResource MutedText}" Margin="12,24" TextAlignment="Center" IsHitTestVisible="False" Visibility="Collapsed"/>
           </Grid>
-          <StackPanel Grid.Row="2" Margin="0,10,0,0">
-            <Border x:Name="OrderActionsPanel" Visibility="Hidden" Margin="0,0,0,6" Height="38">
-              <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
-                <Button x:Name="OrderPlayButton" Content="Reproducir" Click="PlayOrderActionClick" Style="{StaticResource PrimaryButton}" MinHeight="34" Padding="8,5" Margin="0,0,3,0" FontSize="12" AutomationProperties.Name="Reproducir elemento del orden"/>
-                <Button x:Name="OrderDeleteButton" Grid.Column="1" Content="Eliminar" Click="DeleteOrderActionClick" MinHeight="34" Padding="8,5" Margin="3,0,0,0" FontSize="12" AutomationProperties.Name="Eliminar elemento del orden"/>
-              </Grid>
+          <Grid Grid.Row="2" Margin="0,10,0,0">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/></Grid.ColumnDefinitions>
+            <Border x:Name="OrderActionsPanel" Grid.Column="1" Visibility="Hidden" Margin="8,0,0,0" VerticalAlignment="Top">
+              <WrapPanel>
+                <Button x:Name="OrderPlayButton" Content="Reproducir" Click="PlayOrderActionClick" Style="{StaticResource PrimaryButton}" MinWidth="0" MinHeight="30" Padding="10,4" Margin="0,0,6,4" FontSize="12" AutomationProperties.Name="Reproducir elemento del orden"/>
+                <Button x:Name="OrderDeleteButton" Content="Eliminar" Click="DeleteOrderActionClick" MinWidth="0" MinHeight="30" Padding="10,4" Margin="0,0,6,4" FontSize="12" AutomationProperties.Name="Eliminar elemento del orden"/>
+                <Button Content="Quién anuncia…" Click="EditOrderAnnouncerClick" MinWidth="0" MinHeight="30" Padding="10,4" Margin="0,0,0,4" FontSize="12" AutomationProperties.Name="Anotar quién anuncia este elemento del orden"/>
+              </WrapPanel>
             </Border>
-            <Grid>
-              <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-              <Button x:Name="AddOrderButton" Background="{StaticResource TextBrush}" Foreground="{StaticResource OnActionBrush}" BorderBrush="{StaticResource TextBrush}" Click="OpenActionsClick" MinHeight="40" Padding="10,5" HorizontalContentAlignment="Center" AutomationProperties.Name="Agregar al orden de culto">
-                <StackPanel Orientation="Horizontal"><TextBlock Text="+" FontSize="23" Margin="0,0,8,0" VerticalAlignment="Center"/><TextBlock Text="Agregar" VerticalAlignment="Center"/></StackPanel>
+              <Button x:Name="AddOrderButton" Background="{StaticResource TextBrush}" Foreground="{StaticResource OnActionBrush}" BorderBrush="{StaticResource TextBrush}" Click="OpenActionsClick" MinWidth="0" MinHeight="30" Padding="10,4" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" FontSize="12" AutomationProperties.Name="Agregar al orden de culto">
+                <StackPanel Orientation="Horizontal"><TextBlock Text="+" FontSize="16" Margin="0,0,5,0" VerticalAlignment="Center"/><TextBlock Text="Agregar" VerticalAlignment="Center"/></StackPanel>
                 <Button.ContextMenu><ContextMenu>
                   <MenuItem x:Name="AddOrderLibrary" Header="Himno o contenido de biblioteca…" Tag="0" Click="AddOrderSourceClick"/>
                   <MenuItem x:Name="AddOrderBible" Header="Pasaje de la Biblia…" Tag="1" Click="AddOrderSourceClick"/>
@@ -647,8 +657,7 @@
                   <MenuItem x:Name="AddOrderBrowser" Header="Navegador / HTML…" Click="BrowserSourcesClick"/>
                 </ContextMenu></Button.ContextMenu>
               </Button>
-            </Grid>
-          </StackPanel>
+          </Grid>
         </Grid>
       </Border>
 </ad:LayoutAnchorable>

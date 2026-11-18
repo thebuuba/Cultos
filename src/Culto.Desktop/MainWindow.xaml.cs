@@ -146,6 +146,11 @@ public partial class MainWindow : Window
         SyncLogoPlayback();
         PreparedTitleText.Text = _session.Prepared?.Title ?? "Sin contenido";
         var live = _output is null ? null : _session.Live;
+        var programTitle = live?.ProgramTitle is not null && !_session.IsBlackout && !_session.IsTextHidden;
+        ProgramTitleControls.Visibility = programTitle ? Visibility.Visible : Visibility.Collapsed;
+        ProgramTitlePrevious.IsEnabled = programTitle && live!.ProgramTitlePage > 0;
+        ProgramTitleNext.IsEnabled = programTitle && live!.ProgramTitlePage == 0;
+        ProgramTitlePageText.Text = live?.ProgramTitlePage == 1 ? "2/2 · Propósito" : "1/2 · Tema";
         UpdateOutputSwitchLabel();
         if (_outputWindow is null) OutputStatusText.Text = _output is null ? "Salida desactivada" : "Reproducción local · HDMI desactivado";
         LiveTitleText.Text = _output is not null && _session.IsTextHidden && !_session.IsBlackout ? "Logo" : live?.Title ?? "Sin contenido";

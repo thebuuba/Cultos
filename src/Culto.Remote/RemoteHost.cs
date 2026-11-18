@@ -32,7 +32,7 @@ public sealed class RemoteHost : IAsyncDisposable
         RespectRequiredConstructorParameters = true
     };
 
-    public string Token { get; } = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+    public string Token { get; private set; } = "";
     public int Port { get; private set; }
     public IReadOnlyList<RemoteClientInfo> Clients => clients.Select(client => new RemoteClientInfo(
         client.Key, client.Value.Name, client.Value.LastSeen,
@@ -42,7 +42,7 @@ public sealed class RemoteHost : IAsyncDisposable
 
     public async Task StartAsync(int port, Func<RemoteSnapshot> snapshot,
         Func<RemoteCommand, Task<CommandResult>> command, bool loopbackOnly = false,
-        Func<string, string, Task<IReadOnlyList<RemoteCue>>>? catalog = null)
+        Func<string, string, Task<IReadOnlyList<RemoteCue>>>? catalog = null, bool requireToken = false)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         if (started) throw new InvalidOperationException("El mando ya está iniciado.");
@@ -50,6 +50,7 @@ public sealed class RemoteHost : IAsyncDisposable
         ArgumentNullException.ThrowIfNull(command);
         if (port is < 0 or > 65535) throw new ArgumentOutOfRangeException(nameof(port));
         started = true;
+        if (requireToken) Token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
         var builder = WebApplication.CreateSlimBuilder(new WebApplicationOptions
         {
             Args = [], EnvironmentName = "Production", ApplicationName = typeof(RemoteHost).Assembly.FullName
@@ -73,11 +74,10 @@ public sealed class RemoteHost : IAsyncDisposable
             {
                 if (context.Request.Path.StartsWithSegments("/api"))
                 {
-                    if (!Authenticated(context.Request))
+                    if (requireToken && !Authenticated(context.Request))
                     {
                         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                         context.Response.Headers.WWWAuthenticate = "Bearer";
-                        await context.Response.WriteAsJsonAsync(new CommandResult(false, "Vuelve a vincular el teléfono desde la consola."), Json);
                         return;
                     }
                     if (!SameOrigin(context.Request))

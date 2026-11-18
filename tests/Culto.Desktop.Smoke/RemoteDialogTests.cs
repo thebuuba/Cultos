@@ -82,7 +82,7 @@ internal static partial class Program
                     "Completed activation did not restore the active connection controls");
                 Check(qr.Source is not null && qr.Visibility == Visibility.Visible && emptyQr.Visibility == Visibility.Collapsed,
                     "Completed activation did not generate and reveal the QR");
-                Check(url.Text == $"http://192.0.2.10:{host.Port}/#token={host.Token}", "Connection link does not match the active host and selected address");
+                Check(url.Text == $"http://192.0.2.10:{host.Port}/", "Connection link does not match the active host and selected address");
 
                 stopping = (Task)Call(dialog, "Stop")!;
                 Check(stops == 1 && !stopping.IsCompleted, "Stop did not await the requested shutdown");
@@ -99,7 +99,7 @@ internal static partial class Program
                     "Completed shutdown retained active connection controls");
                 Check(qr.Source is null && qr.Visibility == Visibility.Collapsed && emptyQr.Visibility == Visibility.Visible,
                     "Completed shutdown retained the connection QR");
-                Check(!url.Text.Contains(host.Token, StringComparison.Ordinal) && !url.Text.StartsWith("http", StringComparison.Ordinal),
+                Check(!url.Text.StartsWith("http", StringComparison.Ordinal),
                     "Completed shutdown retained the old pairing link");
             }
             finally

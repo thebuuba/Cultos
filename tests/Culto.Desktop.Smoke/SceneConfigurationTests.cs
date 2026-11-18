@@ -22,6 +22,60 @@ internal static partial class Program
         var cue = new Cue { Kind = CueKind.Text, Title = "Escena fija", Body = "Bienvenidos" };
         var custom = new SceneTile { Id = "own-scene", Label = "Bienvenida propia", Action = "cue", Color = "#4274F4", Cue = cue };
         RemoteScene[] Scenes() => ((IReadOnlyList<RemoteScene>)Call(window, "BuildRemoteScenes")!).ToArray();
+        Test("Program title scene edits, persists and advances from theme to purpose", () =>
+        {
+            var themeImage = Path.Combine(store.DirectoryPath, "tema.png");
+            var purposeImage = Path.Combine(store.DirectoryPath, "proposito.png");
+            var png = new PngBitmapEncoder();
+            png.Frames.Add(BitmapFrame.Create(BitmapSource.Create(2, 2, 96, 96, PixelFormats.Bgra32, null,
+                new byte[] { 0, 100, 255, 255, 0, 100, 255, 255, 0, 100, 255, 255, 0, 100, 255, 255 }, 8)));
+            using (var stream = File.Create(themeImage)) png.Save(stream);
+            File.Copy(themeImage, purposeImage);
+            var dialog = new SceneTileDialog(null, []) { Owner = window };
+            Exception? callbackError = null;
+            dialog.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
+            {
+                try
+                {
+                    Field<ComboBox>(dialog, "_action").SelectedValue = "program";
+                    Call(dialog, "Save");
+                    Check(dialog.IsVisible && Field<TextBlock>(dialog, "_error").Text.Contains("tema"), "Empty title was accepted");
+                    Field<TextBox>(dialog, "_programTheme").Text = themeImage;
+                    Field<TextBox>(dialog, "_programPurpose").Text = purposeImage;
+                    dialog.UpdateLayout();
+                    CaptureDesignWindow(dialog, Path.Combine(Environment.CurrentDirectory, ".tools", "program-title-editor.png"));
+                    Call(dialog, "Save");
+                }
+                catch (Exception error) { callbackError = error; }
+                finally { if (dialog.IsVisible) dialog.DialogResult = false; }
+            }));
+            var saved = dialog.ShowDialog();
+            if (callbackError is not null) throw callbackError;
+            Check(saved == true && dialog.Result?.Cue?.ProgramTitle is not null, "Program scene was not saved");
+            var program = dialog.Result!;
+            Check((bool)Call(window, "SaveSceneTile", program)!, "Program scene was not persisted");
+            Check(store.Load().SceneTiles.Single(scene => scene.Id == program.Id).Cue!.ProgramTitle!.PurposeImagePath == purposeImage, "Purpose did not survive reload");
+            Check(Scenes().Single(scene => scene.Id == program.Id) is { Available: true, Kind: "image" }, "Phone cannot use title scene");
+            var reopened = new SceneTileDialog(program, []);
+            Check(Field<TextBox>(reopened, "_programTheme").Text == themeImage
+                && Field<TextBox>(reopened, "_programPurpose").Text == purposeImage, "Editing lost the title fields");
+            reopened.Close();
+            CommandResult Command(string action) => (CommandResult)Call(window, "ExecuteRemote",
+                new RemoteCommand(action, Guid.NewGuid().ToString("N"), ButtonId: program.Id))!;
+            Check(Command("scene").Success && session.Live!.FilePath == themeImage && session.Live.Kind == CueKind.Image, "Scene did not open on theme image");
+            Check(((FrameworkElement)window.FindName("ProgramTitleControls")).Visibility == Visibility.Visible, "Title navigation is hidden");
+            Check(Command("next").Success && session.Live!.FilePath == purposeImage && session.Live.Id == program.Cue!.Id,
+                "Next did not show purpose in the same scene");
+            Check(session.PreviewFollowsLive, "Purpose disconnected the live preview");
+            Check(!Command("next").Success && session.Live!.ProgramTitlePage == 1, "End of title skipped into the order");
+            Check(Command("previous").Success && session.Live!.ProgramTitlePage == 0, "Previous did not return to theme");
+            Check(Command("next").Success && Command("scene").Success && session.Live!.ProgramTitlePage == 0, "Reopening scene did not reset to theme");
+            File.Delete(purposeImage);
+            Check(!Scenes().Single(scene => scene.Id == program.Id).Available, "A missing purpose image remains available");
+            Check(!Command("next").Success && session.Live!.ProgramTitlePage == 0, "Missing image replaced the current output");
+            Call(window, "CloseOutput");
+            Call(window, "RemoveSceneTile", program.Id);
+        });
         Test("Scene editor offers PowerPoint and persists a selected presentation", () =>
         {
             var file = Path.Combine(store.DirectoryPath, "scene-presentation.pptx");

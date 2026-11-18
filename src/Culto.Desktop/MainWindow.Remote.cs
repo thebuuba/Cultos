@@ -13,7 +13,7 @@ public partial class MainWindow
         _output is not null && _session.IsBlackout, _pendingCuePlayback.IsPending ? _session.IsBlackout || _session.IsTextHidden || _pendingCuePlayback.Intent.IsPaused
             : _session.Live?.Kind == CueKind.PowerPoint ? _isPaused : _output?.IsPaused ?? _isPaused,
         (int)VolumeSlider.Value, _output?.Position ?? 0, _output?.Duration ?? 0, _workspace.Deck.ToArray(),
-        _plan.Select(cue => new RemoteCue(cue.Id.ToString(), cue.Title, cue.Kind.ToString())).ToArray(),
+        _plan.Select(cue => new RemoteCue(cue.Id.ToString(), cue.Title, cue.Kind.ToString(), Announcer: cue.Announcer)).ToArray(),
         _output is null ? null : _session.Live?.Id.ToString(), _session.Prepared?.Id.ToString(),
         _output is not null, _output is not null && _session.IsTextHidden, _outputWindow is not null,
         CanControlFileMedia || _output is not null && _session.Live?.Kind == CueKind.PowerPoint
@@ -22,7 +22,8 @@ public partial class MainWindow
             ? _session.Live.Body : null,
         _output is not null && !_session.IsBlackout && !_session.IsTextHidden ? _session.Live?.Reference : null,
         _output is not null ? _session.Live?.Kind.ToString() : null, BuildRemoteScenes(),
-        VisualChannelTitle, AudioChannelTitle, _output?.HasBackgroundMedia == true, _session.Prepared?.Kind.ToString());
+        VisualChannelTitle, AudioChannelTitle, _output?.HasBackgroundMedia == true, _session.Prepared?.Kind.ToString(),
+        _output is not null && !_session.IsBlackout && !_session.IsTextHidden && _session.Live?.ProgramTitle is not null ? _session.Live.ProgramTitlePage : null);
 
     private async Task<CommandResult> HandleRemote(RemoteCommand command)
         => await Dispatcher.InvokeAsync(() => ExecuteRemote(command));
@@ -105,8 +106,9 @@ public partial class MainWindow
                         UpdatePowerPointPosition();
                         return new(advanced, advanced ? "Presentación actualizada." : "Fin de la presentación.");
                     }
-                    var before = _session.Live?.Id; AdvancePresentation(action == "next" ? 1 : -1);
-                    return new(before != _session.Live?.Id, before != _session.Live?.Id ? "Contenido actualizado." : "No hay otro elemento en esa dirección.");
+                    var before = (_session.Live?.Id, _session.Live?.ProgramTitlePage); AdvancePresentation(action == "next" ? 1 : -1);
+                    var changed = before != (_session.Live?.Id, _session.Live?.ProgramTitlePage);
+                    return new(changed, changed ? "Contenido actualizado." : "No hay otro elemento en esa dirección.");
                 case "blackout": ShowBlackBackdrop(); break;
                 case "background":
                     return new(ShowLogo(), _logoSlides.IsRunning ? "Logo en pantalla." : "Logo no tiene imágenes disponibles.");

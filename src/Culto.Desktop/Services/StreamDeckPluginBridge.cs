@@ -39,7 +39,7 @@ public sealed class StreamDeckPluginBridge : IAsyncDisposable
             {
                 File.Delete(DescriptorPath); // Remove an old session descriptor while this process owns the lease.
                 _host = new RemoteHost();
-                await _host.StartAsync(0, _snapshot, _command, loopbackOnly: true);
+                await _host.StartAsync(0, _snapshot, _command, loopbackOnly: true, requireToken: true);
                 var descriptor = JsonSerializer.Serialize(new { schemaVersion = 1, address = "http://127.0.0.1:" + _host.Port,
                     token = _host.Token, processId = Environment.ProcessId });
                 await File.WriteAllTextAsync(temporary, descriptor);

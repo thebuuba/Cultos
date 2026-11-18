@@ -9,13 +9,13 @@ const html = fs.readFileSync(path.join(root, 'src/Culto.Remote/wwwroot/index.htm
 const token = 'A'.repeat(64);
 const state = { planName: 'Prueba', liveTitle: 'Bienvenida', preparedTitle: 'Texto', hasOutput: true,
   volume: 70, position: 0, duration: 0, buttons: [], order: [], scenes: [] };
-let stateReads = 0, commands = 0, stallState = false, stallCommand = false, expired = false;
+let stateReads = 0, commands = 0, stallState = false, stallCommand = false, stopped = false;
 const server = http.createServer(async (req, res) => {
   if (req.url === '/') { res.setHeader('Content-Type', 'text/html; charset=utf-8'); res.end(html); return; }
   if (req.url === '/away') { res.end('<title>Otra pagina</title>'); return; }
   if (req.url.startsWith('/assets/')) { res.statusCode = 404; res.end(); return; }
-  assert.equal(req.headers.authorization, 'Bearer ' + token);
-  if (expired) { res.writeHead(401); res.end(); return; }
+  assert.equal(req.headers.authorization, undefined);
+  if (stopped) { res.writeHead(503); res.end(); return; }
   res.setHeader('Content-Type', 'application/json');
   if (req.url === '/api/state') {
     stateReads++;
@@ -50,22 +50,22 @@ async function connected(page) {
     for (const [name, engine, options] of [
       ['Android / Chromium', chromium, { isMobile: true, hasTouch: true, userAgent: 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36' }],
       ['iPhone / WebKit', webkit, { isMobile: true, hasTouch: true, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1' }]
-    ]) {
-      expired = stallState = stallCommand = false;
-      const browser = await engine.launch({ headless: true });
+    ].filter(([name]) => !process.env.CULTO_TEST_CHROMIUM_ONLY || name.includes('Chromium'))) {
+      stopped = stallState = stallCommand = false;
+      const browser = await engine.launch({ headless: true, ...(engine === chromium ? { channel: 'chrome' } : {}) });
       const context = await browser.newContext({ ...options, viewport: { width: 390, height: 844 } });
       try {
         let page = await context.newPage();
         const errors = [];
         context.on('page', page => page.on('pageerror', error => errors.push(error.message)));
         page.on('pageerror', error => errors.push(error.message));
-        await page.goto(base + '/#token=' + token); await connected(page);
+        await page.goto(base); await connected(page);
         assert.equal(new URL(page.url()).hash, '');
         const client = await page.evaluate(() => localStorage.getItem('culto.remote.client'));
         await page.close();
         page = await context.newPage(); await page.goto(base); await connected(page);
         assert.equal(await page.evaluate(() => localStorage.getItem('culto.remote.client')), client);
-        console.log('PASS ' + name + ': pairing survives a closed tab');
+        console.log('PASS ' + name + ': IP access survives a closed tab');
 
         stallState = true;
         await page.evaluate(() => { void refresh(); });
@@ -96,18 +96,20 @@ async function connected(page) {
         assert.ok(stateReads > beforeOnline);
         assert.equal(commands, beforeCommand + 1);
         await page.goto(base + '/away'); await page.goBack(); await connected(page);
-        assert.equal(await page.evaluate(() => localStorage.getItem('culto.remote.token')), token);
-        console.log('PASS ' + name + ': network recovery and browser back restore pairing');
+        assert.equal(await page.evaluate(() => localStorage.getItem('culto.remote.token')), null);
+        console.log('PASS ' + name + ': network recovery and browser back restore IP access');
 
-        expired = true;
+        stopped = true;
         await page.evaluate(() => { void refresh(); });
-        await page.waitForFunction(() => !localStorage.getItem('culto.remote.token') && !sessionStorage.getItem('culto.remote.token'));
-        await page.close(); page = await context.newPage(); await page.goto(base);
-        await page.waitForFunction(() => document.getElementById('notice').textContent.includes('Escanea'));
+        await page.waitForFunction(() => document.getElementById('connection').textContent === 'Sin conexión');
         assert.equal(await page.locator('#blackout').isEnabled(), false);
+        stopped = false;
+        await connected(page);
+        assert.equal(await page.locator('#blackout').isEnabled(), true);
+        assert.equal(commands, beforeCommand + 1, 'Reactivation never replays an old command');
         // WebKit reports a network-policy pageerror for fetches interrupted by our deliberate offline switch.
         assert.deepEqual(errors.filter(message => !message.endsWith('/api/state due to access control checks.')), []);
-        console.log('PASS ' + name + ': revoked pairing requires QR again');
+        console.log('PASS ' + name + ': console reactivation reconnects automatically by IP');
       } finally { await context.close(); await browser.close(); server.closeAllConnections(); }
     }
   } finally { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); }

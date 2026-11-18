@@ -13,6 +13,9 @@ public sealed class SceneTileDialog : Window
 {
     private readonly SceneTile _original;
     private readonly TextBox _label, _color;
+    private readonly TextBox _programTheme, _programPurpose;
+    private readonly StackPanel _programFields;
+    private readonly Guid _programCueId;
     private readonly ComboBox _action, _content;
     private readonly ComboBox _transition;
     private readonly Border _preview;
@@ -31,6 +34,7 @@ public sealed class SceneTileDialog : Window
         _original = scene ?? new SceneTile();
         _imageData = _original.ImageData;
         _fileCue = _original.Cue?.Copy();
+        _programCueId = _original.Cue?.Id ?? Guid.NewGuid();
         _sources = sources.DistinctBy(c => c.Id).ToArray();
         ConfigureTheme();
         Title = scene is null ? "Añadir escena" : "Editar escena";
@@ -95,7 +99,7 @@ public sealed class SceneTileDialog : Window
         foreach (var (id, title) in new[] { ("logo", "Mostrar logo"), ("blackout", "Fondo negro / restaurar"),
             ("image", "Proyectar imagen"), ("video", "Reproducir video"), ("audio", "Reproducir audio"),
             ("powerpoint", "Proyectar PowerPoint"), ("youtube", "YouTube"), ("browser", "Navegador"),
-            ("scene", "Escena por capas"), ("cue", "Contenido guardado") })
+            ("scene", "Escena por capas"), ("program", "Título del programa · Tema y propósito"), ("cue", "Contenido guardado") })
             _action.Items.Add(new ComboBoxItem { Tag = id, Content = title });
         _action.SelectedValue = _original.Action;
         DialogUi.Label(contentFields, "Acción", _action); contentFields.Children.Add(_action);
@@ -105,6 +109,14 @@ public sealed class SceneTileDialog : Window
         _browse.HorizontalAlignment = HorizontalAlignment.Stretch; _browse.Margin = new Thickness(0, 12, 0, 10);
         contentFields.Children.Add(_browse);
         _contentHint = Text("", 12, Muted); contentFields.Children.Add(_contentHint);
+        _programFields = new StackPanel();
+        _programTheme = new TextBox { Name = "ProgramTheme", Text = _original.Cue?.ProgramTitle?.ThemeImagePath ?? "", IsReadOnly = true, TextWrapping = TextWrapping.Wrap };
+        _programPurpose = new TextBox { Name = "ProgramPurpose", Text = _original.Cue?.ProgramTitle?.PurposeImagePath ?? "", IsReadOnly = true, TextWrapping = TextWrapping.Wrap };
+        DialogUi.Label(_programFields, "1 · Imagen del tema", _programTheme); _programFields.Children.Add(_programTheme);
+        _programFields.Children.Add(Button("Elegir imagen del tema…", "ChooseProgramTheme", () => ChooseProgramImage(_programTheme)));
+        DialogUi.Label(_programFields, "2 · Imagen del propósito", _programPurpose); _programFields.Children.Add(_programPurpose);
+        _programFields.Children.Add(Button("Elegir imagen del propósito…", "ChooseProgramPurpose", () => ChooseProgramImage(_programPurpose)));
+        contentFields.Children.Add(_programFields);
         settings.Children.Add(Card(contentFields, 20));
 
         var transitionFields = new StackPanel();
@@ -184,13 +196,15 @@ public sealed class SceneTileDialog : Window
     private void FillContent()
     {
         _content.Items.Clear();
-        _content.Items.Add(new ComboBoxItem { Content = SelectedAction == "powerpoint"
+        _content.Items.Add(new ComboBoxItem { Content = SelectedAction == "program" ? "Tema → Propósito (dos pantallas)" : SelectedAction == "powerpoint"
             ? "Selecciona una presentación…" : "Usar la selección actual del equipo" });
         foreach (var cue in (_fileCue is null ? _sources : new[] { _fileCue }.Concat(_sources)).Where(Matches).DistinctBy(c => c.Id))
             _content.Items.Add(new ComboBoxItem { Content = cue.Title, Tag = cue });
         _content.SelectedItem = _content.Items.OfType<ComboBoxItem>().FirstOrDefault(i => (i.Tag as Cue)?.Id == _fileCue?.Id && i.Tag is not null)
             ?? _content.Items[0];
-        _content.IsEnabled = SelectedAction is not ("logo" or "blackout");
+        _content.IsEnabled = SelectedAction is not ("logo" or "blackout" or "program");
+        _programFields.Visibility = SelectedAction == "program" ? Visibility.Visible : Visibility.Collapsed;
+        _browse.Visibility = SelectedAction == "program" ? Visibility.Collapsed : Visibility.Visible;
         _browse.IsEnabled = SelectedAction is not ("logo" or "blackout" or "youtube");
         _browse.Content = SelectedAction switch { "scene" => "Editar capas…", "browser" => "Crear navegador…",
             "powerpoint" => "Elegir presentación…", _ => "Elegir archivo…" };
@@ -201,11 +215,15 @@ public sealed class SceneTileDialog : Window
             "youtube" => "Elige una ventana de YouTube detectada o usa la selección actual del equipo.",
             "scene" => "Combina imagen, video, audio, texto, Biblia, navegador y captura en capas independientes.",
             "powerpoint" => "La presentación se abrirá con PowerPoint al pulsar esta escena.",
+            "program" => "Carga las dos imágenes que diseñaste en otro programa. Siguiente muestra el propósito y Anterior vuelve al tema.",
             _ => "Puedes fijar un archivo o contenido guardado para que esta escena siempre proyecte lo mismo."
         };
     }
-    private SceneTile Draft() => _original with { Label = _label.Text.Trim(), Action = SelectedAction, Color = _color.Text.Trim(),
-        ImageData = _imageData, Cue = SelectedCue?.Copy(), TransitionPresetId = _transition.SelectedValue as string is { Length: > 0 } id ? id : null };
+    private SceneTile Draft() => _original with { Label = SelectedAction == "program" && string.IsNullOrWhiteSpace(_label.Text) ? "Título del programa" : _label.Text.Trim(), Action = SelectedAction, Color = _color.Text.Trim(),
+        ImageData = _imageData, Cue = SelectedAction == "program" ? new Cue { Id = _programCueId, Kind = CueKind.Image,
+            Title = string.IsNullOrWhiteSpace(_label.Text) ? "Título del programa" : _label.Text.Trim(),
+            FilePath = _programTheme.Text.Trim(), ProgramTitle = new(_programTheme.Text.Trim(), _programPurpose.Text.Trim()) } : SelectedCue?.Copy(),
+        TransitionPresetId = _transition.SelectedValue as string is { Length: > 0 } id ? id : null };
     private void UpdatePreview()
     {
         var scene = Draft();
@@ -219,6 +237,14 @@ public sealed class SceneTileDialog : Window
         if (dialog.ShowDialog(this) != true) return;
         try { _imageData = SceneArtwork.Import(dialog.FileName); _error.Text = ""; UpdatePreview(); }
         catch (Exception error) { _error.Text = "No se pudo abrir la imagen: " + error.Message; }
+    }
+    private void ChooseProgramImage(TextBox target)
+    {
+        var dialog = new OpenFileDialog { Title = target == _programTheme ? "Imagen del tema" : "Imagen del propósito",
+            Filter = MediaLibrary.ImageFileFilter, CheckFileExists = true };
+        if (dialog.ShowDialog(this) != true) return;
+        target.Text = dialog.FileName;
+        _error.Text = "";
     }
     private void ChooseContent()
     {
@@ -239,10 +265,10 @@ public sealed class SceneTileDialog : Window
         {
             var dialog = new OpenFileDialog { Title = "Contenido de la escena", Filter = SelectedAction switch
             {
-                "image" => "Imágenes|*.png;*.jpg;*.jpeg;*.bmp", "video" => "Videos|*.mp4;*.mkv;*.mov;*.webm;*.avi;*.wmv",
-                "audio" => "Audio|*.mp3;*.wav;*.m4a;*.flac;*.ogg;*.wma",
+                "image" => MediaLibrary.ImageFileFilter, "video" => MediaLibrary.VideoFileFilter,
+                "audio" => MediaLibrary.AudioFileFilter,
                 "powerpoint" => "PowerPoint|*.pptx;*.ppt;*.ppsx;*.pps",
-                _ => "Contenido|*.png;*.jpg;*.jpeg;*.bmp;*.mp4;*.mkv;*.mov;*.webm;*.mp3;*.wav;*.m4a;*.pptx;*.ppt;*.ppsx;*.pps"
+                _ => MediaLibrary.FileFilter
             } };
             if (SelectedAction == "youtube") { _error.Text = "Elige una ventana de YouTube detectada en la lista."; return; }
             if (dialog.ShowDialog(this) != true) return;
@@ -254,6 +280,8 @@ public sealed class SceneTileDialog : Window
     }
     private void Save()
     {
+        if (SelectedAction == "program" && (!File.Exists(_programTheme.Text) || !File.Exists(_programPurpose.Text)))
+        { _error.Text = "Elige las imágenes del tema y del propósito. Ambos archivos deben estar disponibles."; return; }
         if (!System.Text.RegularExpressions.Regex.IsMatch(_color.Text.Trim(), "^#[0-9a-fA-F]{6}$"))
         { _error.Text = "Escribe un color como #24B27E."; return; }
         if (SelectedCue is null && SelectedAction is "cue" or "audio" or "scene" or "powerpoint")

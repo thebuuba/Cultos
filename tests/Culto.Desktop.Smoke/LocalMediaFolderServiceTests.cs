@@ -66,6 +66,20 @@ internal static partial class Program
                 catch (OperationCanceledException) { observedCancellation = true; }
                 Check(observedCancellation, "Superseded scans cannot be canceled");
             });
+            Test("Every media picker format is discovered in nested Windows folders", () =>
+            {
+                var formats = Path.Combine(fixtureRoot, "Formatos");
+                Directory.CreateDirectory(Path.Combine(formats, "Nested"));
+                foreach (var (patterns, kind) in new[] { (MediaLibrary.AudioPatterns, CueKind.Audio),
+                    (MediaLibrary.VideoPatterns, CueKind.Video), (MediaLibrary.ImagePatterns, CueKind.Image) })
+                {
+                    var expected = patterns.Split(';').Select(pattern => Path.Combine(formats, "Nested", "archivo" + pattern[1..])).ToArray();
+                    foreach (var file in expected) File.WriteAllBytes(file, []);
+                    var result = LocalMediaFolders.Scan(formats, kind);
+                    Check(result.Error is null && result.Items.Select(cue => cue.FilePath).ToHashSet(StringComparer.OrdinalIgnoreCase).SetEquals(expected),
+                        "Folder scan omitted a selectable " + kind + " format");
+                }
+            });
         }
         finally
         {

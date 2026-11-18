@@ -25,8 +25,32 @@ public partial class MainWindow
 
     private void InitializeScenes() => RefreshSceneChoices();
 
-    private Cue? SceneMedia(CueKind kind) => _session.Prepared is { } prepared && prepared.Kind == kind
-        ? prepared : kind == CueKind.Image ? _workspace.QuickSceneImage : _workspace.QuickSceneVideo;
+    private Cue? ActiveSceneVideo() => _output is null || _output.HasEnded ? null
+        : _output.AudioCue is { Kind: CueKind.Video } sounding ? sounding
+        : _session.Live is { Kind: CueKind.Video } live && _output.ActiveSurface.HasLoadedMedia ? live : null;
+
+    private Cue? SceneMedia(CueKind kind) => kind == CueKind.Video
+        ? ActiveSceneVideo() ?? (_session.Prepared is { Kind: CueKind.Video } video ? video : null)
+        : _session.Prepared is { Kind: CueKind.Image } image ? image : _workspace.QuickSceneImage;
+
+    private bool ShowSceneVideo(Cue cue)
+    {
+        var active = ActiveSceneVideo();
+        if (active?.Id == cue.Id && !_session.IsBlackout && !_session.IsTextHidden
+            && _output?.HasBackgroundMedia != true) return true;
+        var paused = active?.Id == cue.Id && _output?.IsPaused == true;
+        PrepareCue(CopyCue(cue));
+        ProjectPrepared();
+        if (_session.Live?.Id != cue.Id || _output is null) return false;
+        if (paused)
+        {
+            _pendingCuePlayback.SetPaused(true);
+            _output.SetPaused(true);
+            _isPaused = true;
+            UpdateSessionLabels();
+        }
+        return true;
+    }
 
     private static CueKind? SceneMediaKind(object sender) => (sender as FrameworkElement)?.Tag switch
     {
@@ -36,6 +60,12 @@ public partial class MainWindow
     private void SceneMediaClick(object sender, RoutedEventArgs e)
     {
         if (!_ready || SceneMediaKind(sender) is not { } kind) return;
+        if (kind == CueKind.Video && System.Windows.Input.Keyboard.Modifiers != System.Windows.Input.ModifierKeys.Shift)
+        {
+            if (SceneMedia(kind) is { } video && CheckMedia(video)) ShowSceneVideo(video);
+            else SetStatus("Prepara un video en la PC para usar esta escena.");
+            return;
+        }
         if (SceneMedia(kind) is not { } cue) { ChooseSceneMediaClick(sender, e); return; }
         if (cue.Kind != kind || !CheckMedia(cue) || !RememberSceneMedia(cue)) return;
         PrepareCue(CopyCue(cue));
@@ -49,7 +79,7 @@ public partial class MainWindow
         {
             Title = kind == CueKind.Image ? "Elegir imagen de escena" : "Elegir video de escena",
             Multiselect = false,
-            Filter = kind == CueKind.Image ? "Imágenes|*.jpg;*.jpeg;*.png;*.bmp" : "Videos|*.mkv;*.mp4;*.mov;*.webm;*.avi;*.wmv"
+            Filter = kind == CueKind.Image ? MediaLibrary.ImageFileFilter : MediaLibrary.VideoFileFilter
         };
         try
         {

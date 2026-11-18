@@ -33,6 +33,52 @@ internal static partial class Program
         try
         {
             plan.Clear(); plan.Add(a); plan.Add(b); plan.Add(video); Call(window, "UpdatePlanCount");
+            Test("Order actions share the bottom row and dismiss on outside clicks", () =>
+            {
+                list.SelectedItem = a; Call(window, "ShowOrderActions", a); window.UpdateLayout();
+                var actions = (FrameworkElement)window.FindName("OrderActionsPanel");
+                var add = (FrameworkElement)window.FindName("AddOrderButton");
+                var play = (FrameworkElement)window.FindName("OrderPlayButton");
+                Check(Math.Abs(BoundsWithin(add, window).Top - BoundsWithin(play, window).Top) < 5, "Actions are not beside Add on the bottom row");
+                window.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+                    { RoutedEvent = UIElement.PreviewMouseDownEvent, Source = play });
+                Check(actions.Visibility == Visibility.Visible, "Clicking an action dismisses it before execution");
+                window.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+                    { RoutedEvent = UIElement.PreviewMouseDownEvent, Source = window.FindName("PlanNameBox") });
+                Check(actions.Visibility != Visibility.Visible, "Outside click leaves actions visible");
+                Call(window, "ShowOrderActions", a);
+                window.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+                    { RoutedEvent = UIElement.PreviewMouseDownEvent, Source = list });
+                Check(actions.Visibility != Visibility.Visible, "Clicking empty order space leaves actions visible");
+            });
+            Test("Order announcer can be assigned, shown remotely and cleared", () =>
+            {
+                list.SelectedItem = a;
+                Call(window, "ShowOrderActions", a);
+                void Edit(string name)
+                {
+                    window.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        var dialog = Application.Current.Windows.OfType<Culto.Desktop.Dialogs.PromptDialog>().Single();
+                        Field<TextBox>(dialog, "_text").Text = name;
+                        Descendants(dialog).OfType<Button>().Single(button => button.Content as string == "Aceptar")
+                            .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    }));
+                    Call(window, "EditOrderAnnouncerClick", window, new RoutedEventArgs());
+                    window.UpdateLayout();
+                }
+                Edit("  María Pérez  ");
+                Check(a.Announcer == "María Pérez", "Announcer was not saved and trimmed");
+                Check(Descendants(Row(a)).OfType<TextBlock>().Any(text => text.Text == "Anuncia: María Pérez" && text.Visibility == Visibility.Visible),
+                    "Announcer is missing from the order row");
+                var remote = (Culto.Remote.RemoteSnapshot)Call(window, "BuildRemoteState")!;
+                Check(remote.Order!.Single(cue => cue.Id == a.Id.ToString()).Announcer == "María Pérez", "Phone does not receive announcer");
+                Call(window, "ShowOrderActions", a);
+                Edit("");
+                Check(a.Announcer == "", "Announcer cannot be removed");
+                Check(!Descendants(Row(a)).OfType<TextBlock>().Any(text => text.Text == "Anuncia: " && text.Visibility == Visibility.Visible),
+                    "Empty announcer leaves a visible label");
+            });
             Test("Order single click previews including an already selected row without changing output", () =>
             {
                 list.SelectedItem = a; Call(window, "ProjectPrepared");

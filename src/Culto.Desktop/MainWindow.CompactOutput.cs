@@ -15,7 +15,7 @@ public partial class MainWindow
             - Math.Max(24, LiveHeaderGrid.ActualHeight));
         // A fixed controls area keeps both monitors stable when background
         // playback actions appear. Compact layouts scroll within this area.
-        var actions = Math.Max(44, Math.Min(160, available - 102));
+        var actions = Math.Max(44, Math.Min(80, available - 102));
         var picture = Math.Max(80, available - actions - LivePicture.Margin.Top - LivePicture.Margin.Bottom);
         LivePicture.MaxHeight = picture;
         PreviewPicture.MaxHeight = picture;

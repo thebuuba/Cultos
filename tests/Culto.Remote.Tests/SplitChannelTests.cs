@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
@@ -18,7 +18,6 @@ public sealed class SplitChannelTests
             Order: [new(id, "Video", "Video")], Scenes: [new("logo", "Logo", "logo", true, true), new("youtube", "YouTube", "youtube", true, false)]),
             input => { received.Add(JsonSerializer.Serialize(input, new JsonSerializerOptions(JsonSerializerDefaults.Web))); return Task.FromResult(new CommandResult(true, "OK")); }, true);
         using var http = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{host.Port}") };
-        http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", host.Token);
         async Task<HttpStatusCode> Post(string json) => (await http.PostAsync("/api/command", new StringContent(json, Encoding.UTF8, "application/json"))).StatusCode;
         foreach (var action in new[] { "project", "scene", "cue", "library" })
         {

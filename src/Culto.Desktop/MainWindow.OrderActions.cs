@@ -3,12 +3,25 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using Culto.Core;
+using Culto.Desktop.Dialogs;
 
 namespace Culto.Desktop;
 
 public partial class MainWindow
 {
     private Cue? _orderActionCue;
+
+    private void EditOrderAnnouncerClick(object sender, RoutedEventArgs e)
+    {
+        if (!_ready || _orderActionCue is not Cue cue || !_plan.Contains(cue)) return;
+        var name = PromptDialog.Ask(this, "Quién anuncia · " + cue.Title,
+            "Nombre de quien anuncia o presenta (vacío para quitar)", cue.Announcer, allowEmpty: true);
+        if (name is null) return;
+        var previous = cue.Announcer;
+        cue.Announcer = name;
+        if (!SaveWorkspace()) cue.Announcer = previous;
+        PlanList.Items.Refresh();
+    }
 
     private void ClearOrderClick(object sender, RoutedEventArgs e)
     {
@@ -25,6 +38,14 @@ public partial class MainWindow
 
     private void InitializeOrderActions()
     {
+        PreviewMouseDown += (_, e) =>
+        {
+            if (_orderActionCue is null) return;
+            var source = e.OriginalSource as DependencyObject;
+            while (source is FrameworkContentElement content) source = content.Parent;
+            if (source is not null && (ReferenceEquals(source, OrderActionsPanel) || OrderActionsPanel.IsAncestorOf(source))) return;
+            if (OrderCueAt(e.OriginalSource) is null) HideOrderActions();
+        };
         var pasteMenu = new ContextMenu();
         var paste = new MenuItem { Header = "Pegar enlace de YouTube", InputGestureText = "Ctrl+V" };
         paste.Click += PasteYouTubeLinkClick; pasteMenu.Items.Add(paste); PlanList.ContextMenu = pasteMenu;

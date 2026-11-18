@@ -22,6 +22,14 @@ public sealed class PresentationSession
     public void Prepare(Cue cue)
     {
         ArgumentNullException.ThrowIfNull(cue);
+        if (cue.ProgramTitle is { } program)
+        {
+            cue = cue.Copy();
+            cue.Kind = CueKind.Image;
+            cue.FilePath = cue.ProgramTitlePage == 0 ? program.ThemeImagePath : program.PurposeImagePath;
+            cue.Body = "";
+            cue.Reference = "";
+        }
         Prepared = cue;
         Changed?.Invoke();
     }
@@ -79,6 +87,17 @@ public sealed class PresentationSession
         if (current < 0 || next < 0 || next >= plan.Items.Count) return false;
         Prepared = plan.Items[(int)next];
         GoLive();
+        return true;
+    }
+
+    public bool MoveProgramTitle(int delta)
+    {
+        if (Live is not { Kind: CueKind.Image, ProgramTitle: not null } || delta is not (-1 or 1)) return false;
+        var next = Live.ProgramTitlePage + delta;
+        if (next is < 0 or > 1) return false;
+        var cue = Live.Copy();
+        cue.ProgramTitlePage = next;
+        Prepare(cue); GoLive();
         return true;
     }
 }

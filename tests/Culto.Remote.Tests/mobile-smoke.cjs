@@ -43,7 +43,7 @@ let state = {
   isBlackout: false, isPaused: true, volume: 70, position: 3, duration: 10,
   hasOutput: true, hasExternalOutput: false, isBackground: false,
   liveCueId: 'cue-a', preparedCueId: 'cue-b',
-  order: [{ id: 'cue-a', title: 'Bienvenida', kind: 'Text' }, { id: 'cue-b', title: 'Lectura', kind: 'Bible' }],
+  order: [{ id: 'cue-a', title: 'Bienvenida', kind: 'Text', announcer: 'María <Pérez>' }, { id: 'cue-b', title: 'Lectura', kind: 'Bible' }],
   buttons: [{ id: 'deck-1', label: 'Salmo', color: '#A78BFA' }]
 };
 let commandHandler = async () => ({ success: false, message: 'Acción rechazada' });
@@ -73,12 +73,19 @@ const commands = () => calls.filter(call => call.url === '/api/command');
 (async () => {
   run(script); await settle();
   assert.equal(context.location.hash, '');
-  assert.equal(storage.get('culto.remote.token'), token);
-  assert.equal(persistent.get('culto.remote.token'), token, 'Closing a tab must not lose its pairing');
-  assert.equal(calls[0].options.headers.Authorization, 'Bearer ' + token);
+  assert.equal(storage.has('culto.remote.token'), false);
+  assert.equal(persistent.has('culto.remote.token'), false);
+  assert.equal(calls[0].options.headers.Authorization, undefined);
   assert.equal(elements.get('connection').textContent, 'Conectado');
   assert.equal(elements.get('order').children.length, 2, 'The phone must render the real PC order');
   assert.match(cue('cue-a').textContent, /Bienvenida/);
+  assert.match(cue('cue-a').textContent, /Anuncia: María <Pérez>/);
+  state.order[0].announcer = 'Juan';
+  await run('refresh()');
+  assert.match(cue('cue-a').textContent, /Anuncia: Juan/);
+  state.order[0].announcer = '';
+  await run('refresh()');
+  assert.doesNotMatch(cue('cue-a').textContent, /Anuncia:/);
   assert.equal(cue('cue-a').getAttribute('aria-current'), 'true');
   assert.match(cue('cue-b').textContent, /Preparado/);
 
@@ -176,7 +183,19 @@ const commands = () => calls.filter(call => call.url === '/api/command');
 
   // Existing physical-console controls keep their actual action/value contracts.
   commandHandler = async () => ({ success: false });
-  assert.equal(staticButtons.some(button => ['previous', 'next'].includes(button.dataset.action)), false);
+  assert.equal(elements.get('program-title-controls').hidden, true);
+  assert.equal(elements.get('program-title-next').disabled, true);
+  run('render({ ...current, programTitlePage: 0 })');
+  assert.equal(elements.get('program-title-controls').hidden, false);
+  assert.equal(elements.get('program-title-previous').disabled, true);
+  assert.equal(elements.get('program-title-next').disabled, false);
+  await elements.get('program-title-next').dispatch('click');
+  assert.equal(JSON.parse(commands().at(-1).options.body).action, 'next');
+  run('render({ ...current, programTitlePage: 1 })');
+  assert.equal(elements.get('program-title-next').disabled, true);
+  assert.equal(elements.get('program-title-previous').disabled, false);
+  await elements.get('program-title-previous').dispatch('click');
+  assert.equal(JSON.parse(commands().at(-1).options.body).action, 'previous');
   for (const action of ['blackout', 'background', 'project', 'pause', 'restart']) {
     await staticButtons.find(button => button.dataset.action === action).dispatch('click');
     assert.equal(JSON.parse(commands().at(-1).options.body).action, action);
@@ -293,15 +312,18 @@ const commands = () => calls.filter(call => call.url === '/api/command');
   const reopened = vm.createContext({ ...context, location: { hash: '', pathname: '/', search: '' },
     sessionStorage: { getItem: () => null, setItem() {}, removeItem() {} } });
   vm.runInContext(script, reopened); await settle();
-  assert.equal(calls.at(-1).options.headers.Authorization, 'Bearer ' + token);
+  assert.equal(calls.at(-1).options.headers.Authorization, undefined);
   assert.equal(calls.at(-1).options.headers['X-Culto-Client'], rememberedClient);
   assert.equal(elements.get('connection').textContent, 'Conectado');
 
-  context.fetch = async () => ({ status: 401, ok: false });
+  const workingFetch = context.fetch;
+  context.fetch = async () => ({ status: 503, ok: false });
   await run('refresh()');
-  assert.equal(storage.has('culto.remote.token'), false);
-  assert.equal(persistent.has('culto.remote.token'), false, 'An expired pairing must be forgotten in both stores');
   assert.equal(elements.get('connection').textContent, 'Sin conexión');
+  assert.ok([...timers.values()].some(timer => timer.delay === 1500), 'Retry polling remains scheduled while the console is stopped');
+  context.fetch = workingFetch;
+  await run('refresh()');
+  assert.equal(elements.get('connection').textContent, 'Conectado');
   const fallbackStorage = new Map();
   const fallback = vm.createContext({ ...context, location: { hash: '#token=' + token, pathname: '/', search: '' },
     history: { replaceState() {} },
@@ -309,7 +331,7 @@ const commands = () => calls.filter(call => call.url === '/api/command');
     sessionStorage: { getItem: key => fallbackStorage.get(key), setItem: (key, value) => fallbackStorage.set(key, value), removeItem: key => fallbackStorage.delete(key) },
     fetch: async () => ({ ok: true, status: 200, json: async () => structuredClone(state) }) });
   vm.runInContext(script, fallback); await settle();
-  assert.equal(fallbackStorage.get('culto.remote.token'), token, 'Unavailable persistent storage must fall back to the current tab');
+  assert.ok(fallbackStorage.get('culto.remote.client'), 'A client ID falls back to the current tab');
   assert.equal(elements.get('connection').textContent, 'Conectado');
   const fallbackCalls = [];
   const staleStorage = { getItem: key => key === 'culto.remote.token' ? 'B'.repeat(64) : null,
@@ -321,6 +343,6 @@ const commands = () => calls.filter(call => call.url === '/api/command');
   await settle();
   vm.runInContext(script, vm.createContext({ ...partialStorage, location: { hash: '', pathname: '/', search: '' } }));
   await settle();
-  assert.equal(fallbackCalls.at(-1).headers.Authorization, 'Bearer ' + token, 'A stale persistent token must not overwrite a newer session fallback');
-  console.log('Mobile smoke PASS: real order, stable IDs, safe text, live/output states, PC edits, failed commands, duplicate prevention, poll serialization, reconnect, legacy deck and auth.');
+  assert.equal(fallbackCalls.at(-1).headers.Authorization, undefined, 'Old stored tokens do not affect IP access');
+  console.log('Mobile smoke PASS: real order, stable IDs, safe text, live/output states, PC edits, failed commands, duplicate prevention, poll serialization, reconnect, legacy deck and IP-only access.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -142,7 +142,7 @@ public partial class MainWindow
     }
     private void AddPlaylistFiles()
     {
-        var dialog = new OpenFileDialog { Multiselect=true, Filter="Videos|*.mkv;*.mp4;*.mov;*.webm;*.avi;*.wmv" };
+        var dialog = new OpenFileDialog { Multiselect=true, Filter=MediaLibrary.VideoFileFilter };
         if(dialog.ShowDialog(this)!=true)return;
         foreach(var path in dialog.FileNames) { var cue=MediaLibrary.FromFile(path); if(cue.Kind==CueKind.Video) AppendToVideoQueue(cue); }
     }

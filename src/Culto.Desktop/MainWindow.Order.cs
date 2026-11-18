@@ -50,7 +50,7 @@ public partial class MainWindow
     private async void AddOrderFilesClick(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFileDialog { Title = "Agregar archivos al orden del culto", Multiselect = true,
-            Filter = "Contenido multimedia|*.mkv;*.mp4;*.mov;*.webm;*.avi;*.wmv;*.mp3;*.wav;*.flac;*.ogg;*.jpg;*.jpeg;*.png;*.bmp|Todos los archivos|*.*" };
+            Filter = MediaLibrary.MediaFileFilter + "|Todos los archivos|*.*" };
         if (dialog.ShowDialog(this) != true) return;
         AddOrderButton.IsEnabled = false;
         try

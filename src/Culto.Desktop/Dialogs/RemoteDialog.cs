@@ -36,7 +36,7 @@ public sealed class RemoteDialog : Window
     private readonly Button _stop = new() { Content = "Desactivar" };
     private readonly Button _copy = new() { Content = "Copiar enlace", MinHeight = 30, FontSize = 12, Padding = new Thickness(11, 6, 11, 6), HorizontalAlignment = HorizontalAlignment.Left };
     private readonly TextBlock _addressLabel = new() { FontSize = 12, FontWeight = FontWeights.Medium, TextWrapping = TextWrapping.Wrap };
-    private readonly TextBlock _protectedLabel = new() { FontSize = 12, TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock _accessLabel = new() { FontSize = 12, TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock _connectedCount = new() { FontSize = 12, VerticalAlignment = VerticalAlignment.Center };
     private readonly StackPanel _devices = new();
     private readonly TextBlock _phonePlan = new() { FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis };
@@ -131,9 +131,9 @@ public sealed class RemoteDialog : Window
         var addressHeading = Muted("Dirección local", new Thickness(0, 0, 0, 5)); addressHeading.FontSize = 12; link.Children.Add(addressHeading); link.Children.Add(_addressLabel);
         var protection = new Grid { Margin = new Thickness(0, 8, 0, 11) };
         protection.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); protection.ColumnDefinitions.Add(new ColumnDefinition());
-        var lockIcon = Glyph("M7 11 L7 7 A5 5 0 0 1 17 7 L17 11 M5 11 L19 11 L19 21 L5 21 Z M12 15 L12 17", 12);
-        lockIcon.Margin = new Thickness(0, 1, 5, 0); protection.Children.Add(lockIcon);
-        Grid.SetColumn(_protectedLabel, 1); protection.Children.Add(_protectedLabel); link.Children.Add(protection); link.Children.Add(_copy);
+        var networkIcon = Glyph("M3 3 H21 V15 H3 Z M12 15 V21 M7 21 H17", 12);
+        networkIcon.Margin = new Thickness(0, 1, 5, 0); protection.Children.Add(networkIcon);
+        Grid.SetColumn(_accessLabel, 1); protection.Children.Add(_accessLabel); link.Children.Add(protection); link.Children.Add(_copy);
         Grid.SetColumn(link, 1); pairing.Children.Add(link);
         connection.Children.Add(new Border { Background = ColorBrush("#303136"), CornerRadius = new CornerRadius(24), Padding = new Thickness(16), Child = pairing });
         var state = new StackPanel { Margin = new Thickness(2, 14, 0, 0) }; state.Children.Add(_stateLabel); _status.Margin = new Thickness(0, 5, 0, 0); _status.Foreground = (Brush)FindResource("MutedBrush"); state.Children.Add(_status); connection.Children.Add(state);
@@ -149,8 +149,8 @@ public sealed class RemoteDialog : Window
         RefreshAddresses(); _addresses.SelectionChanged += (_, _) => RefreshConnection();
         var refresh = new Button { Content = "Actualizar red", HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 8, 0, 0), FontSize = 12, MinHeight = 32 };
         refresh.Click += (_, _) => { RefreshAddresses(); RefreshConnection(); }; options.Children.Add(refresh);
-        DialogUi.Label(options, "Enlace protegido de vinculación", _url); options.Children.Add(_url);
-        options.Children.Add(Muted("El enlace incluye la clave de acceso. Al desactivar el mando deja de funcionar.", new Thickness(0, 8, 0, 0)));
+        DialogUi.Label(options, "Dirección del mando", _url); options.Children.Add(_url);
+        options.Children.Add(Muted("Los dispositivos de esta red pueden controlar el programa desde esta dirección mientras el mando esté activado.", new Thickness(0, 8, 0, 0)));
         connection.Children.Add(new Expander { Header = "Opciones de conexión", Foreground = (Brush)FindResource("TextBrush"), Content = options, Margin = new Thickness(0, 16, 0, 0), FontSize = 12 });
         var edit = new Button { Content = "Editar botones", HorizontalAlignment = HorizontalAlignment.Left, Style = (Style)FindResource("QuietButton"), Margin = new Thickness(-10, 12, 0, 0), FontSize = 12 };
         edit.Click += (_, _) => ShowDeck(true); connection.Children.Add(edit);
@@ -458,12 +458,12 @@ public sealed class RemoteDialog : Window
         _qrEmpty.Text = active ? "Sin dirección de red" : "El QR aparecerá aquí\nal activar el mando.";
         _qrEmpty.Foreground = ColorBrush("#555860");
         _addressLabel.Text = canConnect ? $"{address}:{_host!.Port}" : active ? "Red no disponible" : "Mando desactivado";
-        _protectedLabel.Text = active ? "Acceso protegido por enlace" : "Enlace al activar";
-        _protectedLabel.Foreground = (Brush)FindResource(active ? "AccentTextBrush" : "MutedBrush");
+        _accessLabel.Text = active ? "Acceso por red local" : "Enlace al activar";
+        _accessLabel.Foreground = (Brush)FindResource(active ? "AccentTextBrush" : "MutedBrush");
         RefreshDevices(); RefreshPreview();
         if (_host is null) { _url.Text = "Activa el mando para generar el enlace de vinculación."; _qr.Source = null; _qrUrl = null; return; }
         if (address is null) { _url.Text = "Sin dirección de red disponible."; _qr.Source = null; _qrUrl = null; return; }
-        _url.Text = $"http://{address}:{_host.Port}/#token={_host.Token}";
+        _url.Text = $"http://{address}:{_host.Port}/";
         if (_qrUrl == _url.Text && _qr.Source is not null) return;
         using var data = QRCodeGenerator.GenerateQrCode(_url.Text, QRCodeGenerator.ECCLevel.M);
         using var qr = new PngByteQRCode(data);

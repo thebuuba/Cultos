@@ -13,12 +13,12 @@ public partial class MainWindow
         return _workspace.SceneTiles.Select(scene =>
         {
             var cue = ConfiguredSceneCue(scene);
-            var kind = scene.Action == "cue" ? cue?.Kind switch
+            var kind = scene.Action is "cue" or "program" ? cue?.Kind switch
             {
                 CueKind.BrowserSource => "browser", CueKind.WindowCapture => "youtube",
                 { } value => value.ToString().ToLowerInvariant(), _ => "cue"
             } : scene.Action;
-            var available = scene.Action switch
+            var available = cue?.ProgramTitle is { } program ? File.Exists(program.ThemeImagePath) && File.Exists(program.PurposeImagePath) : scene.Action switch
             {
                 "logo" => AvailableLogoPaths().Any(), "blackout" => true,
                 _ => cue?.Kind switch
@@ -88,6 +88,11 @@ public partial class MainWindow
             case "image":
             case "video":
                 var cue = SceneMedia(configured.Action == "image" ? CueKind.Image : CueKind.Video);
+                if (configured.Action == "video" && !preserve)
+                {
+                    if (cue is null || !CheckMedia(cue)) return new(false, "Prepara un video en la PC.");
+                    return new(ShowSceneVideo(cue), "Video en pantalla.");
+                }
                 if (cue is null || !CheckMedia(cue) || !RememberSceneMedia(cue)) return new(false, "Elige el archivo en la PC.");
                 PrepareCue(CopyCue(cue));
                 if (preserve) return new(ProjectPreparedPreservingOther(), StatusText.Text);

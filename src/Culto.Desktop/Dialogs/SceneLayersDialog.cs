@@ -173,7 +173,7 @@ public sealed class SceneLayersDialog : Window
     });
     private void ChooseFile()
     {
-        var dialog = new OpenFileDialog { Title = "Añadir fuente", Filter = "Imagen, video o audio|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.mp4;*.mkv;*.mov;*.webm;*.avi;*.wmv;*.mp3;*.wav;*.m4a;*.flac;*.ogg;*.wma" };
+        var dialog = new OpenFileDialog { Title = "Añadir fuente", Filter = MediaLibrary.MediaFileFilter };
         if (dialog.ShowDialog(this) == true) TryAction(() => AddLayer(MediaLibrary.FromFile(dialog.FileName)));
     }
     private void AddText()

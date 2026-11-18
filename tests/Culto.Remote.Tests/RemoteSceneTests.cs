@@ -24,7 +24,6 @@ public sealed class RemoteSceneTests
         await using var host = new RemoteHost();
         await host.StartAsync(0, State, input => { calls++; return Task.FromResult(new CommandResult(true, input.ButtonId!)); }, true);
         using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{host.Port}") };
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", host.Token);
         var command = new RemoteCommand("scene", "youtube-once", ButtonId: "youtube");
         var response = await client.PostAsJsonAsync("/api/command", command);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
