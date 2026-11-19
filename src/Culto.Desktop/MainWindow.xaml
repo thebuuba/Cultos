@@ -151,7 +151,7 @@
     </Style>
     <DataTemplate x:Key="OrderItemTemplate">
       <Grid ToolTip="{Binding Title}" MinHeight="34">
-        <Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="52"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="52"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
         <TextBlock x:Name="OrderNumber" Text="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(local:OrderListBox.AbsoluteIndex), Converter={StaticResource OrderNumberConverter}}"
                    FontSize="10" Style="{StaticResource ItemMetadataText}" VerticalAlignment="Center"/>
         <local:MediaThumbnail Grid.Column="1" Cue="{Binding}" Width="46" Height="34" ShowDuration="True"/>
@@ -161,8 +161,14 @@
         </StackPanel>
         <TextBlock Grid.Column="3" Text="EN VIVO" FontSize="9" FontWeight="Bold" Foreground="{StaticResource OnActionBrush}" Margin="6,0,0,0" VerticalAlignment="Center"
                    Visibility="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(local:OrderListBox.IsLive), Converter={StaticResource BoolToVisibility}}"/>
+        <Border x:Name="OrderYouTubeBadge" Grid.Column="4" Width="22" Height="16" Background="#EA001B" CornerRadius="4" Margin="8,0,2,0" VerticalAlignment="Center"
+                ToolTip="Se reproduce en YouTube" AutomationProperties.Name="Video de YouTube">
+          <Path Data="M 0,0 L 8,5 L 0,10 Z" Fill="White" Width="8" Height="10" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Border>
       </Grid>
       <DataTemplate.Triggers>
+        <DataTrigger Binding="{Binding YouTubeUrl}" Value="{x:Null}"><Setter TargetName="OrderYouTubeBadge" Property="Visibility" Value="Collapsed"/></DataTrigger>
+        <DataTrigger Binding="{Binding YouTubeUrl}" Value=""><Setter TargetName="OrderYouTubeBadge" Property="Visibility" Value="Collapsed"/></DataTrigger>
         <DataTrigger Binding="{Binding Announcer}" Value=""><Setter TargetName="OrderAnnouncer" Property="Visibility" Value="Collapsed"/></DataTrigger>
         <DataTrigger Binding="{Binding Announcer}" Value="{x:Null}"><Setter TargetName="OrderAnnouncer" Property="Visibility" Value="Collapsed"/></DataTrigger>
         <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(local:OrderListBox.IsLive)}" Value="True">

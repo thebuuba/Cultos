@@ -11,6 +11,7 @@ internal static partial class Program
     private static void RunVideoListTests(MainWindow window)
     {
         if (Environment.GetCommandLineArgs().Contains("--playlist-audio")) { RunPlaylistAudioTests(window); return; }
+        window.Topmost = true; window.Activate();
         var workspace=Field<WorkspaceData>(window,"_workspace");
         var session=Field<PresentationSession>(window,"_session");
         Cue Video(string title)=>new(){Kind=CueKind.Video,Title=title,FilePath=Path.Combine(AppContext.BaseDirectory,"fixtures","test.mkv")};
@@ -30,6 +31,19 @@ internal static partial class Program
             var disposable=Video("Remove me");set.Items.Add(disposable);Call(window,"RefreshVideoListItems");items.SelectedItem=disposable;
             Call(window,"EditVideoList",0,true);
             Check(set.Items.Count==2 && new WorkspaceStore().Load().VideoCollections.Single(s=>s.Id==set.Id).Items.Count==2,"Remove was not persisted");
+        });
+        Test("Playlist drag reorders persist without changing playback or duplicating videos", () =>
+        {
+            Check(items.AllowDrop, "Playlist does not accept drag reordering");
+            SetField(window, "_videoListDragCue", a); SetField(window, "_videoListDragList", set.Id);
+            var data = new DataObject("CultoStudio.VideoListMove", a.Id.ToString());
+            Check((bool)Call(window, "DropVideoListItem", data, new Point(10, items.ActualHeight - 2))!, "Playlist rejected an internal drag");
+            Check(!(bool)Call(window, "DropVideoListItem", new DataObject(DataFormats.Text, "foreign"), new Point())!, "Playlist accepted an unrelated drag");
+            SetField(window, "_videoListDragCue", null); SetField(window, "_videoListDragList", null);
+            Check(set.Items.Select(cue => cue.Id).SequenceEqual(new[] { b.Id, a.Id }), "Drag did not move the earlier item below the current position");
+            Check(new WorkspaceStore().Load().VideoCollections.Single(list => list.Id == set.Id).Items.Select(cue => cue.Id).SequenceEqual(new[] { b.Id, a.Id }), "Drag order was not saved");
+            Call(window, "MoveVideoListItem", a, 0);
+            Check(set.Items.Count == 2 && set.Items[0].Id == a.Id, "Drag duplicated or lost an item");
         });
         Test("Media context menu directly appends the clicked video without choosing a list",()=>
         {
@@ -65,12 +79,36 @@ internal static partial class Program
             Until(()=>output.IsPlaying && !output.IsTransitioning,"List A did not start");
             output.Seek(.9);
             Until(()=>session.Live?.Id==b.Id && output.IsPlaying && !output.IsTransitioning,"List did not advance to B");
-            output.Seek(.9);Until(()=>output.HasEnded,"List B did not end");
+            output.Seek(.9);Until(()=>output.HasEnded || session.IsBlackout,"List B did not end");
             Call(window,"AdvanceVideoListIfEnded");Check(session.Live?.Id==b.Id,"List restarted after its last video");
             Until(()=>session.IsBlackout && output.DisplayedBlackout && !output.IsTransitioning,"Last list video did not transition to black");
             Check(output.PresentedTransitions.Kind==workspace.Transitions.Normalize().Kind,"End of list ignored configured transition");
             Call(window,"AdvanceVideoListIfEnded");
             Check(session.IsBlackout,"Repeated end check restored the picture");
+        });
+        Test("Moving an already played video below the live item queues it again without restarting playback", () =>
+        {
+            var c = Video("List C");
+            set.Items = [a, b, c]; Call(window, "RefreshVideoListItems");
+            try
+            {
+                items.SelectedItem = a; Call(window, "PlaySelectedVideoListItem");
+                var output = Field<ProjectionSurface>(window, "_output");
+                Until(() => output.IsPlaying && !output.IsTransitioning, "Requeue fixture did not start");
+                output.Seek(.9);
+                Until(() => session.Live?.Id == b.Id && output.IsPlaying && !output.IsTransitioning, "Requeue fixture did not advance to B");
+                var decoder = output.ActiveSurface;
+                Call(window, "MoveVideoListItem", a, 1);
+                Check(ReferenceEquals(decoder, output.ActiveSurface) && output.IsPlaying && session.Live?.Id == b.Id,
+                    "Reordering interrupted or replaced the currently playing video");
+                Call(window, "UpdateUsabilityState"); window.UpdateLayout();
+                Check(((OrderListBox)items).LiveCueId == b.Id, "Playlist does not distinguish the live video from the dragged selection");
+                output.Seek(.9);
+                Until(() => session.Live?.Id == a.Id && output.IsPlaying && !output.IsTransitioning, "Moved video did not play again after B");
+                output.Seek(.9);
+                Until(() => session.Live?.Id == c.Id && output.IsPlaying && !output.IsTransitioning, "Playback did not continue in the edited order");
+            }
+            finally { Call(window, "CloseOutput"); set.Items = [a, b]; Call(window, "SaveWorkspace"); Call(window, "RefreshVideoListItems"); }
         });
         Test("External projection cancels the list until explicitly enabled for its ending",()=>
         {
@@ -81,6 +119,9 @@ internal static partial class Program
             Check(Field<VideoListPlayback>(window,"_videoListPlayback").ListId is null,"External video did not cancel continuation");
             items.SelectedItem=b;after.IsChecked=true;
             Check(after.IsChecked==true,"After-current option could not arm");
+            items.SelectedItem = a; Call(window, "MoveVideoListItem", a, 1);
+            Check(after.IsChecked == true && Field<VideoListPlayback>(window, "_videoListPlayback").ExpectedId == external.Id,
+                "Moving another row cancelled the explicitly queued continuation");
             Call(window,"AppendToVideoQueue",Video("Queued while waiting"));
             Check(after.IsChecked==true && Field<VideoListPlayback>(window,"_videoListPlayback").ExpectedId==external.Id,
                 "Appending to the queue cancelled the explicit continuation");
@@ -92,7 +133,7 @@ internal static partial class Program
             Call(window,"PrepareCue",unrelated,null);Call(window,"ProjectPrepared");
             var output=Field<ProjectionSurface>(window,"_output");
             Until(()=>output.DisplayedCue?.Id==unrelated.Id && output.IsPlaying && !output.IsTransitioning,"Unrelated video did not start");
-            output.Seek(.9);Until(()=>output.HasEnded,"Unrelated video did not finish");
+            output.Seek(.9);Until(()=>output.HasEnded || session.IsBlackout,"Unrelated video did not finish");
             Call(window,"AdvanceVideoListIfEnded");
             Until(()=>session.IsBlackout && output.DisplayedBlackout && !output.IsTransitioning,"Standalone video kept its last frame");
         });

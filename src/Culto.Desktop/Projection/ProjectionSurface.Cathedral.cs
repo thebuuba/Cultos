@@ -24,7 +24,7 @@ public sealed partial class ProjectionSurface
 
     private void AttachCathedralAudio()
     {
-        if (_preview || _cathedralRouteFailed || _transitions.AudioFadeEffect != "Cathedral" || _player is null) return;
+        if (_preview || _cathedralRouteFailed || (!_smoothAudio && _transitions.AudioFadeEffect != "Cathedral") || _player is null) return;
         var output = new CathedralAudioOutput();
         try
         {

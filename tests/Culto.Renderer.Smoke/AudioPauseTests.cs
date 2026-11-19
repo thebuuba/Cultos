@@ -93,6 +93,11 @@ internal static partial class Program
         var resume = Read(480);
         var resumeJump = new[] { 0f }.Concat(resume).Zip(resume, (a, b) => Math.Abs(b - a)).Max();
         Check(resumeJump < .01 && Math.Abs(resume[^1] - .5f) < .0001, $"Resume restores gain without an abrupt waveform start (step={resumeJump:F4})");
+        output.SetGain(.98); Feed();
+        var fineFade = new[] { .5f }.Concat(Read(64)).ToArray();
+        Check(fineFade.Zip(fineFade.Skip(1), (a, b) => Math.Abs(b - a)).Max() < .0001,
+            "Small gain changes interpolate across samples instead of producing zipper noise");
+        output.SetGain(1); Feed(); Read(480);
         for (var cycle = 0; cycle < 8; cycle++)
         {
             Feed();
@@ -114,6 +119,70 @@ internal static partial class Program
             var next = Read(480);
             Check(next[0] < .01 && Math.Abs(next[^1] - .5f) < .0001, "Delayed resume keeps the short attack");
         }
+        Call("Flush", IntPtr.Zero, 0L); Feed(); Read(2400);
+        var gap = new[] { .5f }.Concat(Read(480)).ToArray();
+        Check(gap.Zip(gap.Skip(1), (a, b) => Math.Abs(b - a)).Max() < .01 && Math.Abs(gap[^1]) < .00001,
+            "PCM starvation releases to silence without a waveform cut");
+        Feed();
+        var refill = new[] { 0f }.Concat(Read(480)).ToArray();
+        Check(refill.Zip(refill.Skip(1), (a, b) => Math.Abs(b - a)).Max() < .01 && Math.Abs(refill[^1] - .5f) < .0001,
+            "PCM refill restarts a short attack instead of jumping to full gain");
+        Call("Flush", IntPtr.Zero, 0L); Feed();
+        var flushed = new[] { .5f }.Concat(Read(480)).ToArray();
+        Check(flushed.Zip(flushed.Skip(1), (a, b) => Math.Abs(b - a)).Max() < .01,
+            "A seek flush and immediate refill preserve sample continuity");
+        Call("Pause", IntPtr.Zero, 0L); Read(480);
+        Call("Flush", IntPtr.Zero, 0L); Call("Resume", IntPtr.Zero, 0L);
+        Call("Enqueue", new float[960]);
+        Check(Read(480).All(x => Math.Abs(x) < .000001), "Seeking while paused cannot replay a stale residual on resume");
+        Feed(); Read(480);
+        Call("Pause", IntPtr.Zero, 0L);
+        var partialPause = Read(120);
+        Call("Resume", IntPtr.Zero, 0L); Feed();
+        var interrupted = partialPause.TakeLast(1).Concat(Read(480)).ToArray();
+        Check(interrupted.Zip(interrupted.Skip(1), (a, b) => Math.Abs(b - a)).Max() < .01,
+            "Resume during a partially rendered pause release preserves sample continuity");
+        Call("Flush", IntPtr.Zero, 0L); Feed(); Read(480);
+        output.SetGain(1); output.SetMasterGain(1);
+        output.BeginFadeOut(600, 7400, 0); Read(480);
+        output.SetGain(.98);
+        var tailGain = new[] { .5f }.Concat(Read(64)).ToArray();
+        Check(tailGain.Zip(tailGain.Skip(1), (a, b) => Math.Abs(b - a)).Max() < .0001,
+            "Active Cathedral dry audio interpolates small gain changes");
+        using var wetControl = new CathedralAudioOutput();
+        using var wetChanged = new CathedralAudioOutput();
+        float[] WetRead(CathedralAudioOutput provider, int frames)
+        {
+            var bytes = new byte[frames * 8]; provider.Read(bytes, 0, bytes.Length);
+            return Enumerable.Range(0, frames).Select(i => BitConverter.ToSingle(bytes, i * 8)).ToArray();
+        }
+        foreach (var provider in new[] { wetControl, wetChanged })
+        {
+            provider.SetMasterGain(1); provider.SetGain(0);
+            typeof(CathedralAudioOutput).GetMethod("Enqueue", flags)!.Invoke(provider, new object[] { Enumerable.Repeat(.1f, 96000).ToArray() });
+            provider.BeginFadeOut(600, 7400, 100);
+            WetRead(provider, 9600);
+        }
+        wetChanged.SetMasterGain(.5);
+        var referenceWet = WetRead(wetControl, 32); var changedWet = WetRead(wetChanged, 32);
+        Check(Math.Abs(referenceWet[0]) > .001, "Wet-only reference contains audible room decay");
+        Check(Math.Abs(changedWet[0] - referenceWet[0]) / Math.Abs(referenceWet[0]) < .01,
+            "Cathedral room master gain begins its change gradually instead of clicking");
+        using var tailDry = new CathedralAudioOutput();
+        tailDry.SetGain(1); tailDry.SetMasterGain(1);
+        void TailFeed(float value) => typeof(CathedralAudioOutput).GetMethod("Enqueue", flags)!.Invoke(tailDry,
+            new object[] { Enumerable.Repeat(value, 960).ToArray() });
+        TailFeed(.5f); tailDry.BeginFadeOut(600, 7400, 0); WetRead(tailDry, 480);
+        var tailGap = new[] { .5f }.Concat(WetRead(tailDry, 480)).ToArray();
+        Check(tailGap.Zip(tailGap.Skip(1), (a, b) => Math.Abs(b - a)).Max() < .01,
+            "Active Cathedral dry starvation releases instead of cutting the waveform");
+        TailFeed(.5f); WetRead(tailDry, 480);
+        typeof(CathedralAudioOutput).GetMethod("Pause", flags)!.Invoke(tailDry, new object[] { IntPtr.Zero, 0L });
+        tailDry.SetGain(0); tailDry.SetMasterGain(0); WetRead(tailDry, 480);
+        typeof(CathedralAudioOutput).GetMethod("Resume", flags)!.Invoke(tailDry, new object[] { IntPtr.Zero, 0L });
+        TailFeed(0);
+        Check(WetRead(tailDry, 480).All(x => Math.Abs(x) < .000001),
+            "A paused Cathedral tail cannot replay its old dry sample on resume");
         Check(!output.HasError, "Pause/resume PCM remains healthy");
     }
 }

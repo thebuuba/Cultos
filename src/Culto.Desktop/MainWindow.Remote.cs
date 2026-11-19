@@ -116,7 +116,7 @@ public partial class MainWindow
                 case "restart": RestartMedia(); break;
                 case "volume": VolumeSlider.Value = Math.Clamp(command.Value ?? 80, 0, 100); break;
                 case "volume-step": VolumeSlider.Value = Math.Clamp(VolumeSlider.Value + (command.Value ?? 0), 0, 100); break;
-                case "seek": _output?.Seek(Math.Clamp(command.Value ?? 0, 0, 1)); break;
+                case "seek": _output?.SeekWithFade(Math.Clamp(command.Value ?? 0, 0, 1)); break;
                 default: return new(false, "Acción no disponible.");
             }
             return new(true, "Acción aplicada.");

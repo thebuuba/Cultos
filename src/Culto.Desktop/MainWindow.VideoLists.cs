@@ -12,7 +12,7 @@ namespace Culto.Desktop;
 public partial class MainWindow
 {
     private readonly VideoListPlayback _videoListPlayback = new();
-    private readonly ListBox _videoListItems = new() { DisplayMemberPath = "Title" };
+    private readonly OrderListBox _videoListItems = new();
     private readonly CheckBox _videoListAfter = new() { Content = "Después de este video, iniciar la lista", Margin = new Thickness(0,8,0,8) };
     private bool _refreshingVideoLists;
     private SavedSet? SelectedVideoList { get; set; }
@@ -52,6 +52,10 @@ public partial class MainWindow
     }
     private void InitializeVideoListsPanel()
     {
+        _videoListItems.Style = (Style)FindResource(typeof(ListBox));
+        _videoListItems.ItemTemplate = (DataTemplate)FindResource("OrderItemTemplate");
+        _videoListItems.ItemContainerStyle = (Style)FindResource("OrderRow");
+        InitializeVideoListDrag();
         var grid = new Grid();
         grid.RowDefinitions.Add(new() { Height = GridLength.Auto }); grid.RowDefinitions.Add(new() { Height = GridLength.Auto });
         grid.RowDefinitions.Add(new()); grid.RowDefinitions.Add(new() { Height = GridLength.Auto });
@@ -75,10 +79,11 @@ public partial class MainWindow
         });
         Action("+ Videos", AddPlaylistFiles);
         Action("Eliminar",()=>EditVideoList(remove:true));
-        Action("↑",()=>EditVideoList(delta:-1)); Action("↓",()=>EditVideoList(delta:1));
+        Action("↑ Subir",()=>EditVideoList(delta:-1)); Action("↓ Bajar",()=>EditVideoList(delta:1));
         Action("Reproducir",PlaySelectedVideoListItem);
         var footer = new StackPanel(); footer.Children.Add(_videoListAfter);
-        var hint = new TextBlock { Text = "", TextWrapping = TextWrapping.Wrap, Foreground = (System.Windows.Media.Brush)FindResource("MutedBrush") };
+        const string orderHint = "Arrastra para reordenar. Baja un video anterior debajo del actual para volver a reproducirlo.";
+        var hint = new TextBlock { Text = orderHint, TextWrapping = TextWrapping.Wrap, Foreground = (System.Windows.Media.Brush)FindResource("MutedBrush") };
         footer.Children.Add(hint);
         _videoListAfter.Checked += (_,_)=>
         {
@@ -88,10 +93,17 @@ public partial class MainWindow
             _videoListPlayback.After(list.Id,live.Id,next.Id); LoopCheck.IsChecked = false;
             hint.Text = "Al terminar: " + next.Title;
         };
-        _videoListAfter.Unchecked += (_,_)=> { _videoListPlayback.Cancel(); hint.Text = ""; };
-        _videoListItems.SelectionChanged += (_,_)=> { if (!_refreshingVideoLists && _videoListAfter.IsChecked == true) _videoListAfter.IsChecked = false; };
+        _videoListAfter.Unchecked += (_,_)=> { _videoListPlayback.Cancel(); hint.Text = orderHint; };
+        // Selecting or moving a row does not cancel an explicitly queued continuation.
         _videoListItems.MouseDoubleClick += (_,e)=> { if(e.ChangedButton==MouseButton.Left) PlaySelectedVideoListItem(); };
-        _videoListItems.PreviewKeyDown += (_,e)=> { if(e.Key==Key.Delete){EditVideoList(remove:true);e.Handled=true;} else if(e.Key==Key.Enter){PlaySelectedVideoListItem();e.Handled=true;} };
+        _videoListItems.PreviewKeyDown += (_, e) =>
+        {
+            var key = e.Key == Key.System ? e.SystemKey : e.Key;
+            if (Keyboard.Modifiers == ModifierKeys.Alt && key is Key.Up or Key.Down)
+            { EditVideoList(delta: key == Key.Up ? -1 : 1); e.Handled = true; }
+            else if (key == Key.Delete) { EditVideoList(remove: true); e.Handled = true; }
+            else if (key == Key.Enter) { PlaySelectedVideoListItem(); e.Handled = true; }
+        };
         grid.Children.Add(new TextBlock { Text = "Lista de reproducci\u00f3n", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0,0,0,10) }); Grid.SetRow(actions,1); grid.Children.Add(actions);
         Grid.SetRow(_videoListItems,2); grid.Children.Add(_videoListItems); Grid.SetRow(footer,3); grid.Children.Add(footer);
         var body = new Border { Background = (System.Windows.Media.Brush)FindResource("PanelBrush"),
@@ -149,11 +161,12 @@ public partial class MainWindow
     private void EditVideoList(int delta = 0, bool remove = false)
     {
         if(SelectedVideoList is not {} list || _videoListItems.SelectedItem is not Cue cue)return;
-        var old=list.Items.ToList(); var index=list.Items.IndexOf(cue); var next=index+delta;
-        if(remove)list.Items.Remove(cue);
-        else if(next>=0 && next<list.Items.Count) {list.Items.RemoveAt(index);list.Items.Insert(next,cue);}
-        if(!SaveWorkspace())list.Items=old;
-        RefreshVideoListItems(); if(list.Items.Contains(cue))_videoListItems.SelectedItem=cue;
+        if (!remove) { MoveVideoListItem(cue, list.Items.IndexOf(cue) + delta); return; }
+        var old = list.Items.ToList();
+        list.Items.Remove(cue);
+        if (!SaveWorkspace()) list.Items = old;
+        RefreshVideoListItems();
+        if (list.Items.Contains(cue)) _videoListItems.SelectedItem = cue;
     }
     private void PlaySelectedVideoListItem()
     {

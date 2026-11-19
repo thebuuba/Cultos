@@ -27,4 +27,18 @@ public class VideoListPlaybackTests
         state.After(set.Id,external,a.Id); state.Observe(Guid.NewGuid());
         Assert.Null(state.Complete(external,set));
     }
+    [Fact]
+    public void MovingAnEarlierVideoBelowCurrentQueuesItAgainInTheNewOrder()
+    {
+        var a = new Cue(); var b = new Cue(); var c = new Cue();
+        var set = new SavedSet { Items = [a, b, c] };
+        var state = new VideoListPlayback();
+        state.Start(set.Id, a.Id);
+        Assert.Equal(b.Id, state.Complete(a.Id, set)?.Id);
+        set.Items.Remove(a); set.Items.Insert(1, a);
+        Assert.Equal(a.Id, state.Complete(b.Id, set)?.Id);
+        Assert.Equal(c.Id, state.Complete(a.Id, set)?.Id);
+        Assert.Null(state.Complete(c.Id, set));
+    }
+
 }

@@ -25,6 +25,7 @@ public partial class MainWindow
 
     private void FollowLivePreview()
     {
+        _preparedScene = null;
         _independentScenePreview = false;
         _preparedBibleStyleChanged = false;
         _preparedReading = _liveReading;

@@ -97,7 +97,7 @@ public partial class MainWindow
     private void SeekOutput()
     {
         if (CanControlFileMedia && _output!.Duration > 0)
-            _output.Seek(PositionSlider.Value);
+            _output.SeekWithFade(PositionSlider.Value);
     }
 
     private static void Skip(ProjectionSurface? player, double seconds)

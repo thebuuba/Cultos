@@ -15,6 +15,7 @@ namespace Culto.Desktop.Projection;
 public sealed partial class ProjectionSurface : UserControl, IDisposable
 {
     private readonly bool _preview;
+    private readonly bool _smoothAudio;
     private readonly Func<LibVLC>? _sharedVlc;
     private readonly ProjectionMixer? _mixer;
     private Cue? _shownCue;
@@ -44,9 +45,10 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
 
     public event Action<string>? PlaybackError;
 
-    public ProjectionSurface(bool preview = false, bool smoothTransitions = false, Func<LibVLC>? sharedVlc = null, LayerSourcePool? layers = null, bool transparentBackground = false)
+    public ProjectionSurface(bool preview = false, bool smoothTransitions = false, Func<LibVLC>? sharedVlc = null, LayerSourcePool? layers = null, bool transparentBackground = false, bool smoothAudio = false)
     {
         _preview = preview;
+        _smoothAudio = smoothAudio;
         _sharedVlc = sharedVlc;
         _layerPool = layers;
         _transparentBackground = transparentBackground;
@@ -404,6 +406,17 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         _cathedralAudio?.ResetPlayback();
         _started = _player.Play();
         if (!_started) ReportError("No se pudo iniciar la reproducción del archivo.");
+    }
+
+    public void SetPausedWithFade(bool paused)
+    {
+        if (_mixer is not null) _mixer.SetPausedWithFade(paused);
+        else SetPaused(paused);
+    }
+    public void SeekWithFade(double fraction)
+    {
+        if (_mixer is not null) _mixer.SeekWithFade(fraction);
+        else Seek(fraction);
     }
 
     public void SetPaused(bool paused)

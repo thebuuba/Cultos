@@ -36,7 +36,7 @@ internal sealed partial class ProjectionMixer
                 _cathedralTails.RemoveAt(i); if (tail.Owned) tail.Output.Dispose();
                 continue;
             }
-            tail.Output.SetMasterGain(_pauseImmediately ? 0 : Math.Pow(_volume / 100d, 3));
+            tail.Output.SetMasterGain(_pauseImmediately ? 0 : Math.Pow(_volume / 100d, 3) * _transportGain);
         }
     }
 

@@ -64,9 +64,9 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
     public bool IsTransitioning => _loading is not null || _blend is not null || _queued is not null || _audioBlend is not null || _current.IsTransitioning;
     public bool IsPreparingPlaybackEngine => !_disposed && _initialization is { IsCompleted: false };
     public bool IsPlaying => !_disposed && ActiveSurface.IsPlaying;
-    public bool IsPaused => _disposed || (HasBackgroundMedia ? ActiveSurface.IsPaused : _queued is { } queued
+    public bool IsPaused => _transportPaused ?? (_disposed || (HasBackgroundMedia ? ActiveSurface.IsPaused : _queued is { } queued
         ? queued.PauseAfter || queued.Blackout || queued.Hidden
-        : _desiredPause || _blackout || _hidden || (!IsTransitioning && _current.IsPaused));
+        : _desiredPause || _blackout || _hidden || (!IsTransitioning && _current.IsPaused)));
     public bool DisplayedBlackout => _visible?.Blackout == true;
     public bool DisplayedHidden => _visible?.Hidden == true;
     public double Position => ActiveSurface.Position;
@@ -89,7 +89,7 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
         .OfType<ProjectionSurface>().Distinct();
     private ProjectionSurface CreateSurface()
     {
-        var surface = new ProjectionSurface(sharedVlc: () => _vlc ?? throw new InvalidOperationException("El reproductor todavía se está preparando."), layers: _layerPool)
+        var surface = new ProjectionSurface(sharedVlc: () => _vlc ?? throw new InvalidOperationException("El reproductor todavía se está preparando."), layers: _layerPool, smoothAudio: true)
         {
             Volume = 0, Loop = _loop, MediaFill = _mediaFill, MediaZoom = _mediaZoom,
             Transitions = new TransitionOptions { Kind = "Cut", AudioFadeOutMilliseconds = 0, AudioFadeInMilliseconds = 0 }
@@ -144,6 +144,7 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
     }
     public void StopBackgroundMedia()
     {
+        CancelTransportFade();
         if (_disposed || !HasBackgroundMedia) return;
         // Finish the visual hand-off before releasing its preserved decoder.
         // A queued foreground change may continue, but cannot retain this audio.
@@ -176,6 +177,10 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
     private void Enqueue(Request request)
     {
         if (_disposed) return;
+        // A visual-only change must retain a pause requested during its release.
+        if (request.PreserveAudio && !ShowsMedia(request) && _transportPaused == true)
+            SetPausedCore(true);
+        CancelTransportFade();
         if (_loading is { } loading && request.Cue?.Kind is CueKind.Video or CueKind.Audio
             && SameMedia(loading.Cue, request.Cue) && loading.Cue?.Title == request.Cue.Title
             && loading.Blackout == request.Blackout && loading.Hidden == request.Hidden
@@ -384,22 +389,22 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
         if (_blend is { } blend && _outgoing is not null)
         {
             var sample = Sample(blend);
-            _outgoing.SetMixVolume(_volume, _pauseImmediately ? 0 : KeepOutgoingMedia ? 1 : sample.OutgoingGain);
-            _current.SetMixVolume(_volume, _desiredPause ? 0 : blend.ReusedLiveMedia ? 1 : sample.IncomingGain);
+            _outgoing.SetMixVolume(_volume, (_pauseImmediately ? 0 : KeepOutgoingMedia ? 1 : sample.OutgoingGain) * _transportGain);
+            _current.SetMixVolume(_volume, (_desiredPause ? 0 : blend.ReusedLiveMedia ? 1 : sample.IncomingGain) * _transportGain);
         }
-        else _current.Volume = _pauseImmediately || (_loading is null && _desiredPause) ? 0 : _volume;
-        if (_incoming is not null) _incoming.Volume = _loading?.ReusedLiveMedia == true ? _volume : 0;
-        if (_retained is not null) _retained.Volume = 0;
+        else _current.SetMixVolume(_volume, _pauseImmediately || (_loading is null && _desiredPause) ? 0 : _transportGain);
+        if (_incoming is not null) _incoming.SetMixVolume(_volume, _loading?.ReusedLiveMedia == true ? _transportGain : 0);
+        if (_retained is not null) _retained.SetMixVolume(_volume, 0);
         if (_audioOutgoing is not null && _audioBlend is { } fade)
             _audioOutgoing.SetMixVolume(_volume, _pauseImmediately ? 0 :
-                CrossfadeTimeline.Sample(_audioClock.Elapsed.TotalMilliseconds, 0, fade.AudioFadeOutMilliseconds, fade.AudioFadeInMilliseconds).OutgoingGain);
+                _transportGain * CrossfadeTimeline.Sample(_audioClock.Elapsed.TotalMilliseconds, 0, fade.AudioFadeOutMilliseconds, fade.AudioFadeInMilliseconds).OutgoingGain);
         if (_background is not null)
         {
             double gain = 1;
             if (_blend is { } replacement && (ShowsMedia(replacement) || !replacement.PreserveAudio)) gain = Math.Min(gain, Sample(replacement).OutgoingGain);
             if (_audioBlend is { } audio) gain = Math.Min(gain, CrossfadeTimeline.Sample(_audioClock.Elapsed.TotalMilliseconds, 0,
                 audio.AudioFadeOutMilliseconds, audio.AudioFadeInMilliseconds).IncomingGain);
-            _background.SetMixVolume(_volume, _pauseImmediately ? 0 : gain);
+            _background.SetMixVolume(_volume, _pauseImmediately ? 0 : gain * _transportGain);
         }
         // A source shared by two scenes is one decoder, not two signals to fade.
         // Preserve its gain when only its position/size changes between scenes.
@@ -409,7 +414,7 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
             {
                 var target = to.GetLiveLayers().FirstOrDefault(l => l.SourceId == source.SourceId && !l.Layer.Muted);
                 if (target is not null && target.Layer.Volume == source.Layer.Volume)
-                    source.Surface.Volume = (int)Math.Round(_volume * source.Layer.Volume / 100d);
+                    source.Surface.SetMixVolume((int)Math.Round(_volume * source.Layer.Volume / 100d), _transportGain);
             }
         }
         UpdateCathedralTails();
@@ -508,6 +513,7 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
     public void ShowCue(Cue? cue, bool blackout, bool hidden)
     {
         if (_disposed) return;
+        CancelTransportFade();
         if (_background is not null)
         {
             var cut = Capture(cue, blackout, hidden, blackout || hidden);
@@ -547,6 +553,12 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
 
     public void SetPaused(bool paused)
     {
+        CancelTransportFade();
+        SetPausedCore(paused);
+    }
+
+    private void SetPausedCore(bool paused)
+    {
         if (_disposed) return;
         if (_queued is { } queued) { _queued = queued with { PauseAfter = paused || queued.Blackout || queued.Hidden }; return; }
         _desiredPause = paused || !HasBackgroundMedia && (_blackout || _hidden);
@@ -560,6 +572,7 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
     }
     public void Restart()
     {
+        CancelTransportFade();
         if (_queued is { } queued)
         {
             if (!queued.Blackout && !queued.Hidden) _queued = queued with { PauseAfter = false };
@@ -572,12 +585,21 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
     }
     public void Seek(double position)
     {
+        if (_transportPaused == true) SetPausedCore(true);
+        CancelTransportFade();
+        SeekCore(position);
+        ApplyVolumes();
+    }
+
+    private void SeekCore(double position)
+    {
         if (!_disposed && _queued is null && _loading is null && (HasBackgroundMedia || !_blackout && !_hidden)) ActiveSurface.Seek(position);
     }
 
     public void Dispose()
     {
         if (_disposed) return;
+        CancelTransportFade();
         EndLiveMove(); _liveMoveClient?.Dispose(); _liveMoveClient = null;
         _timer.Stop(); _disposed = true;
         StopCathedralTails();

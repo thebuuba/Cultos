@@ -30,7 +30,7 @@ public partial class MainWindow
         player.SeekRequested += position =>
         {
             if (CanControlFileMedia)
-                _output?.Seek(position);
+                _output?.SeekWithFade(position);
         };
         player.VolumeRequested += volume => VolumeSlider.Value = volume;
         player.MuteRequested += () => { ToggleMuteClick(this, new RoutedEventArgs()); UpdateOutputPlayer(); };

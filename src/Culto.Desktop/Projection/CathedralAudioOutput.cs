@@ -7,8 +7,8 @@ using NAudio.Wave;
 
 namespace Culto.Desktop.Projection;
 
-// Optional, per-decoder PCM output. No device/session volume changes and no
-// processing of normal dry playback. The pull thread alone owns the native DSP.
+// Per-decoder PCM output. Gain ramps run at sample rate without changing
+// device/session volume. Reverb is enabled only for Cathedral transitions.
 internal sealed class CathedralAudioOutput : IDisposable, IWaveProvider
 {
     private const int Rate = 48000, Channels = 2;
@@ -27,9 +27,14 @@ internal sealed class CathedralAudioOutput : IDisposable, IWaveProvider
     private int _tailMilliseconds;
     private double _gain, _master = 1, _sendGain, _intensity;
     private const int DeClickFrames = Rate / 200; // 5 ms, independent of scene transitions.
-    private double _renderGain;
-    private float _lastLeft, _lastRight;
-    private int _pauseFrames;
+    private double _renderGain, _renderTarget = -1, _renderStep;
+    private int _renderRampFrames;
+    private double _renderMaster = 1, _masterTarget = 1, _masterStep;
+    private int _masterRampFrames;
+    private bool _starved = true;
+    private int _gapFrames;
+    private float _gapLeft, _gapRight;
+    private float _lastLeft, _lastRight, _lastDryLeft, _lastDryRight;
     private double _lastAudibleSend = 1;
     private string? _lastError;
     private Func<long>? _clock;
@@ -136,9 +141,8 @@ internal sealed class CathedralAudioOutput : IDisposable, IWaveProvider
             lock (_gate)
             {
                 if (_ended) return;
-                if (!_paused) _pauseFrames = DeClickFrames;
+                if (!_paused) BeginGapRelease();
                 _paused = true; _epoch++; _head = _length = 0;
-                _renderGain = 0;
                 // Retained logo/blackout decoders pause their dry stream while
                 // the independently controlled room continues its finite decay.
                 if (!_hasTail) { _historyHead = _historyLength = 0; _resetEffect = true; }
@@ -152,6 +156,7 @@ internal sealed class CathedralAudioOutput : IDisposable, IWaveProvider
         {
             lock (_gate)
             {
+                if (_hasTail) BeginGapRelease(includeWet: true);
                 _epoch++; _paused = _ended = _hasTail = _tailComplete = false;
                 _head = _length = _historyHead = _historyLength = 0; _resetEffect = true;
             }
@@ -166,6 +171,7 @@ internal sealed class CathedralAudioOutput : IDisposable, IWaveProvider
             lock (_gate)
             {
                 if (_ended) return; // Detached tails own their remaining PCM/DSP.
+                if (!_paused || _hasTail) BeginGapRelease(includeWet: _hasTail);
                 _epoch++; _head = _length = 0;
                 _historyHead = _historyLength = 0;
                 _resetEffect = true;
@@ -184,18 +190,6 @@ internal sealed class CathedralAudioOutput : IDisposable, IWaveProvider
             {
                 if (_closed || _lastError is not null) return 0;
                 var samples = count / (Channels * sizeof(float)) * Channels;
-                if (_paused && !_hasTail)
-                {
-                    // The decoder has already stopped. Release its last output
-                    // sample instead of cutting an arbitrary waveform to zero.
-                    for (var i = 0; i < samples && _pauseFrames > 0; i += Channels)
-                    {
-                        var gain = --_pauseFrames / (float)DeClickFrames;
-                        BitConverter.TryWriteBytes(buffer.AsSpan(offset + i * sizeof(float)), _lastLeft * gain);
-                        BitConverter.TryWriteBytes(buffer.AsSpan(offset + (i + 1) * sizeof(float)), _lastRight * gain);
-                    }
-                    return count;
-                }
                 if (_dry.Length < samples) { _dry = new float[samples]; _wet = new float[samples]; }
                 Array.Clear(_dry, 0, samples); Array.Clear(_wet, 0, samples);
                 var feeding = !_paused && (!_hasTail || _fadePosition < _fadeFrames);
@@ -203,13 +197,13 @@ internal sealed class CathedralAudioOutput : IDisposable, IWaveProvider
                 for (var i = 0; i < read; i++) { _dry[i] = _queue[_head]; _head = (_head + 1) % _queue.Length; }
                 _length -= read;
                 if (_resetEffect) { _reverb?.Dispose(); _reverb = null; _resetEffect = false; }
-                if (_hasTail && !_tailComplete)
+                var tail = _hasTail && !_tailComplete;
+                var tailNow = tail && (!feeding || _ended && _length == 0);
+                if (tail)
                 {
                     if (_reverb is null)
                     {
                         _reverb = new CathedralReverbProcessor(Rate, Channels, _tailMilliseconds);
-                        // Seed the room with recent outgoing sound even for a cut.
-                        // This happens only at transition onset, never on dry playback.
                         if (_historyLength > 0)
                         {
                             var seed = new float[_historyLength];
@@ -219,37 +213,50 @@ internal sealed class CathedralAudioOutput : IDisposable, IWaveProvider
                     }
                     for (var i = 0; i < samples; i++) _wet[i] = (float)(_dry[i] * _sendGain);
                     _reverb.Process(_wet, 0, samples);
-                    var tailNow = !feeding || _ended && _length == 0;
-                    for (var i = 0; i < samples; i++)
-                    {
-                        var tailFraction = tailNow ? (_tailPosition + i / Channels) / (double)_tailFrames : 0;
-                        // A final short ramp avoids a hard cutoff at the selected duration.
-                        var taper = Math.Clamp((1 - tailFraction) * 10, 0, 1);
-                        // The processor returns direct plus reflected audio. Remove the
-                        // direct component before adding this independent wet bus.
-                        var wet = _wet[i] - _dry[i] * _sendGain;
-                        _dry[i] = (float)Math.Clamp(_dry[i] * _gain + wet * _master * _intensity * taper, -1, 1);
-                    }
-                    if (tailNow) _tailPosition += samples / Channels;
-                    else _fadePosition += samples / Channels;
-                    if (_tailPosition >= _tailFrames)
-                    { _tailComplete = true; _completeAfter = Environment.TickCount64 + 120; _reverb.Dispose(); _reverb = null; _head = _length = 0; }
                 }
-                else for (var i = 0; i < samples; i++)
+                else
                 {
-                    if (!_hasTail && i < read)
+                    for (var i = 0; i < read; i++)
                     {
                         if (_historyLength == _history.Length) { _historyHead = (_historyHead + 1) % _history.Length; _historyLength--; }
                         _history[(_historyHead + _historyLength++) % _history.Length] = _dry[i];
                     }
-                    // Smooth gain changes at sample rate, including a resume
-                    // with a zero-duration user transition. Advance the attack
-                    // only when decoded samples arrive.
-                    if (i % Channels == 0 && (i < read || _gain < _renderGain))
-                        _renderGain += Math.Clamp(_gain - _renderGain, -1d / DeClickFrames, 1d / DeClickFrames);
-                    _dry[i] = (float)Math.Clamp(_dry[i] * _renderGain, -1, 1);
                 }
-                if (samples >= Channels) { _lastLeft = _dry[samples - Channels]; _lastRight = _dry[samples - 1]; }
+                // Every dry signal uses the same release/attack, including a
+                // paused source or an underrun while Cathedral is still ringing.
+                for (var i = 0; i < samples; i += Channels)
+                {
+                    var available = i < read;
+                    var rawLeft = _dry[i]; var rawRight = _dry[i + 1];
+                    if (!available && !_starved) BeginGapRelease();
+                    if (available) _starved = false;
+                    AdvanceRenderGains(available);
+                    var left = available ? (float)(rawLeft * _renderGain) : 0;
+                    var right = available ? (float)(rawRight * _renderGain) : 0;
+                    if (_gapFrames > 0)
+                    {
+                        var release = --_gapFrames / (float)DeClickFrames;
+                        left += _gapLeft * release; right += _gapRight * release;
+                    }
+                    _lastDryLeft = left; _lastDryRight = right;
+                    if (tail)
+                    {
+                        var tailFraction = tailNow ? (_tailPosition + i / Channels) / (double)_tailFrames : 0;
+                        var wetGain = _renderMaster * _intensity * Math.Clamp((1 - tailFraction) * 10, 0, 1);
+                        // The reverb processor returns direct plus reflected audio.
+                        left += (float)((_wet[i] - rawLeft * _sendGain) * wetGain);
+                        right += (float)((_wet[i + 1] - rawRight * _sendGain) * wetGain);
+                    }
+                    _dry[i] = _lastLeft = Math.Clamp(left, -1, 1);
+                    _dry[i + 1] = _lastRight = Math.Clamp(right, -1, 1);
+                }
+                if (tail)
+                {
+                    if (tailNow) _tailPosition += samples / Channels;
+                    else _fadePosition += samples / Channels;
+                    if (_tailPosition >= _tailFrames)
+                    { _tailComplete = true; _completeAfter = Environment.TickCount64 + 120; _reverb!.Dispose(); _reverb = null; _head = _length = 0; }
+                }
                 Buffer.BlockCopy(_dry, 0, buffer, offset, samples * sizeof(float));
                 if (_ended && !_hasTail && !_tailComplete && _length == 0)
                 { _tailComplete = true; _completeAfter = Environment.TickCount64 + 120; }
@@ -257,6 +264,43 @@ internal sealed class CathedralAudioOutput : IDisposable, IWaveProvider
             }
         }
         catch (Exception error) { Error(error); return 0; }
+    }
+
+    private void AdvanceRenderGains(bool available)
+    {
+        // Dry playback and Cathedral tails use the same sample-rate ramps.
+        if (available || _gain < _renderGain)
+        {
+            if (_renderTarget != _gain)
+            {
+                _renderTarget = _gain; _renderRampFrames = DeClickFrames;
+                _renderStep = (_gain - _renderGain) / DeClickFrames;
+            }
+            if (_renderRampFrames > 0)
+            {
+                _renderGain += _renderStep;
+                if (--_renderRampFrames == 0) _renderGain = _renderTarget;
+            }
+        }
+        if (_masterTarget != _master)
+        {
+            _masterTarget = _master; _masterRampFrames = DeClickFrames;
+            _masterStep = (_master - _renderMaster) / DeClickFrames;
+        }
+        if (_masterRampFrames > 0)
+        {
+            _renderMaster += _masterStep;
+            if (--_masterRampFrames == 0) _renderMaster = _masterTarget;
+        }
+    }
+
+    private void BeginGapRelease(bool includeWet = false)
+    {
+        _gapLeft = includeWet ? _lastLeft : _lastDryLeft;
+        _gapRight = includeWet ? _lastRight : _lastDryRight;
+        _gapFrames = DeClickFrames;
+        _starved = true;
+        _renderGain = 0; _renderTarget = -1; _renderRampFrames = 0;
     }
 
     private void Error(Exception error) { lock (_gate) { _lastError = error.Message; _tailComplete = true; _epoch++; } }

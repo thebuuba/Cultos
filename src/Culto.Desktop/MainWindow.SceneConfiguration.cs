@@ -12,6 +12,7 @@ public partial class MainWindow
 {
     private readonly Dictionary<string, Button> _sceneTileButtons = [];
     private string? _sceneTileSignature;
+    private (string Id, Guid? CueId)? _preparedScene;
 
     private Cue? ConfiguredSceneCue(SceneTile scene) => scene.Cue ?? scene.Action switch
     {
@@ -35,6 +36,12 @@ public partial class MainWindow
 
     private void PreviewConfiguredScene(SceneTile scene)
     {
+        if (scene.Action is "logo" or "blackout" && ConfiguredSceneActive(scene))
+        {
+            FollowLivePreview();
+            _preparedScene = (scene.Id, _session.Prepared?.Id);
+            return;
+        }
         var cue = ConfiguredSceneCue(scene);
         if (scene.Action == "logo") cue = AvailableLogoPaths().FirstOrDefault() is { } path
             ? new Cue { Kind = CueKind.Image, Title = "Logo", FilePath = path } : null;
@@ -42,6 +49,7 @@ public partial class MainWindow
         if (cue is null) { SetStatus("Configura primero el contenido de esta escena."); return; }
         if (!CheckMedia(cue)) return;
         PrepareCue(CopyCue(cue));
+        _preparedScene = (scene.Id, cue.Id);
         _independentScenePreview = true;
         RenderPreparedPreview();
         ActivateWorkspacePanel("preview");
@@ -126,8 +134,10 @@ public partial class MainWindow
             {
                 var button = builtins.GetValueOrDefault(scene.Id) ?? new Button { Style = (Style)FindResource("SceneButton") };
                 if (!builtins.ContainsKey(scene.Id)) button.Click += ConfiguredSceneClick;
+                button.PreviewMouseLeftButtonDown -= ConfiguredSceneMouseDown;
+                button.PreviewMouseLeftButtonDown += ConfiguredSceneMouseDown;
                 button.Tag = scene.Id; button.Background = SceneTileVisual.Background(scene.Color); button.Foreground = SceneTileVisual.Ink(scene.Color);
-                button.Content = SceneTileVisual.Content(scene); button.ToolTip = scene.AccessibleName + "\nClic derecho: editar, duplicar, mover o eliminar";
+                button.Content = SceneTileVisual.Content(scene); button.ToolTip = scene.AccessibleName + "\nUn clic: vista previa. Doble clic: programa.\nClic derecho: editar, duplicar, mover o eliminar";
                 AutomationProperties.SetName(button, scene.AccessibleName);
                 button.ContextMenu = new ContextMenu();
                 button.ContextMenu.Items.Add(new MenuItem { Header = "Editar escena…" });
@@ -175,7 +185,29 @@ public partial class MainWindow
     private void ConfiguredSceneClick(object sender, RoutedEventArgs e)
     {
         if (!_ready || sender is not Button { Tag: string id } || _workspace.SceneTiles.FirstOrDefault(scene => scene.Id == id) is not { } scene) return;
+        PreviewConfiguredScene(scene);
+    }
+
+    private void ConfiguredSceneMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton != MouseButton.Left || e.ClickCount != 2) return;
+        // Consume the second press before Button generates another preview click.
+        e.Handled = true;
+        ProjectConfiguredScene(sender, e);
+    }
+
+    private void ProjectConfiguredScene(object sender, RoutedEventArgs e)
+    {
+        if (!_ready || sender is not Button { Tag: string id } || _workspace.SceneTiles.FirstOrDefault(scene => scene.Id == id) is not { } scene) return;
+        _preparedScene = null;
+        _independentScenePreview = false;
         WithSceneTransition(scene, () => ConfiguredSceneClickCore(sender, e, id, scene));
+        if (_output is not null && (ConfiguredSceneActive(scene) || scene.Action == "blackout"))
+        {
+            FollowLivePreview();
+            _preparedScene = (scene.Id, _session.Prepared?.Id);
+        }
+        else RenderPreparedPreview();
     }
 
     private void ConfiguredSceneClickCore(object sender, RoutedEventArgs e, string id, SceneTile scene)

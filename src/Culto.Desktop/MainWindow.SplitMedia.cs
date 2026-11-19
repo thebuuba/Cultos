@@ -14,6 +14,12 @@ public partial class MainWindow
 
     private void ProjectPreparedFromInput()
     {
+        if (_preparedScene is { } scene && _session.Prepared?.Id == scene.CueId
+            && _sceneTileButtons.TryGetValue(scene.Id, out var sceneButton))
+        {
+            ProjectConfiguredScene(sceneButton, new RoutedEventArgs());
+            return;
+        }
         if (Keyboard.Modifiers == ModifierKeys.Shift) ProjectPreparedPreservingOther();
         else ProjectPrepared();
     }

@@ -67,6 +67,7 @@ public partial class MainWindow
         UpdatePlaybackAvailability();
         UpdatePowerPointPanel();
         PlanList.LiveCueId = _output is not null ? _session.Live?.Id : null;
+        _videoListItems.LiveCueId = PlanList.LiveCueId;
         if (FindName("NextLiveText") is TextBlock next)
             next.Text = NextLiveHint();
     }

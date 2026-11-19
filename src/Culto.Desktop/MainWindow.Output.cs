@@ -33,6 +33,7 @@ public partial class MainWindow
         _preparedBibleStyleChanged = false;
         UsePreparedMediaView();
         _independentScenePreview = false;
+        _preparedScene = null;
         _session.GoLive();
         ShowLiveCue();
         SchedulePlayedSearchReset(cue);
@@ -282,7 +283,7 @@ public partial class MainWindow
     private void PauseClick(object sender, RoutedEventArgs e) => TogglePause();
     private void TogglePause()
     {
-        if (HasBackgroundFileAudio) { _isPaused = !_output!.IsPaused; _output.SetPaused(_isPaused); UpdatePlayButton(PauseButton, _isPaused, false); return; }
+        if (HasBackgroundFileAudio) { _isPaused = !_output!.IsPaused; _output.SetPausedWithFade(_isPaused); UpdatePlayButton(PauseButton, _isPaused, false); return; }
         if (_session.Live?.Kind == CueKind.WindowCapture) return;
         if (TogglePendingCuePause()) return;
         if (_session.Live?.Kind == CueKind.PowerPoint && _powerPoint is not null)
@@ -297,7 +298,7 @@ public partial class MainWindow
         if (_output is null || _session.Live?.Kind is not (CueKind.Video or CueKind.Audio)) return;
         if (_session.IsBlackout || _session.IsTextHidden) { SetStatus("Restaura la imagen antes de continuar el video."); return; }
         _isPaused = !_output.IsPaused;
-        _output.SetPaused(_isPaused);
+        _output.SetPausedWithFade(_isPaused);
         UpdatePlayButton(PauseButton, _isPaused, false);
         if (_session.Live?.Kind == CueKind.WindowCapture) UpdateCapturePlayButton();
     }

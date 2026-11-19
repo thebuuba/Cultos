@@ -31,6 +31,8 @@ internal static partial class Program
                 else if (args.Contains("--native-move")) await RunNativeMoveChecks();
                 else if (args.Contains("--audio-isolation")) await RunAudioIsolationChecks();
                 else if (args.Contains("--audio-device-rebind")) await RunAudioDeviceRebindChecks();
+                else if (args.Contains("--transport-output")) await RunTransportOutputChecks();
+                else if (args.Contains("--transport-fades")) await RunTransportFadeChecks();
                 else if (args.Contains("--audio-pause")) RunAudioPauseChecks();
                 else if (args.Contains("--audio-pause-output")) await RunAudioPauseOutputChecks();
                 else if (args.Contains("--audio-noise")) await RunAudioNoiseChecks();

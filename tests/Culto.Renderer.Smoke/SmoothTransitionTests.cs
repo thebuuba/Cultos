@@ -61,8 +61,8 @@ internal static partial class Program
                 var incoming = output.ActiveSurface;
                 var newPlayer = Player(incoming);
                 Check(!ReferenceEquals(oldPlayer, newPlayer), "A video change uses separate overlapping decoders");
-                await Until(() => outgoing.Opacity is > .2 and < .8 && oldPlayer.Volume is > 5 and < 55
-                    && newPlayer.Volume is > 5 and < 55,
+                await Until(() => outgoing.Opacity is > .2 and < .8 && RequestedAudioVolume(outgoing) is > 5 and < 55
+                    && RequestedAudioVolume(incoming) is > 5 and < 55,
                     "Image and both audio envelopes advance together during the same blend", 2000);
                 var initialFrames = framesPresented;
                 var oldPosition = oldPlayer.Time;
@@ -97,7 +97,7 @@ internal static partial class Program
                 && Math.Abs(output.Position - retainedPosition) < .2,
                 "Restoring black preserves the original decoder, position and paused state");
             output.SetPaused(false);
-            await Until(() => output.IsPlaying && Player(output).Volume == 60,
+            await Until(() => output.IsPlaying && RequestedAudioVolume(output) == 60,
                 "Explicit resume restarts retained playback and restores audio");
 
             var errors = new List<string>(); output.PlaybackError += errors.Add;
@@ -108,7 +108,7 @@ internal static partial class Program
             await Until(() => errors.Count == 1 && !output.IsTransitioning,
                 "Failed incoming media reports one error and ends its pending transition");
             Check(output.DisplayedCue?.Id == second.Id && ReferenceEquals(output.ActiveSurface, beforeFailure)
-                && ReferenceEquals(Player(output), beforeFailurePlayer) && output.IsPlaying && Player(output).Volume == 60,
+                && ReferenceEquals(Player(output), beforeFailurePlayer) && output.IsPlaying && RequestedAudioVolume(output) == 60,
                 "Incoming failure preserves the previous live video and restores its audio level");
 
             var superseded = Video("Superseded incoming");
