@@ -89,8 +89,8 @@ public partial class MainWindow
             if ((Keyboard.Modifiers & (ModifierKeys.Shift | ModifierKeys.Control)) != 0) return;
             if (row?.DataContext is BibleResult selected && list.SelectedItems.Count > 1 && list.SelectedItems.Contains(selected))
             {
-                // Keep a selected passage intact when grabbing or double-clicking
-                // one of its rows. The normal ListBox press would collapse it.
+                // Defer collapsing the passage until release so a drag can still
+                // carry the complete selection.
                 e.Handled = true;
                 if (e.ClickCount == 2)
                 {
@@ -144,10 +144,17 @@ public partial class MainWindow
         var cue = _contentDragCue;
         var source = _contentDragSource;
         ClearContentDrag();
-        if (!_ready || cue is null || _session.Prepared?.Id == cue.Id || source is not ListBox list) return;
-        var releasedCue = ContentCue(ContentRowAt(list, e.OriginalSource)?.DataContext);
+        if (!_ready || cue is null || source is not ListBox list) return;
+        var releasedItem = ContentRowAt(list, e.OriginalSource)?.DataContext;
+        var releasedCue = ContentCue(releasedItem);
         // Folder rescans replace objects while keeping each file's stable ID.
         if (releasedCue is null || cue.Id != releasedCue.Id) return;
+        if (list == BibleResults && list.SelectedItems.Count > 1)
+        {
+            list.UnselectAll();
+            list.SelectedItem = releasedItem;
+        }
+        if (_session.Prepared?.Id == cue.Id) return;
         if (list == LibraryList || list == MediaList || list == YouTubeList) PrepareCue(releasedCue);
         else if (list == BibleResults) PrepareBibleSelection();
     }

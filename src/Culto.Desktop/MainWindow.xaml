@@ -273,6 +273,7 @@
           <Button.ContextMenu><ContextMenu>
             <MenuItem x:Name="ChurchSettingsMenu" Header="Datos de la iglesia…" Click="ChurchSettingsClick"/>
             <MenuItem Header="Pantallas y salida…" Click="DisplayClick"/>
+            <MenuItem x:Name="ResetMediaFolderMenu" Header="Volver a Videos al regresar a Medios" IsCheckable="True" Click="ToggleResetMediaFolderClick"/>
             <MenuItem Header="Transición del sistema…" Click="TransitionSettingsClick"/>
             <MenuItem Header="Presentador USB">
               <MenuItem x:Name="PresenterEnabledMenu" Header="Control en segundo plano" IsCheckable="True" Click="TogglePresenterClick" ToolTip="Captura Av Pág y Re Pág aunque otra aplicación esté activa."/>
@@ -427,6 +428,7 @@
             <Grid>
               <TextBlock Text="Vista Previa" FontWeight="SemiBold" FontSize="14"/>
               <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" MinHeight="32">
+                <Button Content="Vista" Tag="preview" Click="MonitorViewClick" FontSize="11" MinHeight="24" Padding="6,3" Margin="0,0,4,0" ToolTip="Ampliar o ajustar el encuadre de la vista previa" AutomationProperties.Name="Ampliar o ajustar vista previa"/>
                 <Button x:Name="FollowLiveButton" Content="Ver salida" Click="FollowLivePreviewClick" Visibility="Collapsed" FontSize="12" MinHeight="24" Padding="8,3" Margin="0,0,8,0" AutomationProperties.Name="Volver a ver la salida"/>
               </StackPanel>
             </Grid>
@@ -445,6 +447,11 @@
               <TextBlock x:Name="PreparedTitleText" Text="Sin contenido" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,10,0" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
 
             </Grid>
+
+              <StackPanel Grid.Row="3" x:Name="StopBackgroundMediaRow" Visibility="Collapsed" Margin="0,12,0,0">
+                <TextBlock x:Name="StopBackgroundMediaTitle" Foreground="{StaticResource MutedBrush}" FontSize="12" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+                <Button x:Name="StopBackgroundMediaButton" Content="Quitar video por completo" Click="StopBackgroundMediaClick" IsEnabled="False" HorizontalAlignment="Left" Margin="0,6,0,0" MinHeight="32" Padding="10,5" FontSize="12" ToolTip="Detiene el video y su audio de fondo sin cambiar la escena en pantalla. Al seleccionarlo otra vez comenzará desde el principio." AutomationProperties.Name="Quitar reproducción de fondo por completo"/>
+              </StackPanel>
 
           </Grid>
         </Border>
@@ -487,7 +494,7 @@
               <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
               <Border Background="{StaticResource LiveSurfaceBrush}" CornerRadius="9" Padding="7,3" Margin="0,0,9,0"><TextBlock Text="Programa" Foreground="{StaticResource TextBrush}" FontSize="12" FontWeight="SemiBold"/></Border>
               <TextBlock Grid.Column="1" x:Name="LiveTitleText" Text="Sin contenido" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
-              <TextBlock Grid.Column="2" x:Name="OutputModeText" Text="SIN SALIDA" Foreground="{StaticResource MutedBrush}" FontSize="12" VerticalAlignment="Center" Margin="8,0,0,0" ToolTip="{Binding Text, ElementName=OutputStatusText}"/>
+              <StackPanel Grid.Column="2" Orientation="Horizontal"><Button Content="Vista" Tag="program" Click="MonitorViewClick" FontSize="11" MinHeight="24" Padding="6,3" Margin="4,0,0,0" ToolTip="Ampliar o ajustar el encuadre del programa en pantalla" AutomationProperties.Name="Ampliar o ajustar programa"/><TextBlock x:Name="OutputModeText" Text="SIN SALIDA" Foreground="{StaticResource MutedBrush}" FontSize="12" VerticalAlignment="Center" Margin="8,0,0,0" ToolTip="{Binding Text, ElementName=OutputStatusText}"/></StackPanel>
             </Grid>
             <local:AspectRatioBox x:Name="LivePicture" Grid.Row="1" Margin="0,10,0,12" VerticalAlignment="Top">
               <Border x:Name="OutputViewport" CornerRadius="6" SizeChanged="MonitorFrameSizeChanged" BorderBrush="Transparent" BorderThickness="0" Background="#000000" MouseEnter="PlaybackViewportMouseEnter" MouseLeave="PlaybackViewportMouseLeave" GotKeyboardFocus="PlaybackViewportGotKeyboardFocus" LostKeyboardFocus="PlaybackViewportLostKeyboardFocus">
@@ -591,10 +598,6 @@
                   </Border>
                 </Grid>
               </Border>
-              <StackPanel Grid.Row="2" x:Name="StopBackgroundMediaRow" Visibility="Collapsed" Margin="0,12,0,0">
-                <TextBlock x:Name="StopBackgroundMediaTitle" Foreground="{StaticResource MutedBrush}" FontSize="12" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
-                <Button x:Name="StopBackgroundMediaButton" Content="Quitar video por completo" Click="StopBackgroundMediaClick" IsEnabled="False" HorizontalAlignment="Left" Margin="0,6,0,0" MinHeight="32" Padding="10,5" FontSize="12" ToolTip="Detiene el video y su audio de fondo sin cambiar la escena en pantalla. Al seleccionarlo otra vez comenzará desde el principio." AutomationProperties.Name="Quitar reproducción de fondo por completo"/>
-              </StackPanel>
             </Grid>
 
             </Grid>
@@ -613,11 +616,15 @@
           <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
           <Grid Margin="0,0,0,12">
             <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-            <TextBlock Text="Elementos del culto" FontSize="12" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/>
+            <WrapPanel>
+              <TextBlock Text="Elementos del culto" FontSize="12" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/>
+              <Button Content="+ Texto" Click="AddOrderTextClick" MinHeight="28" Padding="7,3" Margin="8,0,0,0" FontSize="12" AutomationProperties.Name="Agregar texto al orden de culto"/>
+            </WrapPanel>
             <TextBlock Grid.Column="1" x:Name="PlanCountText" Text="0" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="8,0"/>
             <Button Grid.Column="2" Content="⋯" Click="OpenActionsClick" Padding="8,2" MinHeight="30" FontSize="18" AutomationProperties.Name="Organizar el orden">
               <Button.ContextMenu><ContextMenu>
                 <MenuItem Header="Pegar enlace de YouTube" InputGestureText="Ctrl+V" Click="PasteYouTubeLinkClick"/>
+                <MenuItem Header="Agregar texto o anuncio…" Click="AddOrderTextClick"/>
                 <MenuItem Header="Subir elemento" Click="MoveUpClick"/>
                 <MenuItem Header="Bajar elemento" Click="MoveDownClick"/>
                 <Separator/>

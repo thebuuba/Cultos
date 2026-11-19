@@ -24,6 +24,7 @@ public partial class MainWindow
 
     private void UpdateOutputSwitchLabel()
     {
+        UpdateMonitorGeometry();
         var active = _outputWindow is not null;
         var action = active ? "Desactivar salida" : "Activar salida";
         ToggleOutputButton.IsChecked = active;

@@ -132,7 +132,10 @@ internal static partial class Program
         for (int i = 0; i < 40 && (output.Duration <= 0 || output.Position < .3); i++) await Task.Delay(100);
         Check(output.Duration >= 2.8 && output.Duration <= 3.5, "Duration in seconds");
         Check(output.Position > .2 && output.Position < 3.5, "Elapsed position in seconds");
-        var previewPlayer = Descendants(preview).OfType<VideoView>().Single().MediaPlayer!;
+        var previewPlayer = (LibVLCSharp.Shared.MediaPlayer)typeof(ProjectionSurface)
+            .GetField("_player", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(preview)!;
+        Check(Descendants(preview).OfType<System.Windows.Controls.Image>().Any(image => image.IsVisible && image.Source is not null),
+            "Prepared preview presents composited video frames");
         Check(preview.Volume == 0 && (previewPlayer.Mute || previewPlayer.AudioTrack == -1), "Preview has no audible track");
         output.ShowCue(video, blackout: true); await Task.Delay(250);
         double pausedPosition = output.Position;

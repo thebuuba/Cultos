@@ -2,7 +2,7 @@ namespace Culto.Core;
 
 public enum CueKind { Text, Bible, Image, Video, Audio, PowerPoint, WindowCapture, BrowserSource, Scene }
 
-public sealed record ProgramTitle(string ThemeImagePath, string PurposeImagePath);
+public sealed record ProgramTitle(string ThemeImagePath, string PurposeImagePath, string ThemeText = "", string PurposeText = "");
 
 public sealed class Cue
 {

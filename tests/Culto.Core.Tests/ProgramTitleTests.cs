@@ -7,6 +7,30 @@ namespace Culto.Core.Tests;
 public sealed class ProgramTitleTests
 {
     [Fact]
+    public void TextPagesCanAdvanceToAnImageAndBackWithoutMutatingTheSavedScene()
+    {
+        var cue = JsonSerializer.Deserialize<Cue>("""
+            {"ProgramTitle":{"ThemeImagePath":"","PurposeImagePath":"purpose.png",
+             "ThemeText":"Tema escrito","PurposeText":"Propósito escrito"}}
+            """)!;
+        var session = new PresentationSession();
+        session.Prepare(cue); session.GoLive();
+        Assert.Equal(CueKind.Text, session.Live!.Kind);
+        Assert.Equal("Tema escrito", session.Live.Body);
+        Assert.Null(session.Live.FilePath);
+        Assert.True(session.MoveProgramTitle(1));
+        Assert.Equal(CueKind.Image, session.Live.Kind);
+        Assert.Equal("purpose.png", session.Live.FilePath);
+        Assert.Equal("", session.Live.Body);
+        Assert.True(session.MoveProgramTitle(-1));
+        Assert.Equal("Tema escrito", session.Live.Body);
+        Assert.Equal("", cue.Body);
+        var restored = JsonSerializer.Deserialize<Cue>(JsonSerializer.Serialize(cue))!;
+        session.Prepare(restored);
+        Assert.Equal("Tema escrito", session.Prepared!.Body);
+    }
+
+    [Fact]
     public void ThemeAndPurposeAdvanceWithoutLeavingTheSceneOrChangingTheSavedCue()
     {
         var cue = new Cue { Title = "Programa", Kind = CueKind.Image, FilePath = "tema.png",

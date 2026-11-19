@@ -129,6 +129,7 @@ public partial class MainWindow : Window
 
     private void PrepareCue(Cue cue, IReadOnlyList<Cue>? reading = null)
     {
+        _independentScenePreview = false;
         _preparedReading = reading;
         _session.Prepare(cue);
         RenderPreparedPreview();

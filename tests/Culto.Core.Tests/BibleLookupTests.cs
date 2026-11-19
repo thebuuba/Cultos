@@ -20,6 +20,9 @@ public sealed class BibleLookupTests
     {
         Verses =
         [
+            new("Mateo", 2, 1, "Primer texto sintético"),
+            new("Mateo", 2, 2, "Segundo texto sintético"),
+            new("Mateo", 2, 3, "Tercer texto sintético"),
             new("Juan", 3, 16, "Amor sintético"),
             new("Juan", 3, 17, "Segundo sintético"),
             new("Juan", 3, 18, "Tercero sintético"),
@@ -32,6 +35,7 @@ public sealed class BibleLookupTests
 
     [Theory]
     [InlineData("Jn 3 16", "Juan", 1)]
+    [InlineData("mateo 2 1-3", "Mateo", 3)]
     [InlineData("Juan 3:16-18", "Juan", 3)]
     [InlineData("Juan 3", "Juan", 3)]
     [InlineData("Jn", "Juan", 3)]

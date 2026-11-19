@@ -91,7 +91,7 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
     {
         var surface = new ProjectionSurface(sharedVlc: () => _vlc ?? throw new InvalidOperationException("El reproductor todavía se está preparando."), layers: _layerPool)
         {
-            Volume = 0, Loop = _loop,
+            Volume = 0, Loop = _loop, MediaFill = _mediaFill, MediaZoom = _mediaZoom,
             Transitions = new TransitionOptions { Kind = "Cut", AudioFadeOutMilliseconds = 0, AudioFadeInMilliseconds = 0 }
         };
         surface.PlaybackError += message => SurfaceFailed(surface, message);

@@ -1,6 +1,6 @@
 # Versiones de Biblia instaladas en esta PC
 
-Actualizado el 15 de noviembre de 2026. El panel Biblia permite elegir una versión, conserva la cita seleccionada y guarda la última versión activa. El botón `+` admite uno o varios archivos JSON o Zefania XML. Una importación nueva conserva las versiones anteriores. El texto proyectado y las entradas existentes del orden mantienen su versión original hasta que el operador envía otro contenido.
+Actualizado el 18 de noviembre de 2026. El panel Biblia permite elegir una versión, conserva la cita seleccionada y guarda la última versión activa. El botón `+` admite uno o varios archivos JSON o Zefania XML. Una importación nueva conserva las versiones anteriores. El texto proyectado y las entradas existentes del orden mantienen su versión original hasta que el operador envía otro contenido.
 
 Los textos están en `%LOCALAPPDATA%\CultoStudio\Biblias`, separados por versión. `biblia.json` conserva la versión activa y la compatibilidad con las instalaciones anteriores. La instalación de las versiones adicionales no modificó ese archivo ni la selección RVR1960. Los textos bíblicos privados no se incorporan al repositorio ni al ejecutable.
 
@@ -18,6 +18,7 @@ El selector permite buscar con o sin tildes, filtrar por familia y guardar hasta
 |---|---:|---|
 | Reina-Valera 1960 (RVR1960) | 31.102 | Importación local existente, documentada en `importacion-biblia-local.md` |
 | La Biblia de las Américas (LBLA) | 31.103 | Archivo local del usuario `lbla.ewb` |
+| Nueva Versión Internacional (NVI) | 31.042 | Archivo local del usuario `nvi.ewb`; reparaciones documentadas abajo |
 | Reina-Valera 1909 (RV1909) | 31.084 | [eBible](https://ebible.org/bible/details.php?id=spaRV1909) |
 | Biblica® Open Nueva Biblia Viva 2008 | 29.102 | [eBible / Biblica](https://ebible.org/bible/details.php?id=spaonbv) |
 | La Biblia en Español Sencillo 2026 (BES) | 31.102 | [eBible / AudioBiblia](https://ebible.org/bible/details.php?id=spabes) |
@@ -32,9 +33,15 @@ Se utilizan los 66 libros que admite actualmente la aplicación. BLL y BLM tambi
 
 Se conservan los avisos de autoría y las condiciones publicados en los archivos `_about.htm` de cada paquete. Pueden consultarse en el texto informativo de la versión dentro del panel. La LBLA se convirtió desde el archivo ya existente del usuario, sin descargar ni distribuir otra copia de su texto. Las descargas originales y el manifiesto de sumas SHA-256 de fuentes y conversiones permanecen en `.tools/bible-sources`; las conversiones usan `scripts/prepare-spanish-bibles.py` y se validaron además con el `BibleCatalog` real antes de instalarlas.
 
-## Fuentes pendientes
+## Conversión local de NVI
 
-No se instalaron todas las traducciones españolas existentes. El archivo local `nvi.ewb` fue rechazado por referencias ambiguas: Números 26:43 aparece con dos textos distintos y Abdías contiene el capítulo duplicado con variantes. El original permanece intacto. No se sustituyeron esos textos ni se eligió una variante arbitrariamente. La NVI necesita una fuente corregida. Para otras ediciones, incluidas NTV y DHH, hace falta un archivo utilizable; el selector no tiene un límite fijo de versiones.
+El 18 de noviembre de 2026 se instaló **Nueva Versión Internacional (NVI)** desde el archivo local del usuario `nvi.ewb`, previamente rechazado por referencias duplicadas. La revisión detallada identificó reparaciones concretas: el segundo Números 26:43 era una copia exacta de 26:44 y se descartó; las dos filas 26:51-52 se asignaron a 51 y 52 en su orden original; los dos fragmentos de 1 Samuel 13:15 se unieron. En Abdías se conservó el bloque original continuo de 21 versículos: las otras copias repetían el capítulo, añadían encabezados, variaban puntuación u omitían una cláusula de 1:7. No se reescribió el texto de ese bloque.
+
+La fuente carecía de **Números 26:50**. Únicamente ese versículo se restauró con una cita de 21 palabras cotejada en [BibleGateway NVI, Números 26:50-52](https://www.biblegateway.com/passage/?search=N%C3%BAmeros+26%3A50-52&version=NVI). La atribución instalada identifica esta restauración externa, las reparaciones y la procedencia local; no afirma un cotejo editorial completo. El original permanece intacto y la Biblia activa no cambió. Para otras ediciones, incluidas NTV y DHH, hace falta un archivo utilizable; el selector no tiene un límite fijo de versiones.
+
+La conversión NVI queda restringida por SHA256 al archivo auditado: `617e6d71f969a6c19fa37e9c8fe881682ca82b0d213abb1021850e10cd470b89`. `scripts/check-local-nvi.py <ruta-a-nvi.ewb>` comprueba las diferencias contra las filas originales, el rechazo de huellas desconocidas, 66 libros, 1.189 capítulos, 31.042 registros y 31.071 coordenadas cubiertas, sin solapamientos ni caracteres de control. Estas cifras respetan las agrupaciones y omisiones editoriales de la fuente; no equivalen a 31.102 versículos individuales.
+
+Archivo instalado: `%LOCALAPPDATA%\CultoStudio\Biblias\45843E9876734AF07D1574841465A420EDD83112480CCC715A7A45B086078736.json`. SHA256 del JSON instalado: `df62923092c8928dbddd5aa633f25ce79171cf278f2e101d950650bb76c7b3a4`. El texto completo queda fuera del repositorio. La prueba de recarga con `BibleCatalog` y `BibleVersionStore` verificó las citas reparadas y confirmó que `biblia.json` conservó su SHA256 `a550bb5b5550c4dcbb9880a165115318755b437eedde1e68ed63358ffca77272`.
 
 ## Comprobaciones
 

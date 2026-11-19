@@ -8,7 +8,6 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Culto.Core;
 using LibVLCSharp.Shared;
-using LibVLCSharp.WPF;
 using MediaPlayer = LibVLCSharp.Shared.MediaPlayer;
 
 namespace Culto.Desktop.Projection;
@@ -28,7 +27,6 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
     private readonly Viewbox _text;
     private readonly StackPanel _words;
     private readonly Image _image = new() { Stretch = Stretch.Uniform };
-    private readonly VideoView _video = new() { Visibility = Visibility.Collapsed };
     private readonly CompositedVideo _compositedVideo = new() { Visibility = Visibility.Collapsed };
     private LibVLC? _vlc;
     private Task<LibVLC>? _previewInitialization;
@@ -65,7 +63,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         _root.Children.Add(_image);
         _root.Children.Add(_bibleDim);
         _root.Children.Add(_text);
-        _root.Children.Add(_preview ? _video : _compositedVideo);
+        _root.Children.Add(_compositedVideo);
         InitializeAudioFade();
         InitializeDissolve();
         ShowCue(null);
@@ -116,7 +114,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
     public bool IsPreparingPlaybackEngine => _mixer?.IsPreparingPlaybackEngine == true;
     public void PreparePlaybackEngine() => _mixer?.PreparePlaybackEngine();
     internal bool HasVideoFrame => _sceneCanvas is not null ? _sceneCanvas.IsReady : _browserSource is not null ? _browserSource.IsReady : _captureClient is not null ? _captureReady : _compositedVideo.Source is not null;
-    internal CompositedVideo? LiveVideoPixels => !_cueFailed && !_suppressed && !_preview && _shownCue?.Kind == CueKind.Video
+    internal CompositedVideo? LiveVideoPixels => !_mediaFill && _mediaZoom == 1 && !_cueFailed && !_suppressed && !_preview && _shownCue?.Kind == CueKind.Video
         && _compositedVideo.Visibility == Visibility.Visible && _compositedVideo.Source is not null ? _compositedVideo : null;
     internal bool HasLoadedMedia => _sceneCanvas is not null
         ? GetLiveLayers().Any(x => x.Cue.Kind is CueKind.Video or CueKind.Audio or CueKind.BrowserSource or CueKind.WindowCapture)
@@ -147,8 +145,9 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         _cueFailed = false;
         _suppressed = blackout || hideText;
         _root.Background = blackout || (!hideText && cue?.Kind == CueKind.Video) ? Brushes.Black : _transparentBackground ? Brushes.Transparent : BackgroundBrush;
-        _image.Visibility = _text.Visibility = _video.Visibility = _compositedVideo.Visibility = Visibility.Collapsed;
+        _image.Visibility = _text.Visibility = _compositedVideo.Visibility = Visibility.Collapsed;
         ResetVisualStyle();
+        ApplyMediaView();
         if (_suppressed) SetPaused(true);
 
         bool mediaCue = cue?.Kind is CueKind.Video or CueKind.Audio;
@@ -214,8 +213,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
                     EnsurePlayer();
                     if (cue.Kind == CueKind.Video)
                     {
-                        if (_preview) _video.Visibility = Visibility.Visible;
-                        else _compositedVideo.Visibility = Visibility.Visible;
+                        _compositedVideo.Visibility = Visibility.Visible;
                     }
                     else ShowText(cue.Title);
                     if (_media is null)
@@ -262,7 +260,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         catch (Exception error) when (error is IOException or UnauthorizedAccessException
             or ArgumentException or NotSupportedException or FileFormatException)
         {
-            // A removed or damaged optional backdrop leaves the neutral background and paused media.
+            // A removed or damaged optional logo leaves its black backdrop and paused media.
             _image.Visibility = Visibility.Collapsed;
         }
     }
@@ -301,8 +299,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         _vlc ??= _sharedVlc?.Invoke() ?? CreatePlaybackEngine();
         _player = new MediaPlayer(_vlc) { Volume = 0, Mute = true, EnableMouseInput = false, EnableKeyInput = false };
         AttachCathedralAudio();
-        if (_preview) _video.MediaPlayer = _player;
-        else _compositedVideo.Attach(_player);
+        _compositedVideo.Attach(_player);
         _player.EncounteredError += OnPlaybackError;
         _player.Playing += OnPlaying;
         _player.EndReached += OnEndReached;
@@ -393,7 +390,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         CancelDissolve();
         _player?.Stop();
         if (_browserSource is not null) { _browserSource.SetMuted(true); _browserSource.Visibility = Visibility.Collapsed; }
-        _video.Visibility = _compositedVideo.Visibility = _image.Visibility = Visibility.Collapsed;
+        _compositedVideo.Visibility = _image.Visibility = Visibility.Collapsed;
         if (!_suppressed) ShowText("No se pudo mostrar el contenido");
         PlaybackError?.Invoke(message);
     }
@@ -522,9 +519,8 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         {
             _player.EncounteredError -= OnPlaybackError; _player.Playing -= OnPlaying; _player.EndReached -= OnEndReached;
             _player.TimeChanged -= OnAudioOutputChanged;
-            _video.MediaPlayer = null;
         }
-        _video.Dispose(); _compositedVideo.BeginDispose();
+        _compositedVideo.BeginDispose();
         _image.Source = null;
         void ReleaseNative()
         {

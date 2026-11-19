@@ -10,7 +10,8 @@ public sealed class PresentationSession
         && Prepared.Id == Live.Id && Prepared.Kind == Live.Kind
         && Prepared.Title == Live.Title && Prepared.Body == Live.Body
         && Prepared.Reference == Live.Reference && Prepared.Version == Live.Version
-        && Prepared.FilePath == Live.FilePath && Prepared.YouTubeUrl == Live.YouTubeUrl && Prepared.Capture == Live.Capture && Prepared.Browser == Live.Browser;
+        && Prepared.FilePath == Live.FilePath && Prepared.ProgramTitle == Live.ProgramTitle
+        && Prepared.YouTubeUrl == Live.YouTubeUrl && Prepared.Capture == Live.Capture && Prepared.Browser == Live.Browser;
     public bool IsBlackout { get; private set; }
     public bool IsTextHidden { get; private set; }
     public event Action? Changed;
@@ -25,10 +26,12 @@ public sealed class PresentationSession
         if (cue.ProgramTitle is { } program)
         {
             cue = cue.Copy();
-            cue.Kind = CueKind.Image;
-            cue.FilePath = cue.ProgramTitlePage == 0 ? program.ThemeImagePath : program.PurposeImagePath;
-            cue.Body = "";
+            var path = cue.ProgramTitlePage == 0 ? program.ThemeImagePath : program.PurposeImagePath;
+            cue.Kind = string.IsNullOrWhiteSpace(path) ? CueKind.Text : CueKind.Image;
+            cue.FilePath = cue.Kind == CueKind.Image ? path : null;
+            cue.Body = cue.Kind == CueKind.Text ? (cue.ProgramTitlePage == 0 ? program.ThemeText : program.PurposeText) : "";
             cue.Reference = "";
+            cue.Version = "";
         }
         Prepared = cue;
         Changed?.Invoke();
@@ -92,7 +95,7 @@ public sealed class PresentationSession
 
     public bool MoveProgramTitle(int delta)
     {
-        if (Live is not { Kind: CueKind.Image, ProgramTitle: not null } || delta is not (-1 or 1)) return false;
+        if (Live is not { ProgramTitle: not null } || delta is not (-1 or 1)) return false;
         var next = Live.ProgramTitlePage + delta;
         if (next is < 0 or > 1) return false;
         var cue = Live.Copy();

@@ -13,7 +13,7 @@ using MediaPlayer = LibVLCSharp.Shared.MediaPlayer;
 namespace Culto.Desktop.Projection;
 
 // WPF must own the output pixels: a native child HWND cannot participate in a dissolve.
-// Preview still uses native VideoView. Queue at most one presentation, dropping late frames.
+// Preview shares this pixel path, with VLC audio disabled. Queue at most one frame.
 internal sealed class CompositedVideo : Image, IDisposable
 {
     private readonly SemaphoreSlim _bufferGate = new(1, 1);

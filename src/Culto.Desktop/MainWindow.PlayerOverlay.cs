@@ -13,8 +13,7 @@ public partial class MainWindow
     private bool PlaybackKeyboardFocusHeld => MediaPlaybackPanel.IsKeyboardFocusWithin
         && InputManager.Current.MostRecentInputDevice is KeyboardDevice;
 
-    private bool PreviewCanHostPlayback => _session.PreviewFollowsLive
-        && !(_preparedBibleStyleChanged && _session.Prepared?.Kind == CueKind.Bible)
+    private bool PreviewCanHostPlayback => PreviewFollowsOutput
         && PreviewLiveMonitor?.Visibility == Visibility.Visible;
 
     private void InitializePlaybackOverlay()

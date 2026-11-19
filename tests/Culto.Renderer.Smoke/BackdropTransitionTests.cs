@@ -78,8 +78,8 @@ internal static partial class Program
             Backdrop(null, blackout: false, hideText: true);
             await UntilBackdrop(() => !output.IsTransitioning, "Fallback backdrop dissolve did not finish");
             var fallback = Center();
-            Check(Math.Abs(fallback[2] - 16) < 3 && Math.Abs(fallback[1] - 23) < 3 && Math.Abs(fallback[0] - 34) < 3,
-                "Unavailable church image falls back to the normal background instead of stale image or black");
+            Check(fallback.Take(3).All(value => value < 3),
+                "Unavailable church image leaves the black logo backdrop without retaining the previous image");
 
             Background(greenPath);
             Backdrop(null, blackout: true, hideText: false); await Task.Delay(45);

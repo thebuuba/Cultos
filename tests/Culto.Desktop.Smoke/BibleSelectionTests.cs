@@ -111,6 +111,49 @@ internal static partial class Program
                 Check(results.SelectedItems.Count == 3, "Enter collapsed the range selection");
             });
 
+            Test("Bible range stays available for dragging but an ordinary release selects only the clicked verse", () =>
+            {
+                Search("Génesis 1");
+                SelectVerses(2, 3, 4);
+                var member = results.Items.Cast<BibleResult>().Single(result => result.Verse.Verse == 3);
+                results.ScrollIntoView(member); window.UpdateLayout();
+                var row = (ListBoxItem)results.ItemContainerGenerator.ContainerFromItem(member);
+                var press = new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+                    { RoutedEvent = UIElement.PreviewMouseLeftButtonDownEvent, Source = row };
+                // Routed test events do not pass through the native mouse device,
+                // which normally supplies this internal click count.
+                typeof(MouseButtonEventArgs).GetProperty(nameof(MouseButtonEventArgs.ClickCount))!.SetValue(press, 1);
+                results.RaiseEvent(press);
+                Check(results.SelectedItems.Count == 3, "Mouse press destroyed the passage before dragging");
+                Check(ReferenceEquals(Field<object?>(window, "_contentDragCue"), member.Cue), "Press did not arm the passage drag");
+                var live = session.Live;
+                results.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+                    { RoutedEvent = UIElement.PreviewMouseLeftButtonUpEvent, Source = row });
+                Check(results.SelectedItems.Count == 1 && ReferenceEquals(results.SelectedItem, member),
+                    "Ordinary click on a selected passage member did not collapse the range");
+                Check(session.Prepared?.Reference == "Génesis 1:3", "Click did not prepare the individual verse");
+                Check(ReferenceEquals(live, session.Live), "Single click projected the verse");
+            });
+
+            Test("Bible natural space-separated range prepares and projects every requested verse directly", () =>
+            {
+                Call(window, "InstallBibleCatalog", new BibleCatalog(new BibleDocument
+                {
+                    Name = "Mateo de prueba", Verses = Enumerable.Range(1, 3).Select(number =>
+                        new BibleVerse("Mateo", 2, number, $"Mateo sintético {number}")).ToList()
+                }));
+                var live = session.Live;
+                Search("mateo 2 1-3");
+                Check(results.SelectedItems.Count == 3 && session.Prepared?.Reference == "Mateo 2:1-3",
+                    "Space-separated Matthew range did not select and prepare all requested verses");
+                Check(ReferenceEquals(live, session.Live), "Searching a natural range projected automatically");
+                Enter(query);
+                Check(session.Live?.Reference == "Mateo 2:1-3"
+                    && session.Live.Body == string.Join("\n", Enumerable.Range(1, 3).Select(number => $"Mateo sintético {number}")),
+                    "Enter did not project the whole natural range");
+                Call(window, "InstallBibleCatalog", catalog);
+            });
+
             Test("Bible drag inserts one independent grouped cue without changing original verses or live", () =>
             {
                 Search("Génesis 1");

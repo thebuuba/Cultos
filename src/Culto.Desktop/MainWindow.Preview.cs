@@ -7,6 +7,9 @@ public partial class MainWindow
 {
     private bool _preparedBibleStyleChanged;
     private bool _holdingBiblePreview;
+    private bool _independentScenePreview;
+    private bool PreviewFollowsOutput => !_independentScenePreview && _session.PreviewFollowsLive
+        && !(_preparedBibleStyleChanged && _session.Prepared?.Kind == CueKind.Bible);
     private void RenderPreparedPreview()
     {
         var cue = WithYouTubeLayout(_session.Prepared);
@@ -15,13 +18,14 @@ public partial class MainWindow
         // Independent video previews use VLC's no-audio mode. Once on air,
         // mirror the output and release the extra decoder.
         _preview.ShowCue(cue is { YouTubeUrl: not null, Capture: null } ? new Cue { Kind = CueKind.Text, Title = cue.Title, Body = "YouTube\n" + cue.Title }
-            : cue?.Kind == CueKind.Audio || (cue?.Kind is CueKind.Video or CueKind.WindowCapture or CueKind.BrowserSource && _session.PreviewFollowsLive) ? null
+            : cue?.Kind == CueKind.Audio || (cue?.Kind is CueKind.Video or CueKind.WindowCapture or CueKind.BrowserSource && PreviewFollowsOutput) ? null
             : cue?.Kind == CueKind.PowerPoint ? PowerPointPreview(cue) : cue);
         SyncPreviewSource();
     }
 
     private void FollowLivePreview()
     {
+        _independentScenePreview = false;
         _preparedBibleStyleChanged = false;
         _preparedReading = _liveReading;
         _session.FollowLive();
@@ -33,7 +37,7 @@ public partial class MainWindow
     private void SyncPreviewSource()
     {
         if (!_ready) return;
-        var following = _session.PreviewFollowsLive && !(_preparedBibleStyleChanged && _session.Prepared?.Kind == CueKind.Bible);
+        var following = PreviewFollowsOutput;
         // The prepared verse is already visible. Keep it during the dissolve
         // so following live cannot briefly bring the previous verse back.
         _holdingBiblePreview = following && _session.Prepared?.Kind == CueKind.Bible
@@ -71,5 +75,7 @@ public partial class MainWindow
             PreviewLiveMonitor.SetNativeSource(IntPtr.Zero);
         }
         UpdatePlaybackOverlay();
+        ApplyMonitorMediaView();
+        UpdatePreviewViewer();
     }
 }

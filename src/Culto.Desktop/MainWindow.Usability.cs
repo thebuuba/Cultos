@@ -31,6 +31,7 @@ public partial class MainWindow
 
     private void UpdateActiveContentSource()
     {
+        ResetMediaFolderWhenReturning();
         FrameworkElement[] panels = [SourcesPanel, BiblePanel, TextPanel, YouTubePanel];
         var index = Array.FindIndex(panels, panel => ReferenceEquals(WorkspaceDock.ActiveContent, panel));
         if (index < 0) index = Array.FindIndex(panels, panel => panel.IsKeyboardFocusWithin);

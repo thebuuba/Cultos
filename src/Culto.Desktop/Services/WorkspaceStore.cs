@@ -56,6 +56,7 @@ public sealed class WorkspaceData
     public int MediaFolderFilter { get; set; } = 2;
     public string? MediaCustomFolderPath { get; set; }
     public bool MediaSortDescending { get; set; }
+    public bool ResetMediaFolderOnReturn { get; set; } = true;
     public Dictionary<string, string> PanelTabColors { get; set; } = [];
     public List<WorkspaceNote> Notes { get; set; } = [];
 }

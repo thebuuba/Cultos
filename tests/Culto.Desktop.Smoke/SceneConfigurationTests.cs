@@ -22,6 +22,39 @@ internal static partial class Program
         var cue = new Cue { Kind = CueKind.Text, Title = "Escena fija", Body = "Bienvenidos" };
         var custom = new SceneTile { Id = "own-scene", Label = "Bienvenida propia", Action = "cue", Color = "#4274F4", Cue = cue };
         RemoteScene[] Scenes() => ((IReadOnlyList<RemoteScene>)Call(window, "BuildRemoteScenes")!).ToArray();
+        Test("Program title accepts text without artwork and preserves edits", () =>
+        {
+            var original = new SceneTile { Action = "program", Cue = new Cue { Kind = CueKind.Image,
+                ProgramTitle = new("old-theme.png", "old-purpose.png") } };
+            var dialog = new SceneTileDialog(original, []) { Owner = window };
+            Exception? callbackError = null;
+            dialog.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
+            {
+                try
+                {
+                    Field<TextBox>(dialog, "_programTheme").Clear();
+                    Field<TextBox>(dialog, "_programPurpose").Clear();
+                    Field<TextBox>(dialog, "_programThemeText").Text = "Tema del sábado";
+                    Field<TextBox>(dialog, "_programPurposeText").Text = "Servir a nuestra comunidad";
+                    Call(dialog, "Save");
+                }
+                catch (Exception error) { callbackError = error; }
+                finally { if (dialog.IsVisible) dialog.DialogResult = false; }
+            }));
+            var saved = dialog.ShowDialog();
+            if (callbackError is not null) throw callbackError;
+            Check(saved == true && dialog.Result?.Cue is { Kind: CueKind.Text, FilePath: null }, "Plain text title was rejected");
+            var program = dialog.Result!;
+            Check(program.Cue!.Id == original.Cue!.Id, "Editing replaced the title cue ID");
+            Check((bool)Call(window, "SaveSceneTile", program)!, "Text title was not persisted");
+            Check(store.Load().SceneTiles.Single(scene => scene.Id == program.Id).Cue!.ProgramTitle!.ThemeText == "Tema del sábado", "Title text was not reloaded");
+            Check(Scenes().Single(scene => scene.Id == program.Id).Available, "Phone cannot use text title");
+            var result = (CommandResult)Call(window, "ExecuteRemote", new RemoteCommand("scene", Guid.NewGuid().ToString("N"), ButtonId: program.Id))!;
+            Check(result.Success && session.Live!.Body == "Tema del sábado", "Text title did not reach output");
+            Check(session.MoveProgramTitle(1) && session.Live!.Body == "Servir a nuestra comunidad", "Purpose text did not advance");
+            Call(window, "CloseOutput");
+            Call(window, "RemoveSceneTile", program.Id);
+        });
         Test("Program title scene edits, persists and advances from theme to purpose", () =>
         {
             var themeImage = Path.Combine(store.DirectoryPath, "tema.png");
@@ -70,6 +103,21 @@ internal static partial class Program
             Check(!Command("next").Success && session.Live!.ProgramTitlePage == 1, "End of title skipped into the order");
             Check(Command("previous").Success && session.Live!.ProgramTitlePage == 0, "Previous did not return to theme");
             Check(Command("next").Success && Command("scene").Success && session.Live!.ProgramTitlePage == 0, "Reopening scene did not reset to theme");
+            var updatedTheme = Path.Combine(store.DirectoryPath, "tema-actualizado.png");
+            File.Copy(themeImage, updatedTheme);
+            var editDialog = new SceneTileDialog(program, []) { Owner = window };
+            callbackError = null;
+            editDialog.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
+            {
+                try { Field<TextBox>(editDialog, "_programTheme").Text = updatedTheme; Call(editDialog, "Save"); }
+                catch (Exception error) { callbackError = error; }
+                finally { if (editDialog.IsVisible) editDialog.DialogResult = false; }
+            }));
+            Check(editDialog.ShowDialog() == true, "Updated title image was not accepted");
+            if (callbackError is not null) throw callbackError;
+            Check((bool)Call(window, "SaveSceneTile", editDialog.Result!)!, "Updated title image was not saved");
+            Check(session.Live!.FilePath == updatedTheme, "Editing the active title did not update its projected image");
+            Check(Command("scene").Success && session.Live!.FilePath == updatedTheme, "Scene retained the old title image after editing");
             File.Delete(purposeImage);
             Check(!Scenes().Single(scene => scene.Id == program.Id).Available, "A missing purpose image remains available");
             Check(!Command("next").Success && session.Live!.ProgramTitlePage == 0, "Missing image replaced the current output");

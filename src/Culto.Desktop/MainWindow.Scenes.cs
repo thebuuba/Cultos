@@ -30,7 +30,7 @@ public partial class MainWindow
         : _session.Live is { Kind: CueKind.Video } live && _output.ActiveSurface.HasLoadedMedia ? live : null;
 
     private Cue? SceneMedia(CueKind kind) => kind == CueKind.Video
-        ? ActiveSceneVideo() ?? (_session.Prepared is { Kind: CueKind.Video } video ? video : null)
+        ? (_session.Prepared is { Kind: CueKind.Video } video ? video : null) ?? ActiveSceneVideo() ?? _workspace.QuickSceneVideo
         : _session.Prepared is { Kind: CueKind.Image } image ? image : _workspace.QuickSceneImage;
 
     private bool ShowSceneVideo(Cue cue)

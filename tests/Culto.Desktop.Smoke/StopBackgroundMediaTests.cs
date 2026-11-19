@@ -11,7 +11,7 @@ internal static partial class Program
     {
         Test("Hidden video can be removed without changing the foreground and starts fresh when selected again", () => {
             var button = window.FindName("StopBackgroundMediaButton") as Button;
-            Check(button is not null, "Missing stop-background-video action below Salidas");
+            Check(button is not null, "Missing stop-background-video action below preview");
             var row = (FrameworkElement)window.FindName("StopBackgroundMediaRow");
             Check(row.Visibility == Visibility.Collapsed, "Stop action visible without background video");
             ((Slider)window.FindName("VolumeSlider")).Value = 0;
@@ -36,10 +36,11 @@ internal static partial class Program
                 Call(window, "UpdateBackgroundAudioState");
                 Check(row.Visibility == Visibility.Visible && button!.IsEnabled, "Hidden video has no stop action");
                 window.UpdateLayout();
-                var actions = (Grid)window.FindName("OutputActionsGrid");
-                var selector = (FrameworkElement)window.FindName("OutputSelectorPill");
-                Check(row.TranslatePoint(new Point(), actions).Y >= selector.TranslatePoint(new Point(), actions).Y + selector.ActualHeight,
-                    "Stop action is not below Salidas");
+                var previewPanel = (FrameworkElement)window.FindName("PreviewPanel");
+                var preparedTitle = (FrameworkElement)window.FindName("PreparedTitleText");
+                Check(Ancestors(row).Contains(previewPanel), "Stop action is not in the left preview panel");
+                Check(row.TranslatePoint(new Point(), previewPanel).Y >= preparedTitle.TranslatePoint(new Point(), previewPanel).Y + preparedTitle.ActualHeight,
+                    "Stop action is not below the prepared title");
                 var previousSize = new Size(window.Width, window.Height);
                 var productionPanel = (FrameworkElement)window.FindName("ProductionPanel");
                 var previousHeight = productionPanel.Height;
@@ -63,9 +64,8 @@ internal static partial class Program
                         Call(window, "UpdateBackgroundAudioState"); window.UpdateLayout(); PumpFor(30);
                         CheckWithin(scroll, production, new Rect(production.RenderSize), "Output actions viewport");
                         scroll.ScrollToTop(); window.UpdateLayout(); PumpFor(30);
-                        // Larger monitors reserve a compact, scrollable actions area.
                         button!.BringIntoView(); window.UpdateLayout(); PumpFor(30);
-                        CheckWithin(button, scroll, new Rect(scroll.RenderSize), "Stop background video button");
+                        CheckWithin(button, previewPanel, new Rect(previewPanel.RenderSize), "Stop background video button on the left");
                         CheckWithin(button, production, new Rect(production.RenderSize), "Stop video inside production card");
                         if (size.Width == 1480)
                             CaptureDesignWindow(window, Path.Combine(Environment.CurrentDirectory, ".tools", "output-bottom-fixed.png"));

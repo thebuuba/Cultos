@@ -31,6 +31,39 @@ TITLES = {
     "spavbl": "Versión Biblia Libre (VBL)",
     "spav1602p": "Valera 1602 Purificada",
 }
+NVI_LOCAL_SHA256 = "617e6d71f969a6c19fa37e9c8fe881682ca82b0d213abb1021850e10cd470b89"
+NVI_RESTORED_VERSE_SOURCE = "https://www.biblegateway.com/passage/?search=N%C3%BAmeros+26%3A50-52&version=NVI"
+
+
+def repair_local_nvi(verses, source_sha256):
+    """Repairs reviewed only for this user's exact EWB, never arbitrary editions."""
+    if source_sha256 != NVI_LOCAL_SHA256:
+        raise ValueError("NVI source differs from the locally reviewed file; repairs require a new audit")
+    def rows(book, chapter, number):
+        return [v for v in verses if (v["book"], v["chapter"], v["verse"]) == (book, chapter, number)]
+    duplicate = rows("Números", 26, 43)
+    assert len(duplicate) == 2 and duplicate[1]["text"] == rows("Números", 26, 44)[0]["text"]
+    verses.remove(duplicate[1])
+    fragments = rows("1 Samuel", 13, 15)
+    assert len(fragments) == 2 and fragments[0]["text"] != fragments[1]["text"]
+    fragments[0]["text"] += " " + fragments[1]["text"]
+    verses.remove(fragments[1])
+    obadiah = [v for v in verses if v["book"] == "Abdías"]
+    assert len(obadiah) == 42 and [v["verse"] for v in obadiah[2:23]] == list(range(1, 22))
+    # The contiguous block has clean 1:1-2, and the complete original 1:7.
+    # Other copies append a book heading or omit a clause; retain original text.
+    for number in (1, 2):
+        variants = rows("Abdías", 1, number)
+        assert len(variants) == 2 and variants[0]["text"].endswith(" Abdías 1")
+    variants = rows("Abdías", 1, 7)
+    assert variants[0]["text"].replace("Los que se sientan a tu mesa ", "") == variants[1]["text"]
+    verses = [v for v in verses if v["book"] != "Abdías"] + obadiah[2:23]
+    assert not rows("Números", 26, 50)
+    # Only externally restored text: the reviewed 21-word quotation, not a bulk import.
+    verses.append(dict(book="Números", chapter=26, verse=50,
+        text="Estos son los clanes de la tribu de Neftalí. Su número llegó a cuarenta y cinco mil cuatrocientos hombres."))
+    verses.sort(key=lambda v: (BOOKS.index(v["book"]), v["chapter"], v["verse"]))
+    return verses
 
 
 class PlainHTML(HTMLParser):
@@ -81,6 +114,9 @@ def local_ewb(path, title):
             if line:
                 reference, words = line.split(" ", 1)
                 verses.append(verse(book, reference, words))
+    nvi = path.stem.lower() == "nvi"
+    if nvi:
+        verses = repair_local_nvi(verses, hashlib.sha256(data).hexdigest())
     # Some local NVI records repeat a two-verse label on two distinct rows.
     # Preserve both texts and their source order, assigning the two coordinates.
     grouped = defaultdict(list)
@@ -101,7 +137,12 @@ def local_ewb(path, title):
     if path.stem.lower() == "lbla":
         attribution += " La Biblia de las Américas © 1986, 1995, 1997 The Lockman Foundation. Uso local del archivo existente."
     if path.stem.lower() == "nvi":
-        attribution += " Nueva Versión Internacional. Fuente local de EasyWorship; edición editorial no especificada en el archivo. Uso local del archivo existente."
+        attribution += (" Nueva Versión Internacional. Fuente local de EasyWorship; edición editorial no especificada en el archivo. Uso local del archivo existente. "
+            f"Auditoría local 2026-11-18; SHA256 original: {NVI_LOCAL_SHA256}. "
+            "Reparaciones: eliminado segundo Números 26:43, idéntico al 26:44; unidos dos fragmentos originales de 1 Samuel 13:15; "
+            "Abdías: conservado bloque original continuo 1:1-21, sin copias adicionales con encabezados, puntuación alternativa o cláusula omitida en 1:7. "
+            f"Único versículo restaurado desde fuente externa: Números 26:50, cita de 21 palabras verificada en {NVI_RESTORED_VERSE_SOURCE} el 2026-11-18. "
+            "El resto del texto procede del archivo local. No se realizó un cotejo editorial completo de toda la Biblia.")
     return dict(name=title, attribution=attribution, verses=verses)
 
 

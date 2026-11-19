@@ -13,10 +13,29 @@ public partial class MainWindow
 {
     private readonly ObservableCollection<Cue> _mediaView = [];
     private bool _refreshingMedia;
+    private bool _mediaPanelWasActive;
+
+    private void ToggleResetMediaFolderClick(object sender, RoutedEventArgs e)
+    {
+        var previous = _workspace.ResetMediaFolderOnReturn;
+        _workspace.ResetMediaFolderOnReturn = ResetMediaFolderMenu.IsChecked;
+        if (!SaveWorkspace()) { _workspace.ResetMediaFolderOnReturn = previous; ResetMediaFolderMenu.IsChecked = previous; }
+    }
+
+    private void ResetMediaFolderWhenReturning()
+    {
+        var active = ReferenceEquals(WorkspaceDock.ActiveContent, MediaPanel);
+        var returning = active && !_mediaPanelWasActive;
+        _mediaPanelWasActive = active;
+        if (_ready && returning && _workspace.ResetMediaFolderOnReturn && MediaFolders.SelectedValue as string != "2")
+            MediaFolders.SelectedValue = "2";
+    }
 
     private void InitializeMediaBrowser()
     {
         MediaList.ItemsSource = _mediaView;
+        ResetMediaFolderMenu.IsChecked = _workspace.ResetMediaFolderOnReturn;
+        _mediaPanelWasActive = ReferenceEquals(WorkspaceDock.ActiveContent, MediaPanel);
         foreach (var list in new[] { MediaList, LibraryList, PlanList, PowerPointFiles, _videoListItems })
         list.PreviewMouseRightButtonUp += (_, e) =>
         {

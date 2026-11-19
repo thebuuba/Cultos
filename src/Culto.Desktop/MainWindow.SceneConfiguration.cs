@@ -33,6 +33,20 @@ public partial class MainWindow
 
     private void AddSceneClick(object sender, RoutedEventArgs e) => EditSceneTile(null);
 
+    private void PreviewConfiguredScene(SceneTile scene)
+    {
+        var cue = ConfiguredSceneCue(scene);
+        if (scene.Action == "logo") cue = AvailableLogoPaths().FirstOrDefault() is { } path
+            ? new Cue { Kind = CueKind.Image, Title = "Logo", FilePath = path } : null;
+        if (scene.Action == "blackout") cue = new Cue { Kind = CueKind.Scene, Title = "Fondo negro", Scene = new SceneComposition() };
+        if (cue is null) { SetStatus("Configura primero el contenido de esta escena."); return; }
+        if (!CheckMedia(cue)) return;
+        PrepareCue(CopyCue(cue));
+        _independentScenePreview = true;
+        RenderPreparedPreview();
+        ActivateWorkspacePanel("preview");
+    }
+
     private void EditSceneTile(SceneTile? scene)
     {
         var sources = _workspace.Library.Concat(_plan).Concat(_workspace.BrowserSources).Concat(_workspace.YouTubeSources)
@@ -60,10 +74,21 @@ public partial class MainWindow
 
     private bool SaveSceneTile(SceneTile scene)
     {
+        var previous = _workspace.SceneTiles.FirstOrDefault(item => item.Id == scene.Id);
+        var refreshLive = previous?.Cue?.ProgramTitle is not null && scene.Cue?.ProgramTitle is not null
+            && _session.Live?.Id == previous.Cue.Id && !_session.IsBlackout && !_session.IsTextHidden;
+        var refreshPreview = previous?.Cue is not null && _session.Prepared?.Id == previous.Cue.Id;
         var scenes = _workspace.SceneTiles.ToList();
         var index = scenes.FindIndex(item => item.Id == scene.Id);
         if (index < 0) scenes.Add(scene); else scenes[index] = scene;
         if (!SaveSceneTiles(scenes)) return false;
+        if (scene.Cue is { } edited && (refreshLive || refreshPreview))
+        {
+            var cue = CopyCue(edited);
+            cue.ProgramTitlePage = refreshLive ? _session.Live!.ProgramTitlePage : _session.Prepared!.ProgramTitlePage;
+            PrepareCue(cue);
+            if (refreshLive) ProjectPrepared();
+        }
         SetStatus("Escena guardada: " + scene.AccessibleName); return true;
     }
 
@@ -122,6 +147,7 @@ public partial class MainWindow
         {
             var item = new MenuItem { Header = label, IsEnabled = enabled }; item.Click += (_, _) => action(); menu.Items.Add(item);
         }
+        Add("Ver en vista previa", () => PreviewConfiguredScene(scene));
         if (scene.Cue is null && scene.Action == "youtube") SceneYouTubeMenuOpened(menu, new RoutedEventArgs());
         if (scene.Cue is null && scene.Action == "browser") SceneBrowserMenuOpened(menu, new RoutedEventArgs());
         if (scene.Action == "logo") Add("Configurar logo…", () => LogoSettingsClick(this, new RoutedEventArgs()));

@@ -31,6 +31,8 @@ public partial class MainWindow
         _preserveAudioForNextCue = preserve;
         _liveReading = _preparedReading;
         _preparedBibleStyleChanged = false;
+        UsePreparedMediaView();
+        _independentScenePreview = false;
         _session.GoLive();
         ShowLiveCue();
         SchedulePlayedSearchReset(cue);
@@ -53,8 +55,8 @@ public partial class MainWindow
             catch (ArgumentException error) { SetStatus(error.Message, true); return false; }
             return cue.Scene.Layers.Where(layer => layer.Visible).All(layer => CheckMedia(layer.Source));
         }
-        if (cue.ProgramTitle is { } program && (!File.Exists(program.ThemeImagePath) || !File.Exists(program.PurposeImagePath)))
-        { SetStatus("No se encuentra una de las imágenes del tema o del propósito. Edita la escena y vuelve a elegirla.", true); return false; }
+        if (cue.ProgramTitle is { } program && !ProgramTitleAvailable(program))
+        { SetStatus("Completa el tema y el propósito con una imagen disponible o texto. Edita la escena.", true); return false; }
         if (cue.Kind == CueKind.BrowserSource)
         {
             try
@@ -136,11 +138,13 @@ public partial class MainWindow
     {
         if (_output is null) return;
         // No native window is needed: the monitor draws this same live visual.
-        _output.Width = 1920; _output.Height = 1080;
-        _output.Measure(new Size(1920, 1080));
-        _output.Arrange(new Rect(0, 0, 1920, 1080));
+        var size = MonitorOutputSize();
+        _output.Width = size.Width; _output.Height = size.Height;
+        _output.Measure(size);
+        _output.Arrange(new Rect(size));
         _output.UpdateLayout();
         LiveMonitor.SetLocalSource(_output);
+        UpdateMonitorGeometry();
         SyncPreviewSource();
     }
     private void OpenOutput(DisplayInfo display, bool test)
@@ -162,7 +166,9 @@ public partial class MainWindow
         };
         DisplayService.PlaceWindow(window, display, fullscreen: !test);
         window.Show();
+        window.SizeChanged += (_, _) => UpdateMonitorGeometry();
         LiveMonitor.SetSource(window);
+        UpdateMonitorGeometry();
         RoutePowerPointOutput();
         _workspace.DisplayDevice = display.DeviceName;
         SaveWorkspace();

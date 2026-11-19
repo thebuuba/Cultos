@@ -6,6 +6,9 @@ namespace Culto.Desktop;
 
 public partial class MainWindow
 {
+    private static bool ProgramTitleAvailable(ProgramTitle program) =>
+        (string.IsNullOrWhiteSpace(program.ThemeImagePath) ? !string.IsNullOrWhiteSpace(program.ThemeText) : File.Exists(program.ThemeImagePath))
+        && (string.IsNullOrWhiteSpace(program.PurposeImagePath) ? !string.IsNullOrWhiteSpace(program.PurposeText) : File.Exists(program.PurposeImagePath));
     private IReadOnlyList<RemoteScene> BuildRemoteScenes()
     {
         // A phone can use Scenes even while its desktop panel is hidden.
@@ -18,7 +21,7 @@ public partial class MainWindow
                 CueKind.BrowserSource => "browser", CueKind.WindowCapture => "youtube",
                 { } value => value.ToString().ToLowerInvariant(), _ => "cue"
             } : scene.Action;
-            var available = cue?.ProgramTitle is { } program ? File.Exists(program.ThemeImagePath) && File.Exists(program.PurposeImagePath) : scene.Action switch
+            var available = cue?.ProgramTitle is { } program ? ProgramTitleAvailable(program) : scene.Action switch
             {
                 "logo" => AvailableLogoPaths().Any(), "blackout" => true,
                 _ => cue?.Kind switch
@@ -66,6 +69,8 @@ public partial class MainWindow
         if (configured.Cue is { } fixedCue)
         {
             if (!CheckMedia(fixedCue)) return new(false, "Revisa el contenido de esta escena en la PC.");
+            if (!preserve && fixedCue.Kind == CueKind.Video)
+                return new(ShowSceneVideo(fixedCue), "Video en pantalla.");
             PrepareCue(CopyCue(fixedCue));
             if (preserve) return new(ProjectPreparedPreservingOther(), StatusText.Text);
             ProjectPrepared();

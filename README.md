@@ -1,10 +1,14 @@
 # Culto Studio
 
+En **0.44.0**, la escena Video usa el video preparado aunque haya una lista activa; volver desde Logo conservando audio mantiene la posición del video. Los monitores adaptan su proporción a la salida y su menú **Vista** permite ampliar, ajustar, rellenar y aplicar zoom. Clic derecho en una escena → **Ver en vista previa** la prepara sin cambiar la salida, incluso si está oculta detrás de Logo o Negro.
+
+**Configuración → Volver a Videos al regresar a Medios** permite activar o desactivar ese comportamiento. **Orden del culto → + Texto** abre el editor de texto. La escena **Título del programa** admite texto para Tema y Propósito, imágenes o una combinación; editar sus imágenes actualiza el título si está en pantalla. En Biblia, un clic sencillo vuelve a seleccionar un solo verso después de seleccionar varios, conservando el arrastre del pasaje. Se verificó la búsqueda directa `mateo 2 1-3`.
+
 Instalador Windows `.exe`: consulta [cómo instalar y generar el asistente](docs/instalador-exe.md). Incluye acceso directo, actualización y desinstalador, y conserva los cultos y ajustes del usuario.
 
 Desde 0.43.0, el programa avisa de nuevas versiones publicadas en GitHub Releases y permite descargarlas e instalarlas cuando decidas. Consulta [el uso y la publicación de actualizaciones](docs/actualizaciones.md).
 
-En 0.43.1, cuando un video o himno continúa como reproducción de fondo detrás de otra escena, aparece **Quitar video por completo** debajo de **Salidas**. Detiene esa reproducción y su audio conservando la escena en pantalla. Si vuelves a seleccionar el video, comienza desde el principio.
+En 0.43.1, cuando un video o himno continúa como reproducción de fondo detrás de otra escena, aparece **Quitar video por completo** debajo de **Vista previa**, a la izquierda. Detiene esa reproducción y su audio conservando la escena en pantalla. Si vuelves a seleccionar el video, comienza desde el principio.
 
 En **0.41.0**, las instalaciones nuevas muestran una bienvenida para guardar el nombre de la iglesia. Se puede cambiar desde **Configuración → Datos de la iglesia**. Los cultos y ajustes existentes se conservan. Para preparar una distribución limpia con instalación por usuario y acceso directo, usa `scripts/package-release.ps1 -SourceDirectory <carpeta-publicada>`; consulta `docs/PRIMEROS-PASOS.md`.
 
