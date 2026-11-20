@@ -20,7 +20,7 @@ public partial class MainWindow
         if (source is null || ItemsControl.ContainerFromElement(LibraryList, source) is not ListBoxItem { DataContext: Cue cue }) return;
         e.Handled = true;
         if (_session.Prepared?.Id != cue.Id) PrepareCue(cue);
-        ProjectPreparedFromInput();
+        PlayFileFromInput();
     }
     private void RefreshLibrary()
     {

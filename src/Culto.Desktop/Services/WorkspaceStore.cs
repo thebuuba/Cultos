@@ -24,6 +24,7 @@ public sealed class WorkspaceData
     public Cue? QuickSceneImage { get; set; }
     public Cue? QuickSceneVideo { get; set; }
     public List<SceneTile> SceneTiles { get; set; } = SceneTile.Defaults();
+    public int SceneTilesVersion { get; set; }
     public WindowCaptureLayout? YouTubeLayout { get; set; }
     public Guid? ActiveVideoListId { get; set; }
     public List<SavedSet> VideoCollections { get; set; } = [];
@@ -85,8 +86,18 @@ public sealed class WorkspaceStore
             data.SceneTiles = (data.SceneTiles ?? SceneTile.Defaults()).Where(scene => scene is not null
                 && !string.IsNullOrWhiteSpace(scene.Id) && scene.Action is "logo" or "blackout" or "image" or "video" or "audio" or "youtube" or "browser" or "cue" or "scene" or "powerpoint" or "program")
                 .DistinctBy(scene => scene.Id).ToList();
+            if (data.SceneTilesVersion < 1)
+            {
+                if (!data.SceneTiles.Any(scene => scene.Action == "powerpoint" && scene.Cue is null))
+                    data.SceneTiles.Add(SceneTile.Defaults().Last() with { Id = Guid.NewGuid().ToString("N") });
+                data.SceneTilesVersion = 1;
+            }
             data.Notes = (data.Notes ?? []).Where(note => note is not null).ToList();
-            foreach (var note in data.Notes) { note.Title ??= ""; note.Body ??= ""; }
+            foreach (var note in data.Notes)
+            {
+                note.Title ??= ""; note.Body ??= "";
+                if (note.Category is not ("sermon" or "anuncio" or "oracion" or "recordatorio")) note.Category = "sermon";
+            }
             data.YouTubeSources = (data.YouTubeSources ?? []).Where(cue => cue is not null && cue.Kind == CueKind.WindowCapture).ToList();
             data.BrowserSources = (data.BrowserSources ?? []).Where(cue => cue is not null && cue.Kind == CueKind.BrowserSource
                 && cue.Browser is not null).ToList();
@@ -152,7 +163,11 @@ public sealed class WorkspaceStore
                 && (!videosOnly || cue.Kind == CueKind.Video)).ToList();
             return set;
         }).ToList();
-    public void Save(WorkspaceData data) => JsonFileStore.Save(Path.Combine(DirectoryPath, "workspace.json"), data);
+    public void Save(WorkspaceData data)
+    {
+        data.SceneTilesVersion = 1;
+        JsonFileStore.Save(Path.Combine(DirectoryPath, "workspace.json"), data);
+    }
     public void Archive(ServicePlan plan)
     {
         if (plan.Items.Count == 0) return;

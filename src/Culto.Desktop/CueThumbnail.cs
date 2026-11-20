@@ -13,7 +13,7 @@ public sealed class CueThumbnail : FrameworkElement
         new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, Changed));
     private static readonly System.Threading.SemaphoreSlim ImageWork = new(2);
     private static readonly Brush Back = new SolidColorBrush(Color.FromRgb(16, 23, 34));
-    private static readonly Brush Accent = new SolidColorBrush(Color.FromRgb(36, 178, 126));
+    private static readonly Brush Accent = new SolidColorBrush(Color.FromRgb(190, 242, 100));
     private static readonly Geometry Play = Geometry.Parse("M 57,20 L 76,31 L 57,42 Z");
     private ImageSource? _image;
     private int _generation;

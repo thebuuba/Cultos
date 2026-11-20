@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#1F2023">
+<meta name="theme-color" content="#191919">
 <title>Culto Deck · Mando del culto</title>
 <style>
 @font-face{font-family:Lexend;src:url('/assets/lexend-regular.ttf') format('truetype');font-style:normal;font-weight:400;font-display:swap}
 @font-face{font-family:Lexend;src:url('/assets/lexend-semibold.ttf') format('truetype');font-style:normal;font-weight:600 800;font-display:swap}
-:root{color-scheme:dark;--bg:#1F2023;--surface:#2A2B2F;--raised:#303136;--text:#F7F8FA;--muted:#B5B7BF;--accent:#8BE9AD;--accent-bg:#263E31;--amber:#F3CC8B;--danger:#FFB4BA;--shadow:0 10px 24px #00000012}
+:root{color-scheme:dark;--bg:#191919;--surface:#242424;--raised:#303030;--text:#F7F8FA;--muted:#B5B7BF;--accent:#BEF264;--accent-bg:#303426;--live:#38D399;--live-bg:#243D34;--amber:#F3CC8B;--danger:#FFB4BA;--shadow:0 10px 24px #00000012}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font:400 15px/1.5 Lexend,"Segoe UI",system-ui,sans-serif}
 main{max-width:540px;margin:auto;padding:calc(26px + env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) calc(32px + env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left))}
@@ -17,7 +17,7 @@ header{display:flex;gap:16px;align-items:center;justify-content:space-between;ma
 .brand-mark{width:32px;height:32px;flex-shrink:0}
 .status{display:flex;align-items:center;gap:7px;flex-shrink:0;font-size:12px;color:var(--muted)}
 .status::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--amber)}
-.status.connected::before{background:var(--accent);box-shadow:0 0 0 4px #8BE9AD0C}
+.status.connected::before{background:var(--live);box-shadow:0 0 0 4px #8BE9AD0C}
 .remote-layout,.control-column,.support-column{min-width:0}
 .eyebrow{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:600}
 h2{font-size:16px;font-weight:600;letter-spacing:-.3px;margin:0}
@@ -52,7 +52,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 .section-head{margin:27px 2px 14px}
 .section-note{font-size:12px;color:var(--muted)}
 #deck{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-#deck button{background:var(--tile-bg,#24B27E);color:var(--tile-ink,#FFF);aspect-ratio:auto;min-height:78px;padding:9px 7px;border-radius:12px;flex-direction:column;gap:6px;box-shadow:0 3px 7px #0004;outline-offset:3px;font-size:12px;line-height:1.35;text-align:center}
+#deck button{background:var(--tile-bg,#BEF264);color:var(--tile-ink,#171717);aspect-ratio:auto;min-height:78px;padding:9px 7px;border-radius:12px;flex-direction:column;gap:6px;box-shadow:0 3px 7px #0004;outline-offset:3px;font-size:12px;line-height:1.35;text-align:center}
 #deck button svg{width:22px;height:22px;stroke-width:1.7}
 #deck button .tile-label{overflow-wrap:anywhere}
 #deck button[aria-pressed=true]{box-shadow:inset 0 0 0 2px currentColor,0 8px 20px #0000001A}
@@ -92,13 +92,13 @@ output{font-size:12px;font-variant-numeric:tabular-nums;color:var(--text)}
 .count{font-size:12px;color:var(--muted);white-space:nowrap}
 #order{list-style:none;padding:0;margin:0;display:grid;gap:10px}
 .cue{width:100%;min-height:80px;display:flex;align-items:center;justify-content:flex-start;gap:12px;text-align:left;background:var(--surface);padding:14px;border-radius:22px;box-shadow:var(--shadow)}
-.cue[aria-current=true]{background:var(--accent-bg);box-shadow:inset 0 0 0 1px #8BE9AD45,var(--shadow)}
+.cue[aria-current=true]{background:var(--live-bg);box-shadow:inset 0 0 0 1px #8BE9AD45,var(--shadow)}
 .cue-number{display:grid;place-items:center;flex:0 0 32px;height:36px;background:var(--raised);border-radius:11px;color:var(--muted);font-variant-numeric:tabular-nums;font-size:12px}
-.cue[aria-current=true] .cue-number{background:var(--accent);color:#193323}
+.cue[aria-current=true] .cue-number{background:var(--live);color:#171717}
 .cue-copy{flex:1;min-width:0}
 .cue-title{display:block;font-size:13px;font-weight:600;overflow-wrap:anywhere}
 .cue-kind{display:block;color:var(--muted);font-size:12px;font-weight:400;margin-top:4px}
-.cue-state{flex-shrink:0;font-size:12px;color:var(--accent);max-width:62px;text-align:right}
+.cue-state{flex-shrink:0;font-size:12px;color:var(--live);max-width:62px;text-align:right}
 .cue-state.prepared{color:var(--amber)}
 .cue-state:empty{display:none}
 .prepared-title{font-size:17px;margin:9px 0 0}
@@ -117,7 +117,7 @@ noscript{display:block;padding:20px;color:var(--amber)}
 <body>
 <noscript>Activa JavaScript para usar el mando local.</noscript>
 <main>
-<header><div class="brand"><svg class="brand-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="m16 1 15 15-15 15L1 16Z" fill="#8BE9AD"/><path d="m16 8 8 8-8 8-8-8Z" fill="#1F2023"/><path d="m16 12 4 4-4 4-4-4Z" fill="#8BE9AD"/></svg>Culto Deck</div><span id="connection" class="status" role="status">Conectando…</span></header>
+<header><div class="brand"><svg class="brand-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="m16 1 15 15-15 15L1 16Z" fill="#BEF264"/><path d="m16 8 8 8-8 8-8-8Z" fill="#191919"/><path d="m16 12 4 4-4 4-4-4Z" fill="#BEF264"/></svg>Culto Deck</div><span id="connection" class="status" role="status">Conectando…</span></header>
 <div class="remote-layout">
 <div class="control-column">
 <section id="scenes-section" aria-labelledby="scenes-label" hidden><div class="row section-head"><h2 id="scenes-label">Escenas</h2><span class="section-note">Toca para proyectar</span></div><div id="scenes" class="scene-grid" role="group" aria-label="Escenas de la consola"></div></section>
@@ -268,8 +268,8 @@ function renderDeck(state) {
       const kind = action === 'cue' ? contentKind(order.find(cue => cue.id === item.cueId)?.kind) : action;
       button.dataset.action = 'deck'; label.className = 'tile-label'; label.textContent = item.label || 'Acceso';
       if (['pause', 'restart', 'seek'].includes(action)) button.dataset.playback = 'true';
-      const palette = { '#43D9BE': '#24B27E', '#A7C7FF': '#4274F4', '#FFCF75': '#F8BA2A', '#FF9DAD': '#EF5350' };
-      const color = palette[String(item.color).toUpperCase()] || (/^#[0-9a-f]{6}$/i.test(item.color) ? item.color : '#24B27E');
+      const palette = { '#43D9BE': '#BEF264', '#A7C7FF': '#4274F4', '#FFCF75': '#F8BA2A', '#FF9DAD': '#EF5350' };
+      const color = palette[String(item.color).toUpperCase()] || (/^#[0-9a-f]{6}$/i.test(item.color) ? item.color : '#BEF264');
       const channels = color.slice(1).match(/../g).map(value => parseInt(value, 16) / 255).map(value => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4);
       const light = channels[0] * .2126 + channels[1] * .7152 + channels[2] * .0722;
       button.style.setProperty('--tile-bg', color); button.style.setProperty('--tile-ink', light > .179 ? '#101114' : '#FFFFFF');

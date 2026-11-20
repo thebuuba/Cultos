@@ -11,6 +11,7 @@ Culto Studio integra componentes con sus respectivas licencias. No se atribuye l
 | NAudio.Core y NAudio.Wasapi | 2.2.1 | MIT; https://github.com/naudio/NAudio/tree/v2.2.1; copia incluida en `Assets/Licenses/NAudio.txt` |
 | AvalonDock, Core, Serializer.Xml y Themes.Arc | 5.0.1 | Microsoft Public License (Ms-PL), según los archivos LICENSE de estos paquetes; https://github.com/Dirkster99/AvalonDock; copia incluida en `Assets/Licenses/AvalonDock.txt` |
 | Poppins | Regular, Medium, SemiBold, Bold | SIL Open Font License 1.1; https://github.com/google/fonts/tree/main/ofl/poppins; licencia incluida en `Assets/Fonts/OFL.txt` |
+| Lucide monitor-off y monitor | Trazados vectoriales de la referencia | ISC y MIT (Feather); https://github.com/lucide-icons/lucide; licencia incluida en `Assets/Licenses/lucide.txt` |
 | Lexend | 1.007; Regular (400), Medium (500), SemiBold (600), Bold (700) | SIL Open Font License 1.1; https://github.com/google/fonts/tree/e2332cf862ac3145c0ee5f24f04f4c1819b2410b/ofl/lexend; licencia incluida en `Assets/Licenses/Lexend-OFL.txt` |
 | OBS / libobs y módulos de imagen/transición | 33.0.1, Windows x64 | GPL; https://github.com/obsproject/obs-studio/tree/33.0.1; licencias, origen y hashes en `Runtime/ObsMove` |
 | Move Transition, Exeldro | 3.2.1, Windows x64 | GPL; https://github.com/exeldro/obs-move-transition/tree/3.2.1; licencias, origen y hashes en `Runtime/ObsMove` |

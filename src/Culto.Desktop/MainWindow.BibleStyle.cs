@@ -47,7 +47,8 @@ public partial class MainWindow
         _output.BibleStyle = bibleStyle;
         _output.Transitions = transitions;
         _output.BackgroundImagePath = CurrentBackgroundPath;
-        if (_session.Live?.Kind != CueKind.PowerPoint) StopPowerPointOutput(keepCueRequest: true);
+        ParkPowerPointOutput();
+        if (cue?.Kind == CueKind.PowerPoint && _powerPointEntryFrame is { } frame) cue = frame;
         if (_session.IsTextHidden && !_session.IsBlackout && _logoSlides.IsRunning)
         {
             _output.Transitions = transitions with { Kind = "Dissolve", DurationMilliseconds = _workspace.LogoPlayback.Normalize().TransitionMilliseconds };

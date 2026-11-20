@@ -37,7 +37,7 @@ public partial class MainWindow
         e.Handled = true;
         PlanList.SelectedItem = cue;
         if (_session.Prepared?.Id != cue.Id) PrepareCue(cue);
-        ProjectPreparedFromInput();
+        PlayFileFromInput();
     }
 
     private void AddOrderSourceClick(object sender, RoutedEventArgs e)

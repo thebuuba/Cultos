@@ -86,5 +86,34 @@ internal static partial class Program
             foreach (var item in originalOrder) plan.Add(item);
             Call(window, "SaveWorkspace");
         });
+        RunNotesReferenceTests(window);
+        Test("Notes expose visible delete actions and remove only the requested note", () =>
+        {
+            Call(window, "ActivateWorkspacePanel", "text");
+            Call(window, "SetNotesFilter", "all");
+            ((TextBox)window.FindName("NotesSearchBox")).Clear();
+            var original = data.Notes;
+            var first = new WorkspaceNote { Title = "Conservar", Body = "Primera nota" };
+            var second = new WorkspaceNote { Title = "Eliminar", Body = "Segunda nota" };
+            try
+            {
+                data.Notes = [first, second]; Call(window, "ShowNotesList"); window.UpdateLayout();
+                var buttons = Descendants(list).OfType<Button>().Where(b => b.Name == "NoteCardDeleteButton").ToArray();
+                Check(buttons.Length == 2 && buttons.All(b => b.IsVisible && b.IsEnabled), "Cards have no visible delete action");
+                Check(buttons.Any(b => ReferenceEquals(b.DataContext, second)), "Card delete has no target note");
+                list.SelectedItem = first; window.UpdateLayout();
+                Check(window.FindName("NotesDeleteButton") is Button { IsVisible: true, IsEnabled: true }, "Editor hides the delete action");
+                var live = Field<PresentationSession>(window, "_session").Live;
+                Call(window, "DeleteNote", second);
+                Check(data.Notes.Count == 1 && ReferenceEquals(data.Notes[0], first), "Deleting a card removed a different note");
+                Check(ReferenceEquals(Field<WorkspaceNote>(window, "_editingNote"), first), "Deleting another note closed the editor");
+                Check(store.Load().Notes.Count == 1 && store.Load().Notes[0].Id == first.Id, "Card deletion did not persist");
+                Check(ReferenceEquals(Field<PresentationSession>(window, "_session").Live, live), "Deleting a private note changed Program");
+                Call(window, "DeleteCurrentNote");
+                Check(store.Load().Notes.Count == 0 && list.Items.Count == 0, "Deleting the last note did not persist an empty list");
+                Check(((FrameworkElement)window.FindName("NotesOverview")).IsVisible, "Deleting the current note did not return to the list");
+            }
+            finally { data.Notes = original; Call(window, "ShowNotesList"); Call(window, "FlushNotesSave"); }
+        });
     }
 }

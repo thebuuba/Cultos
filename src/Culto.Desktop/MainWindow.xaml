@@ -6,11 +6,37 @@
         xmlns:adc="clr-namespace:AvalonDock.Controls;assembly=AvalonDock"
         xmlns:themes="clr-namespace:AvalonDock.Themes;assembly=AvalonDock.Themes.Arc"
         xmlns:projection="clr-namespace:Culto.Desktop.Projection"
+        xmlns:services="clr-namespace:Culto.Desktop.Services"
         xmlns:sys="clr-namespace:System;assembly=System.Runtime"
-        Title="Culto Studio — Consola de iglesia" Width="1480" Height="900"
+        Title="Culto Studio — Prueba de diseño lima" Width="1480" Height="900"
         MinWidth="1200" MinHeight="680" WindowStartupLocation="CenterScreen" WindowState="Maximized"
         UseLayoutRounding="True" Style="{StaticResource {x:Type Window}}">
   <Window.Resources>
+    <Style x:Key="ServiceSwitch" TargetType="CheckBox">
+      <Setter Property="Width" Value="36"/><Setter Property="Height" Value="20"/><Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="CheckBox">
+        <Border x:Name="Track" CornerRadius="10" Background="#A5A5AB" Padding="2">
+          <Ellipse x:Name="Thumb" Width="16" Height="16" Fill="White" HorizontalAlignment="Left"/>
+        </Border>
+        <ControlTemplate.Triggers>
+          <Trigger Property="IsChecked" Value="True"><Setter TargetName="Track" Property="Background" Value="#84C318"/><Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right"/></Trigger>
+          <Trigger Property="local:KeyboardFocusCue.IsVisible" Value="True"><Setter TargetName="Track" Property="BorderBrush" Value="#59820B"/><Setter TargetName="Track" Property="BorderThickness" Value="1"/></Trigger>
+          <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.5"/></Trigger>
+        </ControlTemplate.Triggers>
+      </ControlTemplate></Setter.Value></Setter>
+    </Style>
+    <Style x:Key="NotesFilterChip" TargetType="ToggleButton">
+      <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/><Setter Property="Background" Value="{StaticResource RaisedBrush}"/>
+      <Setter Property="Padding" Value="10,5"/><Setter Property="FontSize" Value="11"/><Setter Property="Margin" Value="0,0,5,6"/>
+      <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToggleButton">
+        <Border x:Name="Chip" CornerRadius="14" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}"><ContentPresenter VerticalAlignment="Center"/></Border>
+        <ControlTemplate.Triggers>
+          <Trigger Property="IsChecked" Value="True"><Setter Property="Background" Value="#F4F4F3"/><Setter Property="Foreground" Value="#232323"/></Trigger>
+          <Trigger Property="local:KeyboardFocusCue.IsVisible" Value="True"><Setter TargetName="Chip" Property="BorderBrush" Value="{StaticResource AccentBrush}"/><Setter TargetName="Chip" Property="BorderThickness" Value="1"/></Trigger>
+        </ControlTemplate.Triggers>
+      </ControlTemplate></Setter.Value></Setter>
+    </Style>
+    <services:PowerPointMetadataConverter x:Key="PowerPointMetadataConverter"/>
     <local:BibleVersionLabelConverter x:Key="BibleVersionLabelConverter"/>
     <SolidColorBrush x:Key="BibleSelectionBrush" Color="#395B88"/>
     <Thickness x:Key="SourcePanelPadding">14,24,14,14</Thickness>
@@ -68,7 +94,7 @@
         </Border>
         <ControlTemplate.Triggers>
           <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="SceneSurface" Property="BorderBrush" Value="{StaticResource AccentBrush}"/></Trigger>
-          <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="SceneSurface" Property="BorderBrush" Value="{StaticResource AccentBrush}"/></Trigger>
+          <Trigger Property="local:KeyboardFocusCue.IsVisible" Value="True"><Setter TargetName="SceneSurface" Property="BorderBrush" Value="{StaticResource AccentBrush}"/></Trigger>
           <Trigger Property="AutomationProperties.ItemStatus" Value="En pantalla"><Setter TargetName="SceneSurface" Property="BorderBrush" Value="#39CF88"/></Trigger>
           <Trigger Property="IsPressed" Value="True"><Setter TargetName="SceneSurface" Property="Opacity" Value="0.7"/></Trigger>
           <Trigger Property="IsEnabled" Value="False"><Setter TargetName="SceneSurface" Property="Opacity" Value="0.45"/></Trigger>
@@ -117,7 +143,7 @@
             <Setter TargetName="LoopEnabled" Property="Visibility" Value="Visible"/>
           </Trigger>
           <Trigger Property="IsPressed" Value="True"><Setter TargetName="LoopSurface" Property="Background" Value="{StaticResource RaisedBrush}"/></Trigger>
-          <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="LoopSurface" Property="Background" Value="{StaticResource FocusSurfaceBrush}" /><Setter Property="Foreground" Value="{StaticResource OnActionBrush}" /></Trigger>
+          <Trigger Property="local:KeyboardFocusCue.IsVisible" Value="True"><Setter TargetName="LoopSurface" Property="Background" Value="{StaticResource FocusSurfaceBrush}" /><Setter Property="Foreground" Value="{StaticResource OnActionBrush}" /></Trigger>
           <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.42"/></Trigger>
         </ControlTemplate.Triggers>
       </ControlTemplate></Setter.Value></Setter>
@@ -351,7 +377,7 @@
               </Grid>
               <ControlTemplate.Triggers>
                 <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="RemoteCircle" Property="Opacity" Value="0.85"/></Trigger>
-                <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="RemoteCircle" Property="BorderThickness" Value="2"/></Trigger>
+                <Trigger Property="local:KeyboardFocusCue.IsVisible" Value="True"><Setter TargetName="RemoteCircle" Property="BorderThickness" Value="2"/></Trigger>
                 <Trigger Property="IsPressed" Value="True"><Setter TargetName="RemoteCircle" Property="Opacity" Value="0.65"/></Trigger>
               </ControlTemplate.Triggers>
             </ControlTemplate></Button.Template>
@@ -437,6 +463,7 @@
             <Grid>
               <TextBlock Text="Vista Previa" FontWeight="SemiBold" FontSize="14"/>
               <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" MinHeight="32">
+                <Button x:Name="PreviewFullscreenButton" Click="PreviewFullscreenClick" Style="{StaticResource PlayerButton}" Width="26" Height="24" MinHeight="24" ToolTip="Vista previa a pantalla completa" AutomationProperties.Name="Vista previa a pantalla completa" Content="&#xE740;"/>
                 <Button Content="Vista" Tag="preview" Click="MonitorViewClick" FontSize="11" MinHeight="24" Padding="6,3" Margin="0,0,4,0" ToolTip="Ampliar o ajustar el encuadre de la vista previa" AutomationProperties.Name="Ampliar o ajustar vista previa"/>
                 <Button x:Name="FollowLiveButton" Content="Ver salida" Click="FollowLivePreviewClick" Visibility="Collapsed" FontSize="12" MinHeight="24" Padding="8,3" Margin="0,0,8,0" AutomationProperties.Name="Volver a ver la salida"/>
               </StackPanel>
@@ -447,7 +474,7 @@
                   <ContentControl x:Name="PreviewHost" MinHeight="80"/>
                   <local:CueThumbnail x:Name="PreparedMediaCover" Visibility="Collapsed" IsHitTestVisible="False"/>
                   <projection:OutputMonitor x:Name="PreviewLiveMonitor" Visibility="Collapsed" IsHitTestVisible="False"/>
-                  <ContentControl x:Name="PreviewOverlayHost" VerticalAlignment="Bottom" Margin="4"/>
+                  <ContentControl x:Name="PreviewOverlayHost" VerticalAlignment="Bottom"/>
                 </Grid>
               </Border>
             </local:AspectRatioBox>
@@ -476,7 +503,7 @@
               </Grid>
               <ControlTemplate.Triggers>
                 <Trigger Property="IsPressed" Value="True"><Setter TargetName="ButtonPressed" Property="Opacity" Value="0.14"/></Trigger>
-                <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="ButtonFocus" Property="Opacity" Value="1"/></Trigger>
+                <Trigger Property="local:KeyboardFocusCue.IsVisible" Value="True"><Setter TargetName="ButtonFocus" Property="Opacity" Value="1"/></Trigger>
                 <Trigger Property="IsEnabled" Value="False"><Setter TargetName="ButtonRoot" Property="Opacity" Value="0.65"/></Trigger>
               </ControlTemplate.Triggers>
             </ControlTemplate>
@@ -503,30 +530,41 @@
               <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
               <Border Background="{StaticResource LiveSurfaceBrush}" CornerRadius="9" Padding="7,3" Margin="0,0,9,0"><TextBlock Text="Programa" Foreground="{StaticResource TextBrush}" FontSize="12" FontWeight="SemiBold"/></Border>
               <TextBlock Grid.Column="1" x:Name="LiveTitleText" Text="Sin contenido" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
-              <StackPanel Grid.Column="2" Orientation="Horizontal"><Button Content="Vista" Tag="program" Click="MonitorViewClick" FontSize="11" MinHeight="24" Padding="6,3" Margin="4,0,0,0" ToolTip="Ampliar o ajustar el encuadre del programa en pantalla" AutomationProperties.Name="Ampliar o ajustar programa"/><TextBlock x:Name="OutputModeText" Text="SIN SALIDA" Foreground="{StaticResource MutedBrush}" FontSize="12" VerticalAlignment="Center" Margin="8,0,0,0" ToolTip="{Binding Text, ElementName=OutputStatusText}"/></StackPanel>
+              <StackPanel Grid.Column="2" Orientation="Horizontal"><Button x:Name="ProgramFullscreenButton" Click="ProgramFullscreenClick" Style="{StaticResource PlayerButton}" Width="26" Height="24" MinHeight="24" ToolTip="Programa a pantalla completa" AutomationProperties.Name="Programa a pantalla completa" Content="&#xE740;"/><Button Content="Vista" Tag="program" Click="MonitorViewClick" FontSize="11" MinHeight="24" Padding="6,3" Margin="4,0,0,0" ToolTip="Ampliar o ajustar el encuadre del programa en pantalla" AutomationProperties.Name="Ampliar o ajustar programa"/><TextBlock x:Name="OutputModeText" Text="SIN SALIDA" Foreground="{StaticResource MutedBrush}" FontSize="12" VerticalAlignment="Center" Margin="8,0,0,0" ToolTip="{Binding Text, ElementName=OutputStatusText}"/></StackPanel>
             </Grid>
             <local:AspectRatioBox x:Name="LivePicture" Grid.Row="1" Margin="0,10,0,12" VerticalAlignment="Top">
               <Border x:Name="OutputViewport" CornerRadius="6" SizeChanged="MonitorFrameSizeChanged" BorderBrush="Transparent" BorderThickness="0" Background="#000000" MouseEnter="PlaybackViewportMouseEnter" MouseLeave="PlaybackViewportMouseLeave" GotKeyboardFocus="PlaybackViewportGotKeyboardFocus" LostKeyboardFocus="PlaybackViewportLostKeyboardFocus">
                 <Grid>
                   <projection:OutputMonitor x:Name="LiveMonitor" MinHeight="80" MouseLeftButtonDown="OutputMonitorMouseDown" ToolTip="Abrir reproductor · doble clic" AutomationProperties.Name="Monitor de la salida real"/>
-                  <ContentControl x:Name="LiveOverlayHost" VerticalAlignment="Bottom" Margin="4">
+                  <ContentControl x:Name="LiveOverlayHost" VerticalAlignment="Bottom">
             <Grid x:Name="MediaPlaybackPanel" Visibility="Collapsed" Opacity="0" IsHitTestVisible="False">
-              <Border Background="#B516171A" CornerRadius="8" Padding="3,1">
-                <Grid Height="30">
-                  <Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition/><ColumnDefinition Width="24"/><ColumnDefinition Width="40"/></Grid.ColumnDefinitions>
-                  <Grid x:Name="OutputTransportGrid" Grid.ColumnSpan="2">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                    <Button x:Name="PauseButton" Content="&#xE769;" Style="{StaticResource PlayerButton}" Width="28" Height="28" MinHeight="28" Foreground="White" FontSize="14" Click="PauseClick" ToolTip="Pausar reproducción" AutomationProperties.Name="Pausar reproducción"/>
-                    <TextBlock Grid.Column="1" x:Name="TimeText" Text="00:00" Style="{StaticResource PlayerTime}" Foreground="White" Margin="2,0,4,0"/>
-                    <Slider Grid.Column="2" x:Name="PositionSlider" Minimum="0" Maximum="1" Value="0" Foreground="#EEEEEE" Background="#707074" IsMoveToPointEnabled="True" PreviewMouseLeftButtonUp="PositionSeek" AutomationProperties.Name="Posición del video"/>
-                    <TextBlock Grid.Column="3" x:Name="OutputDurationText" Text="00:00" Style="{StaticResource PlayerTime}" Foreground="White" Margin="4,0,4,0"/>
+              <Border x:Name="PlayerGradientBackground" Padding="10,40,10,8">
+                <Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#00000000" Offset="0"/><GradientStop Color="#80000000" Offset="0.5"/><GradientStop Color="#D9000000" Offset="1"/></LinearGradientBrush></Border.Background>
+                <Grid>
+                  <Grid.RowDefinitions><RowDefinition Height="24"/><RowDefinition Height="32"/></Grid.RowDefinitions>
+                  <Slider x:Name="PositionSlider" Minimum="0" Maximum="1" Value="0" Foreground="{StaticResource AccentBrush}" Background="#665F6265" IsMoveToPointEnabled="True" PreviewMouseLeftButtonUp="PositionSeek" MouseMove="PlayerSeekMouseMove" MouseLeave="PlayerSeekMouseLeave" AutomationProperties.Name="Posición del video">
+                    <Slider.ToolTip><ToolTip x:Name="PlayerSeekHint" Placement="Relative" VerticalOffset="-26" Background="#E8000000" Foreground="White" Padding="6,2" IsHitTestVisible="False"><TextBlock x:Name="PlayerSeekHintText" FontSize="10"/></ToolTip></Slider.ToolTip>
+                  </Slider>
+                  <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <StackPanel x:Name="OutputTransportGrid" Orientation="Horizontal">
+                      <Button x:Name="PauseButton" Content="&#xE769;" Style="{StaticResource PlayerButton}" Width="28" Height="28" MinHeight="28" Foreground="White" FontSize="14" Click="PauseClick" ToolTip="Pausar reproducción" AutomationProperties.Name="Pausar reproducción"/>
+                      <Button x:Name="OutputSkipBackButton" Click="OutputSkipBackClick" Style="{StaticResource PlayerButton}" Width="28" Height="28" MinHeight="28" Foreground="#DEDEDF" ToolTip="Retroceder 10 segundos" AutomationProperties.Name="Retroceder 10 segundos"><Viewbox Width="17" Height="17"><Canvas Width="24" Height="24"><Path Data="M3 11 A9 9 0 1 0 5.7 5.7 L3 8 M3 3V8H8" Stroke="#DEDEDF" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/></Canvas></Viewbox></Button>
+                      <Button x:Name="OutputSkipForwardButton" Click="OutputSkipForwardClick" Style="{StaticResource PlayerButton}" Width="28" Height="28" MinHeight="28" Foreground="#DEDEDF" ToolTip="Avanzar 10 segundos" AutomationProperties.Name="Avanzar 10 segundos"><Viewbox Width="17" Height="17"><Canvas Width="24" Height="24"><Path Data="M21 11 A9 9 0 1 1 18.3 5.7 L21 8 M21 3V8H16" Stroke="#DEDEDF" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/></Canvas></Viewbox></Button>
+                    </StackPanel>
+                    <Button Grid.Column="1" Width="28" Height="28" MinHeight="28" x:Name="MuteButton" Content="&#xE767;" Style="{StaticResource PlayerButton}" Foreground="White" Click="ToggleMuteClick" MouseEnter="PlayerVolumeMouseEnter" MouseLeave="PlayerVolumeMouseLeave" GotKeyboardFocus="PlayerVolumeMouseEnter" ToolTip="Silenciar · Pasa el cursor para ajustar el volumen" AutomationProperties.Name="Silenciar el programa"/>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="5,0,0,0">
+                      <TextBlock x:Name="TimeText" Text="0:00" Style="{StaticResource PlayerTime}" FontSize="10" FontWeight="SemiBold" Foreground="White"/>
+                      <TextBlock Text=" / " Style="{StaticResource PlayerTime}" FontSize="10" Foreground="#A0A0A3"/>
+                      <TextBlock x:Name="OutputDurationText" Text="0:00" Style="{StaticResource PlayerTime}" FontSize="10" Foreground="#A0A0A3"/>
+                    </StackPanel>
+                    <Button x:Name="PlayerFullscreenButton" Grid.Column="3" Click="PlayerFullscreenClick" Style="{StaticResource PlayerButton}" Width="28" Height="28" MinHeight="28" Foreground="White" ToolTip="Pantalla completa" AutomationProperties.Name="Abrir reproductor a pantalla completa"><Viewbox Width="17" Height="17"><Canvas Width="24" Height="24"><Path Data="M8 3H3V8 M16 3H21V8 M21 16V21H16 M3 16V21H8" Stroke="White" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/></Canvas></Viewbox></Button>
                   </Grid>
-                  <Button Grid.Column="2" Width="24" Height="28" MinHeight="28" x:Name="MuteButton" Content="&#xE767;" Style="{StaticResource PlayerButton}" Foreground="White" Click="ToggleMuteClick" ToolTip="Silenciar el programa; YouTube se controla en Chrome" AutomationProperties.Name="Silenciar el programa"/>
-                  <Slider Grid.Column="3" x:Name="VolumeSlider" Minimum="0" Maximum="100" Value="80" Foreground="#EEEEEE" Background="#707074" IsMoveToPointEnabled="True" ValueChanged="VolumeChanged" Margin="2,0,3,0" ToolTip="Volumen del programa. El sonido de YouTube se ajusta en Chrome o Windows." AutomationProperties.Name="Volumen del programa"/>
+                  <Popup x:Name="PlayerVolumePopup" Placement="Top" PlacementTarget="{Binding ElementName=MuteButton}" AllowsTransparency="True" StaysOpen="False" VerticalOffset="0">
+                    <Border Background="#EE151618" CornerRadius="8" Padding="10,5" MouseLeave="PlayerVolumeMouseLeave"><Slider x:Name="VolumeSlider" Width="100" Minimum="0" Maximum="100" Value="80" Foreground="{StaticResource AccentBrush}" Background="#66676A6D" IsMoveToPointEnabled="True" ValueChanged="VolumeChanged" ToolTip="Volumen del programa" AutomationProperties.Name="Volumen del programa"/></Border>
+                  </Popup>
                   <StackPanel Visibility="Collapsed">
                     <Button x:Name="RestartOutputButton" Click="RestartClick"/>
-                    <Button x:Name="OutputSkipBackButton" Click="OutputSkipBackClick"/>
-                    <Button x:Name="OutputSkipForwardButton" Click="OutputSkipForwardClick"/>
                     <CheckBox x:Name="LoopCheck" Checked="LoopChanged" Unchecked="LoopChanged"/>
                     <TextBlock x:Name="VolumeText"/>
                   </StackPanel>
@@ -571,7 +609,7 @@
                             <ControlTemplate.Triggers>
                               <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="DisplayButtonSurface" Property="Background" Value="#3A3A3A"/></Trigger>
                               <Trigger Property="IsPressed" Value="True"><Setter TargetName="DisplayButtonSurface" Property="Background" Value="#454545"/></Trigger>
-                              <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="DisplayButtonSurface" Property="BorderBrush" Value="{StaticResource TextBrush}"/></Trigger>
+                              <Trigger Property="local:KeyboardFocusCue.IsVisible" Value="True"><Setter TargetName="DisplayButtonSurface" Property="BorderBrush" Value="{StaticResource TextBrush}"/></Trigger>
                             </ControlTemplate.Triggers>
                           </ControlTemplate>
                         </Button.Template>
@@ -596,7 +634,7 @@
                                 <Setter TargetName="SwitchThumb" Property="HorizontalAlignment" Value="Right"/>
                                 <Setter TargetName="SwitchThumb" Property="Margin" Value="0,0,4,0"/>
                               </Trigger>
-                              <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="SwitchFocus" Property="Opacity" Value="1"/></Trigger>
+                              <Trigger Property="local:KeyboardFocusCue.IsVisible" Value="True"><Setter TargetName="SwitchFocus" Property="Opacity" Value="1"/></Trigger>
                               <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="SwitchTrack" Property="Opacity" Value="0.85"/></Trigger>
                               <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.5"/></Trigger>
                             </ControlTemplate.Triggers>
@@ -763,49 +801,110 @@
           </Border>
 </ad:LayoutAnchorable>
 <ad:LayoutAnchorable Title="PowerPoint" ContentId="powerpoint" CanClose="False" CanHide="True" CanAutoHide="False" CanDockAsTabbedDocument="False">
-  <Border x:Name="PowerPointPanel" Background="{StaticResource PanelBrush}" Padding="{StaticResource SourcePanelPadding}">
+  <Border x:Name="PowerPointPanel" Background="{StaticResource PanelBrush}" Padding="{StaticResource SourcePanelPadding}" AllowDrop="True" DragOver="PowerPointFilesDragOver" Drop="PowerPointFilesDrop">
     <Grid>
-      <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-      <StackPanel Margin="0,0,0,10">
-        <Button Content="+ Agregar PowerPoint" Click="ImportPowerPointClick" MinHeight="30" Padding="12,4" HorizontalAlignment="Left" AutomationProperties.Name="Agregar presentaciones de PowerPoint"/>
-        <TextBlock Text="Archivos de presentación" Style="{StaticResource MutedText}" Margin="2,10,0,0" FontSize="12"/>
-      </StackPanel>
-      <Grid Grid.Row="1" MinHeight="64">
-        <ListBox x:Name="PowerPointFiles" SelectionChanged="PowerPointSelectionChanged" MouseDoubleClick="PowerPointDoubleClick" PreviewKeyDown="PowerPointKeyDown" AutomationProperties.Name="Presentaciones de PowerPoint">
-          <ListBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Title}" ToolTip="{Binding FilePath}" TextTrimming="CharacterEllipsis" Padding="4,6"/></DataTemplate></ListBox.ItemTemplate>
-        </ListBox>
-        <TextBlock x:Name="PowerPointEmpty" Text="Agrega tus archivos .pptx, .ppt, .ppsx o .pps." Style="{StaticResource MutedText}" TextAlignment="Center" Margin="16" IsHitTestVisible="False"/>
+      <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="1.1*" MinHeight="72"/><RowDefinition Height="Auto"/><RowDefinition Height="1.4*" MinHeight="90"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+      <DockPanel Margin="0,0,0,8">
+        <Button DockPanel.Dock="Right" Content="+ Agregar" Click="ImportPowerPointClick" MinHeight="30" Padding="12,4" AutomationProperties.Name="Agregar presentaciones de PowerPoint"/>
+        <StackPanel VerticalAlignment="Center"><TextBlock Text="Presentaciones" FontSize="15" FontWeight="SemiBold"/><TextBlock x:Name="PowerPointFileCountText" Text="Arrastra un .pptx para agregar" Style="{StaticResource MutedText}" FontSize="11" Margin="0,3,8,0"/></StackPanel>
+      </DockPanel>
+      <Grid Grid.Row="1" Margin="0,0,0,8">
+        <TextBox x:Name="PowerPointSearch" TextChanged="PowerPointSearchChanged" MinHeight="32" Padding="12,6" AutomationProperties.Name="Buscar presentación"/>
+        <TextBlock Text="Buscar presentación…" Foreground="{StaticResource MutedBrush}" IsHitTestVisible="False" Margin="13,0" VerticalAlignment="Center" FontSize="12">
+          <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Text.Length, ElementName=PowerPointSearch}" Value="0"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+        </TextBlock>
       </Grid>
-      <StackPanel Grid.Row="2" Margin="0,10,0,0">
-        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-          <Button x:Name="PowerPointProjectButton" Content="Proyectar" Click="ProjectPowerPointClick" Background="{StaticResource ActionBrush}" Foreground="{StaticResource OnActionBrush}" MinHeight="32" Padding="16,4"/>
-          <Button x:Name="PowerPointAddToPlanButton" Content="+ Al orden" Click="AddPowerPointToPlanClick" MinHeight="32" Padding="10,4" Background="Transparent" BorderBrush="Transparent" Margin="6,0,0,0"/>
-        </StackPanel>
-        <TextBlock x:Name="PowerPointLiveText" Style="{StaticResource MutedText}" FontSize="12" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
-        <WrapPanel Margin="0,4,0,0" Orientation="Horizontal">
-          <TextBlock x:Name="PowerPointPositionText" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,2,12,2"/>
-          <StackPanel Orientation="Horizontal">
-          <StackPanel x:Name="PowerPointPlaybackPanel" Orientation="Horizontal">
-            <Button x:Name="PowerPointPreviousButton" Content="&#xE76B;" Click="PowerPointPreviousClick" Style="{StaticResource PlayerButton}" ToolTip="Anterior · Retrocede una animación o diapositiva" AutomationProperties.Name="Anterior en PowerPoint"/>
-            <Button x:Name="PowerPointNextButton" Content="&#xE76C;" Click="PowerPointNextClick" Style="{StaticResource PlayerButton}" ToolTip="Siguiente · Avanza una animación o diapositiva" AutomationProperties.Name="Siguiente en PowerPoint"/>
-            <Button x:Name="PowerPointPauseButton" Content="Pausar" Click="PowerPointPauseClick" MinHeight="32" MinWidth="76" Padding="8,4" FontSize="12" Background="Transparent" BorderBrush="Transparent"/>
-            <Button x:Name="PowerPointRestartButton" Content="&#xE72C;" Click="PowerPointRestartClick" Style="{StaticResource PlayerButton}" ToolTip="Reiniciar · Volver a la primera diapositiva" AutomationProperties.Name="Reiniciar PowerPoint"/>
-          </StackPanel>
-          <Button x:Name="PowerPointModeratorButton" Content="&#xE7F4;" Style="{StaticResource PlayerButton}" Click="OpenPowerPointModeratorClick" Margin="8,0,0,0" ToolTip="Vista de moderador · Diapositiva actual, siguiente y notas" AutomationProperties.Name="Abrir vista de moderador"/>
-          </StackPanel>
+      <Grid Grid.Row="2">
+        <ListBox x:Name="PowerPointFiles" SelectionChanged="PowerPointSelectionChanged" MouseDoubleClick="PowerPointDoubleClick" PreviewKeyDown="PowerPointKeyDown" AutomationProperties.Name="Presentaciones de PowerPoint" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+          <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}"><Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="7"/></Style></ListBox.ItemContainerStyle>
+          <ListBox.ItemTemplate><DataTemplate><Grid DataContext="{Binding Converter={StaticResource PowerPointMetadataConverter}}" ToolTip="{Binding FileName}">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="66"/><ColumnDefinition/><ColumnDefinition Width="28"/></Grid.ColumnDefinitions>
+            <Border Width="60" Height="38" CornerRadius="6" Background="{StaticResource RaisedBrush}" ClipToBounds="True"><Grid><TextBlock Text="PPT" FontSize="11" Foreground="{StaticResource AccentTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/><Image Source="{Binding Cover}" Stretch="UniformToFill"/></Grid></Border>
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="4,0,5,0"><TextBlock Text="{Binding Title}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/><TextBlock Text="{Binding Details}" FontSize="10" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"/></StackPanel>
+            <Button Grid.Column="2" Content="⋯" Click="PowerPointFileMenuClick" MinHeight="28" Padding="3" Background="Transparent" BorderBrush="Transparent" ToolTip="Opciones de la presentación" Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ListBoxItem}}">
+              <Button.ContextMenu><ContextMenu><MenuItem Header="Renombrar" Click="RenamePowerPointFileClick" Tag="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/><MenuItem Header="Quitar de la lista" Click="RemovePowerPointFileClick" Tag="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/></ContextMenu></Button.ContextMenu>
+            </Button>
+          </Grid></DataTemplate></ListBox.ItemTemplate>
+        </ListBox>
+        <TextBlock x:Name="PowerPointEmpty" Text="Agrega o arrastra una presentación de PowerPoint." Style="{StaticResource MutedText}" TextAlignment="Center" TextWrapping="Wrap" Margin="10" IsHitTestVisible="False"/>
+      </Grid>
+      <StackPanel Grid.Row="3" Margin="0,10,0,5">
+        <DockPanel><Button DockPanel.Dock="Right" Content="↻" Click="RefreshPowerPointPreviewsClick" MinHeight="24" Width="26" Padding="0" Background="Transparent" BorderBrush="Transparent" ToolTip="Actualizar miniaturas"/><TextBlock Text="DIAPOSITIVAS" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/></DockPanel>
+        <TextBlock x:Name="PowerPointSlideHint" Text="Selecciona una presentación" Style="{StaticResource MutedText}" FontSize="10" TextWrapping="Wrap" Margin="0,3,0,0"/>
+      </StackPanel>
+      <ListBox x:Name="PowerPointSlides" Grid.Row="4" SelectionChanged="PowerPointSlideSelected" AutomationProperties.Name="Diapositivas de la presentación" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+        <ListBox.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ListBox.ItemsPanel>
+        <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}"><Setter Property="Width" Value="125"/><Setter Property="Padding" Value="4"/><Setter Property="Margin" Value="0,0,5,5"/><Setter Property="BorderThickness" Value="0"/></Style></ListBox.ItemContainerStyle>
+        <ListBox.ItemTemplate><DataTemplate><StackPanel>
+          <Border Height="66" Background="#101010" CornerRadius="5" ClipToBounds="True"><Grid><Image Source="{Binding Image}" Stretch="Uniform"/><Border Background="#D0191919" HorizontalAlignment="Right" VerticalAlignment="Bottom" CornerRadius="3" Margin="3" Padding="5,1"><TextBlock Text="{Binding Number}" Foreground="White" FontSize="10"/></Border></Grid></Border>
+          <TextBlock Text="{Binding Title}" FontSize="10" Margin="1,4,1,1" TextTrimming="CharacterEllipsis" ToolTip="{Binding Title}"/>
+        </StackPanel></DataTemplate></ListBox.ItemTemplate>
+      </ListBox>
+      <StackPanel Grid.Row="5" Margin="0,8,0,0">
+        <TextBlock x:Name="PowerPointLiveText" Style="{StaticResource MutedText}" FontSize="11" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+        <WrapPanel x:Name="PowerPointPlaybackPanel" Margin="0,5,0,5" VerticalAlignment="Center">
+          <Button x:Name="PowerPointRestartButton" Content="&#xE72C;" Click="PowerPointRestartClick" Style="{StaticResource PlayerButton}" ToolTip="Volver al inicio" AutomationProperties.Name="Reiniciar PowerPoint"/>
+          <Button x:Name="PowerPointPreviousButton" Content="&#xE76B;" Click="PowerPointPreviousClick" Style="{StaticResource PlayerButton}" ToolTip="Anterior · Diapositiva o animación" AutomationProperties.Name="Anterior en PowerPoint"/>
+          <TextBlock x:Name="PowerPointPositionText" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="5,0"/>
+          <Button x:Name="PowerPointNextButton" Content="&#xE76C;" Click="PowerPointNextClick" Style="{StaticResource PlayerButton}" ToolTip="Siguiente · Diapositiva o animación" AutomationProperties.Name="Siguiente en PowerPoint"/>
+          <Button x:Name="PowerPointPauseButton" Content="Pausar" Click="PowerPointPauseClick" MinHeight="30" Padding="5,3" FontSize="11" Background="Transparent" BorderBrush="Transparent"/>
+          <!-- Lucide monitor-off / monitor, ISC/MIT: Assets/Licenses/lucide.txt. -->
+          <Button x:Name="PowerPointBlackoutButton" Click="PowerPointBlackoutClick" Style="{StaticResource PlayerButton}" ToolTip="Pantalla en negro" AutomationProperties.Name="Pantalla en negro de PowerPoint">
+            <Viewbox Width="18" Height="18"><Canvas Width="24" Height="24">
+              <Path Data="M17 17H4 A2 2 0 0 1 2 15 V5 C2 3.5 3 3 3 3 M22 15V5 A2 2 0 0 0 20 3 H9 M8 21H16 M12 17V21 M2 2L22 22"
+                    Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+            </Canvas></Viewbox>
+          </Button>
+          <Button x:Name="PowerPointModeratorButton" Style="{StaticResource PlayerButton}" Click="OpenPowerPointModeratorClick" ToolTip="Vista de moderador · Actual, siguiente y notas" AutomationProperties.Name="Abrir vista de moderador">
+            <Viewbox Width="18" Height="18"><Canvas Width="24" Height="24">
+              <Path Data="M4 3H20 A2 2 0 0 1 22 5 V15 A2 2 0 0 1 20 17 H4 A2 2 0 0 1 2 15 V5 A2 2 0 0 1 4 3 Z M8 21H16 M12 17V21"
+                    Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+            </Canvas></Viewbox>
+          </Button>
         </WrapPanel>
+        <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+          <Button x:Name="PowerPointProjectButton" Content="Proyectar" Click="ProjectPowerPointClick" Background="{StaticResource ActionBrush}" Foreground="{StaticResource OnActionBrush}" MinHeight="34" Padding="12,5"/>
+          <Button x:Name="PowerPointAddToPlanButton" Grid.Column="1" Content="+ Al orden" Click="AddPowerPointToPlanClick" MinHeight="34" Padding="8,5" Background="Transparent" BorderBrush="Transparent" Margin="5,0,0,0"/>
+        </Grid>
       </StackPanel>
-      <Expander x:Name="PowerPointUsbOptions" Grid.Row="3" Header="Presentador USB" FontSize="12" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0">
-      <StackPanel Margin="0,8,0,0">
-        <CheckBox x:Name="PowerPointUsbCheck" Content="Controlar con presentador USB" Click="TogglePresenterClick" FontSize="12" Margin="0,0,0,6"/>
-        <ComboBox x:Name="PowerPointUsbKeys" SelectionChanged="PowerPointUsbKeysChanged" AutomationProperties.Name="Teclas del presentador USB" MinHeight="32">
-          <ComboBoxItem Content="Av Pág / Re Pág"/><ComboBoxItem Content="Flechas derecha / izquierda"/>
-        </ComboBox>
-        <TextBlock x:Name="PowerPointUsbStatus" Style="{StaticResource MutedText}" FontSize="12" Margin="0,6,0,0"/>
-      </StackPanel>
-      </Expander>
+      <Grid Grid.Row="6" Margin="0,8,0,0">
+        <ToggleButton x:Name="PowerPointUsbOptions" HorizontalAlignment="Left" AutomationProperties.Name="Opciones del presentador USB" Padding="7,5" Foreground="{StaticResource MutedBrush}">
+          <ToggleButton.Template><ControlTemplate TargetType="ToggleButton"><Border x:Name="UsbTrigger" Background="{StaticResource RaisedBrush}" CornerRadius="12" Padding="{TemplateBinding Padding}"><ContentPresenter/></Border><ControlTemplate.Triggers><Trigger Property="local:KeyboardFocusCue.IsVisible" Value="True"><Setter TargetName="UsbTrigger" Property="BorderBrush" Value="{StaticResource AccentBrush}"/><Setter TargetName="UsbTrigger" Property="BorderThickness" Value="1"/></Trigger></ControlTemplate.Triggers></ControlTemplate></ToggleButton.Template>
+          <StackPanel Orientation="Horizontal">
+            <Border Background="#29413B1B" CornerRadius="9" Width="20" Height="20" Margin="0,0,6,0"><Viewbox Width="13" Height="13"><Canvas Width="24" Height="24"><Path Data="M11 7A1 1 0 1 1 9 7A1 1 0 1 1 11 7 M5 20A1 1 0 1 1 3 20A1 1 0 1 1 5 20 M4.7 19.3L19 5 M21 3L18 4L20 6Z M9.26 7.68L5 12L7 17 M10 14L15 16L18.5 12.5 M18 12L19 11L20 12L19 13Z" Stroke="{StaticResource AccentBrush}" StrokeThickness="1.8" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Canvas></Viewbox></Border>
+            <TextBlock x:Name="PowerPointUsbSummary" Text="Presentador USB · Apagado" FontSize="11" FontWeight="Medium" VerticalAlignment="Center"/>
+            <Path Data="M0 4L4 0L8 4" Stroke="{StaticResource MutedBrush}" StrokeThickness="1.3" VerticalAlignment="Center" Margin="9,0,0,0"/>
+          </StackPanel>
+        </ToggleButton>
+        <Popup x:Name="PowerPointUsbPopup" Placement="Top" PlacementTarget="{Binding ElementName=PowerPointUsbOptions}" IsOpen="{Binding IsChecked, ElementName=PowerPointUsbOptions, Mode=TwoWay}" StaysOpen="False" AllowsTransparency="True" VerticalOffset="-6" Opened="PowerPointUsbPopupOpened">
+          <Border Width="294" Background="White" BorderBrush="#DDDDDF" BorderThickness="1" CornerRadius="12" Padding="16" TextElement.Foreground="#24272C" PreviewKeyDown="PowerPointUsbPopupKeyDown">
+            <StackPanel>
+              <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock Text="Controlar con presentador USB" FontSize="12" FontWeight="Medium" VerticalAlignment="Center"/>
+                <CheckBox x:Name="PowerPointUsbCheck" Grid.Column="1" Click="TogglePresenterClick" Style="{StaticResource ServiceSwitch}" AutomationProperties.Name="Controlar con presentador USB" Margin="8,0,0,0"/>
+              </Grid>
+              <TextBlock Text="Avanza o retrocede diapositivas&#x0a;aunque otra ventana esté activa." Foreground="#70747D" FontSize="11" LineHeight="20" Margin="0,7,0,12"/>
+              <Border BorderBrush="#E5E5E7" BorderThickness="0,1,0,0" Margin="-16,0,-16,12"/>
+              <TextBlock Text="Teclas del control" Foreground="#70747D" FontSize="11" FontWeight="Medium" Margin="0,0,0,7"/>
+              <ComboBox x:Name="PowerPointUsbKeys" SelectionChanged="PowerPointUsbKeysChanged" AutomationProperties.Name="Teclas del presentador USB" MinHeight="36" Background="White" Foreground="#24272C" BorderBrush="#DADADD" FontSize="12">
+                <ComboBox.Template><ControlTemplate TargetType="ComboBox"><Grid>
+                  <Border x:Name="UsbKeyFrame" Background="White" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="9"/>
+                  <ToggleButton Focusable="False" ClickMode="Press" IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"><ToggleButton.Template><ControlTemplate TargetType="ToggleButton"><Border Background="Transparent"/></ControlTemplate></ToggleButton.Template></ToggleButton>
+                  <ContentPresenter Margin="10,0,30,0" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" TextElement.Foreground="#24272C" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                  <Path Data="M0 3L3 0L6 3 M0 7L3 10L6 7" Stroke="#8C8F96" StrokeThickness="1" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0" IsHitTestVisible="False"/>
+                  <Popup x:Name="PART_Popup" Placement="Bottom" AllowsTransparency="True" IsOpen="{TemplateBinding IsDropDownOpen}" Focusable="False"><Border Background="White" BorderBrush="#DADADD" BorderThickness="1" CornerRadius="9" MinWidth="{TemplateBinding ActualWidth}" Padding="3"><ScrollViewer CanContentScroll="True"><ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/></ScrollViewer></Border></Popup>
+                </Grid><ControlTemplate.Triggers><Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="UsbKeyFrame" Property="BorderBrush" Value="#84C318"/></Trigger><Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.5"/></Trigger></ControlTemplate.Triggers></ControlTemplate></ComboBox.Template>
+                <ComboBox.ItemContainerStyle><Style TargetType="ComboBoxItem"><Setter Property="Foreground" Value="#24272C"/><Setter Property="Background" Value="White"/><Setter Property="Padding" Value="10,8"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBoxItem"><Border x:Name="Option" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}"><ContentPresenter/></Border><ControlTemplate.Triggers><Trigger Property="IsHighlighted" Value="True"><Setter TargetName="Option" Property="Background" Value="#EFF5E7"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style></ComboBox.ItemContainerStyle>
+                <ComboBoxItem Content="Av Pág / Re Pág"/><ComboBoxItem Content="Flechas derecha / izquierda"/>
+              </ComboBox>
+              <StackPanel Orientation="Horizontal" Margin="0,12,0,0"><Ellipse x:Name="PowerPointUsbIndicator" Width="6" Height="6" Fill="#84C318" Margin="0,0,6,0"/><TextBlock x:Name="PowerPointUsbStatus" Foreground="#70747D" FontSize="10" Text="Desactivado"/></StackPanel>
+            </StackPanel>
+          </Border>
+        </Popup>
+      </Grid>
     </Grid>
   </Border>
+
 </ad:LayoutAnchorable>
 <ad:LayoutAnchorable Title="Biblia" ContentId="bible" CanClose="False" CanHide="True" CanAutoHide="False" CanDockAsTabbedDocument="False">
 <Border x:Name="BiblePanel" Background="{StaticResource PanelBrush}" CornerRadius="0" Padding="{StaticResource SourcePanelPadding}">
@@ -943,60 +1042,86 @@
           </Border>
 </ad:LayoutAnchorable>
 <ad:LayoutAnchorable Title="Notas" ContentId="text" CanClose="False" CanHide="True" CanAutoHide="False" CanDockAsTabbedDocument="False">
-<Border x:Name="TextPanel" Background="{StaticResource PanelBrush}" CornerRadius="0" Padding="{StaticResource SourcePanelPadding}">
+<Border x:Name="TextPanel" Background="#171719" CornerRadius="0" Padding="14,20,14,14">
   <Grid>
     <Grid x:Name="NotesOverview">
-      <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-      <DockPanel Margin="0,0,0,10">
-        <Button DockPanel.Dock="Right" Content="+ Nueva" Click="NewNoteClick" Background="#FFE08A" Foreground="{StaticResource OnActionBrush}" MinHeight="34" Padding="12,5" AutomationProperties.Name="Crear nota"/>
-        <TextBlock Text="Mis notas" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>
+      <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+      <DockPanel Margin="0,0,0,12">
+        <Button DockPanel.Dock="Right" Content="＋ Nueva" Click="NewNoteClick" MinHeight="34" Padding="12,5" VerticalAlignment="Top" AutomationProperties.Name="Crear nota"/>
+        <StackPanel><TextBlock Text="Notas del culto" FontSize="14" FontWeight="SemiBold"/><TextBlock Text="Solo tú las ves, a menos que las proyectes" Style="{StaticResource MutedText}" FontSize="11" Margin="0,3,0,0" TextWrapping="Wrap"/></StackPanel>
       </DockPanel>
       <Grid Grid.Row="1" Margin="0,0,0,10">
-        <TextBox x:Name="NotesSearchBox" TextChanged="NotesSearchChanged" AutomationProperties.Name="Buscar en las notas" ToolTip="Buscar en títulos y contenido"/>
-        <TextBlock Text="Buscar notas" Margin="13,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="12">
-          <TextBlock.Style><Style TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/><Setter Property="Visibility" Value="Collapsed"/>
-            <Style.Triggers>
-              <DataTrigger Binding="{Binding Text, ElementName=NotesSearchBox}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger>
-              <DataTrigger Binding="{Binding IsKeyboardFocused, ElementName=NotesSearchBox}" Value="True"><Setter Property="Foreground" Value="{StaticResource TextBrush}"/></DataTrigger>
-            </Style.Triggers>
-          </Style></TextBlock.Style>
+        <TextBox x:Name="NotesSearchBox" TextChanged="NotesSearchChanged" AutomationProperties.Name="Buscar en las notas" ToolTip="Buscar en títulos y contenido" Padding="32,7,12,7" MinHeight="34"/>
+        <Path Data="M10 6 A4 4 0 1 1 2 6 A4 4 0 1 1 10 6 M9 9L13 13" Stroke="{StaticResource MutedBrush}" StrokeThickness="1.3" Width="14" Height="14" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="12,0,0,0" IsHitTestVisible="False"/>
+        <TextBlock Text="Buscar en notas…" Margin="33,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="12" Foreground="{StaticResource MutedBrush}">
+          <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Text, ElementName=NotesSearchBox}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
         </TextBlock>
       </Grid>
-      <Grid Grid.Row="2">
-        <ListBox x:Name="NotesList" SelectionChanged="NotesSelectionChanged" AutomationProperties.Name="Notas guardadas en esta PC">
-          <ListBox.ItemTemplate><DataTemplate><StackPanel>
-            <TextBlock Text="{Binding DisplayTitle}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis"/>
-            <TextBlock Text="{Binding ModifiedLabel}" FontSize="12" Style="{StaticResource ItemMetadataText}" Margin="0,4,0,0"/>
-            <TextBlock Text="{Binding Preview}" FontSize="12" Style="{StaticResource ItemMetadataText}" TextTrimming="CharacterEllipsis" Margin="0,4,0,0"/>
-          </StackPanel></DataTemplate></ListBox.ItemTemplate>
+      <WrapPanel x:Name="NotesFilters" Grid.Row="2" Margin="0,0,0,0">
+        <ToggleButton Tag="all" Style="{StaticResource NotesFilterChip}" Click="NotesFilterClick" AutomationProperties.Name="Todas las notas"/>
+        <ToggleButton Tag="sermon" Style="{StaticResource NotesFilterChip}" Click="NotesFilterClick" AutomationProperties.Name="Notas de sermón"/>
+        <ToggleButton Tag="anuncio" Style="{StaticResource NotesFilterChip}" Click="NotesFilterClick" AutomationProperties.Name="Notas de anuncios"/>
+        <ToggleButton Tag="oracion" Style="{StaticResource NotesFilterChip}" Click="NotesFilterClick" AutomationProperties.Name="Notas de oración"/>
+        <ToggleButton Tag="recordatorio" Style="{StaticResource NotesFilterChip}" Click="NotesFilterClick" AutomationProperties.Name="Recordatorios"/>
+      </WrapPanel>
+      <Grid Grid.Row="3">
+        <ListBox x:Name="NotesList" SelectionChanged="NotesSelectionChanged" AutomationProperties.Name="Notas guardadas en esta PC" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+          <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Padding" Value="0"/><Setter Property="Margin" Value="0,0,0,8"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem"><Border x:Name="NoteFocus" BorderThickness="1" CornerRadius="16" BorderBrush="Transparent"><ContentPresenter/></Border><ControlTemplate.Triggers><Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="NoteFocus" Property="BorderBrush" Value="{StaticResource AccentBrush}"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style></ListBox.ItemContainerStyle>
+          <ListBox.GroupStyle><GroupStyle><GroupStyle.HeaderTemplate><DataTemplate><TextBlock Text="{Binding Name}" Foreground="{StaticResource MutedBrush}" FontSize="10" FontWeight="SemiBold" Margin="3,10,0,8"/></DataTemplate></GroupStyle.HeaderTemplate></GroupStyle></ListBox.GroupStyle>
+          <ListBox.ItemTemplate><DataTemplate>
+            <Border x:Name="NoteCard" Background="#1C1C1E" BorderBrush="#353537" BorderThickness="1" CornerRadius="16" Padding="12">
+              <StackPanel>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                  <Ellipse Width="8" Height="8" Fill="{Binding CategoryColor}" Margin="0,0,8,0"/>
+                  <TextBlock Grid.Column="1" Text="{Binding DisplayTitle}" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis"/>
+                  <Viewbox Grid.Column="2" Width="13" Height="13" Margin="7,0,0,0" ToolTip="Fijada"><Viewbox.Style><Style TargetType="Viewbox"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsPinned}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Viewbox.Style><Canvas Width="24" Height="24"><Path Data="M16 9V3H8V9L5 12V15H19V12Z M12 15V22" Stroke="{StaticResource MutedBrush}" StrokeThickness="2" Fill="{StaticResource MutedBrush}" StrokeLineJoin="Round"/></Canvas></Viewbox>
+                  <Viewbox Grid.Column="3" Width="14" Height="14" Margin="8,0,0,0" ToolTip="Visible en vista de moderador"><Viewbox.Style><Style TargetType="Viewbox"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding ShowInModerator}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Viewbox.Style><Canvas Width="24" Height="24"><Path Data="M2 12C6 4 18 4 22 12C18 20 6 20 2 12Z M15 12 A3 3 0 1 1 9 12 A3 3 0 1 1 15 12" Stroke="{StaticResource MutedBrush}" StrokeThickness="1.8"/></Canvas></Viewbox>
+                  <Button x:Name="NoteCardDeleteButton" Grid.Column="4" Click="DeleteNoteClick" Width="28" Height="28" MinHeight="28" Padding="6" Margin="6,0,0,0" Background="Transparent" BorderThickness="0" Foreground="{StaticResource MutedBrush}" ToolTip="Eliminar nota" AutomationProperties.Name="Eliminar nota">
+                    <Viewbox Width="15" Height="15"><Canvas Width="24" Height="24"><Path Data="M3 6H21 M9 6V3H15V6 M5 6L6 21H18L19 6 M10 10V17 M14 10V17" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/></Canvas></Viewbox>
+                  </Button>
+                </Grid>
+                <TextBlock Text="{Binding Preview}" Foreground="{StaticResource MutedBrush}" FontSize="12" LineHeight="20" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxHeight="40" Margin="16,6,0,7"/>
+                <StackPanel Orientation="Horizontal" Margin="16,0,0,0">
+                  <Border Background="{Binding CategoryBackground}" CornerRadius="8" Padding="6,2"><TextBlock Text="{Binding CategoryLabel}" Foreground="{Binding CategoryColor}" FontWeight="Medium" FontSize="10"/></Border>
+                  <TextBlock Text="{Binding ModifiedLabel}" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+            <DataTemplate.Triggers><Trigger SourceName="NoteCard" Property="IsMouseOver" Value="True"><Setter TargetName="NoteCard" Property="BorderBrush" Value="#656567"/></Trigger></DataTemplate.Triggers>
+          </DataTemplate></ListBox.ItemTemplate>
         </ListBox>
-        <TextBlock x:Name="NotesEmptyText" Style="{StaticResource MutedText}" TextAlignment="Center" VerticalAlignment="Center" Margin="12" IsHitTestVisible="False"/>
+        <TextBlock x:Name="NotesEmptyText" Style="{StaticResource MutedText}" TextAlignment="Center" TextWrapping="Wrap" VerticalAlignment="Center" Margin="12" IsHitTestVisible="False"/>
       </Grid>
-      <TextBlock Grid.Row="3" x:Name="NotesCountText" Style="{StaticResource MutedText}" Margin="0,10,0,0"/>
+      <DockPanel Grid.Row="4" Margin="0,8,0,0">
+        <Button DockPanel.Dock="Right" Content="Vista de moderador" Click="OpenNotesModeratorClick" FontSize="10" MinHeight="28" Padding="8,4" AutomationProperties.Name="Abrir notas privadas del moderador"/>
+        <TextBlock x:Name="NotesCountText" Style="{StaticResource MutedText}" FontSize="10" VerticalAlignment="Center" TextWrapping="Wrap"/>
+      </DockPanel>
     </Grid>
     <Grid x:Name="NotesEditor" Visibility="Collapsed">
-      <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+      <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
       <DockPanel>
-        <Button DockPanel.Dock="Right" Content="Eliminar nota" Click="DeleteNoteClick" FontSize="12" Padding="9,5" MinHeight="32"/>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+          <CheckBox x:Name="NotesPinnedCheck" Content="Fijar" Click="NoteOptionsChanged" VerticalAlignment="Center" FontSize="11" Margin="5,0,9,0" AutomationProperties.Name="Fijar nota arriba"/>
+          <Button Content="⋯" Click="NotesMoreClick" ToolTip="Más opciones de la nota" MinWidth="32" MinHeight="32" Padding="6,2"><Button.ContextMenu><ContextMenu><MenuItem Header="Duplicar nota" Click="DuplicateNoteClick"/><Separator/><MenuItem Header="Eliminar nota" Click="DeleteNoteClick"/></ContextMenu></Button.ContextMenu></Button>
+        </StackPanel>
         <Button Content="‹ Notas" Click="NotesBackClick" HorizontalAlignment="Left" FontSize="12" Padding="9,5" MinHeight="32"/>
       </DockPanel>
-      <StackPanel Grid.Row="1" Margin="0,8,0,3">
-        <TextBlock Text="Título" Style="{StaticResource MutedText}"/>
-        <TextBox x:Name="NotesTitleBox" FontSize="18" FontWeight="SemiBold" TextChanged="NotesChanged" Background="Transparent" Foreground="{StaticResource TextBrush}" BorderThickness="0" AutomationProperties.Name="Título de la nota"/>
-      </StackPanel>
-      <TextBlock Grid.Row="2" x:Name="NotesModifiedText" Style="{StaticResource MutedText}" Margin="0,0,0,10"/>
-      <Grid Grid.Row="3">
-        <TextBox x:Name="NotesBodyBox" TextChanged="NotesChanged" AcceptsReturn="True" AcceptsTab="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top" FontSize="15" Background="Transparent" Foreground="{StaticResource TextBrush}" BorderThickness="0" AutomationProperties.Name="Contenido de la nota"/>
-        <TextBlock Text="Escribe tu nota…" Margin="13,9,0,0" VerticalAlignment="Top" IsHitTestVisible="False">
-          <TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource MutedText}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Text, ElementName=NotesBodyBox}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
-        </TextBlock>
+      <ComboBox x:Name="NotesCategoryBox" Grid.Row="1" SelectedValuePath="Tag" SelectionChanged="NoteCategoryChanged" Margin="0,12,0,7" AutomationProperties.Name="Categoría de la nota"><ComboBoxItem Tag="sermon" Content="Sermón"/><ComboBoxItem Tag="anuncio" Content="Anuncio"/><ComboBoxItem Tag="oracion" Content="Oración"/><ComboBoxItem Tag="recordatorio" Content="Recordatorio"/></ComboBox>
+      <StackPanel Grid.Row="2" Margin="0,4,0,6"><TextBlock Text="Título" Style="{StaticResource MutedText}" FontSize="11"/><TextBox x:Name="NotesTitleBox" FontSize="18" FontWeight="SemiBold" TextChanged="NotesChanged" Background="Transparent" Foreground="{StaticResource TextBrush}" BorderThickness="0" AutomationProperties.Name="Título de la nota"/></StackPanel>
+      <Grid Grid.Row="3"><TextBox x:Name="NotesBodyBox" TextChanged="NotesChanged" AcceptsReturn="True" AcceptsTab="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top" FontSize="14" Background="Transparent" Foreground="{StaticResource TextBrush}" BorderThickness="0" AutomationProperties.Name="Contenido de la nota"/>
+        <TextBlock Text="Escribe aquí tus notas para el culto…" Margin="13,9,0,0" VerticalAlignment="Top" IsHitTestVisible="False" FontSize="12" TextWrapping="Wrap"><TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource MutedText}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Text, ElementName=NotesBodyBox}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
       </Grid>
-      <TextBlock Grid.Row="4" x:Name="NotesSaveState" Style="{StaticResource MutedText}" Margin="0,8,0,0"/>
+      <Grid Grid.Row="4" Margin="0,12,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/></Grid.ColumnDefinitions><CheckBox x:Name="NotesModeratorCheck" Style="{StaticResource ServiceSwitch}" Click="NoteOptionsChanged" AutomationProperties.Name="Mostrar nota en vista de moderador"/><TextBlock Grid.Column="1" Text="Mostrar en vista de moderador" FontSize="11" Style="{StaticResource MutedText}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="9,0,0,0"/></Grid>
+      <StackPanel Grid.Row="5" Margin="0,0,0,10"><TextBlock x:Name="NotesModifiedText" Style="{StaticResource MutedText}" FontSize="10"/><TextBlock x:Name="NotesSaveState" Style="{StaticResource MutedText}" FontSize="10" Margin="0,3,0,0"/></StackPanel>
+      <DockPanel Grid.Row="6">
+        <Button x:Name="NotesDeleteButton" DockPanel.Dock="Right" Content="Eliminar" Click="DeleteNoteClick" Foreground="#EF9C9C" Background="Transparent" Margin="8,0,0,0" AutomationProperties.Name="Eliminar esta nota"/>
+        <Button x:Name="NotesProjectButton" Content="Proyectar nota" Click="ProjectNoteClick" Background="{StaticResource ActionBrush}" Foreground="{StaticResource OnActionBrush}" AutomationProperties.Name="Proyectar o detener esta nota"/>
+      </DockPanel>
     </Grid>
   </Grid>
           </Border>
 </ad:LayoutAnchorable>
+
 <ad:LayoutAnchorable Title="YouTube" ContentId="youtube" CanClose="False" CanHide="True" CanAutoHide="False" CanDockAsTabbedDocument="False">
 <Border x:Name="YouTubePanel" Background="{StaticResource YouTubePanelBrush}" CornerRadius="0" Padding="{StaticResource SourcePanelPadding}">
             <Grid>

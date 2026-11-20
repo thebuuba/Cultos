@@ -27,6 +27,7 @@ public sealed record SceneTile
         new() { Id = "image", Label = "Imagen", Action = "image", Color = "#E6F3FC" },
         new() { Id = "video", Label = "Video", Action = "video", Color = "#FFF0D7" },
         new() { Id = "youtube", Label = "YouTube", Action = "youtube", Color = "#FFFFFF" },
-        new() { Id = "browser", Label = "Navegador", Action = "browser", Color = "#354E6D" }
+        new() { Id = "browser", Label = "Navegador", Action = "browser", Color = "#354E6D" },
+        new() { Id = "powerpoint", Label = "PowerPoint", Action = "powerpoint", Color = "#FFF0E9" }
     ];
 }

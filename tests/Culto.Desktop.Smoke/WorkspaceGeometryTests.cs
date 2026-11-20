@@ -26,15 +26,16 @@ internal static partial class Program
         });
         Test("Workspace corners are subtly rounded and the monitor card fills its panel", () =>
         {
-            foreach (var id in new[] { "scenes", "order" })
-                Check(Pane(id).Clip is RectangleGeometry { RadiusX: 8, RadiusY: 8 }, id + " does not have the workspace corner radius");
+            foreach (var id in new[] { "sources", "scenes", "order" })
+                Check(Pane(id).Clip is RectangleGeometry { RadiusX: 12, RadiusY: 12 }, id + " does not have the workspace corner radius");
             var production = (Border)window.FindName("ProductionPanel");
             var source = (Border)window.FindName("SourcesPanel");
-            Check(source.CornerRadius.BottomLeft == 8 && source.CornerRadius.BottomRight == 8, "Tabbed source card retains square bottom corners");
+            Check(source.CornerRadius.BottomLeft == 12 && source.CornerRadius.BottomRight == 12, "Tabbed source card retains square bottom corners");
             var caption = Descendants(Pane("sources")).OfType<AnchorablePaneTitle>().Single();
             var captionFrame = (Border)VisualTreeHelper.GetChild(caption, 0);
-            Check(captionFrame.CornerRadius.TopLeft == 8 && captionFrame.CornerRadius.TopRight == 8, "Tabbed source card retains square top corners");
-            Check(production.CornerRadius == new CornerRadius(8), "Monitor card retains large rounded corners");
+            Check(!caption.IsVisible || captionFrame.CornerRadius.TopLeft == 12 && captionFrame.CornerRadius.TopRight == 12,
+                "Visible source caption retains square top corners");
+            Check(production.CornerRadius == new CornerRadius(12), "Monitor card retains large rounded corners");
             var monitors = BoundsWithin(production, manager);
             var order = BoundsWithin(Pane("order"), manager);
             Check(order.Top - monitors.Bottom is >= 3 and <= 5, "Monitor card leaves a large empty gap above the order");

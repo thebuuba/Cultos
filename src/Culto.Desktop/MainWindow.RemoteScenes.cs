@@ -109,6 +109,11 @@ public partial class MainWindow
                 if (browser is null || !CheckMedia(browser)) return new(false, "Revisa la fuente navegador en la PC.");
                 ProjectBrowserSource(browser);
                 return new(_output is not null && _session.Live?.Id == browser.Id, "Navegador enviado a pantalla.");
+            case "powerpoint":
+                if (_powerPoint?.IsRunning != true || _powerPointCue is not { } presentation)
+                    return new(false, "Inicia una presentación desde PowerPoint en Culto Studio.");
+                PrepareCue(presentation.Copy()); ProjectPrepared();
+                return new(_session.Live?.Kind == CueKind.PowerPoint, "PowerPoint enviado a pantalla sin reiniciar.");
             default:
                 return new(false, "Escena no disponible.");
         }

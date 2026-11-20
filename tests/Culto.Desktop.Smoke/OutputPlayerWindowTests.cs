@@ -68,9 +68,41 @@ internal static partial class Program
                 player.Width = 480; player.Height = 320; player.UpdateLayout(); PumpFor(80);
                 var root = (FrameworkElement)player.Content;
                 var viewport = new Rect(root.RenderSize);
-                foreach (var name in new[] { "PlayerMonitor", "PlayerPause", "PlayerPosition", "PlayerVolume", "PlayerFullscreen" })
+                foreach (var name in new[] { "PlayerMonitor", "PlayerPause", "PlayerPosition", "PlayerFullscreen" })
                     CheckWithin((FrameworkElement)player.FindName(name), root, viewport, name);
                 Check(player.Owner is null, "Minimizing the console would hide the floating player");
+            });
+            Test("Enlarged preview has the same overlay and fullscreen without changing Program", () =>
+            {
+                var session = Field<PresentationSession>(window, "_session");
+                var live = session.Live;
+                var prepared = new Cue { Kind = CueKind.Video, Title = "Otro video preparado", FilePath = Path.Combine(AppContext.BaseDirectory, "fixtures", "test.mkv") };
+                Call(window, "PrepareCue", prepared, null); Call(window, "OpenPreviewViewer");
+                var previewWindow = Field<Window>(window, "_previewViewer");
+                try
+                {
+                    var preview = Field<ProjectionSurface>(window, "_preview");
+                    Until(() => preview.Duration > 0, "Prepared preview did not load");
+                    preview.Loop = true;
+                    PumpFor(150);
+                    preview.SetPaused(true);
+                    Call(window, "UpdatePreviewViewer");
+                    Check(previewWindow.FindName("PlayerOverlay") is FrameworkElement && previewWindow.FindName("PlayerFullscreen") is Button, "Preview is missing the shared player");
+                    Check(!((Slider)previewWindow.FindName("PlayerVolume")).IsEnabled, "Private preview exposes Program audio volume");
+                    var monitor = (OutputMonitor)previewWindow.FindName("PlayerMonitor");
+                    Check(ReferenceEquals(Field<VisualBrush>(monitor, "_localImage").Visual, preview), "Independent preview shows Program instead");
+                    Call(window, "PreviewFullscreenClick", window, new RoutedEventArgs());
+                    Check(previewWindow.WindowStyle == WindowStyle.None && ReferenceEquals(session.Live, live), "Preview fullscreen changed Program");
+                    Call(previewWindow, "ToggleFullscreen");
+                    Check(previewWindow.WindowStyle != WindowStyle.None, "Preview could not leave fullscreen");
+                    previewWindow.Width = 1000; previewWindow.Height = 650; previewWindow.UpdateLayout();
+                    CaptureDesignWindow(previewWindow, Path.Combine(Environment.CurrentDirectory, ".tools", "preview-player-overlay.png"));
+                    var overlay = (FrameworkElement)previewWindow.FindName("PlayerOverlay");
+                    var monitorBounds = BoundsWithin(monitor, (Visual)previewWindow.Content);
+                    var overlayBounds = BoundsWithin(overlay, (Visual)previewWindow.Content);
+                    Check(Math.Abs(monitorBounds.Bottom-overlayBounds.Bottom)<2 && overlayBounds.Width>=monitorBounds.Width-1, "Overlay leaves a footer outside the picture");
+                }
+                finally { previewWindow.Close(); }
             });
             Test("Floating player follows content changes and closing leaves output playing", () =>
             {

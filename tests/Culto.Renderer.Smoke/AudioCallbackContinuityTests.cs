@@ -29,8 +29,12 @@ internal static partial class Program
         var mux = new ProcessStartInfo("ffmpeg") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardError = true };
         foreach (var arg in new[] { "-v", "error", "-y", "-stream_loop", "-1", "-i", Path.Combine(Folder, "test.mkv"), "-i", Path.Combine(folder, "resampler-reference.m4a"), "-map", "0:v:0", "-map", "1:a:0", "-t", "20", "-vf", "scale=1920:1080", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "28", "-c:a", "copy", video }) mux.ArgumentList.Add(arg);
         using (var process = Process.Start(mux)!) { var error = process.StandardError.ReadToEndAsync(); await process.WaitForExitAsync(); Check(process.ExitCode == 0, "Video transport fixture generated: " + await error); }
+        var wma = Path.Combine(folder, "transport-reference.wma");
+        var wmaEncode = new ProcessStartInfo("ffmpeg") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardError = true };
+        foreach (var arg in new[] { "-v", "error", "-y", "-i", wav, "-ar", "44100", "-c:a", "wmav2", wma }) wmaEncode.ArgumentList.Add(arg);
+        using (var process = Process.Start(wmaEncode)!) { var error = process.StandardError.ReadToEndAsync(); await process.WaitForExitAsync(); Check(process.ExitCode == 0, "WMA transport fixture generated: " + await error); }
         var failures = new List<string>();
-        foreach (var path in new[] { wav, aac, video })
+        foreach (var path in new[] { wav, aac, wma, video })
         {
             using var surface = new ProjectionSurface(smoothTransitions: true) { Volume = 0,
                 Transitions = new Culto.Core.TransitionOptions { Kind = "Cut", AudioFadeInMilliseconds = 0, AudioFadeOutMilliseconds = 0 } };

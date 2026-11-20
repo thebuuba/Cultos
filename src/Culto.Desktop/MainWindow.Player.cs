@@ -19,7 +19,49 @@ public partial class MainWindow
         PositionSlider.PreviewKeyUp += (_, e) => { if (IsSeekKey(e.Key)) SeekOutput(); };
         UpdatePlayButton(PauseButton, true, false);
         UpdateMuteButton();
+        PlayerSeekHint.PlacementTarget = PositionSlider;
+        ToolTipService.SetIsEnabled(PositionSlider, false);
+        PlayerVolumePopup.Closed += (_, _) => DeferPlaybackOverlayUpdate();
+        VolumeSlider.LostMouseCapture += PlayerVolumeMouseLeave;
+        VolumeSlider.LostKeyboardFocus += PlayerVolumeMouseLeave;
+        MuteButton.PreviewKeyDown += (_, e) =>
+        {
+            if (e.Key != Key.Up) return;
+            PlayerVolumePopup.IsOpen = true; VolumeSlider.Focus(); e.Handled = true;
+        };
+        PlayerVolumePopup.PreviewKeyDown += (_, e) =>
+        {
+            if (e.Key != Key.Escape) return;
+            PlayerVolumePopup.IsOpen = false; PauseButton.Focus(); e.Handled = true;
+        };
         InitializePlaybackOverlay();
+    }
+
+    private void PlayerSeekMouseMove(object sender, MouseEventArgs e)
+    {
+        var duration = _output?.Duration ?? 0;
+        if (!PositionSlider.IsEnabled || duration <= 0) { PlayerSeekHint.IsOpen = false; return; }
+        var x = e.GetPosition(PositionSlider).X;
+        var fraction = Math.Clamp((x - 12) / Math.Max(1, PositionSlider.ActualWidth - 24), 0, 1);
+        PlayerSeekHintText.Text = FormatTime(duration * fraction);
+        PlayerSeekHint.HorizontalOffset = Math.Clamp(x - 18, 0, Math.Max(0, PositionSlider.ActualWidth - 36));
+        PlayerSeekHint.IsOpen = true;
+    }
+    private void PlayerSeekMouseLeave(object sender, MouseEventArgs e) => PlayerSeekHint.IsOpen = false;
+    private void PlayerVolumeMouseEnter(object sender, RoutedEventArgs e)
+    {
+        PlayerVolumePopup.IsOpen = true;
+    }
+    private void PlayerVolumeMouseLeave(object sender, RoutedEventArgs e) => Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, new Action(() =>
+    {
+        if (!MuteButton.IsMouseOver && PlayerVolumePopup.Child?.IsMouseOver != true
+            && !VolumeSlider.IsKeyboardFocusWithin && !VolumeSlider.IsMouseCaptureWithin) PlayerVolumePopup.IsOpen = false;
+    }));
+    private void PlayerFullscreenClick(object sender, RoutedEventArgs e)
+    {
+        PlayerSeekHint.IsOpen = PlayerVolumePopup.IsOpen = false;
+        if (ReferenceEquals(_playbackOverlayHost, PreviewOverlayHost)) PreviewFullscreenClick(sender, e);
+        else { OpenOutputPlayer(); _outputPlayerWindow?.EnterFullscreen(); }
     }
 
     private static bool IsSeekKey(Key key) => key is Key.Left or Key.Right or Key.Up or Key.Down
@@ -84,7 +126,7 @@ public partial class MainWindow
         var muted = VolumeSlider.Value <= 0;
         MuteButton.Content = muted ? "\uE74F" : "\uE767";
         var label = muted ? "Restaurar volumen" : "Silenciar el programa";
-        MuteButton.ToolTip = label + ". YouTube se controla en Chrome o Windows.";
+        MuteButton.ToolTip = label + " · Pasa el cursor para ajustar el volumen. YouTube se controla en Chrome o Windows.";
         AutomationProperties.SetName(MuteButton, label);
     }
 

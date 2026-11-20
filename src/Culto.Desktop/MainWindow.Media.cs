@@ -145,7 +145,7 @@ public partial class MainWindow
     {
         if (!_ready || e.ChangedButton != MouseButton.Left || ContentRowAt(MediaList, e.OriginalSource)?.DataContext is not Cue cue) return;
         e.Handled = true;
-        PrepareCue(cue); ProjectPreparedFromInput();
+        PrepareCue(cue); PlayFileFromInput();
     }
     private void MediaListKeyDown(object sender, KeyEventArgs e)
     {
@@ -170,7 +170,7 @@ public partial class MainWindow
             }
         }
         if (e.Key != Key.Enter || e.IsRepeat || MediaList.SelectedItem is not Cue cue) return;
-        e.Handled = true; PrepareCue(cue); ProjectPreparedFromInput();
+        e.Handled = true; PrepareCue(cue); PlayFileFromInput();
     }
     private void AddMediaToPlanClick(object sender, RoutedEventArgs e)
     { if (MediaList.SelectedItem is Cue cue) AddToPlan(cue); }

@@ -45,6 +45,7 @@ public partial class MainWindow
     {
         if (MediaPlaybackPanel is null) return;
         visible &= HasVisibleMediaOutput;
+        if (!visible) { PlayerSeekHint.IsOpen = false; PlayerVolumePopup.IsOpen = false; }
         MediaPlaybackPanel.IsHitTestVisible = visible;
         if (_playbackOverlayVisible == visible) return;
         _playbackOverlayVisible = visible;
@@ -64,7 +65,7 @@ public partial class MainWindow
         if (_playbackOverlayHost is null || ReferenceEquals(_playbackOverlayHost, PreviewOverlayHost) && !PreviewCanHostPlayback)
             PlacePlaybackOverlay(LiveOverlayHost);
 
-        var held = _outputScrubbing || MediaPlaybackPanel.IsMouseCaptureWithin || PlaybackKeyboardFocusHeld;
+        var held = _outputScrubbing || MediaPlaybackPanel.IsMouseCaptureWithin || PlaybackKeyboardFocusHeld || PlayerVolumePopup.IsOpen;
         if (!held)
         {
             if (PreviewCanHostPlayback && PreviewViewport?.IsMouseOver == true) PlacePlaybackOverlay(PreviewOverlayHost);

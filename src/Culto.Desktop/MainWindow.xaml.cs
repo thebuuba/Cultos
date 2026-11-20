@@ -132,7 +132,10 @@ public partial class MainWindow : Window
         _preparedScene = null;
         _independentScenePreview = false;
         _preparedReading = reading;
+        if (cue.Kind == CueKind.PowerPoint) _currentPowerPointFile = cue;
         _session.Prepare(cue);
+        if (cue.Kind == CueKind.PowerPoint) RefreshPowerPointFiles();
+        if (cue.Kind == CueKind.PowerPoint) LoadPowerPointSlides(cue);
         RenderPreparedPreview();
         PreparedTitleText.Text = cue.Title;
         UpdateUsabilityState();
@@ -173,6 +176,7 @@ public partial class MainWindow : Window
         BlackoutButton.ToolTip = _session.IsBlackout ? "Restaurar contenido" : "Fondo negro";
         ChurchBackgroundButton.ToolTip = "Logo";
         UpdateSceneActiveStates();
+        UpdateNoteProjectionButton();
         RefreshSceneChoices();
         UpdateUsabilityState();
         SyncPreviewSource();
@@ -255,6 +259,7 @@ public partial class MainWindow : Window
         try { if (_remote is not null) await _remote.DisposeAsync(); }
         catch (Exception) { /* Closing must still release the native media players. */ }
         _outputPlayerWindow?.Close();
+        _previewViewer?.Close();
         CloseOutput();
         _preview?.Dispose();
         PreviewLiveMonitor.Dispose();

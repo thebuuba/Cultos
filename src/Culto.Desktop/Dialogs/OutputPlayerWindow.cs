@@ -12,7 +12,7 @@ using Culto.Desktop.Services;
 namespace Culto.Desktop.Dialogs;
 
 public sealed record OutputPlayerState(string Title, bool CanPause, bool CanSeek, bool Paused,
-    bool Capture, double Position, double Duration, double Volume, bool Loop);
+    bool Capture, double Position, double Duration, double Volume, bool Loop, bool Preview = false, bool ControlVolume = true);
 
 // A view of the existing compositor, never another media player or capture worker.
 public sealed class OutputPlayerWindow : Window
@@ -34,6 +34,9 @@ public sealed class OutputPlayerWindow : Window
     private WindowState _restoreState;
     private OutputPlayerState? _state;
     private readonly Grid _caption = new() { Height = 34 };
+    private readonly Border _controls = new() { VerticalAlignment = VerticalAlignment.Bottom, Padding = new Thickness(10, 40, 10, 8) };
+    private readonly Popup _volumePopup = new() { Placement = PlacementMode.Top, AllowsTransparency = true, StaysOpen = false };
+    private readonly CueThumbnail _cover = new() { Visibility = Visibility.Collapsed };
 
     public OutputPlayerWindow()
     {
@@ -58,13 +61,15 @@ public sealed class OutputPlayerWindow : Window
         _restart = CreateIconButton("PlayerRestart", "\uE72C", "Reiniciar", () => RestartRequested?.Invoke());
         _back = CreateIconButton("PlayerBack", "\uE892", "Retroceder 10 segundos", () => SkipRequested?.Invoke(-10));
         _forward = CreateIconButton("PlayerForward", "\uE893", "Avanzar 10 segundos", () => SkipRequested?.Invoke(10));
+        _back.Content = LineIcon("M3 11 A9 9 0 1 0 5.7 5.7 L3 8 M3 3V8H8");
+        _forward.Content = LineIcon("M21 11 A9 9 0 1 1 18.3 5.7 L21 8 M21 3V8H16");
         _mute = CreateIconButton("PlayerMute", "\uE767", "Silenciar el programa", () => MuteRequested?.Invoke());
         _fullscreen = CreateIconButton("PlayerFullscreen", "\uE740", "Pantalla completa · F11", ToggleFullscreen);
+        _fullscreen.Content = LineIcon("M8 3H3V8 M16 3H21V8 M21 16V21H16 M3 16V21H8");
         Register("PlayerLoop", _loop); Register("PlayerPin", _pin);
         var root = new Grid();
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         root.RowDefinitions.Add(new RowDefinition());
-        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         _caption.ColumnDefinitions.Add(new ColumnDefinition());
         _caption.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var captionTitle = new TextBlock { VerticalAlignment = VerticalAlignment.Center,
@@ -87,17 +92,47 @@ public sealed class OutputPlayerWindow : Window
         CaptionButton("PlayerClose", "\uE8BB", "Cerrar reproductor", Close);
         Grid.SetColumn(windowActions, 1); _caption.Children.Add(windowActions);
         root.Children.Add(_caption);
-        var image = new Border { Background = Brushes.Black, Child = Monitor, ClipToBounds = true };
+        var imageRoot = new Grid { Background = Brushes.Black, ClipToBounds = true };
+        imageRoot.Children.Add(Monitor); imageRoot.Children.Add(_cover);
+        var image = new Border { Background = Brushes.Black, Child = imageRoot, ClipToBounds = true };
         image.MouseLeftButtonDown += (_, e) =>
         { if (e.ClickCount == 2) { ToggleFullscreen(); e.Handled = true; } };
         Grid.SetRow(image, 1); root.Children.Add(image);
-        var controls = new StackPanel { Margin = new Thickness(16, 8, 16, 12) };
+        _controls.Background = new LinearGradientBrush(new GradientStopCollection {
+            new(Color.FromArgb(0,0,0,0),0), new(Color.FromArgb(128,0,0,0),.5), new(Color.FromArgb(217,0,0,0),1) }, new Point(0,0), new Point(0,1));
+        Register("PlayerOverlay", _controls);
+        var controls = new StackPanel();
+        _position.Margin = new Thickness(0); _position.Height = 24;
+        _position.Foreground = (Brush)Application.Current.FindResource("AccentBrush");
+        _position.Background = new SolidColorBrush(Color.FromArgb(102,95,98,101));
         controls.Children.Add(_position);
-        var transport = new WrapPanel { VerticalAlignment = VerticalAlignment.Center };
-        foreach (var control in new UIElement[] { _restart, _back, _pause, _forward, _time, _mute, _volume, _loop, _pin, _fullscreen })
-            transport.Children.Add(control);
-        controls.Children.Add(transport);
-        Grid.SetRow(controls, 2); root.Children.Add(controls);
+        var transport = new DockPanel { Height = 32, LastChildFill = true };
+        DockPanel.SetDock(_fullscreen, Dock.Right); transport.Children.Add(_fullscreen);
+        var actions = new StackPanel { Orientation = Orientation.Horizontal };
+        foreach (var control in new UIElement[] { _pause, _back, _forward, _mute, _time }) actions.Children.Add(control);
+        transport.Children.Add(actions); controls.Children.Add(transport);
+        _time.Foreground = Brushes.White; _time.FontSize = 11; _time.Margin = new Thickness(6,0,0,0);
+        _volume.Width = 100; _volume.Margin = new Thickness(0);
+        _volume.Foreground = _position.Foreground;
+        var volumeHost = new Border { Background = new SolidColorBrush(Color.FromArgb(238,21,22,24)), CornerRadius = new CornerRadius(8), Padding = new Thickness(10,5,10,5), Child = _volume };
+        _volumePopup.Child = volumeHost; _volumePopup.PlacementTarget = _mute;
+        _mute.MouseEnter += (_, _) => _volumePopup.IsOpen = true;
+        _mute.GotKeyboardFocus += (_, _) => _volumePopup.IsOpen = true;
+        _mute.PreviewKeyDown += (_, e) => { if (e.Key == Key.Up) { _volumePopup.IsOpen = true; _volume.Focus(); e.Handled = true; } };
+        _volumePopup.PreviewKeyDown += (_, e) => { if (e.Key == Key.Escape) { _volumePopup.IsOpen = false; _pause.Focus(); e.Handled = true; } };
+        void CloseVolume() => Dispatcher.BeginInvoke(new Action(() => { if (!_mute.IsMouseOver && !volumeHost.IsMouseOver && !_volume.IsKeyboardFocusWithin && !_volume.IsMouseCaptureWithin) _volumePopup.IsOpen = false; }));
+        _mute.MouseLeave += (_, _) => CloseVolume(); volumeHost.MouseLeave += (_, _) => CloseVolume();
+        _volume.LostKeyboardFocus += (_, _) => CloseVolume();
+        controls.Children.Add(_volumePopup); _controls.Child = controls; imageRoot.Children.Add(_controls);
+        var menu = new ContextMenu();
+        var repeatItem = new MenuItem { Header = "Repetir", IsCheckable = true };
+        var pinItem = new MenuItem { Header = "Fijar ventana", IsCheckable = true };
+        repeatItem.Click += (_, _) => _loop.IsChecked = repeatItem.IsChecked;
+        pinItem.Click += (_, _) => _pin.IsChecked = pinItem.IsChecked;
+        var restartItem = new MenuItem { Header = "Volver al inicio" }; restartItem.Click += (_, _) => RestartRequested?.Invoke();
+        menu.Items.Add(repeatItem); menu.Items.Add(pinItem); menu.Items.Add(restartItem);
+        menu.Opened += (_, _) => { repeatItem.IsChecked = _loop.IsChecked == true; repeatItem.IsEnabled = restartItem.IsEnabled = _state?.CanSeek == true; pinItem.IsChecked = _pin.IsChecked == true; };
+        image.ContextMenu = menu;
         Content = root;
         _volume.ValueChanged += (_, _) => { if (!_updating) VolumeRequested?.Invoke(_volume.Value); };
         _loop.Checked += (_, _) => { if (!_updating) LoopRequested?.Invoke(true); };
@@ -106,16 +141,22 @@ public sealed class OutputPlayerWindow : Window
         _pin.Unchecked += (_, _) => Topmost = _isFullscreen;
         WireSeek();
         PreviewKeyDown += PlayerKeyDown;
-        Closed += (_, _) => Monitor.Dispose();
+        Closed += (_, _) => { _volumePopup.IsOpen = false; Monitor.Dispose(); };
         Update(new("Sin contenido", false, false, true, false, 0, 0, 80, false));
     }
 
     private void Register(string name, FrameworkElement element) { element.Name = name; RegisterName(name, element); }
+    private static FrameworkElement LineIcon(string data) => new System.Windows.Shapes.Path
+    {
+        Data = Geometry.Parse(data), Width = 17, Height = 17, Stretch = Stretch.Uniform, Stroke = Brushes.White,
+        StrokeThickness = 1.8, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round, StrokeLineJoin = PenLineJoin.Round
+    };
 
     private Button CreateIconButton(string name, string glyph, string label, Action action)
     {
         var button = new Button { Content = glyph, FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 17,
-            MinWidth = 38, MinHeight = 38, Padding = new Thickness(9), Margin = new Thickness(2), ToolTip = label };
+            Width = 30, Height = 30, MinWidth = 0, MinHeight = 30, Padding = new Thickness(0), Margin = new Thickness(1,0,1,0), ToolTip = label,
+            Background = Brushes.Transparent, BorderBrush = Brushes.Transparent, Foreground = Brushes.White };
         Register(name, button); AutomationProperties.SetName(button, label);
         button.Click += (_, _) => action(); return button;
     }
@@ -125,7 +166,7 @@ public sealed class OutputPlayerWindow : Window
         _state = state; _updating = true;
         try
         {
-            Title = state.Title + " — Reproductor de salida";
+            Title = state.Title + (state.Preview ? " — Vista previa ampliada" : " — Reproductor de salida");
             _pause.IsEnabled = state.CanPause;
             _pause.Visibility = state.Capture ? Visibility.Collapsed : Visibility.Visible;
             _pause.Content = state.Paused ? "\uE768" : "\uE769";
@@ -138,11 +179,17 @@ public sealed class OutputPlayerWindow : Window
             _time.Text = state.Capture ? "EN DIRECTO" : FormatTime(_scrubbing ? _position.Value * state.Duration : state.Position)
                 + " / " + FormatTime(state.Duration);
             _volume.Value = state.Volume; _loop.IsChecked = state.Loop;
+            _volume.IsEnabled = _mute.IsEnabled = state.ControlVolume;
             _mute.Content = state.Volume <= 0 ? "\uE74F" : "\uE767";
             var muteLabel = state.Volume <= 0 ? "Restaurar volumen" : "Silenciar el programa";
             _mute.ToolTip = muteLabel; AutomationProperties.SetName(_mute, muteLabel);
         }
         finally { _updating = false; }
+    }
+    public void SetCover(Culto.Core.Cue? cue)
+    {
+        _cover.Cue = cue; _cover.Visibility = cue is null ? Visibility.Collapsed : Visibility.Visible;
+        Monitor.Visibility = cue is null ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void WireSeek()
@@ -166,7 +213,7 @@ public sealed class OutputPlayerWindow : Window
     private static string FormatTime(double seconds)
     {
         var time = TimeSpan.FromSeconds(double.IsFinite(seconds) ? Math.Max(0, seconds) : 0);
-        return time.TotalHours >= 1 ? time.ToString(@"h\:mm\:ss") : time.ToString(@"mm\:ss");
+        return time.TotalHours >= 1 ? time.ToString(@"h\:mm\:ss") : time.ToString(@"m\:ss");
     }
     private void PlayerKeyDown(object sender, KeyEventArgs e)
     {
@@ -179,6 +226,7 @@ public sealed class OutputPlayerWindow : Window
         if (e.Key is Key.Left or Key.Right && _state?.CanSeek == true)
         { SkipRequested?.Invoke(e.Key == Key.Left ? -5 : 5); e.Handled = true; }
     }
+    public void EnterFullscreen() { if (!_isFullscreen) ToggleFullscreen(); }
     private void ToggleFullscreen()
     {
         if (!_isFullscreen)
@@ -186,6 +234,7 @@ public sealed class OutputPlayerWindow : Window
             _restoreState = WindowState;
             _restoreBounds = WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds;
             _isFullscreen = true;
+            WindowChrome.GetWindowChrome(this).CaptionHeight = 0;
             _caption.Visibility = Visibility.Collapsed;
             var display = DisplayService.GetDisplays().First(d => d.DeviceName == DisplayService.GetWindowDevice(this));
             DisplayService.PlaceWindow(this, display, fullscreen: true);
@@ -193,12 +242,13 @@ public sealed class OutputPlayerWindow : Window
         else
         {
             _isFullscreen = false;
+            WindowChrome.GetWindowChrome(this).CaptionHeight = 34;
             _caption.Visibility = Visibility.Visible;
             WindowState = WindowState.Normal; WindowStyle = WindowStyle.SingleBorderWindow; ResizeMode = ResizeMode.CanResize;
             Left = _restoreBounds.Left; Top = _restoreBounds.Top; Width = _restoreBounds.Width; Height = _restoreBounds.Height;
             WindowState = _restoreState; Topmost = _pin.IsChecked == true;
         }
-        _fullscreen.Content = _isFullscreen ? "\uE73F" : "\uE740";
+        _fullscreen.Content = LineIcon(_isFullscreen ? "M3 8H8V3 M16 3V8H21 M21 16H16V21 M8 21V16H3" : "M8 3H3V8 M16 3H21V8 M21 16V21H16 M3 16V21H8");
         var label = _isFullscreen ? "Salir de pantalla completa · Esc" : "Pantalla completa · F11";
         _fullscreen.ToolTip = label; AutomationProperties.SetName(_fullscreen, label);
     }

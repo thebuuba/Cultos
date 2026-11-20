@@ -117,7 +117,7 @@ public partial class MainWindow
         {
             IsHitTestVisible = false;
             drawing.DrawRoundedRectangle(new SolidColorBrush(Color.FromArgb(75, 36, 178, 126)),
-                new Pen(new SolidColorBrush(Color.FromRgb(36, 178, 126)), 2), bounds, 12, 12);
+                new Pen((Brush)FindResource("AccentBrush"), 2), bounds, 12, 12);
         }
     }
 }

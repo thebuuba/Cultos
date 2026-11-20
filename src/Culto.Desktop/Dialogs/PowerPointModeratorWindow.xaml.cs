@@ -35,6 +35,11 @@ public partial class PowerPointModeratorWindow : Window
         ModeratorNextImage.Source = next;
         ModeratorNextEmpty.Visibility = next is null ? Visibility.Visible : Visibility.Collapsed;
     }
+    public void SetServiceNotes(string notes)
+    {
+        ModeratorServiceNotes.Text = "Notas del culto\n\n" + notes;
+        ModeratorServiceNotes.Visibility = string.IsNullOrWhiteSpace(notes) ? Visibility.Collapsed : Visibility.Visible;
+    }
 
     public void UpdateState(string title, int slide, int count, bool running, bool controllable, bool paused, bool blackout, bool hidden)
     {
@@ -59,6 +64,6 @@ public partial class PowerPointModeratorWindow : Window
     private void PauseClick(object sender, RoutedEventArgs e) => PauseRequested?.Invoke();
     private void RestartClick(object sender, RoutedEventArgs e) => RestartRequested?.Invoke();
     private void BlackoutClick(object sender, RoutedEventArgs e) => BlackoutRequested?.Invoke();
-    private void SmallerNotesClick(object sender, RoutedEventArgs e) => ModeratorNotes.FontSize = Math.Max(14, ModeratorNotes.FontSize - 2);
-    private void LargerNotesClick(object sender, RoutedEventArgs e) => ModeratorNotes.FontSize = Math.Min(36, ModeratorNotes.FontSize + 2);
+    private void SmallerNotesClick(object sender, RoutedEventArgs e) => ModeratorServiceNotes.FontSize = ModeratorNotes.FontSize = Math.Max(14, ModeratorNotes.FontSize - 2);
+    private void LargerNotesClick(object sender, RoutedEventArgs e) => ModeratorServiceNotes.FontSize = ModeratorNotes.FontSize = Math.Min(36, ModeratorNotes.FontSize + 2);
 }

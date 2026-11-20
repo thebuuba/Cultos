@@ -6,31 +6,32 @@
     <Application.Resources>
         <FontFamily x:Key="ConsoleFont">/CultoStudio;component/Assets/Fonts/#Lexend</FontFamily>
         <!-- Shared surfaces and states for the operator console and dialogs. -->
-        <SolidColorBrush x:Key="CanvasBrush" Color="#1F2023" />
-        <SolidColorBrush x:Key="PanelBrush" Color="#2A2B2F" />
-        <SolidColorBrush x:Key="YouTubePanelBrush" Color="#2A2B2F" />
-        <SolidColorBrush x:Key="HymnPanelBrush" Color="#2A2B2F" />
-        <SolidColorBrush x:Key="RaisedBrush" Color="#3A3B40" />
-        <SolidColorBrush x:Key="BorderBrush" Color="#858893" />
-        <SolidColorBrush x:Key="PanelBorderBrush" Color="#35363B" />
+        <SolidColorBrush x:Key="CanvasBrush" Color="#191919" />
+        <SolidColorBrush x:Key="PanelBrush" Color="#242424" />
+        <SolidColorBrush x:Key="YouTubePanelBrush" Color="#242424" />
+        <SolidColorBrush x:Key="HymnPanelBrush" Color="#242424" />
+        <SolidColorBrush x:Key="RaisedBrush" Color="#303030" />
+        <SolidColorBrush x:Key="BorderBrush" Color="#858585" />
+        <SolidColorBrush x:Key="PanelBorderBrush" Color="#353535" />
         <SolidColorBrush x:Key="TextBrush" Color="#F5F5F5" />
-        <SolidColorBrush x:Key="MutedBrush" Color="#B1B3BB" />
-        <SolidColorBrush x:Key="AccentBrush" Color="#24B27E" />
-        <SolidColorBrush x:Key="ActionBrush" Color="#24B27E" />
-        <SolidColorBrush x:Key="AccentTextBrush" Color="#38D399" />
-        <SolidColorBrush x:Key="OnActionBrush" Color="#1F2023" />
+        <SolidColorBrush x:Key="MutedBrush" Color="#B5B5B5" />
+        <SolidColorBrush x:Key="AccentBrush" Color="#BEF264" />
+        <SolidColorBrush x:Key="ActionBrush" Color="#BEF264" />
+        <SolidColorBrush x:Key="AccentTextBrush" Color="#BEF264" />
+        <SolidColorBrush x:Key="OnActionBrush" Color="#171717" />
         <SolidColorBrush x:Key="AmberBrush" Color="#E7BE90" />
-        <SolidColorBrush x:Key="HoverBrush" Color="#34353A" />
-        <SolidColorBrush x:Key="SelectedBrush" Color="#3A3B40" />
-        <SolidColorBrush x:Key="FocusSurfaceBrush" Color="#C9DED6" />
-        <SolidColorBrush x:Key="InputBrush" Color="#34353A" />
+        <SolidColorBrush x:Key="HoverBrush" Color="#343434" />
+        <SolidColorBrush x:Key="SelectedBrush" Color="#303426" />
+        <SolidColorBrush x:Key="FocusSurfaceBrush" Color="#D5EDB4" />
+        <SolidColorBrush x:Key="InputBrush" Color="#303030" />
 
         <SolidColorBrush x:Key="LiveBrush" Color="#24B27E" />
+        <SolidColorBrush x:Key="LiveTextBrush" Color="#38D399" />
         <SolidColorBrush x:Key="LiveSurfaceBrush" Color="#243D34" />
-        <CornerRadius x:Key="PanelRadius">22</CornerRadius>
-        <CornerRadius x:Key="WorkspacePanelRadius">8</CornerRadius>
-        <CornerRadius x:Key="ItemRadius">14</CornerRadius>
-        <CornerRadius x:Key="ControlRadius">12</CornerRadius>
+        <CornerRadius x:Key="PanelRadius">24</CornerRadius>
+        <CornerRadius x:Key="WorkspacePanelRadius">12</CornerRadius>
+        <CornerRadius x:Key="ItemRadius">16</CornerRadius>
+        <CornerRadius x:Key="ControlRadius">16</CornerRadius>
         <local:CueKindConverter x:Key="CueKindConverter" />
         <local:PillRadiusConverter x:Key="PillRadiusConverter" />
 
@@ -159,12 +160,12 @@
                             <Border Background="{TemplateBinding Background}"
                                     BorderBrush="{TemplateBinding BorderBrush}"
                                     BorderThickness="{TemplateBinding BorderThickness}"
-                                    CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={StaticResource PillRadiusConverter}}" />
+                                    CornerRadius="{StaticResource ControlRadius}" />
                             <Border x:Name="ButtonHighlight" Background="{StaticResource TextBrush}"
-                                    CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={StaticResource PillRadiusConverter}}" Opacity="0" IsHitTestVisible="False" />
-                            <Border x:Name="ButtonPressed" Background="#000000" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={StaticResource PillRadiusConverter}}" Opacity="0" IsHitTestVisible="False" />
+                                    CornerRadius="{StaticResource ControlRadius}" Opacity="0" IsHitTestVisible="False" />
+                            <Border x:Name="ButtonPressed" Background="#000000" CornerRadius="{StaticResource ControlRadius}" Opacity="0" IsHitTestVisible="False" />
                             <Border x:Name="ButtonFocus" Background="{StaticResource FocusSurfaceBrush}"
-                                    BorderThickness="0" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={StaticResource PillRadiusConverter}}"
+                                    BorderThickness="0" CornerRadius="{StaticResource ControlRadius}"
                                     Opacity="0" IsHitTestVisible="False" />
                             <ContentPresenter Margin="{TemplateBinding Padding}"
                                               HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
@@ -176,7 +177,7 @@
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="ButtonPressed" Property="Opacity" Value="0.14" />
                             </Trigger>
-                            <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Trigger Property="local:KeyboardFocusCue.IsVisible" Value="True">
                                 <Setter TargetName="ButtonFocus" Property="Opacity" Value="1" /><Setter Property="Foreground" Value="{StaticResource OnActionBrush}" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
@@ -227,7 +228,7 @@
                     <ControlTemplate TargetType="TextBox">
                         <Border x:Name="TextFrame" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={StaticResource PillRadiusConverter}}">
+                                CornerRadius="{StaticResource ControlRadius}">
                             <ScrollViewer x:Name="PART_ContentHost" Focusable="False" />
                         </Border>
                         <ControlTemplate.Triggers>
@@ -274,7 +275,7 @@
                             <Border x:Name="ComboFrame" Background="{TemplateBinding Background}"
                                     BorderBrush="{TemplateBinding BorderBrush}"
                                     BorderThickness="{TemplateBinding BorderThickness}"
-                                    CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={StaticResource PillRadiusConverter}}" />
+                                    CornerRadius="{StaticResource ControlRadius}" />
                             <ToggleButton Focusable="False" ClickMode="Press"
                                           IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
                                 <ToggleButton.Template>
@@ -397,6 +398,7 @@
             <Setter Property="VirtualizingPanel.VirtualizationMode" Value="Recycling" />
         </Style>
         <Style TargetType="ListBoxItem">
+            <Setter Property="BorderThickness" Value="1" />
             <Setter Property="FontFamily" Value="{StaticResource ConsoleFont}" />
             <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
             <Setter Property="UseLayoutRounding" Value="True" />
@@ -410,7 +412,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="ListBoxItem">
                         <Border x:Name="ItemBorder" Background="Transparent" CornerRadius="{StaticResource ItemRadius}"
-                                BorderBrush="Transparent" BorderThickness="1"
+                                BorderBrush="Transparent" BorderThickness="{TemplateBinding BorderThickness}"
                                 Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
                         </Border>
@@ -531,7 +533,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
                         <Border x:Name="TabPill" Background="Transparent" BorderBrush="Transparent"
-                                BorderThickness="1" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={StaticResource PillRadiusConverter}}" Padding="{TemplateBinding Padding}">
+                                BorderThickness="1" CornerRadius="{StaticResource ControlRadius}" Padding="{TemplateBinding Padding}">
                             <ContentPresenter x:Name="TabLabel" ContentSource="Header" RecognizesAccessKey="True"
                                               TextElement.Foreground="{StaticResource MutedBrush}" />
                         </Border>
@@ -663,7 +665,7 @@
                     </Track>
                 </Grid>
                 <ControlTemplate.Triggers>
-                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="SeekThumb" Property="Background" Value="{StaticResource FocusSurfaceBrush}" /><Setter Property="Foreground" Value="{StaticResource OnActionBrush}" /></Trigger>
+                    <Trigger Property="local:KeyboardFocusCue.IsVisible" Value="True"><Setter TargetName="SeekThumb" Property="Background" Value="{StaticResource FocusSurfaceBrush}" /><Setter Property="Foreground" Value="{StaticResource OnActionBrush}" /></Trigger>
                     <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="SeekThumb" Property="Background" Value="{StaticResource TextBrush}"/></Trigger>
                     <Trigger Property="IsEnabled" Value="False"><Setter TargetName="SliderRoot" Property="Opacity" Value="0.4"/></Trigger>
                 </ControlTemplate.Triggers>

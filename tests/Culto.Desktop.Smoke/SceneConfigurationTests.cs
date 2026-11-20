@@ -262,9 +262,9 @@ internal static partial class Program
         {
             var first = new WorkspaceData();
             var second = new WorkspaceData();
-            Check(first.SceneTiles.Select(s => s.Id).SequenceEqual(new[] { "logo", "blackout", "image", "video", "youtube", "browser" }), "Default scene order changed");
+            Check(first.SceneTiles.Select(s => s.Id).SequenceEqual(new[] { "logo", "blackout", "image", "video", "youtube", "browser", "powerpoint" }), "Default scene order changed");
             first.SceneTiles.RemoveAt(0);
-            Check(second.SceneTiles.Count == 6, "Scene lists are shared between workspaces");
+            Check(second.SceneTiles.Count == 7, "Scene lists are shared between workspaces");
         });
         Test("Scene content, artwork, order and empty deck survive reload", () =>
         {
@@ -279,6 +279,20 @@ internal static partial class Program
             Check(restored.SceneTiles[0].Cue?.Body == "Contenido propio" && restored.SceneTiles[0].Color == "#123456", "Scene configuration was lost");
             data.SceneTiles.Clear(); store.Save(data);
             Check(store.Load().SceneTiles.Count == 0, "Deleted scenes returned on reload");
+        });
+        Test("PowerPoint scene upgrade preserves existing scenes and permits later removal", () =>
+        {
+            var store = new WorkspaceStore();
+            var custom = new SceneTile { Id = "kept-scene", Label = "Conservar", Action = "image", Color = "#123456" };
+            var data = new WorkspaceData { SceneTiles = [custom] }; store.Save(data);
+            var path = Path.Combine(store.DirectoryPath, "workspace.json");
+            var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!;
+            json.AsObject().Remove("SceneTilesVersion"); File.WriteAllText(path, json.ToJsonString());
+            var upgraded = store.Load();
+            Check(upgraded.SceneTiles.Count == 2 && upgraded.SceneTiles[0] == custom
+                && upgraded.SceneTiles[1] is { Action: "powerpoint", Cue: null }, "Upgrade changed existing scenes");
+            upgraded.SceneTiles.RemoveAt(1); store.Save(upgraded);
+            Check(store.Load().SceneTiles.Count == 1, "Removed PowerPoint scene reappeared");
         });
         Test("Button artwork is a portable thumbnail independent of its source file", () =>
         {

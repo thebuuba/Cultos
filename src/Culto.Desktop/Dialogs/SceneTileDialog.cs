@@ -205,7 +205,7 @@ public sealed class SceneTileDialog : Window
     {
         _content.Items.Clear();
         _content.Items.Add(new ComboBoxItem { Content = SelectedAction == "program" ? "Tema → Propósito (dos pantallas)" : SelectedAction == "powerpoint"
-            ? "Selecciona una presentación…" : "Usar la selección actual del equipo" });
+            ? "Volver al PowerPoint iniciado en Culto Studio" : "Usar la selección actual del equipo" });
         foreach (var cue in (_fileCue is null ? _sources : new[] { _fileCue }.Concat(_sources)).Where(Matches).DistinctBy(c => c.Id))
             _content.Items.Add(new ComboBoxItem { Content = cue.Title, Tag = cue });
         _content.SelectedItem = _content.Items.OfType<ComboBoxItem>().FirstOrDefault(i => (i.Tag as Cue)?.Id == _fileCue?.Id && i.Tag is not null)
@@ -222,7 +222,7 @@ public sealed class SceneTileDialog : Window
             "blackout" => "Muestra el fondo negro; al pulsar de nuevo restaura el contenido.",
             "youtube" => "Elige una ventana de YouTube detectada o usa la selección actual del equipo.",
             "scene" => "Elige una plantilla animada o combina imagen, video, audio, texto, Biblia, navegador y captura en capas independientes.",
-            "powerpoint" => "La presentación se abrirá con PowerPoint al pulsar esta escena.",
+            "powerpoint" => "Sin archivo fijo, vuelve a la presentación iniciada en Culto Studio y conserva su diapositiva. También puedes fijar un archivo.",
             "program" => "Escribe el tema y el propósito o elige una imagen para cada pantalla. La imagen tiene prioridad sobre el texto. Siguiente muestra el propósito y Anterior vuelve al tema.",
             _ => "Puedes fijar un archivo o contenido guardado para que esta escena siempre proyecte lo mismo."
         };
@@ -293,7 +293,7 @@ public sealed class SceneTileDialog : Window
         { _error.Text = "Escribe el tema y el propósito o elige imágenes disponibles para ambas pantallas."; return; }
         if (!System.Text.RegularExpressions.Regex.IsMatch(_color.Text.Trim(), "^#[0-9a-fA-F]{6}$"))
         { _error.Text = "Escribe un color como #24B27E."; return; }
-        if (SelectedCue is null && SelectedAction is "cue" or "audio" or "scene" or "powerpoint")
+        if (SelectedCue is null && SelectedAction is "cue" or "audio" or "scene")
         { _error.Text = "Elige el contenido que quieres proyectar."; return; }
         if (SelectedCue?.FilePath is { } path && !File.Exists(path)) { _error.Text = "No se encuentra el archivo de esta escena."; return; }
         Result = Draft(); DialogResult = true;

@@ -36,16 +36,19 @@ public sealed partial class PowerPointPresentation
         finally { Release(shapes); Release(notes); Release(slide); Release(slides); }
     }
 
-    public void ExportSlidePreview(int index, string path)
+    public void ExportSlidePreview(int index, string path, int width = 1280, int height = 720)
     {
         if (_presentation is null || index < 1 || index > SlideCount) throw new ArgumentOutOfRangeException(nameof(index));
-        dynamic? slides = null, slide = null;
+        dynamic? slides = null, slide = null, setup = null;
         try
         {
             slides = _presentation.Slides;
             slide = slides[index];
-            slide.Export(path, "PNG", 1280, 720);
+            setup = _presentation.PageSetup;
+            double sourceWidth = (double)setup.SlideWidth, sourceHeight = (double)setup.SlideHeight;
+            var scale = Math.Min(width / sourceWidth, height / sourceHeight);
+            slide.Export(path, "PNG", Math.Max(1, (int)Math.Round(sourceWidth * scale)), Math.Max(1, (int)Math.Round(sourceHeight * scale)));
         }
-        finally { Release(slide); Release(slides); }
+        finally { Release(setup); Release(slide); Release(slides); }
     }
 }

@@ -199,6 +199,7 @@ public partial class MainWindow
         PreviewLiveMonitor.SetLocalSource(null);
         _outputPlayerWindow?.Monitor.SetLocalSource(null);
         _output?.SetPaused(true); _output?.Dispose(); _output = null;
+        ClearPowerPointFrames();
         _standbyOutput?.Dispose(); _standbyOutput = null;
         _isPaused = true;
         if (_ready) UpdateSessionLabels();
@@ -339,7 +340,7 @@ public partial class MainWindow
     {
         if (!double.IsFinite(seconds) || seconds < 0) seconds = 0;
         var span = TimeSpan.FromSeconds(seconds);
-        return span.TotalHours >= 1 ? span.ToString(@"h\:mm\:ss") : span.ToString(@"mm\:ss");
+        return span.TotalHours >= 1 ? span.ToString(@"h\:mm\:ss") : span.ToString(@"m\:ss");
     }
     private void TimerTick(object? sender, EventArgs e)
     {
@@ -380,6 +381,7 @@ public partial class MainWindow
         }
         AdvanceVideoListIfEnded();
         UpdateOutputPlayer();
+        UpdatePreviewViewer();
         UpdateBackgroundAudioState();
         PollPowerPointPosition();
         UpdatePowerPointPanel();

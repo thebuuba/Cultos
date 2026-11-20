@@ -10,6 +10,7 @@ public partial class App : Application
     private FileStream? _workspaceSession;
     static App()
     {
+        KeyboardFocusCue.Initialize();
         // Draw the selection behind glyphs so opaque highlights honor SelectionTextBrush.
         AppContext.SetSwitch("Switch.System.Windows.Controls.Text.UseAdornerForTextboxSelectionRendering", false);
     }

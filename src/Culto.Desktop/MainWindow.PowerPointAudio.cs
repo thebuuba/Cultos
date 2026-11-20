@@ -20,6 +20,9 @@ public partial class MainWindow
     private void QueueLiveCue()
     {
         var token = _pendingCuePlayback.Begin(CurrentTransitions, _workspace.BibleStyle);
+        if (_session.Live?.Kind == CueKind.PowerPoint && _pendingPowerPoint is null
+            && SamePowerPoint(_session.Live, _powerPointCue) && _powerPointResumePaused)
+            _pendingCuePlayback.SetPaused(true);
         _isPaused = false;
         FadePowerPointOut(() => CommitPendingCue(token), _pendingCuePlayback.Transitions.AudioFadeOutMilliseconds);
     }
@@ -71,7 +74,7 @@ public partial class MainWindow
         => FadePowerPointAudio(0, milliseconds ?? _workspace.Transitions.AudioFadeOutMilliseconds, completed);
 
     private void FadePowerPointIn(int? milliseconds = null)
-        => FadePowerPointAudio(1, milliseconds ?? _workspace.Transitions.AudioFadeInMilliseconds);
+        => FadePowerPointAudio(HasBackgroundFileAudio ? 0 : 1, milliseconds ?? _workspace.Transitions.AudioFadeInMilliseconds);
 
     private void FadePowerPointAudio(double target, int milliseconds, Action? completed = null)
     {

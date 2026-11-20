@@ -38,7 +38,10 @@ internal sealed class CathedralAudioOutput : IDisposable, IWaveProvider
     private double _lastAudibleSend = 1;
     private string? _lastError;
     private Func<long>? _clock;
+    private double _queuePresentationTime;
     public float InputPeak { get; private set; }
+    internal int UnderrunCount { get; private set; }
+    internal uint LargestCallbackFrames { get; private set; }
 
     public WaveFormat WaveFormat { get; } = WaveFormat.CreateIeeeFloatWaveFormat(Rate, Channels);
     public bool TailComplete { get { lock (_gate) return _closed || _lastError is not null || _tailComplete && Environment.TickCount64 >= _completeAfter; } }
@@ -99,15 +102,18 @@ internal sealed class CathedralAudioOutput : IDisposable, IWaveProvider
         try
         {
             if (count is 0 or > 192000) return;
+            LargestCallbackFrames = Math.Max(LargestCallbackFrames, count);
             int epoch; lock (_gate) { if (_closed || _ended) return; epoch = _epoch; }
-            // VLC supplies a presentation clock, not callback-arrival time. Queue
-            // only enough ahead to cover WASAPI's configured device latency.
+            // A codec packet can exceed one device pull (FLAC ~85 ms, WMA
+            // variable). Leave one packet plus two device periods of headroom;
+            // a 60 ms clock gate alone repeatedly starved 60 ms WASAPI reads.
+            var leadMicroseconds = Math.Max(180_000L, count * 1_000_000L / Rate + 120_000L);
             var waitUntil = Environment.TickCount64 + 1000;
-            while (_clock is not null && pts > _clock() + 60_000)
+            while (_clock is not null && pts > _clock() + leadMicroseconds)
             {
                 lock (_gate) { if (_closed || _ended || epoch != _epoch) return; }
                 if (Environment.TickCount64 >= waitUntil) throw new InvalidOperationException("El reloj de audio no avanzó a tiempo.");
-                Thread.Sleep((int)Math.Clamp((pts - _clock() - 60_000) / 1000, 1, 5));
+                Thread.Sleep((int)Math.Clamp((pts - _clock() - leadMicroseconds) / 1000, 1, 5));
             }
             var pcm = new float[checked((int)count * Channels)];
             var source = new short[pcm.Length];
@@ -117,6 +123,7 @@ internal sealed class CathedralAudioOutput : IDisposable, IWaveProvider
             lock (_gate)
             {
                 if (_closed || _ended || epoch != _epoch) return;
+                if (_length == 0) _queuePresentationTime = pts;
                 Enqueue(pcm);
             }
         }
@@ -193,14 +200,17 @@ internal sealed class CathedralAudioOutput : IDisposable, IWaveProvider
                 if (_dry.Length < samples) { _dry = new float[samples]; _wet = new float[samples]; }
                 Array.Clear(_dry, 0, samples); Array.Clear(_wet, 0, samples);
                 var feeding = !_paused && (!_hasTail || _fadePosition < _fadeFrames);
-                // AAC arrives in ~23 ms packets. Starting on its first packet
-                // leaves no cushion when a device pull races the next callback,
-                // repeatedly cutting the waveform after resume. Prime 50 ms of
-                // clocked input before beginning (or recovering) the dry stream.
-                var primed = !_starved || _clock is null || _ended || _length >= Rate * Channels / 20;
+                // Prime a complete device request plus 40 ms jitter margin.
+                // A fixed 50 ms threshold cannot satisfy a 60 ms device pull.
+                var primeSamples = Math.Min(_queue.Length, samples + Rate * Channels / 25);
+                // Decoding ahead must not play ahead of video. The first queued
+                // PTS is due at the device after its 60 ms sink latency.
+                var due = _clock is null || _queuePresentationTime <= _clock() + 60_000;
+                var primed = !_starved || _clock is null || (_ended || _length >= primeSamples) && due;
                 var read = feeding && primed ? Math.Min(samples, _length) : 0;
                 for (var i = 0; i < read; i++) { _dry[i] = _queue[_head]; _head = (_head + 1) % _queue.Length; }
                 _length -= read;
+                _queuePresentationTime += read * 1_000_000d / (Rate * Channels);
                 if (_resetEffect) { _reverb?.Dispose(); _reverb = null; _resetEffect = false; }
                 var tail = _hasTail && !_tailComplete;
                 var tailNow = tail && (!feeding || _ended && _length == 0);
@@ -233,7 +243,7 @@ internal sealed class CathedralAudioOutput : IDisposable, IWaveProvider
                 {
                     var available = i < read;
                     var rawLeft = _dry[i]; var rawRight = _dry[i + 1];
-                    if (!available && !_starved) BeginGapRelease();
+                    if (!available && !_starved) { UnderrunCount++; BeginGapRelease(); }
                     if (available) _starved = false;
                     AdvanceRenderGains(available);
                     var left = available ? (float)(rawLeft * _renderGain) : 0;
@@ -280,7 +290,7 @@ internal sealed class CathedralAudioOutput : IDisposable, IWaveProvider
             {
                 // Clocked decoders also need a short attack after priming: a
                 // compressed seek can begin with the codec/filter warm-up.
-                _renderRampFrames = _renderTarget < 0 && _clock is not null ? Rate / 25 : DeClickFrames;
+                _renderRampFrames = _renderTarget < 0 && _clock is not null ? Rate / 10 : DeClickFrames;
                 _renderTarget = _gain;
                 _renderStep = (_gain - _renderGain) / _renderRampFrames;
             }

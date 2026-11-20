@@ -29,9 +29,9 @@ public partial class MainWindow
         var view = new PowerPointModeratorWindow { Owner = this };
         _powerPointModerator = view;
         _moderatorPreviewPath = Path.Combine(Path.GetTempPath(), "CultoStudioModerator-" + Guid.NewGuid().ToString("N") + ".png");
-        view.NavigateRequested += NavigatePowerPointCard;
+        view.NavigateRequested += AdvancePresentation;
         view.PauseRequested += () => PowerPointPauseClick(this, new RoutedEventArgs());
-        view.RestartRequested += () => PowerPointRestartClick(this, new RoutedEventArgs());
+        view.RestartRequested += RestartMedia;
         view.BlackoutRequested += () => { if (_session.Live?.Kind == CueKind.PowerPoint) ToggleBlackout(); };
         view.StateChanged += (_, _) => RoutePowerPointOutput();
         view.Closing += (_, _) =>
@@ -50,6 +50,7 @@ public partial class MainWindow
             _moderatorPreviewPath = null;
         };
         view.Show();
+        UpdatePrivateNotes();
         RoutePowerPointOutput();
     }
 
@@ -58,7 +59,7 @@ public partial class MainWindow
         if (_powerPointModerator is not { } view) return;
         var presentation = _powerPoint;
         var running = _session.Live?.Kind == CueKind.PowerPoint && presentation?.IsRunning == true;
-        var hidden = _session.IsBlackout || _session.IsTextHidden;
+        var hidden = _session.IsBlackout || _session.IsTextHidden || _powerPointWaitingForTransition;
         view.UpdateState(_session.Live?.Title ?? "", _powerPointSlideIndex, presentation?.SlideCount ?? 0,
             running, running && !hidden && !_pendingCuePlayback.IsPending, _isPaused, _session.IsBlackout, _session.IsTextHidden);
         view.Monitor.SetLocalSource(running && hidden ? _output : null);

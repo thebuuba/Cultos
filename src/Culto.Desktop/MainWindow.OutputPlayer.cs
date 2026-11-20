@@ -8,6 +8,8 @@ namespace Culto.Desktop;
 public partial class MainWindow
 {
     private OutputPlayerWindow? _outputPlayerWindow;
+    private void ProgramFullscreenClick(object sender, RoutedEventArgs e)
+    { OpenOutputPlayer(); _outputPlayerWindow?.EnterFullscreen(); }
 
     private void OutputMonitorMouseDown(object sender, MouseButtonEventArgs e)
     {

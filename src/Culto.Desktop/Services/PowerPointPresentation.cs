@@ -192,6 +192,20 @@ public sealed partial class PowerPointPresentation : IDisposable
         }
         finally { Release(view); RestoreForeground(previousFocus); }
     }
+    public void GoToSlide(int index)
+    {
+        if (index < 1 || index > SlideCount) throw new ArgumentOutOfRangeException(nameof(index));
+        if (_show is null || !IsRunning) return;
+        var previousFocus = CaptureForeground();
+        dynamic view = _show.View;
+        try
+        {
+            _pausedMedia.Clear(); _pausedMediaSlideId = 0;
+            view.GotoSlide(index, -1);
+            if (_isPaused) SetPaused(true);
+        }
+        finally { Release(view); RestoreForeground(previousFocus); }
+    }
     public void ExportPreview(string path) => _presentation?.Slides[1].Export(path, "PNG", 1280, 720);
 
     public void Dispose()

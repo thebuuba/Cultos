@@ -69,7 +69,7 @@ public sealed class RemoteDialog : Window
         MinHeight = 500; MinWidth = 640;
         MaxHeight = Math.Max(500, SystemParameters.WorkArea.Height - 16);
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        WindowStyle = WindowStyle.SingleBorderWindow; Background = ColorBrush("#2A2B2F");
+        WindowStyle = WindowStyle.SingleBorderWindow; Background = ColorBrush("#242424");
         ResizeMode = ResizeMode.CanResize;
         WindowChrome.SetWindowChrome(this, new WindowChrome
         {
@@ -78,8 +78,8 @@ public sealed class RemoteDialog : Window
         });
         var shell = new Border
         {
-            Background = ColorBrush("#2A2B2F"),
-            Padding = new Thickness(28), BorderBrush = ColorBrush("#3A3B40"), BorderThickness = new Thickness(1),
+            Background = ColorBrush("#242424"),
+            Padding = new Thickness(28), BorderBrush = ColorBrush("#353535"), BorderThickness = new Thickness(1),
         };
         var root = new Grid(); root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); root.RowDefinitions.Add(new RowDefinition());
         var header = new Grid { Margin = new Thickness(0, 0, 0, 20), Background = Brushes.Transparent };
@@ -135,7 +135,7 @@ public sealed class RemoteDialog : Window
         networkIcon.Margin = new Thickness(0, 1, 5, 0); protection.Children.Add(networkIcon);
         Grid.SetColumn(_accessLabel, 1); protection.Children.Add(_accessLabel); link.Children.Add(protection); link.Children.Add(_copy);
         Grid.SetColumn(link, 1); pairing.Children.Add(link);
-        connection.Children.Add(new Border { Background = ColorBrush("#303136"), CornerRadius = new CornerRadius(24), Padding = new Thickness(16), Child = pairing });
+        connection.Children.Add(new Border { Background = ColorBrush("#303030"), CornerRadius = new CornerRadius(24), Padding = new Thickness(16), Child = pairing });
         var state = new StackPanel { Margin = new Thickness(2, 14, 0, 0) }; state.Children.Add(_stateLabel); _status.Margin = new Thickness(0, 5, 0, 0); _status.Foreground = (Brush)FindResource("MutedBrush"); state.Children.Add(_status); connection.Children.Add(state);
         AutomationProperties.SetLiveSetting(_status, AutomationLiveSetting.Polite);
         var deviceHeading = new DockPanel { Margin = new Thickness(0, 24, 0, 12) };
@@ -191,13 +191,13 @@ public sealed class RemoteDialog : Window
             IsHitTestVisible = false
         };
         AutomationProperties.SetName(phone, "Vista previa del mando con el estado actual de la proyección");
-        var screen = new Border { Background = ColorBrush("#242529"), CornerRadius = new CornerRadius(38), Padding = new Thickness(14, 28, 14, 14) };
+        var screen = new Border { Background = ColorBrush("#191919"), CornerRadius = new CornerRadius(38), Padding = new Thickness(14, 28, 14, 14) };
         var phoneLayers = new Grid(); phoneLayers.Children.Add(screen);
         phoneLayers.Children.Add(new Border { Width = 66, Height = 13, CornerRadius = new CornerRadius(7), Background = ColorBrush("#101113"), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 7, 0, 0) });
         phone.Child = phoneLayers;
         var content = new StackPanel();
         var brand = new Grid { Margin = new Thickness(0, 0, 0, 12) }; brand.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); brand.ColumnDefinitions.Add(new ColumnDefinition());
-        brand.Children.Add(new Border { Width = 27, Height = 27, CornerRadius = new CornerRadius(9), Background = ColorBrush("#24B27E"), Child = Glyph("M12 5 L12 19 M6 10 L18 10", 18, ColorBrush("#10271E")) });
+        brand.Children.Add(new Border { Width = 27, Height = 27, CornerRadius = new CornerRadius(9), Background = (Brush)FindResource("ActionBrush"), Child = Glyph("M12 5 L12 19 M6 10 L18 10", 18, (Brush)FindResource("OnActionBrush")) });
         var brandText = new StackPanel { Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
         brandText.Children.Add(new TextBlock { Text = "Culto Deck", FontSize = 12, FontWeight = FontWeights.SemiBold });
         _phonePlan.Foreground = (Brush)FindResource("MutedBrush"); _phonePlan.Margin = new Thickness(0, 2, 0, 0); brandText.Children.Add(_phonePlan);
@@ -224,10 +224,10 @@ public sealed class RemoteDialog : Window
 
     private static Border PhonePill(string label, string geometry, bool primary = false)
     {
-        var ink = primary ? ColorBrush("#1F2023") : ColorBrush("#D7D8DE");
+        var ink = primary ? ColorBrush("#171717") : ColorBrush("#D7D8DE");
         var row = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
         row.Children.Add(Glyph(geometry, 12, ink)); row.Children.Add(new TextBlock { Text = label, FontSize = 12, Foreground = ink, Margin = new Thickness(4, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center });
-        return new Border { CornerRadius = new CornerRadius(18), Height = 36, Background = primary ? Brushes.White : ColorBrush("#34353A"), Child = row };
+        return new Border { CornerRadius = new CornerRadius(18), Height = 36, Background = primary ? Brushes.White : ColorBrush("#303030"), Child = row };
     }
 
     private static System.Windows.Shapes.Path Glyph(string geometry, double size, Brush? brush = null) => new()
@@ -263,7 +263,7 @@ public sealed class RemoteDialog : Window
             var empty = new StackPanel { Margin = new Thickness(13, 11, 13, 11) };
             empty.Children.Add(new TextBlock { Text = "Aún no hay dispositivos", FontSize = 12, FontWeight = FontWeights.Medium });
             var hint = Muted(_host is null ? "Activa el mando para conectar tu teléfono." : "Escanea el QR para empezar.", new Thickness(0, 4, 0, 0)); hint.FontSize = 12; empty.Children.Add(hint);
-            _devices.Children.Add(new Border { CornerRadius = new CornerRadius(20), Background = ColorBrush("#303136"), Child = empty }); return;
+            _devices.Children.Add(new Border { CornerRadius = new CornerRadius(20), Background = ColorBrush("#303030"), Child = empty }); return;
         }
         foreach (var client in clients.OrderByDescending(client => client.IsConnected).ThenByDescending(client => client.LastSeen))
         {
@@ -277,7 +277,7 @@ public sealed class RemoteDialog : Window
             labels.Children.Add(new TextBlock { Text = client.IsConnected ? "Conectado" : LastSeen(client.LastSeen), FontSize = 12, Margin = new Thickness(0, 3, 0, 0), Foreground = client.IsConnected ? ColorBrush("#38D399") : (Brush)FindResource("MutedBrush") });
             Grid.SetColumn(labels, 1); row.Children.Add(labels);
             var dot = new System.Windows.Shapes.Ellipse { Width = 6, Height = 6, Fill = client.IsConnected ? ColorBrush("#24B27E") : ColorBrush("#777A84"), VerticalAlignment = VerticalAlignment.Center }; Grid.SetColumn(dot, 2); row.Children.Add(dot);
-            _devices.Children.Add(new Border { Background = ColorBrush("#34353A"), CornerRadius = new CornerRadius(24), Margin = new Thickness(0, 0, 0, 8), Child = row });
+            _devices.Children.Add(new Border { Background = ColorBrush("#303030"), CornerRadius = new CornerRadius(24), Margin = new Thickness(0, 0, 0, 8), Child = row });
         }
     }
 
@@ -311,10 +311,10 @@ public sealed class RemoteDialog : Window
         {
             var mappedColor = button.Color.ToUpperInvariant() switch
             {
-                "#43D9BE" => "#24B27E", "#A7C7FF" => "#4274F4", "#FFCF75" => "#F8BA2A", "#FF9DAD" => "#EF5350", _ => button.Color
+                "#43D9BE" => "#BEF264", "#A7C7FF" => "#4274F4", "#FFCF75" => "#F8BA2A", "#FF9DAD" => "#EF5350", _ => button.Color
             };
             SolidColorBrush color;
-            try { color = ColorBrush(mappedColor); } catch (FormatException) { color = ColorBrush("#24B27E"); }
+            try { color = ColorBrush(mappedColor); } catch (FormatException) { color = (SolidColorBrush)FindResource("ActionBrush"); }
             var ink = PreviewInk(color.Color);
             var labels = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4) };
             labels.Children.Add(Glyph(ActionIcon(button.Action), 21, ink));
@@ -450,7 +450,7 @@ public sealed class RemoteDialog : Window
         var address = _addresses.SelectedItem as string;
         var canConnect = active && address is not null;
         _stateLabel.Text = active ? "MANDO ACTIVO" : "MANDO DESACTIVADO";
-        _stateLabel.Foreground = (Brush)FindResource(active ? "AccentTextBrush" : "MutedBrush");
+        _stateLabel.Foreground = (Brush)FindResource(active ? "LiveTextBrush" : "MutedBrush");
         _status.Text = active ? (canConnect ? "Listo para vincular. Escanea el QR desde tu teléfono." : "Sin conexión de red. Conecta la PC y pulsa Actualizar red.") : "Actívalo cuando quieras conectar el teléfono.";
         _qrFrame.Background = Brushes.White;
         _qrFrame.BorderThickness = new Thickness(0);
@@ -459,7 +459,7 @@ public sealed class RemoteDialog : Window
         _qrEmpty.Foreground = ColorBrush("#555860");
         _addressLabel.Text = canConnect ? $"{address}:{_host!.Port}" : active ? "Red no disponible" : "Mando desactivado";
         _accessLabel.Text = active ? "Acceso por red local" : "Enlace al activar";
-        _accessLabel.Foreground = (Brush)FindResource(active ? "AccentTextBrush" : "MutedBrush");
+        _accessLabel.Foreground = (Brush)FindResource(active ? "LiveTextBrush" : "MutedBrush");
         RefreshDevices(); RefreshPreview();
         if (_host is null) { _url.Text = "Activa el mando para generar el enlace de vinculación."; _qr.Source = null; _qrUrl = null; return; }
         if (address is null) { _url.Text = "Sin dirección de red disponible."; _qr.Source = null; _qrUrl = null; return; }

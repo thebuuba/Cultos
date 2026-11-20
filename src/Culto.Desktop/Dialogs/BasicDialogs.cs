@@ -37,8 +37,8 @@ public static class DialogUi
     public static Border Card(UIElement child) => new()
     {
         Background = (Brush)Application.Current.FindResource("PanelBrush"),
-        BorderBrush = (Brush)Application.Current.FindResource("BorderBrush"), BorderThickness = new Thickness(1),
-        CornerRadius = new CornerRadius(10), Padding = new Thickness(18), Child = child
+        BorderBrush = (Brush)Application.Current.FindResource("PanelBorderBrush"), BorderThickness = new Thickness(1),
+        CornerRadius = (CornerRadius)Application.Current.FindResource("PanelRadius"), Padding = new Thickness(18), Child = child
     };
     public static Button Button(string text, Action action, bool primary = false)
     {

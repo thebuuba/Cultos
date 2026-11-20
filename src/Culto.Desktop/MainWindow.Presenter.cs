@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
+using System.Windows.Input;
 using Culto.Desktop.Services;
 
 namespace Culto.Desktop;
@@ -8,6 +9,12 @@ namespace Culto.Desktop;
 public partial class MainWindow
 {
     private PresenterHotkeys? _presenterHotkeys;
+    private void PowerPointUsbPopupOpened(object? sender, EventArgs e) => PowerPointUsbCheck.Focus();
+    private void PowerPointUsbPopupKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape) return;
+        PowerPointUsbOptions.IsChecked = false; PowerPointUsbOptions.Focus(); e.Handled = true;
+    }
 
     private void SetupPresenterHotkeys()
     {

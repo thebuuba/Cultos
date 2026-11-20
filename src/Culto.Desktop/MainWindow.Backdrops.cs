@@ -57,8 +57,8 @@ public partial class MainWindow
         {
             // Hide the native window before COM playback calls, which can be rejected
             // while PowerPoint is busy. A rejected pause must never defeat blackout.
-            RoutePowerPointOutput();
-            try { _powerPoint.SetPaused(true); PowerPointPauseButton.Content = "Continuar"; }
+            ParkPowerPointOutput();
+            try { _powerPoint?.SetPaused(true); PowerPointPauseButton.Content = "Continuar"; }
             catch (Exception error)
             {
                 StopPowerPointOutput(); presentationError = "PowerPoint se cerró al detener la reproducción: " + error.Message;
@@ -66,9 +66,13 @@ public partial class MainWindow
         }
         _output!.BackgroundImagePath = CurrentBackgroundPath;
         _output.Transitions = transitions;
+        var backdropCue = WithYouTubeLayout(_session.Live);
+        if (backdropCue?.Kind == CueKind.PowerPoint && _powerPointEntryFrame is { } frame)
+            backdropCue = frame;
         if (_preserveAudioForBackdrop)
-            _output.TransitionVisual(WithYouTubeLayout(_session.Live), _session.IsBlackout, _session.IsTextHidden);
-        else _output.TransitionToBackdrop(WithYouTubeLayout(_session.Live), _session.IsBlackout, _session.IsTextHidden);
+            _output.TransitionVisual(backdropCue, _session.IsBlackout, _session.IsTextHidden);
+        else _output.TransitionToBackdrop(backdropCue, _session.IsBlackout, _session.IsTextHidden);
+        if (_session.Live?.Kind == CueKind.PowerPoint && !_session.IsBlackout && !_session.IsTextHidden) ShowPowerPointOutput();
         _logoAwaitingOutput = false;
         _isPaused = _output.HasBackgroundMedia ? _output.IsPaused
             : _session.Live?.Kind != CueKind.WindowCapture || _session.IsBlackout || _session.IsTextHidden;

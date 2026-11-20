@@ -4,6 +4,8 @@ using System.Windows.Input;
 using System.Windows.Media;
 using Culto.Desktop.Projection;
 using Culto.Desktop.Services;
+using Culto.Desktop.Dialogs;
+using Culto.Core;
 
 namespace Culto.Desktop;
 
@@ -84,19 +86,27 @@ public partial class MainWindow
 
     private void OpenPreviewViewer()
     {
-        if (_previewViewer is not null) { _previewViewer.Activate(); return; }
-        var monitor = new OutputMonitor();
-        var viewer = new Window
+        if (_previewViewer is not null)
         {
-            Title = "Vista previa ampliada", Width = 1100, Height = 700, MinWidth = 360, MinHeight = 240,
-            Owner = this, Background = Brushes.Black,
-            Content = new Border { Background = Brushes.Black, Child = monitor, ClipToBounds = true }
-        };
+            if (_previewViewer.WindowState == WindowState.Minimized) _previewViewer.WindowState = WindowState.Normal;
+            _previewViewer.Activate(); return;
+        }
+        var viewer = new OutputPlayerWindow();
+        var monitor = viewer.Monitor;
         _previewViewer = viewer; _previewViewerMonitor = monitor;
-        viewer.PreviewKeyDown += (_, e) => { if (e.Key == Key.Escape) viewer.Close(); };
-        viewer.Closed += (_, _) => { monitor.Dispose(); _previewViewer = null; _previewViewerMonitor = null; };
+        bool Following() => PreviewFollowsOutput && !_holdingBiblePreview;
+        viewer.PauseRequested += () => { if (Following()) TogglePause(); else _preview.SetPaused(!_preview.IsPaused); UpdatePreviewViewer(); };
+        viewer.RestartRequested += () => { if (Following()) RestartMedia(); else _preview.Restart(); };
+        viewer.SkipRequested += seconds => { if (Following()) SkipOutput(seconds); else Skip(_preview, seconds); };
+        viewer.SeekRequested += position => { if (Following()) { if (CanControlFileMedia) _output?.SeekWithFade(position); } else _preview.Seek(position); };
+        viewer.VolumeRequested += volume => { if (Following()) VolumeSlider.Value = volume; };
+        viewer.MuteRequested += () => { if (Following()) ToggleMuteClick(this, new RoutedEventArgs()); };
+        viewer.LoopRequested += repeat => { if (Following()) LoopCheck.IsChecked = repeat; else _preview.Loop = repeat; };
+        viewer.Closed += (_, _) => { _previewViewer = null; _previewViewerMonitor = null; };
         UpdatePreviewViewer(); viewer.Show();
     }
+    private void PreviewFullscreenClick(object sender, RoutedEventArgs e)
+    { OpenPreviewViewer(); (_previewViewer as OutputPlayerWindow)?.EnterFullscreen(); }
 
     private void UpdatePreviewViewer()
     {
@@ -104,7 +114,17 @@ public partial class MainWindow
         var live = PreviewFollowsOutput && !_holdingBiblePreview;
         monitor.SetLocalSource(live ? _output : _preview);
         monitor.SetNativeSource(live ? PreviewLiveMonitor.NativeSource : IntPtr.Zero);
-        monitor.SetMirrorSource(live && !_session.IsBlackout && !_session.IsTextHidden
+        monitor.SetMirrorSource(live && _session.Live?.Kind == CueKind.PowerPoint && !_powerPointWaitingForTransition && !_session.IsBlackout && !_session.IsTextHidden
             && _powerPoint?.IsRunning == true && _outputDisplay is null ? LocalPowerPointMonitor : null);
+        if (_previewViewer is OutputPlayerWindow player)
+        {
+            var media = live ? CanControlFileMedia : _session.Prepared?.Kind == CueKind.Video && _preview.HasLoadedMedia;
+            var surface = live ? _output : _preview;
+            player.SetCover(!live && _session.Prepared?.Kind == CueKind.Audio ? _session.Prepared : null);
+            player.Update(new OutputPlayerState(live ? "Vista previa: " + VisualChannelTitle : "Vista previa: " + (_session.Prepared?.Title ?? "Sin contenido"),
+                media, media && surface?.Duration > 0, surface?.IsPaused ?? true, false,
+                media ? surface?.Position ?? 0 : 0, media ? surface?.Duration ?? 0 : 0,
+                live ? VolumeSlider.Value : 0, live ? LoopCheck.IsChecked == true : _preview.Loop, Preview: true, ControlVolume: live));
+        }
     }
 }

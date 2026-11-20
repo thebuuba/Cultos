@@ -18,7 +18,8 @@ public partial class MainWindow
     {
         "image" => SceneMedia(CueKind.Image), "video" => SceneMedia(CueKind.Video),
         "browser" => _workspace.BrowserSources.FirstOrDefault(c => c.Id == _selectedBrowserSource) ?? _workspace.BrowserSources.FirstOrDefault(),
-        "youtube" => SceneYouTubeSource()?.Cue, _ => null
+        "youtube" => SceneYouTubeSource()?.Cue,
+        "powerpoint" => _powerPoint?.IsRunning == true ? _powerPointCue : null, _ => null
     };
 
     private bool ConfiguredSceneActive(SceneTile scene)
@@ -249,6 +250,8 @@ public partial class MainWindow
             case "blackout": BlackBackgroundClick(sender, e); break;
             case "youtube": SceneYouTubeClick(sender, e); break;
             case "browser": SceneBrowserClick(sender, e); break;
+            case "powerpoint":
+                var result = ExecuteRemoteSceneMode(id, false); SetStatus(result.Message, !result.Success); break;
             case "image":
             case "video":
                 SceneMediaClick(new Button { Tag = scene.Action == "image" ? "Image" : "Video" }, e); break;

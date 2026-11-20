@@ -55,7 +55,10 @@
               <TextBlock Text="NOTAS" Foreground="{StaticResource MutedBrush}" FontSize="12" VerticalAlignment="Center"/>
             </DockPanel>
             <ScrollViewer x:Name="ModeratorNotesScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-              <TextBlock x:Name="ModeratorNotes" FontSize="18" TextWrapping="Wrap" Padding="0,0,8,0"/>
+              <StackPanel>
+                <TextBlock x:Name="ModeratorNotes" FontSize="18" TextWrapping="Wrap" Padding="0,0,8,0"/>
+                <TextBlock x:Name="ModeratorServiceNotes" FontSize="18" TextWrapping="Wrap" Padding="0,16,8,0" Visibility="Collapsed"/>
+              </StackPanel>
             </ScrollViewer>
           </Grid>
         </Border>

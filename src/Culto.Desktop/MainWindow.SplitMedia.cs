@@ -12,6 +12,28 @@ public partial class MainWindow
     private bool _preserveAudioForBackdrop;
     private bool _preserveAudioForNextCue;
 
+    private void PlayFileFromInput()
+    {
+        if (_session.Prepared?.Kind != CueKind.Audio) { ProjectPreparedFromInput(); return; }
+        var cue = _session.Prepared;
+        if (_session.Live?.Kind == CueKind.PowerPoint && _pendingCuePlayback.IsPending)
+        { SetStatus("Espera a que PowerPoint termine de entrar para cambiar solo el audio."); return; }
+        if (!CheckMedia(cue) || !EnsureOutput()) return;
+        try { _powerPoint?.SetAudioGain(0); }
+        catch (Exception error) { SetStatus("No se pudo silenciar PowerPoint: " + error.Message, true); return; }
+        _pendingCuePlayback.Cancel(); CancelPowerPointAudioFade();
+        _videoListPlayback.Cancel(); _videoListAfter.IsChecked = false;
+        _preserveAudioForBackdrop = _session.IsTextHidden || _session.IsBlackout;
+        _output!.Transitions = CurrentTransitions;
+        _output.PlayAudioKeepingVisual(CopyCue(cue));
+        _independentScenePreview = true;
+        RenderPreparedPreview();
+        _isPaused = false;
+        SchedulePlayedSearchReset(cue);
+        UpdateBackgroundAudioState(); UpdateUsabilityState();
+        SetStatus("Reproduciendo audio: " + cue.Title + ". La escena de Programa se conserva.");
+    }
+
     private void ProjectPreparedFromInput()
     {
         if (Keyboard.Modifiers == ModifierKeys.Shift) ProjectPreparedPreservingOther();

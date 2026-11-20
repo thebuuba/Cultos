@@ -39,7 +39,7 @@ internal static partial class Program
                 else if (args.Contains("--transport-pcm")) await RunTransportPcmChecks();
                 else if (args.Contains("--audio-callback-continuity")) await RunAudioCallbackContinuityChecks();
                 else if (args.Contains("--audio-noise")) await RunAudioNoiseChecks();
-                else if (args.Contains("--audio-resampler")) await RunAudioResamplerChecks();
+                else if (args.Contains("--audio-formats")) await RunAudioFormatChecks(); else if (args.Contains("--audio-resampler")) await RunAudioResamplerChecks();
                 else if (args.Contains("--audio-crossfade")) await RunAudioCrossfadeCaptureChecks();
                 else if (args.Contains("--youtube-gate")) await RunYouTubeGateChecks();
                 else if (args.Contains("--capture-recovery")) await RunWindowCaptureRecoveryChecks();
