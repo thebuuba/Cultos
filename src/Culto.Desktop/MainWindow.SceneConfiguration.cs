@@ -43,7 +43,7 @@ public partial class MainWindow
             return;
         }
         var cue = ConfiguredSceneCue(scene);
-        if (scene.Action == "logo") cue = AvailableLogoPaths().FirstOrDefault() is { } path
+        if (scene.Action == "logo") cue = InitialLogoPath() is { } path
             ? new Cue { Kind = CueKind.Image, Title = "Logo", FilePath = path } : null;
         if (scene.Action == "blackout") cue = new Cue { Kind = CueKind.Scene, Title = "Fondo negro", Scene = new SceneComposition() };
         if (cue is null) { SetStatus("Configura primero el contenido de esta escena."); return; }
@@ -202,6 +202,32 @@ public partial class MainWindow
         _preparedScene = null;
         _independentScenePreview = false;
         WithSceneTransition(scene, () => ConfiguredSceneClickCore(sender, e, id, scene));
+        SyncProjectedScene(scene);
+    }
+
+    private bool TryHandlePreparedScene(bool activate, bool preserve, out bool projected)
+    {
+        projected = false;
+        if (_preparedScene is not { } prepared || _session.Prepared?.Id != prepared.CueId
+            || _workspace.SceneTiles.FirstOrDefault(scene => scene.Id == prepared.Id) is not { } scene) return false;
+        // Consume intent before nested projection calls so they cannot dispatch it again.
+        _preparedScene = null;
+        _independentScenePreview = false;
+        var previous = _handlingStreamDeck;
+        _handlingStreamDeck |= !activate;
+        try
+        {
+            var result = ExecuteRemoteSceneMode(scene.Id, preserve);
+            projected = result.Success;
+            SetStatus(result.Message, !result.Success);
+            SyncProjectedScene(scene);
+        }
+        finally { _handlingStreamDeck = previous; }
+        return true;
+    }
+
+    private void SyncProjectedScene(SceneTile scene)
+    {
         if (_output is not null && (ConfiguredSceneActive(scene) || scene.Action == "blackout"))
         {
             FollowLivePreview();

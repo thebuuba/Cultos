@@ -221,7 +221,7 @@ public sealed class SceneTileDialog : Window
             "logo" => "Muestra las imágenes elegidas en Configurar logo, desde el menú de la escena.",
             "blackout" => "Muestra el fondo negro; al pulsar de nuevo restaura el contenido.",
             "youtube" => "Elige una ventana de YouTube detectada o usa la selección actual del equipo.",
-            "scene" => "Combina imagen, video, audio, texto, Biblia, navegador y captura en capas independientes.",
+            "scene" => "Elige una plantilla animada o combina imagen, video, audio, texto, Biblia, navegador y captura en capas independientes.",
             "powerpoint" => "La presentación se abrirá con PowerPoint al pulsar esta escena.",
             "program" => "Escribe el tema y el propósito o elige una imagen para cada pantalla. La imagen tiene prioridad sobre el texto. Siguiente muestra el propósito y Anterior vuelve al tema.",
             _ => "Puedes fijar un archivo o contenido guardado para que esta escena siempre proyecte lo mismo."

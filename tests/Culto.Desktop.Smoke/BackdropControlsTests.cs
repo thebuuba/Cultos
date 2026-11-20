@@ -32,7 +32,11 @@ internal static partial class Program
         {
             var button = window.FindName(name) as Button;
             Check(button is not null, "Backdrop control is missing: " + name);
-            button!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            // Backdrop commands retain unrelated prepared content; scene mouse
+            // gestures intentionally replace preview and have their own suite.
+            var action = name == "BlackoutButton" ? "blackout" : "background";
+            var result = (Culto.Remote.CommandResult)Call(window, "ExecuteRemote", new Culto.Remote.RemoteCommand(action, Guid.NewGuid().ToString("N")))!;
+            Check(result.Success, "Backdrop command failed: " + result.Message);
         }
         ProjectionSurface StartVideo()
         {
@@ -59,7 +63,7 @@ internal static partial class Program
         try
         {
             volume.Value = 0;
-            Test("Black backdrop button preserves live and prepared cues and toggles back to paused content", () =>
+            Test("Black backdrop command preserves live and prepared cues and toggles back to paused content", () =>
             {
                 var output = StartVideo();
                 Call(window, "PrepareCue", new Cue { Kind = CueKind.Video, Title = "Previa que se conserva",

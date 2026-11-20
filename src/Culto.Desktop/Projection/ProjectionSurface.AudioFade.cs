@@ -49,7 +49,7 @@ public sealed partial class ProjectionSurface
         {
             if (cathedral.HasError) { RestoreDryAudio(); return; }
             var master = Math.Pow(_volume / 100d, 3);
-            cathedral.SetMasterGain(silent ? 0 : master);
+            cathedral.SetMasterGain(silent ? 0 : master * _transportAudioGain);
             cathedral.SetGain(silent ? 0 : master * _audioGain * _mixGain);
             return;
         }

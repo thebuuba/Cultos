@@ -77,12 +77,16 @@ internal sealed class LiveMoveTransition : IDisposable
     }
     private List<ObsLiveLayer> Describe(ProjectionSurface surface, Cue? cue, int width, int height)
     {
-        var layers = surface.DisplayedBlackout || surface.DisplayedHidden ? Array.Empty<LiveSceneLayer>() : surface.GetLiveLayers();
+        // Animated layer transforms belong to the live canvas clock. Send that
+        // moving composite to Move rather than a static description of its layers.
+        var animatedScene = surface.SceneCanvas?.HasAnimations == true;
+        var layers = surface.DisplayedBlackout || surface.DisplayedHidden || animatedScene
+            ? Array.Empty<LiveSceneLayer>() : surface.GetLiveLayers();
         if (layers.Count == 0)
         {
             // A suppressed surface must be independent of its hidden media key.
-            var key = surface.DisplayedBlackout || surface.DisplayedHidden ? "backdrop-" + Guid.NewGuid().ToString("N") : cue?.Id.ToString("N") ?? Guid.NewGuid().ToString("N");
-            var frame = Add(key, surface, width, height, cue?.Kind is CueKind.Video or CueKind.WindowCapture or CueKind.BrowserSource);
+            var key = animatedScene ? "animated-scene-" + Guid.NewGuid().ToString("N") : surface.DisplayedBlackout || surface.DisplayedHidden ? "backdrop-" + Guid.NewGuid().ToString("N") : cue?.Id.ToString("N") ?? Guid.NewGuid().ToString("N");
+            var frame = Add(key, surface, width, height, animatedScene || cue?.Kind is CueKind.Video or CueKind.WindowCapture or CueKind.BrowserSource);
             return [new(key, frame.Map.MapName, frame.Width, frame.Height, 0, 0, width, height)];
         }
         var scene = cue?.Scene;

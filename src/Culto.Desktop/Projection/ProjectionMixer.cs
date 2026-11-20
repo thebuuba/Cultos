@@ -34,6 +34,7 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
     private Cue? _currentCue, _outgoingCue, _retainedCue, _backgroundCue;
     private Request? _loading, _blend, _queued, _visible;
     private int _volume = 80;
+    private bool _sceneAnimationsPending;
     private bool _loop, _disposed, _desiredPause, _pauseImmediately, _blackout, _hidden;
     private TransitionOptions _options = new(), _appliedOptions = new();
     private BibleVisualStyle _style = new();
@@ -91,7 +92,7 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
     {
         var surface = new ProjectionSurface(sharedVlc: () => _vlc ?? throw new InvalidOperationException("El reproductor todavía se está preparando."), layers: _layerPool, smoothAudio: true)
         {
-            Volume = 0, Loop = _loop, MediaFill = _mediaFill, MediaZoom = _mediaZoom,
+            DeferSceneAnimations = true, Volume = 0, Loop = _loop, MediaFill = _mediaFill, MediaZoom = _mediaZoom,
             Transitions = new TransitionOptions { Kind = "Cut", AudioFadeOutMilliseconds = 0, AudioFadeInMilliseconds = 0 }
         };
         surface.PlaybackError += message => SurfaceFailed(surface, message);
@@ -105,6 +106,8 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
         var options = _options.Normalize();
         if (cue?.Kind == CueKind.Bible && !pauseAfter && (_style.Transition != "System" || _style.UsesTextTransition))
             options = options with { Kind = _style.UsesTextTransition ? "Cut" : _style.Transition, DurationMilliseconds = _style.TransitionMilliseconds };
+        if (options.Kind != "Cut" && _current.SceneExitDuration > options.DurationMilliseconds)
+            options = options with { DurationMilliseconds = _current.SceneExitDuration };
         return new(cue is null ? null : cue.Copy(), blackout, hidden, pauseAfter, options, _style.Normalize(), BackgroundImagePath, SystemTransition: _options.Kind);
     }
     private static bool SameMedia(Cue? first, Cue? second) => first is not null && second is not null
@@ -340,12 +343,16 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
                 _clock.Restart();
                 if (!loading.Blackout && !loading.Hidden && !loading.PauseAfter && loading.Cue?.Kind == CueKind.Bible
                     && loading.Style.UsesTextTransition) _current.BeginBibleTextTransition(loading.SystemTransition);
+                _sceneAnimationsPending = true;
                 if (loading.Options.Kind == "Move") BeginLiveMove(loading);
+                else StartLayerAnimations(loading.Options.Kind != "Cut");
             }
         }
         if (_audioBlend is { } audioBlend && _audioClock.Elapsed.TotalMilliseconds >= Math.Max(audioBlend.AudioFadeOutMilliseconds, audioBlend.AudioFadeInMilliseconds)) FinishAudioBlend();
         if (_blend is { } blend && _outgoing is not null)
         {
+            if (_sceneAnimationsPending && (_liveMove is null || _liveMove.Started || _liveMove.Failed || _liveMove.Complete))
+                StartLayerAnimations(blend.Options.Kind != "Cut");
             var sample = Sample(blend);
             if (_liveMove is { } liveMove) _outgoing.Opacity = liveMove.Complete ? 0 : 1;
             else
@@ -359,6 +366,15 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
         ApplyVolumes();
         if (_loading is null && _blend is null && _audioBlend is null && _cathedralTails.Count == 0) _timer.Stop();
     }
+
+    private void StartLayerAnimations(bool animateExit)
+    {
+        if (animateExit) _outgoing?.BeginSceneExit();
+        if (_sceneAnimationsPending && !_current.DisplayedBlackout && !_current.DisplayedHidden) _current.StartSceneAnimations();
+        _sceneAnimationsPending = false;
+    }
+
+    public void ReplaySceneAnimations() => _current.StartSceneAnimations();
 
     private CrossfadeSample Sample(Request request) => CrossfadeTimeline.Sample(_liveMove is { Failed: false } live ? live.Started ? live.ElapsedMilliseconds : 0 : _clock.Elapsed.TotalMilliseconds,
         request.Options.Kind == "Cut" ? 0 : request.Options.DurationMilliseconds,
@@ -386,25 +402,26 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
     private void ApplyVolumes()
     {
         if (_disposed) return;
+        var transport = _pauseImmediately ? 0 : _transportGain;
         if (_blend is { } blend && _outgoing is not null)
         {
             var sample = Sample(blend);
-            _outgoing.SetMixVolume(_volume, (_pauseImmediately ? 0 : KeepOutgoingMedia ? 1 : sample.OutgoingGain) * _transportGain);
-            _current.SetMixVolume(_volume, (_desiredPause ? 0 : blend.ReusedLiveMedia ? 1 : sample.IncomingGain) * _transportGain);
+            _outgoing.SetMixVolume(_volume, (_pauseImmediately ? 0 : KeepOutgoingMedia ? 1 : sample.OutgoingGain) * _transportGain, transport);
+            _current.SetMixVolume(_volume, (_desiredPause ? 0 : blend.ReusedLiveMedia ? 1 : sample.IncomingGain) * _transportGain, transport);
         }
-        else _current.SetMixVolume(_volume, _pauseImmediately || (_loading is null && _desiredPause) ? 0 : _transportGain);
-        if (_incoming is not null) _incoming.SetMixVolume(_volume, _loading?.ReusedLiveMedia == true ? _transportGain : 0);
-        if (_retained is not null) _retained.SetMixVolume(_volume, 0);
+        else _current.SetMixVolume(_volume, _pauseImmediately || (_loading is null && _desiredPause) ? 0 : _transportGain, transport);
+        if (_incoming is not null) _incoming.SetMixVolume(_volume, _loading?.ReusedLiveMedia == true ? _transportGain : 0, transport);
+        if (_retained is not null) _retained.SetMixVolume(_volume, 0, 0);
         if (_audioOutgoing is not null && _audioBlend is { } fade)
             _audioOutgoing.SetMixVolume(_volume, _pauseImmediately ? 0 :
-                _transportGain * CrossfadeTimeline.Sample(_audioClock.Elapsed.TotalMilliseconds, 0, fade.AudioFadeOutMilliseconds, fade.AudioFadeInMilliseconds).OutgoingGain);
+                _transportGain * CrossfadeTimeline.Sample(_audioClock.Elapsed.TotalMilliseconds, 0, fade.AudioFadeOutMilliseconds, fade.AudioFadeInMilliseconds).OutgoingGain, transport);
         if (_background is not null)
         {
             double gain = 1;
             if (_blend is { } replacement && (ShowsMedia(replacement) || !replacement.PreserveAudio)) gain = Math.Min(gain, Sample(replacement).OutgoingGain);
             if (_audioBlend is { } audio) gain = Math.Min(gain, CrossfadeTimeline.Sample(_audioClock.Elapsed.TotalMilliseconds, 0,
                 audio.AudioFadeOutMilliseconds, audio.AudioFadeInMilliseconds).IncomingGain);
-            _background.SetMixVolume(_volume, _pauseImmediately ? 0 : gain * _transportGain);
+            _background.SetMixVolume(_volume, _pauseImmediately ? 0 : gain * _transportGain, transport);
         }
         // A source shared by two scenes is one decoder, not two signals to fade.
         // Preserve its gain when only its position/size changes between scenes.
@@ -414,7 +431,7 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
             {
                 var target = to.GetLiveLayers().FirstOrDefault(l => l.SourceId == source.SourceId && !l.Layer.Muted);
                 if (target is not null && target.Layer.Volume == source.Layer.Volume)
-                    source.Surface.SetMixVolume((int)Math.Round(_volume * source.Layer.Volume / 100d), _transportGain);
+                    source.Surface.SetMixVolume((int)Math.Round(_volume * source.Layer.Volume / 100d), _transportGain, transport);
             }
         }
         UpdateCathedralTails();
@@ -429,6 +446,7 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
 
     private void FinishBlend()
     {
+        if (_sceneAnimationsPending) StartLayerAnimations(false);
         EndLiveMove();
         var request = _blend; var outgoing = _outgoing;
         var keepOutgoing = KeepOutgoingMedia;
@@ -548,6 +566,7 @@ internal sealed partial class ProjectionMixer : Grid, IDisposable
         _visible = request;
         _currentCue = request.Cue; _current.Volume = _desiredPause ? 0 : _volume;
         _current.ShowCue(cue, blackout, hidden);
+        if (!blackout && !hidden) _current.StartSceneAnimations();
         if (resumeCapture) _current.SetPaused(false);
     }
 

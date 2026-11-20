@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
@@ -51,6 +52,120 @@ internal static partial class Program
         }
         try
         {
+            Test("Layer animation controls persist atomically and replay keeps the live preview", () =>
+            {
+                var dialog = new SceneLayersDialog(null, [first], Preview) { Owner = window };
+                Modal(dialog, () =>
+                {
+                    Click(dialog, "Añadir seleccionada");
+                    Field<TextBox>(dialog, "_body").Text = "Texto personalizado de la plantilla";
+                    Field<ComboBox>(dialog, "_entrance").SelectedValue = "Rise";
+                    Field<ComboBox>(dialog, "_exit").SelectedValue = "Fade";
+                    var timing = Field<Dictionary<string, TextBox>>(dialog, "_timing");
+                    timing["Duración (ms)"].Text = "850";
+                    timing["Retardo (ms)"].Text = "250";
+                    timing["Permanencia (ms, 0 = continua)"].Text = "2400";
+                    var loop = Field<CheckBox>(dialog, "_loop"); loop.IsChecked = true;
+                    loop.RaiseEvent(new RoutedEventArgs(CheckBox.ClickEvent));
+                    var layer = Field<SceneComposition>(dialog, "_scene").Layers.Single();
+                    Check(layer.Animation.Entrance == "Rise" && layer.Animation.Exit == "Fade" && layer.Loop,
+                        "Animation selections or loop were not applied");
+                    Field<TextBox>(dialog, "_name").Text = "No aplicar todavía";
+                    timing["Duración (ms)"].Text = "-1";
+                    Click(dialog, "Repetir vista previa");
+                    Check(Field<TextBlock>(dialog, "_error").Text.Length > 0 && layer.Name == first.Title && layer.Animation.DurationMilliseconds == 850,
+                        "Invalid animation partially changed the working layer");
+                    timing["Duración (ms)"].Text = "850";
+                    // Commit pending fields, then replay the same renderer/source pool.
+                    loop.RaiseEvent(new RoutedEventArgs(CheckBox.ClickEvent));
+                    var preview = Field<Border>(dialog, "_preview").Child;
+                    var pool = pools.Last(); var entries = pool.Entries.ToArray();
+                    Field<TextBox>(dialog, "_name").RaiseEvent(new RoutedEventArgs(UIElement.LostFocusEvent));
+                    Check(ReferenceEquals(preview, Field<Border>(dialog, "_preview").Child), "Unchanged field focus loss replaced the renderer");
+                    Click(dialog, "Repetir vista previa");
+                    Check(ReferenceEquals(preview, Field<Border>(dialog, "_preview").Child) && pool.Entries.SequenceEqual(entries),
+                        "Replay replaced the live renderer or its sources");
+                    Click(dialog, "Guardar capas");
+                });
+                var saved = dialog.SelectedCue!.Scene!.Layers.Single();
+                Check(saved.Source.Body == "Texto personalizado de la plantilla", "Layer text content was not saved");
+                Check(saved.Animation is { Entrance: "Rise", Exit: "Fade", DurationMilliseconds: 850, DelayMilliseconds: 250, HoldMilliseconds: 2400 } && saved.Loop,
+                    "Saved animation timing or loop was lost");
+            });
+            Test("Editing shared text detaches only the changed layer source", () =>
+            {
+                var dialog = new SceneLayersDialog(null, [first], Preview) { Owner = window };
+                Modal(dialog, () =>
+                {
+                    Click(dialog, "Añadir seleccionada"); Click(dialog, "Añadir seleccionada");
+                    var scene = Field<SceneComposition>(dialog, "_scene");
+                    var originalId = scene.Layers[0].SourceId;
+                    Check(scene.Layers[1].SourceId == originalId, "Repeated text source did not begin shared");
+                    Field<TextBox>(dialog, "_body").Text = "Texto independiente";
+                    var loop = Field<CheckBox>(dialog, "_loop");
+                    loop.RaiseEvent(new RoutedEventArgs(CheckBox.ClickEvent));
+                    var editedId = scene.Layers[1].SourceId;
+                    Check(editedId != originalId && scene.Layers[0].Source.Body == "Bienvenidos" && scene.Layers[1].Source.Body == "Texto independiente",
+                        "Editing shared text overwrote or retained the shared source");
+                    loop.RaiseEvent(new RoutedEventArgs(CheckBox.ClickEvent));
+                    Check(scene.Layers[1].SourceId == editedId, "Unchanged text needlessly changed source identity");
+                    Click(dialog, "Guardar capas");
+                });
+            });
+            Test("Templates require explicit apply, reuse backgrounds and cancellation isolates edits", () =>
+            {
+                var background = new Cue { Kind = CueKind.Image, Title = "Fondo elegido" };
+                var original = new Cue { Kind = CueKind.Scene, Title = "Original", Scene = new SceneComposition
+                {
+                    Layers = [new SceneLayer { Source = background, Name = "Fondo", Width = 1920, Height = 1080 }]
+                } };
+                var dialog = new SceneLayersDialog(original, [first], Preview) { Owner = window };
+                Exception? callbackError = null;
+                dialog.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
+                {
+                    try
+                    {
+                        var templates = Field<ComboBox>(dialog, "_templates");
+                        Check(templates.Items.Count == 4, "Four templates are not available");
+                        templates.SelectedValue = "reading";
+                        Check(Field<SceneComposition>(dialog, "_scene").Layers.Count == 1, "Selecting a template replaced edits without Apply");
+                        Click(dialog, "Aplicar plantilla");
+                        var scene = Field<SceneComposition>(dialog, "_scene");
+                        Check(scene.Layers.Count > 1 && scene.Layers[0].Source.Id == background.Id,
+                            "Template did not reuse the existing background when selected source was text");
+                        Check(scene.Layers.Any(layer => layer.Animation.Entrance != "None"), "Template has no animated content");
+                        PumpFor(900); dialog.UpdateLayout();
+                        CaptureDesignWindow(dialog, Path.Combine(Environment.CurrentDirectory, ".tools", "scene-template-editor.png"));
+                        ((ScrollViewer)dialog.Content).ScrollToEnd(); dialog.UpdateLayout();
+                        CaptureDesignWindow(dialog, Path.Combine(Environment.CurrentDirectory, ".tools", "scene-template-editor-fields.png"));
+                        Click(dialog, "Cancelar");
+                    }
+                    catch (Exception error) { callbackError = error; dialog.Close(); }
+                }));
+                Check(dialog.ShowDialog() == false, "Cancel accepted the template");
+                if (callbackError is not null) throw callbackError;
+                Check(dialog.SelectedCue is null && original.Scene.Layers.Count == 1 && original.Scene.Layers[0].Animation.Entrance == "None",
+                    "Cancelled template changed the original scene");
+            });
+            Test("Every template applies with the selected background and editable text", () =>
+            {
+                var background = new Cue { Kind = CueKind.Image, Title = "Fondo seleccionado" };
+                var dialog = new SceneLayersDialog(null, [background], Preview) { Owner = window };
+                Modal(dialog, () =>
+                {
+                    foreach (var id in new[] { "welcome", "reading", "sermon", "announcement" })
+                    {
+                        Field<ComboBox>(dialog, "_templates").SelectedValue = id;
+                        Click(dialog, "Aplicar plantilla");
+                        var scene = Field<SceneComposition>(dialog, "_scene");
+                        Check(scene.Layers[0].Source.Id == background.Id && scene.Layers.Count >= 3,
+                            "Template failed to apply with selected background: " + id);
+                    }
+                    Field<TextBox>(dialog, "_body").Text = "Domingo a las 10:00";
+                    Click(dialog, "Guardar capas");
+                });
+                Check(dialog.SelectedCue!.Scene!.Layers.Last().Source.Body == "Domingo a las 10:00", "Template text cannot be personalized");
+            });
             Test("Layer editor adds, transforms, reorders, hides, mutes and removes sources with silent live preview", () =>
             {
                 var dialog = new SceneLayersDialog(null, [first, second], Preview) { Owner = window };

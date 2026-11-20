@@ -183,6 +183,42 @@ internal static partial class Program
         TailFeed(0);
         Check(WetRead(tailDry, 480).All(x => Math.Abs(x) < .000001),
             "A paused Cathedral tail cannot replay its old dry sample on resume");
+        using (var engine = ProjectionSurface.CreatePlaybackEngine())
+        using (var mixer = new ProjectionMixer())
+        {
+            var leaf = new ProjectionSurface(sharedVlc: () => engine);
+            var pcm = new CathedralAudioOutput();
+            typeof(ProjectionSurface).GetField("_player", flags)!.SetValue(leaf, new LibVLCSharp.Shared.MediaPlayer(engine));
+            typeof(ProjectionSurface).GetField("_cathedralAudio", flags)!.SetValue(leaf, pcm);
+            typeof(ProjectionSurface).GetField("_audioGain", flags)!.SetValue(leaf, 1d);
+            typeof(ProjectionMixer).GetField("_audioOutgoing", flags)!.SetValue(mixer, leaf);
+            typeof(ProjectionMixer).GetField("_audioBlend", flags)!.SetValue(mixer, new TransitionOptions { AudioFadeOutMilliseconds = 6000 });
+            ((System.Diagnostics.Stopwatch)typeof(ProjectionMixer).GetField("_audioClock", flags)!.GetValue(mixer)!).Start();
+            pcm.BeginFadeOut(6000, 7400, 57); mixer.Volume = 70;
+            foreach (var transport in new[] { .5, 0d, 1d })
+            {
+                typeof(ProjectionMixer).GetField("_transportGain", flags)!.SetValue(mixer, transport);
+                typeof(ProjectionMixer).GetMethod("ApplyVolumes", flags)!.Invoke(mixer, null);
+                var master = (double)typeof(CathedralAudioOutput).GetField("_master", flags)!.GetValue(pcm)!;
+                Check(Math.Abs(master - Math.Pow(.7, 3) * transport) < .00001,
+                    "Active outgoing Cathedral wet bus follows transport gain " + transport);
+            }
+        }
         Check(!output.HasError, "Pause/resume PCM remains healthy");
+        using var primed = new CathedralAudioOutput();
+        typeof(CathedralAudioOutput).GetField("_clock", flags)!.SetValue(primed, (Func<long>)(() => 0));
+        primed.SetGain(1);
+        void PrimeFeed(int frames) => typeof(CathedralAudioOutput).GetMethod("Enqueue", flags)!.Invoke(primed,
+            new object[] { Enumerable.Repeat(.5f, frames * 2).ToArray() });
+        PrimeFeed(1114);
+        Check(WetRead(primed, 480).All(x => x == 0), "A clocked decoder waits beyond its first AAC packet");
+        PrimeFeed(1115);
+        Check(WetRead(primed, 480).All(x => x == 0), "Priming retains queued samples until the reserve is complete");
+        PrimeFeed(1114);
+        var start = WetRead(primed, 2400);
+        Check(start[0] < .01 && Math.Abs(start[^1] - .5f) < .0001, "Primed decoder enters through its native startup attack");
+        WetRead(primed, 2400);
+        PrimeFeed(1114); primed.EndInput();
+        Check(WetRead(primed, 1400).Any(x => x > .1), "EOF drains a short final packet instead of waiting for a full reserve");
     }
 }

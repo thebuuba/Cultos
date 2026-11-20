@@ -23,7 +23,10 @@ public sealed class LayerSourcePool : IDisposable
         internal string Signature = "";
         internal readonly Dictionary<object, (int Volume, bool Paused, bool Loop, double Gain)> Owners = new();
     }
-    private readonly Grid _depot = new() { IsHitTestVisible = false, ClipToBounds = true };
+    // Sources keep their own viewport size, even when the output is smaller.
+    // Grid would arrange them to the output slot and introduce a layout clip
+    // that VisualBrush carries into every layer using that source.
+    private readonly Canvas _depot = new() { IsHitTestVisible = false, ClipToBounds = true };
     private readonly Dictionary<string, Entry> _entries = new(StringComparer.Ordinal);
     private readonly Func<LibVLC>? _sharedVlc;
     private readonly List<Task> _retirements = new();

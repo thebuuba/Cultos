@@ -12,6 +12,15 @@ public sealed partial class ProjectionSurface
     private readonly bool _transparentBackground;
     private LayerSceneCanvas? _sceneCanvas;
     internal LayerSceneCanvas? SceneCanvas => _sceneCanvas;
+    internal bool DeferSceneAnimations { get; set; }
+    internal int SceneExitDuration => _sceneCanvas?.ExitDurationMilliseconds ?? 0;
+    internal void StartSceneAnimations() => _sceneCanvas?.StartAnimations();
+    internal void BeginSceneExit() => _sceneCanvas?.BeginExit();
+    public void ReplaySceneAnimations()
+    {
+        if (_mixer is not null) _mixer.ReplaySceneAnimations();
+        else StartSceneAnimations();
+    }
     internal IReadOnlyList<LiveSceneLayer> GetLiveLayers() => _sceneCanvas?.GetLiveLayers() ?? Array.Empty<LiveSceneLayer>();
 
     private void ShowScene(Cue cue, bool paused)
@@ -25,7 +34,7 @@ public sealed partial class ProjectionSurface
         }
         if (_sceneCanvas is null)
         {
-            _sceneCanvas = new LayerSceneCanvas(_layerPool);
+            _sceneCanvas = new LayerSceneCanvas(_layerPool) { AnimateOnLoad = !DeferSceneAnimations };
             _root.Children.Add(_sceneCanvas);
         }
         _pauseRequested = paused || _suppressed;
@@ -33,10 +42,11 @@ public sealed partial class ProjectionSurface
         _sceneCanvas.Visibility = _suppressed ? Visibility.Collapsed : Visibility.Visible;
         ApplyScenePlayback();
     }
-    private double _mixGain = 1;
-    internal void SetMixVolume(int volume, double gain)
+    private double _mixGain = 1, _transportAudioGain = 1;
+    internal void SetMixVolume(int volume, double gain, double transportGain = 1)
     {
         _mixGain = Math.Clamp(gain, 0, 1);
+        _transportAudioGain = Math.Clamp(transportGain, 0, 1);
         _volume = Math.Clamp(volume, 0, 100);
         ApplyAudioVolume(); ApplyBrowserAudioMute();
     }

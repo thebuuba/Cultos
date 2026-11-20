@@ -12,7 +12,7 @@ public sealed partial class ProjectionSurface
     internal void BeginCathedralFade(TransitionOptions options)
     {
         if (options.AudioFadeEffect != "Cathedral" || options.CathedralIntensityPercent <= 0 || _preview || _cathedralAudio is null) return;
-        _cathedralAudio.SetMasterGain(Math.Pow(_volume / 100d, 3));
+        _cathedralAudio.SetMasterGain(Math.Pow(_volume / 100d, 3) * _transportAudioGain);
         _cathedralAudio.BeginFadeOut(options.AudioFadeOutMilliseconds, options.CathedralTailMilliseconds, options.CathedralIntensityPercent);
     }
 

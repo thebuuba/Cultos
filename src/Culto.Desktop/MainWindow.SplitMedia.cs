@@ -14,18 +14,13 @@ public partial class MainWindow
 
     private void ProjectPreparedFromInput()
     {
-        if (_preparedScene is { } scene && _session.Prepared?.Id == scene.CueId
-            && _sceneTileButtons.TryGetValue(scene.Id, out var sceneButton))
-        {
-            ProjectConfiguredScene(sceneButton, new RoutedEventArgs());
-            return;
-        }
         if (Keyboard.Modifiers == ModifierKeys.Shift) ProjectPreparedPreservingOther();
         else ProjectPrepared();
     }
 
     private bool ProjectPreparedPreservingOther()
     {
+        if (TryHandlePreparedScene(activate: !_handlingStreamDeck, preserve: true, out var projected)) return projected;
         if (_session.Prepared is not { } cue) { SetStatus("Selecciona primero un contenido."); return false; }
         if (cue.Kind is CueKind.Video or CueKind.Audio)
         {
@@ -47,7 +42,7 @@ public partial class MainWindow
         if (cue.Kind is not (CueKind.Bible or CueKind.Text or CueKind.Image))
         { SetStatus("Conservar audio está disponible para Biblia, texto e imagen. YouTube se controla en Chrome."); return false; }
         if (!CheckMedia(cue)) return false;
-        ProjectPreparedCore(activate: true, preserve: true);
+        ProjectPreparedCore(activate: !_handlingStreamDeck, preserve: true);
         return _session.Live?.Id == cue.Id;
     }
 

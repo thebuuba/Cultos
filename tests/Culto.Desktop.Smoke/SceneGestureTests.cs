@@ -121,6 +121,44 @@ internal static partial class Program
                 Call(window, "ProjectPreparedFromInput");
                 Check(session.IsTextHidden && session.PreviewFollowsLive, "Project lost the startup Logo scene action");
             });
+            foreach (var input in new[] { "F5", "remote", "streamdeck", "ShiftF5", "remote-preserve" })
+            {
+                Test("Prepared scene is honored by " + input, () =>
+                {
+                    var live = new Cue { Title = "Input route " + input, Body = "Keep identity" };
+                    Call(window, "PrepareCue", live, null); Call(window, "ProjectPrepared");
+                    Tile("blackout").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    if (input is "F5" or "ShiftF5")
+                        window.InputBindings.OfType<KeyBinding>().Single(binding => binding.Key == Key.F5
+                            && binding.Modifiers == (input == "ShiftF5" ? ModifierKeys.Shift : ModifierKeys.None)).Command.Execute(null);
+                    else if (input == "streamdeck") Call(window, "HandleStreamDeckAction", "project");
+                    else Call(window, "ExecuteRemote", new Culto.Remote.RemoteCommand("project", Guid.NewGuid().ToString("N"), PreserveOther: input == "remote-preserve"));
+                    Check(session.IsBlackout && session.Live?.Id == live.Id, "Input route replaced live content instead of applying blackout");
+                    if (input is "ShiftF5" or "remote-preserve") Check(Field<bool>(window, "_preserveAudioForBackdrop"), "Preserve-audio intent was lost");
+                    Check(!Field<bool>(window, "_handlingStreamDeck"), "Input route left activation suppression enabled");
+                });
+            }
+            Test("Logo preview uses the configured starting image", () =>
+            {
+                Call(window, "PrepareCue", new Cue { Title = "Ordinary live", Body = "Text" }, null); Call(window, "ProjectPrepared");
+                Tile("logo").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                Check(session.Prepared?.FilePath == selectedLogo, "Logo preview does not match its configured starting image");
+            });
+            Test("Remote Project keeps startup Logo mode when there is no previous live cue", () =>
+            {
+                session.RestoreOutput(null, false, false); Call(window, "ShowLogo");
+                Tile("logo").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                var result = (Culto.Remote.CommandResult)Call(window, "ExecuteRemote", new Culto.Remote.RemoteCommand("project", Guid.NewGuid().ToString("N")))!;
+                Check(result.Success && session.IsTextHidden && session.PreviewFollowsLive, "Remote Project rejected the prepared startup Logo");
+            });
+            Test("An asynchronous resolved cue commits without re-dispatching scene intent", () =>
+            {
+                Tile(scene.Id).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                var resolved = scene.Cue!.Copy(); resolved.Body = "Resolved completion";
+                session.Prepare(resolved);
+                Call(window, "ProjectPreparedCore", true, false, false);
+                Check(session.Live?.Body == resolved.Body, "Completion re-dispatched the original scene instead of committing resolved content");
+            });
         }
         finally { Call(window, "CloseOutput"); Call(window, "SaveSceneTiles", initial); }
     }

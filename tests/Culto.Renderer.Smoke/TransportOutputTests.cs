@@ -20,9 +20,10 @@ internal static partial class Program
             Volume = 70,
             Transitions = new TransitionOptions { Kind = "Cut", AudioFadeEffect = Environment.GetEnvironmentVariable("CULTO_TRANSPORT_EFFECT") ?? "Normal", AudioFadeInMilliseconds = 0, AudioFadeOutMilliseconds = 0 }
         };
-        var activeTail = Environment.GetEnvironmentVariable("CULTO_TRANSPORT_ACTIVE_TAIL") == "1";
+        var duringBlend = Environment.GetEnvironmentVariable("CULTO_TRANSPORT_DURING_BLEND") == "1";
+        var activeTail = duringBlend || Environment.GetEnvironmentVariable("CULTO_TRANSPORT_ACTIVE_TAIL") == "1";
         if (activeTail) output.Transitions = new TransitionOptions { Kind = "Dissolve", DurationMilliseconds = 300,
-            AudioFadeEffect = "Cathedral", AudioFadeInMilliseconds = 600, AudioFadeOutMilliseconds = 550,
+            AudioFadeEffect = "Cathedral", AudioFadeInMilliseconds = duringBlend ? 6000 : 600, AudioFadeOutMilliseconds = duringBlend ? 6000 : 550,
             CathedralIntensityPercent = 57, CathedralTailMilliseconds = 7400 };
         var host = new Window { Content = output, Width = 640, Height = 400, Topmost = true };
         host.Show(); host.Activate();
@@ -52,8 +53,9 @@ internal static partial class Program
                 var incoming = new Cue { Kind = CueKind.Audio, FilePath = tone, Title = "Next reference" };
                 output.TransitionTo(incoming);
                 deadline = DateTime.UtcNow.AddSeconds(15);
-                while ((output.IsTransitioning || output.DisplayedCue?.Id != incoming.Id) && DateTime.UtcNow < deadline) await Task.Delay(10);
-                Check(!output.IsTransitioning && output.DisplayedCue?.Id == incoming.Id, "Reference changes cue with a long Cathedral tail still audible");
+                while ((output.DisplayedCue?.Id != incoming.Id || (!duringBlend && output.IsTransitioning)) && DateTime.UtcNow < deadline) await Task.Delay(10);
+                Check(output.DisplayedCue?.Id == incoming.Id && (duringBlend ? output.IsTransitioning : !output.IsTransitioning),
+                    duringBlend ? "Transport is exercised during an unfinished Cathedral blend" : "Reference changes cue with a long Cathedral tail still audible");
             }
             var start = capture.Count;
             var perceptibleRelease = true;

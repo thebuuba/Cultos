@@ -92,6 +92,8 @@ public partial class MainWindow
             switch (action)
             {
                 case "project":
+                    if (TryHandlePreparedScene(activate: !_handlingStreamDeck, preserve: command.PreserveOther == true, out var projectedScene))
+                        return new(projectedScene, StatusText.Text);
                     if (_session.Prepared is null) return new(false, "No hay contenido preparado.");
                     if (!CheckMedia(_session.Prepared)) return new(false, "No se encuentra el archivo en la computadora.");
                     if (command.PreserveOther == true) return new(ProjectPreparedPreservingOther(), StatusText.Text);

@@ -16,6 +16,7 @@ public partial class MainWindow
     private void ProjectPreparedWithoutActivation() => ProjectPreparedCore(activate: false);
     private void ProjectPreparedCore(bool activate, bool preserve = false, bool resolveYouTube = true)
     {
+        if (resolveYouTube && TryHandlePreparedScene(activate, preserve, out _)) return;
         _preserveAudioForNextCue = false;
         var cue = _session.Prepared;
         if (cue is null) { SetStatus("Selecciona primero un contenido para preparar."); return; }

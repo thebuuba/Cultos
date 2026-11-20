@@ -193,7 +193,12 @@ internal sealed class CathedralAudioOutput : IDisposable, IWaveProvider
                 if (_dry.Length < samples) { _dry = new float[samples]; _wet = new float[samples]; }
                 Array.Clear(_dry, 0, samples); Array.Clear(_wet, 0, samples);
                 var feeding = !_paused && (!_hasTail || _fadePosition < _fadeFrames);
-                var read = feeding ? Math.Min(samples, _length) : 0;
+                // AAC arrives in ~23 ms packets. Starting on its first packet
+                // leaves no cushion when a device pull races the next callback,
+                // repeatedly cutting the waveform after resume. Prime 50 ms of
+                // clocked input before beginning (or recovering) the dry stream.
+                var primed = !_starved || _clock is null || _ended || _length >= Rate * Channels / 20;
+                var read = feeding && primed ? Math.Min(samples, _length) : 0;
                 for (var i = 0; i < read; i++) { _dry[i] = _queue[_head]; _head = (_head + 1) % _queue.Length; }
                 _length -= read;
                 if (_resetEffect) { _reverb?.Dispose(); _reverb = null; _resetEffect = false; }
@@ -273,8 +278,11 @@ internal sealed class CathedralAudioOutput : IDisposable, IWaveProvider
         {
             if (_renderTarget != _gain)
             {
-                _renderTarget = _gain; _renderRampFrames = DeClickFrames;
-                _renderStep = (_gain - _renderGain) / DeClickFrames;
+                // Clocked decoders also need a short attack after priming: a
+                // compressed seek can begin with the codec/filter warm-up.
+                _renderRampFrames = _renderTarget < 0 && _clock is not null ? Rate / 25 : DeClickFrames;
+                _renderTarget = _gain;
+                _renderStep = (_gain - _renderGain) / _renderRampFrames;
             }
             if (_renderRampFrames > 0)
             {

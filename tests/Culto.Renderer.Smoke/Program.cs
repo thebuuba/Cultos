@@ -26,6 +26,7 @@ internal static partial class Program
         app.Startup += async (_, _) =>
         {
             try { if (args.Contains("--video-aspect")) await RunVideoAspectChecks(); else if (args.Contains("--cathedral")) await RunCathedralChecks(); else if (args.Contains("--move-video-cadence")) await RunMoveVideoCadenceChecks(); else if (args.Contains("--live-media")) await RunLiveMediaMoveChecks(); else if (args.Contains("--live-layers")) await RunLiveLayerMoveChecks();
+                else if (args.Contains("--layer-animations")) await RunLayerAnimationChecks();
                 else if (args.Contains("--layer-pool")) await RunLayerSourcePoolChecks();
                 else if (args.Contains("--transition-audit")) await RunTransitionAuditChecks();
                 else if (args.Contains("--native-move")) await RunNativeMoveChecks();
@@ -35,6 +36,8 @@ internal static partial class Program
                 else if (args.Contains("--transport-fades")) await RunTransportFadeChecks();
                 else if (args.Contains("--audio-pause")) RunAudioPauseChecks();
                 else if (args.Contains("--audio-pause-output")) await RunAudioPauseOutputChecks();
+                else if (args.Contains("--transport-pcm")) await RunTransportPcmChecks();
+                else if (args.Contains("--audio-callback-continuity")) await RunAudioCallbackContinuityChecks();
                 else if (args.Contains("--audio-noise")) await RunAudioNoiseChecks();
                 else if (args.Contains("--audio-resampler")) await RunAudioResamplerChecks();
                 else if (args.Contains("--audio-crossfade")) await RunAudioCrossfadeCaptureChecks();

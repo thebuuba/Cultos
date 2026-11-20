@@ -53,10 +53,14 @@ public partial class MainWindow
         .Where(path => !string.IsNullOrWhiteSpace(path) && !_logoUnavailable.Contains(path) && File.Exists(path))
         .Distinct(StringComparer.OrdinalIgnoreCase);
 
+    private string? InitialLogoPath() => AvailableLogoPaths()
+        .FirstOrDefault(path => string.Equals(path, _workspace.BackgroundImagePath, StringComparison.OrdinalIgnoreCase))
+        ?? AvailableLogoPaths().FirstOrDefault();
+
     private bool ShowLogo()
     {
         _preserveAudioForBackdrop = false;
-        return StartLogoPresentation(_workspace.BackgroundImagePath);
+        return StartLogoPresentation(InitialLogoPath());
     }
 
     private void ShowStartupLogo()

@@ -11,7 +11,7 @@ namespace Culto.Desktop.Projection;
 
 public sealed record LiveSceneLayer(string SourceId, ProjectionSurface Surface, Cue Cue, SceneLayer Layer, int Width, int Height);
 
-public sealed class LayerSceneCanvas : Viewbox, IDisposable
+public sealed partial class LayerSceneCanvas : Viewbox, IDisposable
 {
     private readonly LayerSourcePool _pool;
     private readonly Canvas _canvas = new() { ClipToBounds = true };
@@ -23,6 +23,7 @@ public sealed class LayerSceneCanvas : Viewbox, IDisposable
     public LayerSceneCanvas(LayerSourcePool pool)
     {
         _pool = pool;
+        InitializeLayerAnimations();
         Stretch = Stretch.Uniform;
         Child = _canvas;
     }
@@ -43,6 +44,7 @@ public sealed class LayerSceneCanvas : Viewbox, IDisposable
     public void SetScene(SceneComposition scene)
     {
         Scene = scene.Normalize();
+        ResetLayerAnimations();
         var next = new HashSet<string>(StringComparer.Ordinal);
         _canvas.Children.Clear();
         _live.Clear();
@@ -58,8 +60,9 @@ public sealed class LayerSceneCanvas : Viewbox, IDisposable
             {
                 Width = layer.Width, Height = layer.Height, Opacity = layer.Opacity,
                 Fill = new VisualBrush(entry.Surface) { Stretch = Stretch.Fill, AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top },
-                RenderTransformOrigin = new Point(.5, .5), RenderTransform = new RotateTransform(layer.Rotation)
+                RenderTransformOrigin = new Point(.5, .5)
             };
+            RegisterAnimatedLayer(layer, visual);
             Canvas.SetLeft(visual, layer.X);
             Canvas.SetTop(visual, layer.Y);
             _canvas.Children.Add(visual);
@@ -68,6 +71,7 @@ public sealed class LayerSceneCanvas : Viewbox, IDisposable
         _sources.Clear();
         _sources.UnionWith(next);
         ApplyPlayback(_volume, _paused, _loop, _gain);
+        if (AnimateOnLoad) StartAnimations();
     }
     public void ApplyPlayback(int volume, bool paused, bool loop, double envelope = 1)
     {
@@ -75,11 +79,12 @@ public sealed class LayerSceneCanvas : Viewbox, IDisposable
         foreach (var source in _live.GroupBy(x => x.SourceId))
         {
             var gain = source.Max(x => x.Layer.Muted ? 0 : x.Layer.Volume);
-            _pool.ApplyPlayback(this, source.Key, (int)Math.Round(volume * gain / 100d), paused, loop, envelope);
+            _pool.ApplyPlayback(this, source.Key, (int)Math.Round(volume * gain / 100d), paused, loop || source.Any(item => item.Layer.Loop), envelope);
         }
     }
     public void Dispose()
     {
+        DisposeLayerAnimations();
         _canvas.Children.Clear();
         _live.Clear();
         foreach (var id in _sources) _pool.Release(this, id);

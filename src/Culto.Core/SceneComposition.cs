@@ -64,10 +64,14 @@ public sealed class SceneLayer
     public double Opacity { get; set; } = 1;
     public bool Visible { get; set; } = true;
     public bool Muted { get; set; }
+    public bool Loop { get; set; }
+    public SceneAnimationOptions Animation { get; set; } = new();
     public int Volume { get; set; } = 100;
 
     public void Validate()
     {
+        if (Animation is null) throw new ArgumentException("La animación de la capa no puede estar vacía.");
+        Animation.Validate();
         if (Source is null || Source.Kind is CueKind.Scene or CueKind.PowerPoint || Source.Scene is not null)
             throw new ArgumentException("Las capas no admiten escenas anidadas ni PowerPoint.");
         if (!Enum.IsDefined(Source.Kind)) throw new ArgumentException("El tipo de fuente no es válido.");
@@ -83,6 +87,7 @@ public sealed class SceneLayer
         Validate();
         var copy = (SceneLayer)MemberwiseClone();
         copy.Source = Source.Copy();
+        copy.Animation = Animation with { };
         return copy;
     }
 }

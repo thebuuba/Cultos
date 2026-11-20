@@ -89,7 +89,7 @@ public sealed partial class ProjectionSurface : UserControl, IDisposable
         set
         {
             if (_mixer is not null) { _mixer.Volume = value; return; }
-            _mixGain = 1; _volume = Math.Clamp(value, 0, 100);
+            _mixGain = _transportAudioGain = 1; _volume = Math.Clamp(value, 0, 100);
             ApplyAudioVolume();
             ApplyBrowserAudioMute();
             ApplyScenePlayback();
