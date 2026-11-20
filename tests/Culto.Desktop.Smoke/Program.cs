@@ -92,6 +92,7 @@ internal static partial class Program
         // This route creates only disconnected controls: no App, Window, native
         // player, dispatcher loop or desktop interaction.
         if (args.Contains("--scene-config")) return RunSceneConfigurationTests();
+        if (args.Contains("--video-scene-selection")) return RunVideoSceneSelectionTests();
         if (args.Contains("--youtube-sources")) return RunYouTubeSourceTests();
         if (args.Contains("--capture-layout-headless")) return RunCaptureLayoutHeadlessTests();
         if (args.Contains("--media-layout-headless")) return RunMediaLayoutHeadlessTests();
@@ -159,6 +160,8 @@ internal static partial class Program
                 }));
             }));
             Dispatcher.Run();
+            // This host bypasses Application.Run/OnExit and releases its owned resources explicitly.
+            Field<FileStream?>(app, "_workspaceSession")?.Dispose();
         }
         catch (Exception error) { failures++; Console.WriteLine("FAIL smoke host: " + error); }
         finally

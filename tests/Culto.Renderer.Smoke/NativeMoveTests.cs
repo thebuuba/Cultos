@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.IO;
@@ -36,16 +37,24 @@ internal static partial class Program
             output.ShowCue(red); await Task.Delay(200); window.UpdateLayout();
             output.TransitionTo(blue);
             var overlays = new HashSet<ImageSource>();
+            var cadence = Stopwatch.StartNew();
+            double firstFrameAt = -1, lastFrameAt = -1;
             var deadline = DateTime.UtcNow.AddSeconds(40);
             while (output.IsTransitioning && errors.Count == 0 && DateTime.UtcNow < deadline)
             {
                 foreach (var image in Descendants(output).OfType<System.Windows.Controls.Image>())
-                    if (image.Visibility == Visibility.Visible && image.Source is BitmapSource source && source.PixelWidth >= 620) overlays.Add(source);
-                await Task.Delay(20);
+                    if (image.Visibility == Visibility.Visible && image.Source is BitmapSource source && source.PixelWidth >= 620 && overlays.Add(source))
+                    {
+                        if (firstFrameAt < 0) firstFrameAt = cadence.Elapsed.TotalSeconds;
+                        lastFrameAt = cadence.Elapsed.TotalSeconds;
+                    }
+                await Task.Delay(4);
             }
             Check(errors.Count == 0, "Move engine reports no error: " + string.Join(" | ", errors));
             Check(!output.IsTransitioning, "Native Move finishes rather than freezing the outgoing frame");
             Check(overlays.Count > 3, "Native Move delivers multiple animation frames at an unaligned viewport size");
+            double fps = (overlays.Count - 1) / (lastFrameAt - firstFrameAt);
+            Check(fps is >= 24 and <= 40, $"Native Move uses the lighter 30 fps cadence ({fps:0.0} fps)");
             bool Direction(ImageSource source, bool blueOnLeft)
             {
                 var frame = (BitmapSource)source; var left = new byte[4]; var right = new byte[4];

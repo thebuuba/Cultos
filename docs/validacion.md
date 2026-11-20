@@ -4,6 +4,64 @@ Comprobación actualizada el 14 de noviembre de 2026 en esta PC Windows. Entrega
 
 ## Compilación y pruebas
 
+### Escena Video sin recuperación automática de videos guardados — 20 de noviembre de 2026, 0.44.7
+
+La escena Video deja de recurrir a QuickSceneVideo y deja de actualizar ese acceso persistente al usar o elegir un video. Mantiene el orden de prioridad entre el video preparado y el activo, incluida la reproducción que sigue detrás de Logo. Sin ambos, no selecciona un video antiguo. Las escenas configuradas expresamente y el acceso de Imagen conservan su comportamiento.
+
+El ensayo sin ventanas `--video-scene-selection` falló antes del cambio por recuperar el video antiguo y actualizar el acceso persistente. Después aprobaron sus tres comprobaciones: ignorar un video recordado, preferir el preparado y no recordar otro video. Evidencias: `.tools/video-scene-memory-red.log` y `.tools/video-scene-memory-green.log`. El ensayo comprueba la política de selección y guardado, sin abrir reproductores.
+
+### Fondo tenue en pestañas activas — 20 de noviembre de 2026, 0.44.6
+
+La plantilla compartida de las pestañas añade un fondo del color de selección con opacidad de 12 %, visible únicamente al seleccionar la pestaña. El texto, la línea inferior y los colores individuales conservan su funcionamiento. `--tab-text` aprobó las comprobaciones de colores, persistencia, tipografía y tamaño; se inspeccionó la captura `.tools/visual-theme/tab-text.png`. La compilación y el ensayo se registraron en `.tools/tab-background-build.log` y `.tools/tab-background-smoke.log`.
+
+### Protección contra dos consolas con ajustes diferentes — 20 de noviembre de 2026, 0.44.5
+
+El usuario confirmó que volvió a configurar hoy los colores de la Biblia y las transiciones después de encontrarlos restablecidos. El archivo actual contiene sus ajustes personalizados. En una copia aislada se verificó que sobreviven a tres ciclos de carga y guardado; también se reprodujo que una segunda ventana con datos antiguos puede sobrescribir los ajustes recién guardados por otra. Esto demuestra una vía de pérdida de datos, sin demostrar que fuera el origen histórico de este reporte.
+
+La aplicación mantiene ahora un archivo abierto en exclusiva en la carpeta del perfil durante toda la sesión. Una segunda copia que incluya esta protección se detiene antes de crear su consola y cargar o guardar el espacio de trabajo. La exclusión depende del perfil, no de la carpeta del ejecutable; Windows la libera al terminar el proceso. Los perfiles aislados de pruebas pueden abrirse simultáneamente. Las versiones anteriores a esta protección deben cerrarse antes de usar la nueva.
+
+La regresión falló primero porque permitía abrir dos sesiones sobre la misma carpeta. Con la exclusión activa pasó: segunda apertura rechazada, perfil independiente permitido y reapertura tras liberar el archivo. La compilación completa terminó sin errores ni advertencias, con 427 pruebas del núcleo y 78 del mando aprobadas. También pasaron el arranque nativo, las cuatro comprobaciones específicas del editor de Biblia y las ocho del editor de transiciones. Se ajustó el cierre del host de pruebas para liberar su sesión explícitamente, ya que usa Dispatcher.Run en lugar de Application.Run y no ejecuta OnExit.
+
+Se respaldó el perfil actual en `%LOCALAPPDATA%/CultoStudio/Respaldos/Ajustes-20261120/workspace.json`. Se cerró normalmente la versión 0.44.4, se comprobó que los ajustes de Biblia, transiciones y perfiles no cambiaron al guardar y se inició 0.44.5. Evidencias: `.tools/settings-stale-window-repro.log`, `.tools/settings-session-red.log`, `.tools/settings-session-green.log`, `.tools/settings-release-build.log`, `.tools/settings--native-startup.log`, `.tools/settings--bible-style-save.log` y `.tools/settings--transition-settings.log`.
+
+### Captura Full HD conservando la reducción de carga — 20 de noviembre de 2026, 0.44.4
+
+Programa solicita ahora 1920 × 1080 al motor de captura. Se conservan los 30 FPS, la miniatura de YouTube a 320 × 180, las optimizaciones de copia y la cadencia original de los videos locales. La salida HDMI sigue usando el tamaño de la pantalla elegida; en una pantalla Full HD la captura ya no se amplía desde 720p.
+
+La regresión `--capture-local` falló primero al exigir 1920 × 1080 a la captura anterior de 1280 × 720. Tras el cambio aprobó sus 37 comprobaciones, con 30,0 actualizaciones por segundo: captura Full HD, miniatura pequeña, imagen en ambos monitores locales y cambios de tamaño sin reiniciar el motor ni errores. Evidencias: `.tools/capture-1080-red.txt`, `.tools/capture-1080-green.txt` y `.tools/capture-1080-green.log`. La fuente es sintética; no demuestra por sí sola ausencia de lag con el contenido y la carga de Chrome y OBS del usuario.
+
+La compilación completa terminó sin advertencias ni errores: 426 pruebas del núcleo y 78 del mando aprobadas. Se publicó la versión 0.44.4 en `artifacts/CultoStudio-0.44.4` y el iniciador habitual apunta a ella; el proceso anterior abierto no se cierra automáticamente. La suite adicional `--window-capture` falló dos veces esperando cambios de color en su fuente sintética de 320 × 180, antes de llegar al caso de 1080p; poner temporalmente esa fuente en primer plano no resolvió el fallo y se retiró ese cambio. Esta suite no se considera aprobada. Evidencias: `.tools/capture-1080-release-build.log`, `.tools/capture-1080-native.txt` y `.tools/capture-1080-native-visible.txt`.
+
+### Reducción de carga con YouTube y OBS — 0.44.3
+
+El usuario reportó lag en la PC y el reproductor tras activar 60 FPS. Se encontraron dos procesos de captura de 1280 × 720: Programa y la miniatura de la lista de YouTube. Las capturas y Move vuelven a 30 FPS; las fuentes HTML nuevas también usan 30 por defecto. Se conservan las copias en bloque, la conversión vectorial y la cadencia original de los videos locales.
+
+La miniatura ahora solicita 320 × 180 al motor, sin reducir la captura de Programa. Para una miniatura y una captura en programa, el volumen BGRA configurado pasa de unos 442 MB/s a 117 MB/s antes de otras copias. Es un cálculo del tamaño y frecuencia de los cuadros, no una medición de CPU o GPU.
+
+`--capture-local` falló primero porque la miniatura real seguía creando una imagen a 720p. Tras corregirla, aprobó sus 37 comprobaciones: miniatura real a 320 × 180, programa conservado a 1280 × 720, 30,0 actualizaciones por segundo y cambios de tamaño sin recrear el motor ni errores de reproducción. Evidencias: `.tools/capture-lag-thumbnail-red.txt`, `.tools/capture-lag-local-green.txt` y `.tools/capture-lag-local-green.log`. La prueba es sintética; la mejora percibida en la sesión de Chrome y OBS del usuario requiere su valoración.
+
+Move aprobó sus 23 comprobaciones, con 29,2 FPS observados. La compilación completa terminó sin advertencias ni errores, con 426 pruebas del núcleo y 78 del mando aprobadas. Registros `.tools/capture-lag-move-green.txt` y `.tools/capture-lag-release-build.log`.
+
+### Motor y transiciones a 60 FPS — 19 de noviembre de 2026, 0.44.2
+
+La inicialización común de OBS ahora solicita 60 FPS tanto para captura como para Move. Las fuentes animadas de Move pasan de un temporizador de 33 ms a 1/60 s, y las fuentes HTML nuevas usan 60 FPS por defecto. Se respetan los FPS explícitos de fuentes HTML guardadas y la cadencia original de los archivos de video; en el perfil local no había fuentes HTML con FPS explícitos.
+
+El ensayo con dos videos Full HD a 60 FPS detectó además trabajo excesivo al copiar memoria y establecer la opacidad. `SharedVideoFrame` usa copia en bloque con `Marshal.Copy`, reteniendo el handle de la vista durante el acceso; conserva las barreras de memoria y la comprobación de secuencia para no publicar cuadros incompletos. La conversión RV32 a BGRA opaco usa bloques vectoriales y una cola escalar; el callback nativo de imagen se compila con optimización desde su primera ejecución. No se cambian los tiempos del video ni el audio. Referencia primaria del bucle de copia genérico sustituido: [SafeBuffer de .NET 10](https://github.com/dotnet/runtime/blob/v10.0.0/src/libraries/System.Private.CoreLib/src/System/Runtime/InteropServices/SafeBuffer.cs).
+
+Las regresiones iniciales detectaron Move a 29,4 FPS, el temporizador de 33 ms y una transferencia Full HD que tardaba 20,54 ms, por encima del presupuesto de 16,67 ms. La comprobación de copia y los 25 casos de navegador/protocolo compartido pasaron tras la corrección, incluida la concurrencia entre productor y lector. El ensayo final de video midió 60,0 FPS antes de Move; la transferencia de sus dos fuentes Full HD tardó 9,08 ms de mediana y 12,26 ms de máximo, sin asignaciones de imágenes completas en ese paso. Durante Move se observaron 166 imágenes y 54,3 FPS mediante sondeo de la salida WPF. Son mediciones de prueba, no una garantía de 60 cuadros únicos constantes con cualquier equipo, contenido o carga.
+
+La compilación completa terminó sin advertencias ni errores, con 426 pruebas del núcleo y 78 del mando aprobadas. La regresión final de Move aprobó sus 23 comprobaciones y midió 58,8 FPS en la transición entre imágenes, incluida recuperación ante fallo del efecto e interrupción con Corte.
+
+Evidencias: `.tools/all60-native-move-red.txt`, `.tools/all60-native-move-final.txt`, `.tools/all60-live-move-red.txt`, `.tools/all60-live-move-green.txt`, `.tools/all60-live-move-single-engine.txt`, `.tools/all60-live-move-vector.txt` y `.tools/all60-release-build.log`. La prueba final sustituye la consola abierta por el host de ensayo para no duplicar motores de reproducción durante la medición; YouTube y OBS permanecen abiertos.
+
+### Captura de ventanas a 60 FPS — 19 de noviembre de 2026
+
+OBS mostraba 60 FPS mientras el motor de captura de Culto Studio inicializaba su salida a 30 FPS. La captura ahora solicita 60 FPS; el proceso separado de transiciones Move conserva 30 FPS. La resolución, el recorte y el audio de Chrome mantienen sus contratos anteriores.
+
+La regresión nativa `--window-capture` mide la entrega de BGRA a 1280 × 720 durante 2,2 segundos después del calentamiento: falló con 29,9 FPS antes y pasó con 60,1 FPS después. Pasaron sus 17 comprobaciones, incluidas oclusión, transformación, recorte y cierre de la fuente. `--capture-local` mide además las actualizaciones de la imagen WPF del programa: 30,0 por segundo con el motor anterior y 60,4 con el nuevo. Sus 34 comprobaciones incluyen los dos monitores locales y maximizar/restaurar sin reiniciar la captura. Son mediciones con una fuente sintética propia; no miden los cuadros únicos ni el retardo del video de YouTube del usuario.
+
+Evidencias: `.tools/capture-60fps-red.txt`, `.tools/capture-60fps-green.txt`, `.tools/capture-60fps-native.log`, `.tools/capture-60fps-local.txt` y `.tools/capture-60fps-local-green.txt`. La ejecución final de los monitores usa `.tools/Capture60Smoke` con el motor de prueba aislado de la instalación abierta.
+
 ### Distribución completa sin internet — 16 de noviembre de 2026
 
 El paquete completo añade `App/Content` con un manifiesto de rutas relativas, 613 himnos de la carpeta del himnario, 11 Biblias y 8 fondos. `prepare-complete-content.ps1` recibe esas fuentes explícitas; no copia el perfil, sus cultos, notas ni ajustes. `package-release.ps1 -ContentDirectory` incluye el contenido, lo registra con SHA-256 en el manifiesto general y produce una edición `-Completo.zip`. El instalador conserva el perfil existente y no inicia la aplicación automáticamente.
@@ -995,3 +1053,5 @@ La vista previa inicializaba VLC en el hilo de entrada al seleccionar el primer 
 La prueba de regresión con un motor retrasado falló antes de la corrección y pasó después. El ensayo WPF --cold-play selecciona una fila real de Medios y envía un único evento de doble clic. Verifica video en movimiento, interfaz disponible y descarte de solicitudes reemplazadas. También pasó --player y las 438 pruebas Core y Remote. Se utilizaron eventos WPF sobre controles reales. Las pruebas adicionales sobre el cambio inmediato de volumen durante un fundido y la restauración de video después del logo presentaron resultados intermitentes. Ambas pasaron en una comparación con el código anterior y en ejecuciones instrumentadas del código corregido. Evidencias en .tools/first-video-red.log, first-video-final.log, first-video-player-diagnostic.log, first-video-player-baseline.log, first-video-audio-baseline.log y first-video-audio-diagnostic.log.
 
 Se actualizó artifacts/CultoStudio a 0.43.3 con el programa cerrado y se verificaron los nueve archivos copiados mediante SHA-256. Respaldo en .tools/first-video-installed-backup-cb2d98b8b0994f0a9413c80131847579. La revisión se distribuye en esta copia local.
+
+Verificación final de 0.44.4: se repitió --capture-local usando el MoveHost de la distribución publicada. Aprobó las 37 comprobaciones, con captura de 1920 × 1080 y 30,0 actualizaciones por segundo. Registro: .tools/capture-1080-release-local.txt.

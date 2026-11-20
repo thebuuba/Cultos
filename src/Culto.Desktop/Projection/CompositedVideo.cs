@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Linq;
+using System.Numerics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -62,7 +63,13 @@ internal sealed class CompositedVideo : Image, IDisposable
             frame.CopyPixels(new Int32Rect(0, 0, frame.PixelWidth, frame.PixelHeight), canvas, width * 4, (y * width + x) * 4);
         }
         // VLC's RV32/WPF Bgr32 ignores its fourth byte; OBS needs explicit opaque alpha.
-        for (var alpha = 3; alpha < canvas.Length; alpha += 4) canvas[alpha] = 255;
+        var rgba = MemoryMarshal.Cast<byte, uint>(canvas.AsSpan());
+        var opaque = new Vector<uint>(0xff000000u);
+        int pixel = 0;
+        for (; pixel <= rgba.Length - Vector<uint>.Count; pixel += Vector<uint>.Count)
+            (new Vector<uint>(rgba.Slice(pixel, Vector<uint>.Count)) | opaque)
+                .CopyTo(rgba.Slice(pixel, Vector<uint>.Count));
+        for (; pixel < rgba.Length; pixel++) rgba[pixel] |= 0xff000000u;
         return true;
     }
 

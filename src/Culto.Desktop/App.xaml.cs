@@ -7,6 +7,7 @@ namespace Culto.Desktop;
 
 public partial class App : Application
 {
+    private FileStream? _workspaceSession;
     static App()
     {
         // Draw the selection behind glyphs so opaque highlights honor SelectionTextBrush.
@@ -17,6 +18,7 @@ public partial class App : Application
     {
         Services.CapturedApplicationAudio.ShutdownShared();
         Services.BrowserSourceRuntime.Shutdown();
+        _workspaceSession?.Dispose();
         base.OnExit(e);
     }
     private void ButtonHoverChanged(object sender, System.Windows.Input.MouseEventArgs e)
@@ -42,6 +44,19 @@ public partial class App : Application
             MessageBox.Show("No se pudo completar la acción.\n\n" + args.Exception.Message, "Culto Studio", MessageBoxButton.OK, MessageBoxImage.Warning);
             args.Handled = true;
         };
+        try { _workspaceSession = Services.WorkspaceSession.Open(new Services.WorkspaceStore().DirectoryPath); }
+        catch (IOException error) when ((error.HResult & 0xFFFF) is 32 or 33)
+        {
+            MessageBox.Show("Culto Studio ya está abierto con estos datos. Usa la ventana abierta o ciérrala antes de abrir otra versión para conservar tus ajustes.",
+                "Culto Studio", MessageBoxButton.OK, MessageBoxImage.Information);
+            Shutdown(); return;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            MessageBox.Show("No se pudo abrir la carpeta de datos.\n\n" + error.Message,
+                "Culto Studio", MessageBoxButton.OK, MessageBoxImage.Warning);
+            Shutdown(); return;
+        }
         base.OnStartup(e);
         // Native startup owns one console; an explicit host can supply its own.
         if (MainWindow is null) new MainWindow().Show();

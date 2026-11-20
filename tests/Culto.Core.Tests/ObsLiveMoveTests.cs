@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Diagnostics;
 using Culto.MoveHost;
 using Xunit;
 
@@ -30,6 +31,25 @@ public sealed class ObsLiveMoveTests
         Assert.Equal(128, Marshal.SizeOf<ObsNative.SourceInfo>());
         Assert.Equal(16, Marshal.OffsetOf<ObsNative.SourceInfo>(nameof(ObsNative.SourceInfo.GetName)).ToInt32());
         Assert.Equal(120, Marshal.OffsetOf<ObsNative.SourceInfo>(nameof(ObsNative.SourceInfo.VideoRender)).ToInt32());
+    }
+    [Fact]
+    public void FullHdSharedFrameTransferFitsOneSixtyFpsFrame()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        using var writer = SharedVideoFrame.Create(1920, 1080);
+        using var reader = SharedVideoFrame.Open(writer.MapName, 1920, 1080);
+        var pixels = Enumerable.Repeat((byte)193, writer.ByteCount).ToArray();
+        var result = new byte[pixels.Length];
+        var milliseconds = new List<double>();
+        for (int i = 0; i < 13; i++)
+        {
+            var clock = Stopwatch.StartNew();
+            writer.Write(pixels);
+            Assert.True(reader.TryRead(result));
+            if (i >= 3) milliseconds.Add(clock.Elapsed.TotalMilliseconds);
+        }
+        Assert.Equal(pixels, result);
+        Assert.InRange(milliseconds.Order().ElementAt(milliseconds.Count / 2), 0, 1000d / 60);
     }
     [Fact]
     public async Task SharedFramesNeverExposeAnIncompleteWriterFrame()

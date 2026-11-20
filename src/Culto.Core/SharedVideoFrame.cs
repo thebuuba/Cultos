@@ -1,5 +1,6 @@
 using System.IO.MemoryMappedFiles;
 using System.Runtime.Versioning;
+using System.Runtime.InteropServices;
 
 namespace Culto.Core;
 
@@ -40,7 +41,7 @@ public sealed class SharedVideoFrame : IDisposable
         if (!_writer) throw new InvalidOperationException("This mailbox is read-only.");
         if (bgra.Length != ByteCount) throw new ArgumentException("Expected one complete BGRA frame.", nameof(bgra));
         _view.Write(8, ++_sequence); Thread.MemoryBarrier();
-        _view.WriteArray(HeaderBytes, bgra, 0, ByteCount);
+        CopyPixels(bgra, write: true);
         Thread.MemoryBarrier(); _view.Write(8, ++_sequence);
     }
     /// <summary>Returns false when no completed frame exists or the producer is updating. Destination stays unchanged.</summary>
@@ -52,11 +53,26 @@ public sealed class SharedVideoFrame : IDisposable
         {
             long before = _view.ReadInt64(8); Thread.MemoryBarrier();
             if (before == 0 || (before & 1) != 0) continue;
-            _view.ReadArray(HeaderBytes, _scratch!, 0, ByteCount); Thread.MemoryBarrier();
+            CopyPixels(_scratch!, write: false); Thread.MemoryBarrier();
             if (before != _view.ReadInt64(8)) continue;
             _scratch!.CopyTo(destination, 0); return true;
         }
         return false;
+    }
+    private void CopyPixels(byte[] pixels, bool write)
+    {
+        // SafeBuffer's generic array access copies one element at a time. BGRA
+        // needs a bulk byte copy; retain the view handle throughout native access.
+        var handle = _view.SafeMemoryMappedViewHandle;
+        bool retained = false;
+        try
+        {
+            handle.DangerousAddRef(ref retained);
+            var address = handle.DangerousGetHandle() + checked((nint)(_view.PointerOffset + HeaderBytes));
+            if (write) Marshal.Copy(pixels, 0, address, ByteCount);
+            else Marshal.Copy(address, pixels, 0, ByteCount);
+        }
+        finally { if (retained) handle.DangerousRelease(); }
     }
     public void Dispose() { _view.Dispose(); _map.Dispose(); }
 }

@@ -24,7 +24,9 @@ public sealed partial class ProjectionSurface
     private CaptureFrame? _captureLatest;
     private WriteableBitmap? _captureBitmap;
     private string? _captureAudioError;
-    private const int CaptureWidth = 1280, CaptureHeight = 720;
+    internal bool IsCaptureThumbnail { get; init; }
+    private int CaptureWidth => IsCaptureThumbnail ? 320 : 1920;
+    private int CaptureHeight => IsCaptureThumbnail ? 180 : 1080;
 
     public void RefreshWindowCapture()
     {

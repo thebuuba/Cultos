@@ -1,5 +1,19 @@
 # Culto Studio
 
+En **0.44.7**, la escena Video usa el video preparado o el que continúa activo. Si no hay ninguno, pide preparar un video; ya no recupera ni recuerda un video anterior como acceso automático.
+
+En **0.44.6**, la pestaña activa añade un fondo tenue con su propio color, además del texto resaltado y la línea inferior.
+
+En **0.44.5**, solo una copia del programa puede usar un mismo perfil de datos a la vez. Esto evita que otra ventana con ajustes antiguos sobrescriba los colores de la Biblia, las transiciones y el culto al guardar o cerrar. Los perfiles de prueba independientes siguen permitidos.
+
+En **0.44.4**, la captura de Programa se entrega a **1920 × 1080 a 30 FPS**. La miniatura de YouTube conserva 320 × 180 para reducir el trabajo duplicado; se mantienen las optimizaciones de memoria y la cadencia original de los archivos de video.
+
+En **0.44.3**, las capturas, Move y las fuentes HTML nuevas vuelven a 30 FPS para reducir la carga simultánea con Chrome y OBS. La miniatura de YouTube captura a 320 × 180 en lugar de duplicar la captura de Programa a 720p. Se conservan las optimizaciones de memoria y la reproducción original de los archivos de video, incluidos los de 60 FPS.
+
+En **0.44.2**, el motor de transiciones Move y la actualización de sus fuentes en movimiento también funcionan a 60 FPS. Las fuentes HTML nuevas usan 60 FPS de forma predeterminada; los archivos de video conservan su cadencia original. Vista previa y Programa siguen compartiendo la misma salida.
+
+En **0.44.1**, las capturas de YouTube y otras ventanas se entregan a 60 FPS para mejorar la fluidez respecto al límite anterior de 30 FPS. Se conserva la velocidad original del video y su audio independiente.
+
 En **0.44.0**, la escena Video usa el video preparado aunque haya una lista activa; volver desde Logo conservando audio mantiene la posición del video. Los monitores adaptan su proporción a la salida y su menú **Vista** permite ampliar, ajustar, rellenar y aplicar zoom. Clic derecho en una escena → **Ver en vista previa** la prepara sin cambiar la salida, incluso si está oculta detrás de Logo o Negro.
 
 **Configuración → Volver a Videos al regresar a Medios** permite activar o desactivar ese comportamiento. **Orden del culto → + Texto** abre el editor de texto. La escena **Título del programa** admite texto para Tema y Propósito, imágenes o una combinación; editar sus imágenes actualiza el título si está en pantalla. En Biblia, un clic sencillo vuelve a seleccionar un solo verso después de seleccionar varios, conservando el arrastre del pasaje. Se verificó la búsqueda directa `mateo 2 1-3`.

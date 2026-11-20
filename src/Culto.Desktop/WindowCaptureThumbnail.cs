@@ -34,7 +34,7 @@ public sealed class WindowCaptureThumbnail : ContentControl
         if (!IsLoaded || !IsVisible || Cue is not { Kind: CueKind.WindowCapture, Capture: { } capture } cue) return;
         var preview = cue.Copy();
         preview.Capture = capture with { ControlAudio = false };
-        var surface = _surface = new ProjectionSurface(preview: true);
+        var surface = _surface = new ProjectionSurface(preview: true) { IsCaptureThumbnail = true };
         surface.PlaybackError += ShowError;
         Content = surface;
         try { surface.ShowCue(preview); }

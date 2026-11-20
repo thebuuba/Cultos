@@ -12,6 +12,7 @@
     <Compile Include="../../src/Culto.Desktop/Projection/*.cs" Link="Projection/%(Filename)%(Extension)" />
     <Compile Include="../../src/Culto.Desktop/Services/DisplayService.cs" Link="DisplayService.cs" />
     <Compile Include="../../src/Culto.Desktop/Services/CaptureService.cs" Link="CaptureService.cs" />
+    <Compile Include="../../src/Culto.Desktop/WindowCaptureThumbnail.cs" Link="WindowCaptureThumbnail.cs" />
     <Compile Include="../../src/Culto.Desktop/Services/WindowCaptureCatalog.cs" Link="WindowCaptureCatalog.cs" />
     <Compile Include="../../src/Culto.Desktop/Services/CapturedApplicationAudio.cs" Link="CapturedApplicationAudio.cs" />
     <Compile Include="../../src/Culto.Desktop/Services/BrowserSourceRuntime.cs" Link="BrowserSourceRuntime.cs" />

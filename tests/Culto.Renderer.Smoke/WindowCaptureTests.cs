@@ -88,6 +88,24 @@ internal static partial class Program
                 Check(capture.IsCompleted, "Cancelling capture promptly stops its worker stream");
             }
             lock (gate) frames.Clear();
+            // Measure the production-size pipe, not just the small crop fixture.
+            using (var cancellation = new CancellationTokenSource())
+            using (var client = new ObsWindowCaptureClient(worker, runtime))
+            {
+                long delivered = 0;
+                var capture = client.CaptureAsync(options, 1920, 1080,
+                    _ => Interlocked.Increment(ref delivered), cancellation.Token);
+                await Until(() => Interlocked.Read(ref delivered) >= 15,
+                    "1080p capture warms up before measuring cadence", capture);
+                long before = Interlocked.Read(ref delivered);
+                var clock = Stopwatch.StartNew();
+                await Task.Delay(2200);
+                double fps = (Interlocked.Read(ref delivered) - before) / clock.Elapsed.TotalSeconds;
+                cancellation.Cancel();
+                try { await capture.WaitAsync(TimeSpan.FromSeconds(5)); } catch (OperationCanceledException) { }
+                Check(fps is >= 24 and <= 40,
+                    $"Production-size 1080p window capture uses the lighter 30 fps cadence ({fps:0.0} fps)");
+            }
             using (var cancellation = new CancellationTokenSource())
             using (var client = new ObsWindowCaptureClient(worker, runtime))
             {

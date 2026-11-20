@@ -30,7 +30,7 @@ public partial class MainWindow
         : _session.Live is { Kind: CueKind.Video } live && _output.ActiveSurface.HasLoadedMedia ? live : null;
 
     private Cue? SceneMedia(CueKind kind) => kind == CueKind.Video
-        ? (_session.Prepared is { Kind: CueKind.Video } video ? video : null) ?? ActiveSceneVideo() ?? _workspace.QuickSceneVideo
+        ? (_session.Prepared is { Kind: CueKind.Video } video ? video : null) ?? ActiveSceneVideo()
         : _session.Prepared is { Kind: CueKind.Image } image ? image : _workspace.QuickSceneImage;
 
     private bool ShowSceneVideo(Cue cue)
@@ -95,6 +95,7 @@ public partial class MainWindow
 
     private bool RememberSceneMedia(Cue cue)
     {
+        if (cue.Kind == CueKind.Video) return true;
         var previous = cue.Kind == CueKind.Image ? _workspace.QuickSceneImage : _workspace.QuickSceneVideo;
         if (cue.Kind == CueKind.Image) _workspace.QuickSceneImage = CopyCue(cue);
         else _workspace.QuickSceneVideo = CopyCue(cue);

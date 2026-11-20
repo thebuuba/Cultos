@@ -28,13 +28,20 @@ internal static partial class Program
             sample.Source = BitmapSource.Create(1, 1, 96, 96, PixelFormats.Bgr32, null, new byte[] { 40, 50, 60, 0 }, 4);
             Check(sample.CopyFrame(canvas, 4, 4) && canvas[20] == 40 && canvas[24] == 0 && canvas[27] == 255,
                 "Smaller video frames clear old pixels from letterboxing");
+            int width = System.Numerics.Vector<uint>.Count + 1;
+            var packed = Enumerable.Range(0, width).SelectMany(i => new byte[] { (byte)i, 20, 30, (byte)(i * 7) }).ToArray();
+            sample.Source = BitmapSource.Create(width, 1, 96, 96, PixelFormats.Bgr32, null, packed, width * 4);
+            var opaque = new byte[packed.Length];
+            Check(sample.CopyFrame(opaque, width, 1) && Enumerable.Range(0, width).All(i =>
+                opaque[i * 4] == i && opaque[i * 4 + 1] == 20 && opaque[i * 4 + 2] == 30 && opaque[i * 4 + 3] == 255),
+                "Packed opacity conversion preserves RGB across vector blocks and the final partial block");
         }
-        var fixture = Path.GetFullPath(".tools/move-cadence-1080.mp4");
+        var fixture = Path.GetFullPath(".tools/move-cadence-1080-60fps.mp4");
         if (!File.Exists(fixture))
         {
             Directory.CreateDirectory(Path.GetDirectoryName(fixture)!);
             var start = new ProcessStartInfo("ffmpeg") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardError = true };
-            foreach (var argument in new[] { "-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc2=size=1920x1080:rate=30", "-t", "10", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "25", "-pix_fmt", "yuv420p", "-y", fixture }) start.ArgumentList.Add(argument);
+            foreach (var argument in new[] { "-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc2=size=1920x1080:rate=60", "-t", "10", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "25", "-pix_fmt", "yuv420p", "-y", fixture }) start.ArgumentList.Add(argument);
             using var generator = Process.Start(start)!; var error = await generator.StandardError.ReadToEndAsync(); await generator.WaitForExitAsync();
             Check(generator.ExitCode == 0, "Moving Full-HD fixture can be generated: " + error);
         }
@@ -56,14 +63,30 @@ internal static partial class Program
                 }
                 output.ShowCue(new Cue { Kind = CueKind.Video, FilePath = fixture, Title = "Warm video A" });
                 await Until(() => output.IsPlaying && output.Position > .4 && !output.IsTransitioning);
+                if (width == 1920)
+                {
+                    var video = output.ActiveSurface.LiveVideoPixels!;
+                    int presented = 0;
+                    Action onFrame = () => presented++;
+                    video.FramePresented += onFrame;
+                    var decoderClock = Stopwatch.StartNew();
+                    await Task.Delay(1800);
+                    double decoderFps = presented / decoderClock.Elapsed.TotalSeconds;
+                    video.FramePresented -= onFrame;
+                    Check(decoderFps is >= 45 and <= 75,
+                        $"Full-HD 60 fps file reaches the program image at its original cadence ({decoderFps:0.0} fps)");
+                }
                 output.TransitionTo(new Cue { Kind = CueKind.Video, FilePath = fixture, Title = "Warm video B" });
                 var mixer = typeof(ProjectionSurface).GetField("_mixer", flags)!.GetValue(output)!;
                 object? move = null;
                 await Until(() => (move = mixer.GetType().GetField("_liveMove", flags)!.GetValue(mixer)) is not null
                     && (bool)move.GetType().GetProperty("Started")!.GetValue(move)!);
                 var moveType = move!.GetType();
+                var captureTimer = (DispatcherTimer)moveType.GetField("_capture", flags)!.GetValue(move)!;
+                Check(captureTimer.Interval.TotalMilliseconds is >= 33 and <= 34,
+                    "Live Move refreshes moving inputs at the lighter 30 fps cadence");
                 var capture = moveType.GetMethod("Capture", flags)!;
-                ((DispatcherTimer)moveType.GetField("_capture", flags)!.GetValue(move)!).Stop();
+                captureTimer.Stop();
                 var samples = new List<double>(); var allocation = new List<long>();
                 for (var i = 0; i < 12; i++)
                 {
@@ -105,6 +128,8 @@ internal static partial class Program
                     var sorted = gaps.Order().ToArray();
                     Results.Add($"METRIC: Full-HD native Move presented={images} elapsed={clock.Elapsed.TotalSeconds:0.00}s medianGap={(sorted.Length > 0 ? sorted[sorted.Length / 2] : 0):0.0}ms maxGap={(sorted.Length > 0 ? sorted[^1] : 0):0.0}ms");
                     Check(images >= 30 && !output.IsTransitioning && errors.Count == 0, "Full-HD video-to-video Move advances continuously without fallback");
+                    double fps = gaps.Count / (gaps.Sum() / 1000);
+                    Check(fps is >= 24 and <= 40, $"Full-HD live Move uses the lighter 30 fps cadence ({fps:0.0} fps)");
                 }
             }
             finally { output.Dispose(); window.Close(); }

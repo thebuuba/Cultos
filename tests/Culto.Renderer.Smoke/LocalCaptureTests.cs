@@ -85,8 +85,36 @@ internal static partial class Program
             first.SetLocalSource(output); second.SetLocalSource(output);
             await Until(() => WindowCaptureCatalog.List().Any(item => item.Options.ProcessId == source.Id), "Owned capture source is available");
             var selected = WindowCaptureCatalog.List().Single(item => item.Options.ProcessId == source.Id).Options;
+            if (!switchToFile)
+            {
+                var thumbnail = new Culto.Desktop.WindowCaptureThumbnail { Width = 160, Height = 90,
+                    HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Bottom,
+                    Cue = new Cue { Kind = CueKind.WindowCapture, Capture = selected with { ControlAudio = false } } };
+                grid.Children.Add(thumbnail);
+                await Until(() => thumbnail.Content is ProjectionSurface surface && Field(surface, "_captureBitmap") is BitmapSource,
+                    "The actual YouTube thumbnail receives captured pixels");
+                var bitmap = (BitmapSource)Field((ProjectionSurface)thumbnail.Content, "_captureBitmap")!;
+                Check(bitmap.PixelWidth == 320 && bitmap.PixelHeight == 180,
+                    "YouTube thumbnail captures at 320x180 instead of duplicating the Full HD program stream");
+                grid.Children.Remove(thumbnail);
+            }
             output.TransitionTo(new Cue { Kind = CueKind.WindowCapture, Capture = selected with { ControlAudio = false } });
             await Until(() => !output.IsTransitioning && output.IsPlaying && SourceIsColored(), "Off-tree output receives real source pixels");
+            if (!switchToFile)
+            {
+                var image = (BitmapSource)Field(output.ActiveSurface, "_captureBitmap")!;
+                int updates = 0;
+                EventHandler changed = (_, _) => updates++;
+                image.Changed += changed;
+                var clock = Stopwatch.StartNew();
+                await Task.Delay(2200);
+                double fps = updates / clock.Elapsed.TotalSeconds;
+                image.Changed -= changed;
+                Check(image.PixelWidth == 1920 && image.PixelHeight == 1080,
+                    "Program captures at 1920x1080 while the thumbnail stays small");
+                Check(fps is >= 24 and <= 40,
+                    $"WPF program image uses the lighter 30 fps capture ({fps:0.0} updates/s)");
+            }
             if (switchToFile)
             {
                 var capture = output.DisplayedCue!;

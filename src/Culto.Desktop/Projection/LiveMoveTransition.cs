@@ -38,7 +38,7 @@ internal sealed class LiveMoveTransition : IDisposable
         Cue? outgoingCue, Cue? incomingCue, TransitionOptions options, int width, int height, Action<string> error)
     {
         _client = client; _error = error;
-        _capture = new DispatcherTimer(TimeSpan.FromMilliseconds(33), DispatcherPriority.Render, (_, _) => Capture(false), Overlay.Dispatcher);
+        _capture = new DispatcherTimer(TimeSpan.FromSeconds(1d / 30), DispatcherPriority.Render, (_, _) => Capture(false), Overlay.Dispatcher);
         _capture.Stop();
         _ = Start(outgoing, incoming, outgoingCue, incomingCue, options.Normalize(), width, height);
     }

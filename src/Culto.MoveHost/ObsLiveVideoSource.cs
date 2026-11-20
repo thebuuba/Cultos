@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 using Culto.Core;
 
 namespace Culto.MoveHost;
@@ -61,6 +62,7 @@ internal sealed class ObsLiveVideoSource : IDisposable
         catch (Exception error) { Volatile.Write(ref CallbackError, error); }
         finally { handle.Free(); }
     }
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private static void Render(nint data, nint effect)
     {
         if (data == 0) return;
